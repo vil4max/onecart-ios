@@ -1,0 +1,56 @@
+.home-screen__heading {
+  display: grid;
+  gap: 2px;
+}
+
+.home-screen__notifications {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.home-screen__notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid var(--color-background);
+  border-radius: 10px;
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.home-screen__frequent-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.home-screen__frequent-copy strong {
+  overflow-wrap: anywhere;
+}
+
+.home-screen__frequent-copy .ui-price-label {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.home-screen .frequent-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.home-screen__empty-copy {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
