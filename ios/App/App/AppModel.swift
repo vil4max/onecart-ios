@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import Network
 import SwiftUI
+import UIKit
 
 enum AppTheme: String, CaseIterable, Identifiable {
     case light
@@ -121,13 +122,26 @@ struct ListOverviewSummary: Equatable {
     let purchasedCount: Int
 }
 
+enum InviteLinkError: LocalizedError {
+    case notOwner
+    case offline
+
+    var errorDescription: String? {
+        switch self {
+        case .notOwner:
+            return "Приглашать участников может только владелец группы."
+        case .offline:
+            return "Для создания ссылки подключитесь к интернету."
+        }
+    }
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     @Published private(set) var isReady = false
     @Published private(set) var isBusy = false
     @Published private(set) var launchError: String?
     @Published private(set) var account: OneCartAccount?
-    @Published private(set) var authenticationMessage: String?
     @Published private(set) var syncState: OneCartSyncState = .synchronized
     @Published private(set) var lastSyncError: String?
     @Published private(set) var familySpaces: [FamilySpace] = []
@@ -141,13 +155,12 @@ final class AppModel: ObservableObject {
     @Published private(set) var homeOverview = HomeOverview()
     @Published private(set) var history: [PurchaseHistoryEntity] = []
     @Published private(set) var familyMembers: [FamilyMember] = []
-    @Published private(set) var pendingInvitations: [FamilyInvitation] = []
     @Published private(set) var access: FamilyAccess?
     @Published private(set) var isFamilyMetadataLoading = false
-    @Published private(set) var hasPendingFamilyInvite = false
     @Published var familyManagementPresented = false
-    @Published var familyInvitePreview: FamilyInvitePreview?
     @Published var toast: ToastMessage?
+    @Published private(set) var profileAvatar: UIImage?
+    @Published private(set) var profileBanner: UIImage?
 
     let preferences: DevicePreferences
     let persistence: PersistenceController
@@ -159,29 +172,23 @@ final class AppModel: ObservableObject {
     var isOnline: Bool { online }
 
     private let repository: FamilySpaceRepository
-    private let backend: SupabaseBackendService
-    private let syncService: FamilySyncService
+    private let backend: CloudKitBackendService
     private let migrationService: LegacyMigrationService
     private let legacySnapshotProvider: LegacySnapshotProviding
     private let defaults: UserDefaults
     private let connectivity = ConnectivityMonitor()
     private var online = true
     private var started = false
-    private var synchronizing = false
-    private var needsResync = false
-    /// Suppresses Realtime→sync echo right after our own snapshot write.
-    private var realtimeQuietUntil = Date.distantPast
-    private var realtimeTask: Task<Void, Never>?
-    private var scheduledSyncTask: Task<Void, Never>?
-    private static let pendingInviteTokenKey = "onecart.pending-family-invite-token"
-    private static let realtimeQuietInterval: TimeInterval = 2.8
+    private var remoteChangeObserver: NSObjectProtocol?
+    private var cloudEventObserver: NSObjectProtocol?
+    private var scheduledReloadTask: Task<Void, Never>?
 
     init(
         persistence: PersistenceController = .shared,
         preferences: DevicePreferences = DevicePreferences(),
         defaults: UserDefaults = .standard,
         legacySnapshotProvider: LegacySnapshotProviding = DefaultLegacySnapshotProvider(),
-        backend: SupabaseBackendService? = nil
+        backend: CloudKitBackendService? = nil
     ) {
         self.persistence = persistence
         self.preferences = preferences
@@ -190,28 +197,25 @@ final class AppModel: ObservableObject {
 
         let repository = FamilySpaceRepository(
             persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
+            permissionAuthorizer: CloudKitPermissionAuthorizer(persistence: persistence)
         )
-        let backend = backend ?? SupabaseBackendService()
+        let backend = backend ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
         self.backend = backend
-        syncService = FamilySyncService(
-            persistence: persistence,
-            repository: repository,
-            backend: backend
-        )
         migrationService = LegacyMigrationService(
             persistence: persistence,
             userDefaults: defaults
         )
-        hasPendingFamilyInvite = defaults.string(
-            forKey: Self.pendingInviteTokenKey
-        ) != nil
     }
 
     deinit {
-        realtimeTask?.cancel()
-        scheduledSyncTask?.cancel()
+        scheduledReloadTask?.cancel()
+        if let remoteChangeObserver {
+            NotificationCenter.default.removeObserver(remoteChangeObserver)
+        }
+        if let cloudEventObserver {
+            NotificationCenter.default.removeObserver(cloudEventObserver)
+        }
         connectivity.stop()
     }
 
@@ -224,83 +228,6 @@ final class AppModel: ObservableObject {
     func retryStartup() async {
         launchError = nil
         await prepareApplication()
-    }
-
-    func signIn(email: String, password: String) async {
-        authenticationMessage = nil
-        isBusy = true
-        defer { isBusy = false }
-
-        do {
-            let account = try await backend.signIn(email: email, password: password)
-            try await activate(account: account)
-            showToast("Вы вошли в OneCart")
-        } catch {
-            authenticationMessage = userFacingMessage(for: error)
-        }
-    }
-
-    func register(displayName: String, email: String, password: String) async {
-        authenticationMessage = nil
-        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            authenticationMessage = "Введите имя."
-            return
-        }
-        guard password.count >= 8 else {
-            authenticationMessage = "Пароль должен содержать не меньше 8 символов."
-            return
-        }
-
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            switch try await backend.register(
-                displayName: name,
-                email: email,
-                password: password
-            ) {
-            case .signedIn(let account):
-                try await activate(account: account)
-                showToast("Аккаунт создан")
-            case .confirmationRequired(let email):
-                authenticationMessage = "Мы отправили письмо на \(email). Подтвердите адрес и затем войдите."
-            }
-        } catch {
-            authenticationMessage = userFacingMessage(for: error)
-        }
-    }
-
-    func clearAuthenticationMessage() {
-        authenticationMessage = nil
-    }
-
-    func signOut() async {
-        isBusy = true
-        realtimeTask?.cancel()
-        realtimeTask = nil
-        scheduledSyncTask?.cancel()
-        scheduledSyncTask = nil
-        try? await backend.signOut()
-
-        account = nil
-        familySpaces = []
-        activeFamilySpace = nil
-        stores = []
-        lists = []
-        products = []
-        history = []
-        familyMembers = []
-        pendingInvitations = []
-        access = nil
-        familyInvitePreview = nil
-        isFamilyMetadataLoading = false
-        hasPendingFamilyInvite = defaults.string(
-            forKey: Self.pendingInviteTokenKey
-        ) != nil
-        lastSyncError = nil
-        syncState = .synchronized
-        isBusy = false
     }
 
     func setActiveFamilySpace(_ space: FamilySpace) {
@@ -323,12 +250,11 @@ final class AppModel: ObservableObject {
                 name: name,
                 cachedForUserID: account.id,
                 serverRole: FamilyAccess.owner.rawValue,
-                needsRemoteCreation: true
+                needsRemoteCreation: false
             )
             defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
             try reload(preferredFamilySpaceID: id)
-            showToast("Семейное пространство создано")
-            scheduleSynchronization()
+            showToast("Группа создана")
         } catch {
             show(error)
         }
@@ -336,7 +262,7 @@ final class AppModel: ObservableObject {
 
     func renameFamilySpace(name: String) async {
         guard access?.isOwner == true, let id = activeFamilySpace?.id else {
-            showToast("Название может менять только владелец семьи.", style: .info)
+            showToast("Название может менять только владелец группы.", style: .info)
             return
         }
         await performMutation(successMessage: "Название обновлено") {
@@ -376,6 +302,13 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func deleteList(_ list: ShoppingListEntity) async {
+        guard let id = list.id else { return }
+        await performMutation(successMessage: "Список удалён") {
+            try await self.repository.deleteList(id: id)
+        }
+    }
+
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
         guard let listID = list.id else { return }
         await performMutation(successMessage: "Товар добавлен") {
@@ -395,6 +328,34 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func refreshCatalogPrices(
+        in listID: UUID,
+        snapshots: [CatalogPriceSnapshot]
+    ) async {
+        guard canEdit, !snapshots.isEmpty else { return }
+        do {
+            let updated = try await repository.refreshCatalogPrices(
+                in: listID,
+                snapshots: snapshots
+            )
+            guard updated > 0 else { return }
+            try refreshProductsAndSummaries()
+        } catch {
+            show(error)
+        }
+    }
+
+    func verifyOfficialCatalogProduct(
+        _ product: OfficialCatalogProduct,
+        brand: StoreBrand
+    ) async -> OfficialCatalogProduct? {
+        _ = product
+        _ = brand
+        // CloudKit stores app data but does not execute HTTP functions. The catalog
+        // detail screen keeps its on-device WKWebView verification fallback.
+        return nil
+    }
+
     func togglePurchased(_ product: ProductEntity) async {
         guard let id = product.id else { return }
         guard canEdit else {
@@ -409,7 +370,6 @@ final class AppModel: ObservableObject {
                     ?? account?.displayName
             )
             try refreshProductsAndSummaries()
-            scheduleSynchronization()
         } catch {
             show(error)
         }
@@ -454,133 +414,50 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func inviteMember(email: String) async {
-        guard let familyID = activeFamilySpace?.id, access?.isOwner == true else {
-            showToast("Приглашать участников может только владелец семьи.", style: .info)
-            return
+    /// Creates a CloudKit invite URL. Does not toggle `isBusy` — callers show local progress
+    /// so the invite UI stays responsive instead of looking frozen.
+    func createFamilyInviteLink() async throws -> FamilyInviteLink {
+        guard let family = activeFamilySpace, access?.isOwner == true else {
+            throw InviteLinkError.notOwner
         }
         guard online else {
-            showToast("Для отправки приглашения подключитесь к интернету.", style: .info)
-            return
+            throw InviteLinkError.offline
         }
 
+        return try await backend.createFamilyInviteLink(for: family)
+    }
+
+    func acceptPendingCloudKitShares() async {
+        let metadata = AppDelegate.takePendingShareMetadata()
+        guard !metadata.isEmpty else { return }
         isBusy = true
+        syncState = .syncing
         defer { isBusy = false }
         do {
-            try await backend.invite(familyID: familyID, email: email)
-            showToast("Приглашение отправлено на email")
+            try await persistence.acceptShareInvitations(from: metadata)
+            syncState = .synchronized
+            scheduleCloudReload(delayNanoseconds: 350_000_000)
+            showToast("Общая группа добавлена")
         } catch {
-            show(error)
-        }
-    }
-
-    func createFamilyInviteLink() async -> FamilyInviteLink? {
-        guard let familyID = activeFamilySpace?.id, access?.isOwner == true else {
-            showToast("Приглашать участников может только владелец семьи.", style: .info)
-            return nil
-        }
-        guard online else {
-            showToast("Для создания ссылки подключитесь к интернету.", style: .info)
-            return nil
-        }
-
-        if activeFamilySpace?.needsRemoteCreationValue == true {
-            await synchronizeNow(showErrors: true)
-            guard syncState == .synchronized else { return nil }
-        }
-
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            return try await backend.createFamilyInviteLink(familyID: familyID)
-        } catch {
-            show(error)
-            return nil
-        }
-    }
-
-    func handleIncomingURL(_ url: URL) async {
-        guard let token = OneCartInviteURL.token(from: url) else { return }
-        defaults.set(token.uuidString, forKey: Self.pendingInviteTokenKey)
-        hasPendingFamilyInvite = true
-        familyManagementPresented = false
-
-        guard account != nil else {
-            showToast(
-                "Войдите или зарегистрируйтесь, чтобы принять приглашение.",
-                style: .info
-            )
-            return
-        }
-        await presentPendingFamilyInvite(showErrors: true)
-    }
-
-    func acceptFamilyInvite(_ preview: FamilyInvitePreview) async {
-        guard online else {
-            showToast("Для принятия приглашения подключитесь к интернету.", style: .info)
-            return
-        }
-
-        isBusy = true
-        do {
-            let familyID = try await backend.acceptFamilyInviteLink(token: preview.token)
-            defaults.removeObject(forKey: Self.pendingInviteTokenKey)
-            hasPendingFamilyInvite = false
-            familyInvitePreview = nil
-            isBusy = false
-
-            await synchronizeNow(showErrors: true)
-            if let space = familySpaces.first(where: { $0.id == familyID }) {
-                setActiveFamilySpace(space)
-            }
-            showToast("Вы присоединились к семье «\(preview.familyName)»")
-        } catch {
-            isBusy = false
-            show(error)
-        }
-    }
-
-    func dismissFamilyInvitePreview() {
-        familyInvitePreview = nil
-    }
-
-    func showPendingFamilyInvite() async {
-        await presentPendingFamilyInvite(showErrors: true)
-    }
-
-    func acceptInvitation(_ invitation: FamilyInvitation) async {
-        guard online else {
-            showToast("Для принятия приглашения подключитесь к интернету.", style: .info)
-            return
-        }
-
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            try await backend.acceptInvitation(id: invitation.id)
-            await synchronizeNow(showErrors: true)
-            if let space = familySpaces.first(where: { $0.id == invitation.familyID }) {
-                setActiveFamilySpace(space)
-            }
-            showToast("Вы присоединились к семье")
-        } catch {
+            syncState = .failed
+            lastSyncError = userFacingMessage(for: error)
             show(error)
         }
     }
 
     func removeMember(_ member: FamilyMember) async {
-        guard let familyID = activeFamilySpace?.id,
+        guard let family = activeFamilySpace,
               access?.isOwner == true,
               !member.isCurrentUser else { return }
         guard online else {
-            showToast("Для изменения состава семьи подключитесь к интернету.", style: .info)
+            showToast("Для изменения состава группы подключитесь к интернету.", style: .info)
             return
         }
 
         isBusy = true
         defer { isBusy = false }
         do {
-            try await backend.removeMember(familyID: familyID, userID: member.id)
+            try await backend.removeMember(member, from: family)
             await refreshFamilyMetadata(showErrors: false)
             showToast("Участник удалён")
         } catch {
@@ -589,35 +466,116 @@ final class AppModel: ObservableObject {
     }
 
     func leaveCurrentFamily() async {
-        guard let account,
-              let familyID = activeFamilySpace?.id,
+        guard account != nil,
+              let family = activeFamilySpace,
               access?.isParticipant == true else { return }
         guard online else {
-            showToast("Чтобы покинуть семью, подключитесь к интернету.", style: .info)
+            showToast("Чтобы покинуть группу, подключитесь к интернету.", style: .info)
             return
         }
 
         isBusy = true
         defer { isBusy = false }
         do {
-            try await backend.leaveFamily(id: familyID)
-            try await repository.removeCachedFamilySpace(id: familyID, for: account.id)
-            defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
-            try reload()
-            await refreshFamilyMetadata(showErrors: false)
-            showToast("Вы покинули семейное пространство")
+            try await backend.leaveFamily(family)
+            scheduleCloudReload(delayNanoseconds: 350_000_000)
+            showToast("Вы покинули группу")
         } catch {
             show(error)
         }
     }
 
     func refreshFromServer() async {
-        await synchronizeNow(showErrors: true)
+        do {
+            try reload()
+            await refreshFamilyMetadata(showErrors: true)
+            syncState = online ? .synchronized : .offline
+        } catch {
+            show(error)
+        }
+    }
+
+    /// Profile media stays on this device; CloudKit synchronizes only shopping data.
+    @discardableResult
+    func updateProfile(
+        displayName: String,
+        avatar: UIImage?,
+        banner: UIImage?,
+        removeAvatar: Bool,
+        removeBanner: Bool
+    ) async -> Bool {
+        guard let account else { return false }
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            showToast("Укажите имя", style: .error)
+            return false
+        }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            // Mirror to disk immediately so Settings/Home show the new photo even
+            // before the network round-trip finishes.
+            if removeAvatar {
+                ProfileMediaStore.remove(for: account.id, kind: .avatar)
+            } else if let avatar {
+                try ProfileMediaStore.save(avatar, for: account.id, kind: .avatar)
+            }
+
+            if removeBanner {
+                ProfileMediaStore.remove(for: account.id, kind: .banner)
+            } else if let banner {
+                try ProfileMediaStore.save(banner, for: account.id, kind: .banner)
+            }
+            reloadProfileMedia(for: account.id)
+
+            let updated = OneCartAccount(
+                id: account.id,
+                displayName: trimmed
+            )
+
+            self.account = updated
+            preferences.participantDisplayName = updated.displayName
+            reloadProfileMedia(for: updated.id)
+            applyProfileToFamilyMembers(updated)
+            objectWillChange.send()
+            if familyManagementPresented {
+                await refreshFamilyMetadata(showErrors: false)
+            }
+            showToast("Профиль обновлён")
+            return true
+        } catch {
+            // Local photos already saved — keep them and still close the editor.
+            reloadProfileMedia(for: account.id)
+            show(error)
+            return false
+        }
     }
 
     func showFamilyManagement() {
         familyManagementPresented = true
         Task { await refreshFamilyMetadata(showErrors: true) }
+    }
+
+    private func reloadProfileMedia(for userID: UUID) {
+        profileAvatar = ProfileMediaStore.image(for: userID, kind: .avatar)
+        profileBanner = ProfileMediaStore.image(for: userID, kind: .banner)
+    }
+
+    private func applyProfileToFamilyMembers(_ account: OneCartAccount) {
+        familyMembers = familyMembers.map { member in
+            guard member.isCurrentUser else { return member }
+            return FamilyMember(
+                id: member.id,
+                displayName: account.displayName,
+                access: member.access,
+                joinedAt: member.joinedAt,
+                isCurrentUser: true,
+                avatarURL: nil,
+                bannerURL: nil
+            )
+        }
     }
 
     func showToast(_ text: String, style: ToastStyle = .success) {
@@ -639,42 +597,26 @@ final class AppModel: ObservableObject {
             try await repository.deduplicateStableIDs()
             preferences.reloadFromDefaults()
             installConnectivityMonitor()
+            installCloudObservers()
 
-            account = await backend.restoredAccount()
-            if let account {
-                try await repository.claimUnassignedFamilySpaces(for: account.id)
-                try reload()
-                if online {
-                    await synchronizeNow(showErrors: false)
-                    startRealtime()
-                } else {
-                    syncState = .offline
-                }
-                await presentPendingFamilyInvite(showErrors: false)
-            } else {
-                clearAccountData()
+            let restoredAccount = try await backend.restoredAccount(
+                displayName: preferences.participantDisplayName.nilIfBlank
+            )
+            account = restoredAccount
+            if preferences.participantDisplayName.nilIfBlank == nil {
+                preferences.participantDisplayName = restoredAccount.displayName
             }
+            reloadProfileMedia(for: restoredAccount.id)
+            try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
+            try reload()
+            syncState = online ? .synchronized : .offline
+            await acceptPendingCloudKitShares()
+            await refreshFamilyMetadata(showErrors: false)
             isReady = true
         } catch {
             launchError = userFacingMessage(for: error)
             isReady = true
         }
-    }
-
-    private func activate(account: OneCartAccount) async throws {
-        self.account = account
-        if preferences.participantDisplayName.nilIfBlank == nil {
-            preferences.participantDisplayName = account.displayName
-        }
-        try await repository.claimUnassignedFamilySpaces(for: account.id)
-        try reload()
-        if online {
-            await synchronizeNow(showErrors: false)
-            startRealtime()
-        } else {
-            syncState = .offline
-        }
-        await presentPendingFamilyInvite(showErrors: false)
     }
 
     private func clearAccountData() {
@@ -689,8 +631,9 @@ final class AppModel: ObservableObject {
         homeOverview = HomeOverview()
         history = []
         familyMembers = []
-        pendingInvitations = []
         access = nil
+        profileAvatar = nil
+        profileBanner = nil
     }
 
     private func performMutation(
@@ -708,7 +651,6 @@ final class AppModel: ObservableObject {
             if let successMessage {
                 showToast(successMessage)
             }
-            scheduleSynchronization()
         } catch {
             show(error)
         }
@@ -723,7 +665,7 @@ final class AppModel: ObservableObject {
         let context = persistence.container.viewContext
         context.processPendingChanges()
         let previousID = activeFamilySpace?.id
-        familySpaces = try repository.fetchFamilySpaces(for: account.id)
+        familySpaces = try repository.fetchFamilySpaces()
 
         let storedID = preferredFamilySpaceID
             ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
@@ -742,8 +684,11 @@ final class AppModel: ObservableObject {
             lists = try fetchLists(familySpaceID: selectedID, in: context)
             products = try fetchProducts(familySpaceID: selectedID, in: context)
             history = try fetchHistory(familySpaceID: selectedID, in: context)
-            access = FamilyAccess(rawValue: selected?.serverRole ?? "")
-                ?? (selected?.needsRemoteCreationValue == true ? .owner : .member)
+            if let selected {
+                access = backend.access(for: selected)
+            } else {
+                access = nil
+            }
             if previousID != selectedID {
                 familyMembers = []
             }
@@ -867,142 +812,66 @@ final class AppModel: ObservableObject {
         return try context.fetch(request)
     }
 
-    private func synchronizeNow(showErrors: Bool) async {
-        guard let account else { return }
-        guard online else {
-            syncState = .offline
-            return
-        }
-        guard !synchronizing else {
-            needsResync = true
-            return
-        }
-
-        synchronizing = true
-        syncState = .syncing
-        defer {
-            synchronizing = false
-            // Own writes echo through Realtime; keep a quiet window so we don't
-            // immediately schedule another full snapshot reload on MainActor.
-            realtimeQuietUntil = Date().addingTimeInterval(Self.realtimeQuietInterval)
-            if needsResync {
-                needsResync = false
-                let delayNs = UInt64((Self.realtimeQuietInterval + 0.5) * 1_000_000_000)
-                scheduleSynchronization(delayNanoseconds: delayNs)
-            }
-        }
-        do {
-            _ = try await syncService.synchronize(account: account)
-            try reload()
-            if familyManagementPresented {
-                await refreshFamilyMetadata(showErrors: false)
-            } else {
-                await refreshPendingInvitations(showErrors: false)
-            }
-            syncState = .synchronized
-            lastSyncError = nil
-        } catch {
-            if isNetworkError(error) {
-                syncState = .offline
-            } else {
-                syncState = .failed
-            }
-            lastSyncError = userFacingMessage(for: error)
-            if showErrors {
-                show(error)
-            }
-        }
-    }
-
     private func refreshFamilyMetadata(showErrors: Bool) async {
-        guard account != nil, online else { return }
+        guard let account, online else { return }
         isFamilyMetadataLoading = true
         defer { isFamilyMetadataLoading = false }
         do {
-            async let invitations = backend.pendingInvitations()
-            if let familyID = activeFamilySpace?.id {
-                async let members = backend.familyMembers(familyID: familyID)
-                familyMembers = try await members
+            if let family = activeFamilySpace {
+                familyMembers = try backend.familyMembers(for: family, account: account)
             } else {
                 familyMembers = []
             }
-            pendingInvitations = try await invitations
         } catch {
             if showErrors { show(error) }
         }
     }
 
-    private func refreshPendingInvitations(showErrors: Bool) async {
-        guard account != nil, online else { return }
-        do {
-            pendingInvitations = try await backend.pendingInvitations()
-        } catch {
-            if showErrors { show(error) }
+    private func installCloudObservers() {
+        guard remoteChangeObserver == nil, cloudEventObserver == nil else { return }
+        remoteChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: persistence.container.persistentStoreCoordinator,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.scheduleCloudReload() }
         }
-    }
 
-    private func presentPendingFamilyInvite(showErrors: Bool) async {
-        guard account != nil,
-              online,
-              let tokenValue = defaults.string(forKey: Self.pendingInviteTokenKey),
-              let token = UUID(uuidString: tokenValue) else { return }
-
-        do {
-            guard let preview = try await backend.familyInvitePreview(token: token) else {
-                defaults.removeObject(forKey: Self.pendingInviteTokenKey)
-                hasPendingFamilyInvite = false
-                familyInvitePreview = nil
-                if showErrors {
-                    showToast(
-                        "Ссылка уже использована или срок её действия истёк.",
-                        style: .error
-                    )
+        cloudEventObserver = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: persistence.container,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                guard let self,
+                      let event = notification.userInfo?[
+                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                      ] as? NSPersistentCloudKitContainer.Event else { return }
+                if event.endDate == nil {
+                    self.syncState = .syncing
+                } else if let error = event.error {
+                    self.syncState = self.isNetworkError(error) ? .offline : .failed
+                    self.lastSyncError = self.userFacingMessage(for: error)
+                } else {
+                    self.syncState = self.online ? .synchronized : .offline
+                    self.lastSyncError = nil
                 }
-                return
             }
-            familyInvitePreview = preview
-        } catch {
-            if showErrors { show(error) }
         }
     }
 
-    private func scheduleSynchronization(delayNanoseconds: UInt64 = 650_000_000) {
+    private func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
         guard account != nil else { return }
-        guard online else {
-            syncState = .offline
-            return
-        }
-
-        scheduledSyncTask?.cancel()
-        scheduledSyncTask = Task { [weak self] in
+        scheduledReloadTask?.cancel()
+        scheduledReloadTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled else { return }
-            await self?.synchronizeNow(showErrors: false)
-        }
-    }
-
-    private func handleRealtimeChange() {
-        guard Date() >= realtimeQuietUntil else { return }
-        if synchronizing {
-            needsResync = true
-            return
-        }
-        scheduleSynchronization(delayNanoseconds: 1_200_000_000)
-    }
-
-    private func startRealtime() {
-        guard account != nil, online else { return }
-        realtimeTask?.cancel()
-        realtimeTask = Task { [weak self] in
-            guard let self else { return }
+            guard !Task.isCancelled, let self else { return }
             do {
-                try await self.backend.listenForDatabaseChanges { [weak self] in
-                    Task { @MainActor in
-                        self?.handleRealtimeChange()
-                    }
+                try self.reload()
+                if self.familyManagementPresented {
+                    await self.refreshFamilyMetadata(showErrors: false)
                 }
             } catch {
-                guard !Task.isCancelled else { return }
                 self.lastSyncError = self.userFacingMessage(for: error)
             }
         }
@@ -1016,11 +885,9 @@ final class AppModel: ObservableObject {
                 self.online = isOnline
                 if !isOnline {
                     self.syncState = .offline
-                    self.realtimeTask?.cancel()
-                    self.realtimeTask = nil
                 } else if !wasOnline, self.account != nil {
-                    await self.synchronizeNow(showErrors: false)
-                    self.startRealtime()
+                    self.syncState = .syncing
+                    self.scheduleCloudReload(delayNanoseconds: 150_000_000)
                 }
             }
         }
@@ -1039,39 +906,11 @@ final class AppModel: ObservableObject {
         let raw = error.localizedDescription
         let normalized = raw.lowercased()
 
-        if normalized.contains("invalid login credentials") {
-            return "Неверный email или пароль."
-        }
-        if normalized.contains("email not confirmed") {
-            return "Сначала подтвердите email по ссылке из письма."
-        }
-        if normalized.contains("user already registered") {
-            return "Аккаунт с таким email уже существует."
-        }
-        if normalized.contains("only the family owner") {
-            return "Это действие доступно только владельцу семьи."
-        }
-        if normalized.contains("already a family member") {
-            return "Этот человек уже состоит в семье."
-        }
-        if normalized.contains("already the family owner") {
-            return "Нельзя пригласить собственный email."
-        }
-        if normalized.contains("invitation") && normalized.contains("expired") {
-            return "Срок действия приглашения истёк."
-        }
-        if normalized.contains("invitation is unavailable") {
-            return "Ссылка уже использована, отозвана или устарела."
-        }
-        if normalized.contains("family_invite_link")
-            && normalized.contains("does not exist") {
-            return "Ссылки-приглашения ещё не подключены на сервере OneCart."
-        }
-        if normalized.contains("row-level security") {
-            return "Сервер не смог создать семейное пространство. Повторите синхронизацию после обновления настроек."
+        if normalized.contains("not authenticated") || normalized.contains("not signed in") {
+            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
         }
         if isNetworkError(error) {
-            return "Нет соединения с сервером. Изменения останутся на устройстве и синхронизируются позже."
+            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
         }
         return (error as? LocalizedError)?.errorDescription
             ?? (raw.isEmpty ? "Не удалось завершить операцию." : raw)

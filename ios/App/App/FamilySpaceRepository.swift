@@ -23,7 +23,7 @@ enum RepositoryError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .familySpaceNotFound:
-            return "Семейный список не найден."
+            return "Группа не найдена."
         case .listNotFound:
             return "Список покупок не найден."
         case .productNotFound:
@@ -31,9 +31,9 @@ enum RepositoryError: LocalizedError, Equatable {
         case .storeNotFound:
             return "Магазин не найден."
         case .permissionDenied:
-            return "У вас нет права изменять этот семейный список."
+            return "У вас нет права изменять эту группу."
         case .crossShareRelationship:
-            return "Нельзя связывать данные из разных семейных пространств."
+            return "Нельзя связывать данные из разных групп."
         case .invalidName:
             return "Введите название."
         }
@@ -61,6 +61,29 @@ struct ProductDraft: Equatable {
     var imageURL: String? = nil
     var sourceURL: String? = nil
     var originalPrice: Double? = nil
+    var loyaltyPrice: Double? = nil
+    var catalogFetchedAt: Date? = nil
+    var promotionEndsAt: Date? = nil
+}
+
+struct CatalogPriceSnapshot: Equatable {
+    let sourceURL: String
+    let price: Double
+    let originalPrice: Double?
+    let loyaltyPrice: Double?
+    let fetchedAt: Date
+    let promotionEndsAt: Date?
+
+    var canonicalSourceURL: String {
+        Self.canonicalSourceURL(from: sourceURL)
+    }
+
+    static func canonicalSourceURL(from value: String) -> String {
+        guard var components = URLComponents(string: value) else { return value }
+        components.query = nil
+        components.fragment = nil
+        return components.url?.absoluteString ?? value
+    }
 }
 
 final class FamilySpaceRepository {
@@ -148,7 +171,7 @@ final class FamilySpaceRepository {
             for space in spaces {
                 space.cachedForUserID = userID
                 space.serverRole = "owner"
-                space.needsRemoteCreation = true
+                space.needsRemoteCreation = false
             }
         }
     }
@@ -224,16 +247,6 @@ final class FamilySpaceRepository {
             store.createdAt = createdAt
             store.updatedAt = createdAt
             store.familySpace = space
-
-            let list = ShoppingListEntity(context: context)
-            try self.persistence.assign(list, toSameStoreAs: space, in: context)
-            list.id = UUID()
-            list.title = "Покупки в \(normalizedName)"
-            list.status = ShoppingListStatus.active.rawValue
-            list.createdAt = createdAt
-            list.updatedAt = createdAt
-            list.familySpace = space
-            list.store = store
 
             space.updatedAt = createdAt
             return id
@@ -328,6 +341,18 @@ final class FamilySpaceRepository {
         }
     }
 
+    func deleteList(id: UUID) async throws {
+        let now = Date()
+        _ = try await persistence.performBackgroundTask { context in
+            guard let list = try Self.fetchList(id: id, in: context) else {
+                throw RepositoryError.listNotFound
+            }
+            try self.requireDeletePermission(for: list)
+            list.deletedAt = now
+            list.familySpace?.updatedAt = now
+        }
+    }
+
     @discardableResult
     func addProduct(
         to listID: UUID,
@@ -388,6 +413,66 @@ final class FamilySpaceRepository {
             product.updatedAt = now
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
+        }
+    }
+
+    @discardableResult
+    func refreshCatalogPrices(
+        in listID: UUID,
+        snapshots: [CatalogPriceSnapshot]
+    ) async throws -> Int {
+        guard !snapshots.isEmpty else { return 0 }
+        let indexed = Dictionary(
+            snapshots.map { ($0.canonicalSourceURL, $0) },
+            uniquingKeysWith: { current, candidate in
+                candidate.fetchedAt > current.fetchedAt ? candidate : current
+            }
+        )
+
+        return try await persistence.performBackgroundTask { context in
+            guard let list = try Self.fetchList(id: listID, in: context) else {
+                throw RepositoryError.listNotFound
+            }
+            try self.requireUpdatePermission(for: list)
+            let products = (list.products?.allObjects as? [ProductEntity] ?? [])
+                .filter { !$0.isDeletedValue }
+            var updateCount = 0
+            let now = Date()
+
+            for product in products {
+                guard let sourceURL = product.sourceURL,
+                      let snapshot = indexed[CatalogPriceSnapshot.canonicalSourceURL(from: sourceURL)],
+                      snapshot.fetchedAt >= (product.catalogFetchedAt ?? .distantPast) else {
+                    continue
+                }
+
+                let originalPrice = snapshot.originalPrice.flatMap {
+                    $0 > snapshot.price ? $0 : nil
+                }
+                let loyaltyPrice = snapshot.loyaltyPrice.flatMap {
+                    $0 > 0 && $0 < snapshot.price ? $0 : nil
+                }
+                let changed = abs(product.estimatedPriceValue - snapshot.price) > 0.001
+                    || product.originalPrice?.doubleValue != originalPrice
+                    || product.loyaltyPrice?.doubleValue != loyaltyPrice
+                    || product.catalogFetchedAt != snapshot.fetchedAt
+                    || product.promotionEndsAt != snapshot.promotionEndsAt
+                guard changed else { continue }
+
+                product.estimatedPrice = NSNumber(value: max(snapshot.price, 0))
+                product.originalPrice = originalPrice.map(NSNumber.init(value:))
+                product.loyaltyPrice = loyaltyPrice.map(NSNumber.init(value:))
+                product.catalogFetchedAt = snapshot.fetchedAt
+                product.promotionEndsAt = originalPrice == nil ? nil : snapshot.promotionEndsAt
+                product.updatedAt = now
+                updateCount += 1
+            }
+
+            if updateCount > 0 {
+                list.updatedAt = now
+                list.familySpace?.updatedAt = now
+            }
+            return updateCount
         }
     }
 
@@ -482,7 +567,7 @@ final class FamilySpaceRepository {
             let names = Set(
                 products.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
             ).sorted()
-            history.memberNames = names.isEmpty ? "Семья" : names.joined(separator: ", ")
+            history.memberNames = names.isEmpty ? "Группа" : names.joined(separator: ", ")
 
             for product in products {
                 let item = HistoryItemEntity(context: context)
@@ -493,6 +578,9 @@ final class FamilySpaceRepository {
                 item.unit = product.unit
                 item.category = product.category
                 item.estimatedPrice = product.estimatedPrice
+                item.originalPrice = product.originalPrice
+                item.imageURL = product.imageURL
+                item.sourceURL = product.sourceURL
                 item.note = product.note
                 item.purchasedAt = product.purchasedAt ?? now
                 item.purchasedByName = product.purchasedByName
@@ -603,6 +691,9 @@ final class FamilySpaceRepository {
         product.imageURL = draft.imageURL?.trimmedNilIfEmpty
         product.sourceURL = draft.sourceURL?.trimmedNilIfEmpty
         product.originalPrice = draft.originalPrice.map { NSNumber(value: max($0, 0)) }
+        product.loyaltyPrice = draft.loyaltyPrice.map { NSNumber(value: max($0, 0)) }
+        product.catalogFetchedAt = draft.catalogFetchedAt
+        product.promotionEndsAt = draft.promotionEndsAt
     }
 
     private static func fetchFamilySpace(

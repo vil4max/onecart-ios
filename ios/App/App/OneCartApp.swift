@@ -32,8 +32,8 @@ private struct OneCartScene: View {
             .task {
                 await model.start()
             }
-            .onOpenURL { url in
-                Task { await model.handleIncomingURL(url) }
+            .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
+                Task { await model.acceptPendingCloudKitShares() }
             }
     }
 }

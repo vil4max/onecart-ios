@@ -12,7 +12,6 @@ enum OneCartPalette {
 private enum RootPhase: Equatable {
     case loading
     case launchError
-    case authentication
     case familySetup
     case main
 }
@@ -20,6 +19,8 @@ private enum RootPhase: Equatable {
 struct RootView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Cart overlay stays up until the ride ends; only then the real UI mounts.
+    @State private var cartRideFinished = false
 
     private var phase: RootPhase {
         if !model.isReady {
@@ -27,9 +28,6 @@ struct RootView: View {
         }
         if model.launchError != nil {
             return .launchError
-        }
-        if model.account == nil {
-            return .authentication
         }
         if model.familySpaces.isEmpty {
             return .familySetup
@@ -40,28 +38,27 @@ struct RootView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             ZStack {
-                switch phase {
-                case .loading:
-                    LaunchLoadingView()
+                if cartRideFinished {
+                    destinationView
                         .transition(.opacity)
-                case .launchError:
-                    LaunchErrorView(message: model.launchError ?? "")
-                        .transition(.opacity)
-                case .authentication:
-                    AuthenticationView()
-                        .transition(.opacity)
-                case .familySetup:
-                    FamilySetupView()
-                        .transition(.opacity)
-                case .main:
-                    MainTabView()
-                        .transition(.opacity)
+                } else {
+                    OneCartPalette.background.ignoresSafeArea()
                 }
             }
             .animation(
-                reduceMotion ? nil : .easeOut(duration: 0.28),
-                value: phase
+                reduceMotion ? nil : .easeInOut(duration: 0.4),
+                value: cartRideFinished
             )
+
+            if !cartRideFinished {
+                LaunchCartRideView {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) {
+                        cartRideFinished = true
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(4)
+            }
 
             if let toast = model.toast {
                 ToastBanner(message: toast)
@@ -71,25 +68,106 @@ struct RootView: View {
                     .zIndex(5)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: model.toast)
+        .animation(.spring(response: 0.35, dampingFraction: 0.86), value: model.toast)
         .sheet(isPresented: $model.familyManagementPresented) {
             FamilyManagementSheet()
         }
-        .sheet(item: $model.familyInvitePreview) { preview in
-            FamilyInviteAcceptanceSheet(preview: preview)
+    }
+
+    @ViewBuilder
+    private var destinationView: some View {
+        switch phase {
+        case .loading:
+            OneCartPalette.background.ignoresSafeArea()
+        case .launchError:
+            LaunchErrorView(message: model.launchError ?? "")
+        case .familySetup:
+            FamilySetupView()
+        case .main:
+            MainTabView()
         }
     }
 }
 
-private struct LaunchLoadingView: View {
+/// Lightweight cart ride on a solid background. Destination UI mounts only after
+/// this finishes, so the heavy main screen is not animating under an opaque veil.
+private struct LaunchCartRideView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let onFinished: () -> Void
+
+    /// Only `travel` is animated — keeps the ride smooth on the main thread.
+    @State private var travel: CGFloat = -1.15
+
+    private let driveInDuration: Double = 0.9
+    private let driveOutDuration: Double = 0.55
+    private let cartWidth: CGFloat = 92
+
     var body: some View {
-        VStack(spacing: 18) {
-            OneCartMark()
-            ProgressView("Подготавливаем ваши списки…")
-                .tint(OneCartPalette.primary)
+        GeometryReader { geo in
+            let travelX = travel * (geo.size.width * 0.8)
+
+            ZStack {
+                OneCartPalette.background.ignoresSafeArea()
+
+                Image("LaunchCart")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: cartWidth)
+                    .offset(x: travelX)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(OneCartPalette.background)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Загрузка OneCart")
+        .accessibilityAddTraits(.updatesFrequently)
+        .task { await runRide() }
+    }
+
+    @MainActor
+    private func runRide() async {
+        if reduceMotion {
+            travel = 0
+            guard await waitUntilAppReady() else { return }
+            onFinished()
+            return
+        }
+
+        withAnimation(.timingCurve(0.2, 0.82, 0.24, 1, duration: driveInDuration)) {
+            travel = 0
+        }
+        do {
+            try await Task.sleep(nanoseconds: UInt64(driveInDuration * 1_000_000_000))
+        } catch {
+            return
+        }
+
+        guard await waitUntilAppReady() else { return }
+
+        withAnimation(.timingCurve(0.4, 0.02, 0.2, 1, duration: driveOutDuration)) {
+            travel = 1.35
+        }
+        do {
+            try await Task.sleep(nanoseconds: UInt64((driveOutDuration + 0.03) * 1_000_000_000))
+        } catch {
+            onFinished()
+            return
+        }
+        onFinished()
+    }
+
+    @MainActor
+    private func waitUntilAppReady() async -> Bool {
+        if model.isReady { return true }
+        for await ready in model.$isReady.values {
+            if Task.isCancelled { return false }
+            if ready { return true }
+        }
+        return false
     }
 }
 
@@ -118,165 +196,9 @@ private struct LaunchErrorView: View {
     }
 }
 
-private enum AuthenticationMode: String, CaseIterable, Identifiable {
-    case signIn = "Вход"
-    case register = "Регистрация"
-
-    var id: String { rawValue }
-}
-
-private struct AuthenticationView: View {
-    @EnvironmentObject private var model: AppModel
-    @State private var mode: AuthenticationMode = .signIn
-    @State private var displayName = ""
-    @State private var email = ""
-    @State private var password = ""
-    @State private var passwordConfirmation = ""
-    @State private var localMessage: String?
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        OneCartMark()
-                        Text("Покупки всей семьи — в одном месте")
-                            .font(.largeTitle.bold())
-                        Text("Войдите в OneCart, чтобы списки работали на ваших устройствах и у приглашённых членов семьи.")
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if model.hasPendingFamilyInvite {
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "person.3.fill")
-                                .foregroundColor(OneCartPalette.primaryStrong)
-                                .frame(width: 36, height: 36)
-                                .background(OneCartPalette.primarySoft, in: Circle())
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Вас пригласили в семью")
-                                    .font(.subheadline.weight(.semibold))
-                                Text("Войдите или создайте аккаунт — приглашение откроется автоматически.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .oneCartCard()
-                    }
-
-                    Picker("Режим", selection: $mode) {
-                        ForEach(AuthenticationMode.allCases) { item in
-                            Text(item.rawValue).tag(item)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: mode) { _ in
-                        localMessage = nil
-                        model.clearAuthenticationMessage()
-                    }
-
-                    VStack(spacing: 14) {
-                        if mode == .register {
-                            TextField("Ваше имя", text: $displayName)
-                                .textContentType(.name)
-                                .submitLabel(.next)
-                        }
-
-                        TextField("Email", text: $email)
-                            .keyboardType(.emailAddress)
-                            .textContentType(.emailAddress)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                            .submitLabel(.next)
-
-                        SecureField("Пароль", text: $password)
-                            .textContentType(mode == .register ? .newPassword : .password)
-                            .submitLabel(mode == .register ? .next : .go)
-
-                        if mode == .register {
-                            SecureField("Повторите пароль", text: $passwordConfirmation)
-                                .textContentType(.newPassword)
-                                .submitLabel(.go)
-                        }
-                    }
-                    .textFieldStyle(.roundedBorder)
-                    .oneCartCard()
-
-                    if let message = localMessage ?? model.authenticationMessage {
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(OneCartPalette.primary)
-                            Text(message)
-                                .font(.subheadline)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .oneCartCard()
-                    }
-
-                    Button {
-                        submit()
-                    } label: {
-                        HStack {
-                            if model.isBusy {
-                                ProgressView()
-                                    .tint(.white)
-                            }
-                            Text(mode == .signIn ? "Войти" : "Создать аккаунт")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(OneCartPrimaryButtonStyle())
-                    .disabled(model.isBusy)
-
-                    Label(
-                        "Продукты можно добавлять без интернета. OneCart отправит изменения на сервер, когда сеть появится.",
-                        systemImage: "checkmark.shield.fill"
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
-                .padding(20)
-            }
-            .background(OneCartPalette.background)
-            .navigationBarHidden(true)
-        }
-        .navigationViewStyle(.stack)
-    }
-
-    private func submit() {
-        localMessage = nil
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalizedEmail.contains("@") else {
-            localMessage = "Введите корректный email."
-            return
-        }
-        guard !password.isEmpty else {
-            localMessage = "Введите пароль."
-            return
-        }
-
-        if mode == .register {
-            guard password == passwordConfirmation else {
-                localMessage = "Пароли не совпадают."
-                return
-            }
-            Task {
-                await model.register(
-                    displayName: displayName,
-                    email: normalizedEmail,
-                    password: password
-                )
-            }
-        } else {
-            Task { await model.signIn(email: normalizedEmail, password: password) }
-        }
-    }
-}
-
 struct FamilySetupView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var familyName = "Наша семья"
+    @State private var familyName = "Наша группа"
 
     var body: some View {
         NavigationView {
@@ -284,59 +206,21 @@ struct FamilySetupView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 10) {
                         OneCartMark()
-                        Text("Создайте семейное пространство")
+                        Text("Создайте группу")
                             .font(.largeTitle.bold())
                         if let account = model.account {
-                            Text("Вы вошли как \(account.displayName) · \(account.email)")
+                            Text(account.displayName)
                                 .foregroundStyle(.secondary)
                         }
-                    }
-
-                    if !model.pendingInvitations.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Вас пригласили")
-                                .font(.headline)
-                            ForEach(model.pendingInvitations) { invitation in
-                                InvitationRow(invitation: invitation)
-                            }
-                        }
-                        .oneCartCard()
-                    }
-
-                    if model.hasPendingFamilyInvite {
-                        Button {
-                            Task { await model.showPendingFamilyInvite() }
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "envelope.open.fill")
-                                    .foregroundColor(OneCartPalette.primaryStrong)
-                                    .frame(width: 36, height: 36)
-                                    .background(OneCartPalette.primarySoft, in: Circle())
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Открыть приглашение")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    Text("Посмотрите семью перед присоединением")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .oneCartCard()
-                        }
-                        .buttonStyle(.plain)
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Своё пространство", systemImage: "person.3.fill")
                             .font(.headline)
                             .foregroundColor(OneCartPalette.primaryStrong)
-                        TextField("Наша семья", text: $familyName)
+                        TextField("Наша группа", text: $familyName)
                             .textFieldStyle(.roundedBorder)
-                        Text("Вы станете владельцем и сможете приглашать близких обычной ссылкой.")
+                        Text("Вы станете владельцем и сможете приглашать участников обычной ссылкой. Название можно изменить в любой момент.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -349,7 +233,7 @@ struct FamilySetupView: View {
                             if model.isBusy {
                                 ProgressView().tint(.white)
                             }
-                            Label("Создать семейный список", systemImage: "plus")
+                            Label("Создать группу", systemImage: "plus")
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -359,11 +243,6 @@ struct FamilySetupView: View {
                             || familyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     )
 
-                    Button("Выйти из аккаунта") {
-                        Task { await model.signOut() }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .foregroundColor(.secondary)
                 }
                 .padding(20)
             }
@@ -374,61 +253,11 @@ struct FamilySetupView: View {
     }
 }
 
-struct InvitationRow: View {
-    @EnvironmentObject private var model: AppModel
-    let invitation: FamilyInvitation
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "envelope.open.fill")
-                .foregroundColor(OneCartPalette.primary)
-                .frame(width: 34, height: 34)
-                .background(OneCartPalette.primarySoft, in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Text(invitation.familyName)
-                    .font(.subheadline.weight(.semibold))
-                Text("Приглашает \(invitation.invitedByName)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Принять") {
-                Task { await model.acceptInvitation(invitation) }
-            }
-            .font(.subheadline.weight(.semibold))
-            .disabled(model.isBusy)
-        }
-    }
-}
-
 struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var showsSyncStatus: Bool {
-        model.syncState != .synchronized
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            if showsSyncStatus {
-                SyncStatusBar(state: model.syncState)
-                    .transition(
-                        reduceMotion
-                            ? .opacity
-                            : .move(edge: .top).combined(with: .opacity)
-                    )
-                    .animation(
-                        reduceMotion ? nil : .easeInOut(duration: 0.22),
-                        value: model.syncState
-                    )
-            }
-            if model.hasPendingFamilyInvite {
-                PendingLinkInvitationBanner()
-            }
-            if !model.pendingInvitations.isEmpty {
-                PendingInvitationBanner(count: model.pendingInvitations.count)
-            }
             TabView {
                 HomeView()
                     .tabItem { Label("Главная", systemImage: "cart.fill") }
@@ -445,105 +274,25 @@ struct MainTabView: View {
     }
 }
 
-private struct PendingLinkInvitationBanner: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        Button {
-            Task { await model.showPendingFamilyInvite() }
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "link.badge.plus")
-                Text("Открыть приглашение в семью")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-            }
-            .foregroundColor(OneCartPalette.primaryStrong)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(OneCartPalette.primarySoft)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct PendingInvitationBanner: View {
-    @EnvironmentObject private var model: AppModel
-    let count: Int
-
-    var body: some View {
-        Button {
-            model.showFamilyManagement()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "envelope.badge.fill")
-                Text(count == 1 ? "Новое приглашение в семью" : "Новых приглашений: \(count)")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-            }
-            .foregroundColor(OneCartPalette.primaryStrong)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(OneCartPalette.primarySoft)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-struct SyncStatusBar: View {
-    let state: OneCartSyncState
-
-    var body: some View {
-        HStack(spacing: 8) {
-            if state == .syncing {
-                ProgressView()
-                    .scaleEffect(0.72)
-            } else {
-                Image(systemName: state.systemImage)
-                    .font(.caption.weight(.semibold))
-            }
-            Text(state.title)
-                .font(.caption.weight(.semibold))
-            Spacer()
-        }
-        .foregroundColor(foregroundColor)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 7)
-        .background(backgroundColor)
-        .animation(.easeInOut(duration: 0.2), value: state)
-    }
-
-    private var foregroundColor: Color {
-        switch state {
-        case .synchronized, .syncing: return OneCartPalette.primaryStrong
-        case .offline: return .secondary
-        case .failed: return OneCartPalette.danger
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch state {
-        case .synchronized, .syncing: return OneCartPalette.primarySoft
-        case .offline: return Color(.tertiarySystemFill)
-        case .failed: return OneCartPalette.danger.opacity(0.12)
-        }
-    }
-}
-
 struct OneCartMark: View {
+    var compact: Bool = false
+
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: compact ? 10 : 12) {
             Image(systemName: "cart.fill")
+                .font(.system(size: compact ? 16 : 18, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 38, height: 38)
-                .background(OneCartPalette.primary, in: RoundedRectangle(cornerRadius: 12))
+                .frame(width: compact ? 36 : 40, height: compact ? 36 : 40)
+                .background(
+                    OneCartPalette.primary,
+                    in: RoundedRectangle(cornerRadius: compact ? 11 : 12, style: .continuous)
+                )
             Text("OneCart")
-                .font(.title2.bold())
+                .font(compact ? .title3.bold() : .title2.bold())
+                .foregroundStyle(.primary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("OneCart")
     }
 }
 

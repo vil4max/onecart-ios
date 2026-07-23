@@ -22,7 +22,7 @@ final class FamilySpace: NSManagedObject {
     }
 
     var stableID: UUID { id ?? UUID() }
-    var displayName: String { name?.nilIfBlank ?? "Семейный список" }
+    var displayName: String { name?.nilIfBlank ?? "Группа" }
     var createdDate: Date { createdAt ?? .distantPast }
     var updatedDate: Date { updatedAt ?? createdDate }
     var isDeletedValue: Bool { deletedAt != nil }
@@ -219,8 +219,11 @@ final class ProductEntity: NSManagedObject {
     @NSManaged var category: String?
     @NSManaged var estimatedPrice: NSNumber?
     @NSManaged var originalPrice: NSNumber?
+    @NSManaged var loyaltyPrice: NSNumber?
     @NSManaged var imageURL: String?
     @NSManaged var sourceURL: String?
+    @NSManaged var catalogFetchedAt: Date?
+    @NSManaged var promotionEndsAt: Date?
     @NSManaged var note: String?
     @NSManaged var isPurchased: NSNumber?
     @NSManaged var createdAt: Date?
@@ -243,8 +246,22 @@ final class ProductEntity: NSManagedObject {
     var categoryValue: ProductCategory { ProductCategory(rawValue: category ?? "") ?? .other }
     var estimatedPriceValue: Double { max(estimatedPrice?.doubleValue ?? 0, 0) }
     var originalPriceValue: Double? {
+        if let promotionEndsAt, promotionEndsAt <= Date() { return nil }
         guard let value = originalPrice?.doubleValue, value > estimatedPriceValue else { return nil }
         return value
+    }
+    var loyaltyPriceValue: Double? {
+        if let promotionEndsAt, promotionEndsAt <= Date() { return nil }
+        guard let value = loyaltyPrice?.doubleValue,
+              value > 0,
+              value < estimatedPriceValue else { return nil }
+        return value
+    }
+    var isCatalogPriceStale: Bool {
+        guard sourceURLValue != nil else { return false }
+        guard let catalogFetchedAt else { return true }
+        if let promotionEndsAt, promotionEndsAt <= Date() { return true }
+        return Date().timeIntervalSince(catalogFetchedAt) > 5 * 60
     }
     var imageURLValue: URL? { imageURL.flatMap(URL.init(string:)) }
     var sourceURLValue: URL? { sourceURL.flatMap(URL.init(string:)) }
@@ -279,7 +296,7 @@ final class PurchaseHistoryEntity: NSManagedObject {
     var stableID: UUID { id ?? UUID() }
     var totalValue: Double { max(total?.doubleValue ?? 0, 0) }
     var purchaseDate: Date { date ?? createdAt ?? .distantPast }
-    var membersDisplay: String { memberNames?.nilIfBlank ?? "Семья" }
+    var membersDisplay: String { memberNames?.nilIfBlank ?? "Группа" }
     var createdDate: Date { createdAt ?? purchaseDate }
     var updatedDate: Date { updatedAt ?? createdDate }
     var isDeletedValue: Bool { deletedAt != nil }
@@ -299,6 +316,9 @@ final class HistoryItemEntity: NSManagedObject {
     @NSManaged var unit: String?
     @NSManaged var category: String?
     @NSManaged var estimatedPrice: NSNumber?
+    @NSManaged var originalPrice: NSNumber?
+    @NSManaged var imageURL: String?
+    @NSManaged var sourceURL: String?
     @NSManaged var note: String?
     @NSManaged var purchasedAt: Date?
     @NSManaged var purchasedByName: String?
@@ -317,7 +337,14 @@ final class HistoryItemEntity: NSManagedObject {
     var displayName: String { name?.nilIfBlank ?? "Товар" }
     var quantityValue: Double { max(quantity?.doubleValue ?? 1, 0) }
     var unitValue: ProductUnit { ProductUnit(rawValue: unit ?? "") ?? .piece }
+    var categoryValue: ProductCategory { ProductCategory(rawValue: category ?? "") ?? .other }
     var estimatedPriceValue: Double { max(estimatedPrice?.doubleValue ?? 0, 0) }
+    var originalPriceValue: Double? {
+        guard let value = originalPrice?.doubleValue, value > estimatedPriceValue else { return nil }
+        return value
+    }
+    var imageURLValue: URL? { imageURL.flatMap(URL.init(string:)) }
+    var sourceURLValue: URL? { sourceURL.flatMap(URL.init(string:)) }
     var createdDate: Date { createdAt ?? .distantPast }
     var updatedDate: Date { updatedAt ?? createdDate }
     var isDeletedValue: Bool { deletedAt != nil }
@@ -326,7 +353,7 @@ final class HistoryItemEntity: NSManagedObject {
 enum OneCartManagedObjectModel {
     static func makeModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
-        model.versionIdentifiers = ["OneCartCoreDataV2"]
+        model.versionIdentifiers = ["OneCartCoreDataV4"]
 
         let familySpace = entity("FamilySpace", FamilySpace.self)
         let store = entity("Store", StoreEntity.self)
@@ -430,8 +457,11 @@ enum OneCartManagedObjectModel {
             attribute("category", .stringAttributeType),
             attribute("estimatedPrice", .doubleAttributeType),
             attribute("originalPrice", .doubleAttributeType),
+            attribute("loyaltyPrice", .doubleAttributeType),
             attribute("imageURL", .stringAttributeType),
             attribute("sourceURL", .stringAttributeType),
+            attribute("catalogFetchedAt", .dateAttributeType),
+            attribute("promotionEndsAt", .dateAttributeType),
             attribute("note", .stringAttributeType),
             attribute("isPurchased", .booleanAttributeType),
             attribute("createdAt", .dateAttributeType),
@@ -464,6 +494,9 @@ enum OneCartManagedObjectModel {
             attribute("unit", .stringAttributeType),
             attribute("category", .stringAttributeType),
             attribute("estimatedPrice", .doubleAttributeType),
+            attribute("originalPrice", .doubleAttributeType),
+            attribute("imageURL", .stringAttributeType),
+            attribute("sourceURL", .stringAttributeType),
             attribute("note", .stringAttributeType),
             attribute("purchasedAt", .dateAttributeType),
             attribute("purchasedByName", .stringAttributeType),

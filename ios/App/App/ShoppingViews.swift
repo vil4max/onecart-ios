@@ -2,9 +2,8 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingAddList = false
-    @State private var appeared = false
+    @State private var pendingDeleteList: ShoppingListEntity?
 
     private var overview: HomeOverview { model.homeOverview }
 
@@ -25,8 +24,8 @@ struct HomeView: View {
                         overview: overview
                     )
                     .padding(.horizontal, 20)
-                    .padding(.top, 4)
-                    .padding(.bottom, 28)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
 
                     HomeFamilyInviteRow(
                         symbol: familySymbol,
@@ -37,7 +36,7 @@ struct HomeView: View {
                         model.showFamilyManagement()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 24)
 
                     HomeListsHeader(
                         count: model.activeLists.count,
@@ -66,6 +65,15 @@ struct HomeView: View {
                                         )
                                     }
                                     .buttonStyle(HomePressButtonStyle())
+                                    .contextMenu {
+                                        if model.canEdit {
+                                            Button(role: .destructive) {
+                                                pendingDeleteList = list
+                                            } label: {
+                                                Label("Удалить список", systemImage: "trash")
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -73,8 +81,6 @@ struct HomeView: View {
                     }
                 }
                 .padding(.bottom, 28)
-                .opacity(appeared || reduceMotion ? 1 : 0)
-                .offset(y: appeared || reduceMotion ? 0 : 10)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("Главная")
@@ -95,15 +101,22 @@ struct HomeView: View {
             .sheet(isPresented: $showingAddList) {
                 AddListSheet()
             }
-            .onAppear {
-                guard !appeared else { return }
-                if reduceMotion {
-                    appeared = true
-                } else {
-                    withAnimation(.easeOut(duration: 0.28)) {
-                        appeared = true
+            .alert(
+                "Удалить список?",
+                isPresented: Binding(
+                    get: { pendingDeleteList != nil },
+                    set: { if !$0 { pendingDeleteList = nil } }
+                )
+            ) {
+                Button("Отмена", role: .cancel) { pendingDeleteList = nil }
+                Button("Удалить", role: .destructive) {
+                    if let pendingDeleteList {
+                        Task { await model.deleteList(pendingDeleteList) }
                     }
+                    pendingDeleteList = nil
                 }
+            } message: {
+                Text(pendingDeleteList?.displayTitle ?? "Список со всеми товарами будет удалён.")
             }
         }
         .navigationViewStyle(.stack)
@@ -121,11 +134,11 @@ struct HomeView: View {
         switch model.access {
         case .owner?:
             let count = max(model.familyMembers.count, 1)
-            return count == 1 ? "Семья ещё не собрана" : "В семье \(count)"
+            return count == 1 ? "Группа ещё не собрана" : "В группе \(count)"
         case .member?:
-            return "Общий семейный список"
+            return "Общий список группы"
         case nil:
-            return "Семейное пространство"
+            return "Групповое пространство"
         }
     }
 
@@ -154,70 +167,146 @@ private struct HomeMasthead: View {
     let listCount: Int
     let overview: HomeOverview
 
+    private var progress: Double {
+        guard overview.totalCount > 0 else { return 0 }
+        return Double(overview.purchasedCount) / Double(overview.totalCount)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Семейный список")
-                .font(.caption.weight(.semibold))
-                .foregroundColor(OneCartPalette.primary)
-                .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Покупки группы")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(OneCartPalette.primary)
+                        .textCase(.uppercase)
 
-            Text(familyName)
-                .font(.largeTitle.bold())
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+                    Text(familyName)
+                        .font(.title.bold())
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2)
 
-            HomeMetaStrip(items: metaItems)
+                    Text("Общие списки для дома — удобно ходить в магазин вместе")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "house.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .frame(width: 44, height: 44)
+                    .background(OneCartPalette.primarySoft, in: Circle())
+                    .accessibilityHidden(true)
+            }
+
+            if overview.totalCount > 0 {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("В списках")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Text("\(overview.purchasedCount) из \(overview.totalCount) куплено")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(.tertiarySystemFill))
+                            Capsule()
+                                .fill(OneCartPalette.primary)
+                                .frame(width: max(10, geo.size.width * progress))
+                        }
+                    }
+                    .frame(height: 9)
+                    .accessibilityLabel(
+                        "Куплено \(overview.purchasedCount) из \(overview.totalCount)"
+                    )
+
+                    HStack(spacing: 8) {
+                        HomeStatPill(
+                            value: "\(listCount)",
+                            label: listsWord,
+                            systemImage: "list.bullet"
+                        )
+                        HomeStatPill(
+                            value: "\(overview.remainingCount)",
+                            label: "ещё взять",
+                            systemImage: "basket"
+                        )
+                        if overview.estimatedTotal > 0 {
+                            HomeStatPill(
+                                value: overview.estimatedTotal.oneCartCurrency,
+                                label: "примерно",
+                                systemImage: "banknote"
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text("Добавьте продукты в список магазина — сестра или родители увидят их сразу.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
     }
 
-    private var metaItems: [String] {
-        var items: [String] = [listsLabel]
-        if overview.totalCount == 0 {
-            items.append("пока без товаров")
-        } else {
-            items.append("куплено \(overview.purchasedCount) из \(overview.totalCount)")
-            items.append(overview.estimatedTotal.oneCartCurrency)
-        }
-        return items
-    }
-
-    private var listsLabel: String {
+    private var listsWord: String {
         let mod10 = listCount % 10
         let mod100 = listCount % 100
-        if listCount == 0 {
-            return "нет списков"
-        }
-        if mod10 == 1, mod100 != 11 {
-            return "\(listCount) список"
-        }
-        if (2...4).contains(mod10), !(12...14).contains(mod100) {
-            return "\(listCount) списка"
-        }
-        return "\(listCount) списков"
+        if listCount == 0 { return "списков" }
+        if mod10 == 1, mod100 != 11 { return "список" }
+        if (2...4).contains(mod10), !(12...14).contains(mod100) { return "списка" }
+        return "списков"
     }
 }
 
-private struct HomeMetaStrip: View {
-    let items: [String]
+private struct HomeStatPill: View {
+    let value: String
+    let label: String
+    let systemImage: String
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                if index > 0 {
-                    Text("·")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 8)
-                }
-                Text(item)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(OneCartPalette.primary)
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            Spacer(minLength: 0)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .background(
+            OneCartPalette.primarySoft.opacity(0.55),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
     }
 }
 
@@ -322,7 +411,7 @@ private struct HomeEmptyListsPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Пока пусто")
                 .font(.headline)
-            Text("Создайте список для магазина — семья сможет править его вместе с вами.")
+            Text("Создайте список для магазина — группа сможет править его вместе с вами.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -346,28 +435,54 @@ private struct ShoppingListRow: View {
     let list: ShoppingListEntity
     let summary: ListOverviewSummary
 
+    private var progress: Double {
+        guard summary.productCount > 0 else { return 0 }
+        return Double(summary.purchasedCount) / Double(summary.productCount)
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             mark
-                .frame(width: 48, height: 48)
+                .frame(width: 52, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(list.store?.displayName ?? list.displayTitle)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(list.store?.displayName ?? list.displayTitle)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(countLabel)
+                        .font(.caption.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundColor(OneCartPalette.primaryStrong)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            OneCartPalette.primarySoft,
+                            in: Capsule(style: .continuous)
+                        )
+                }
+
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+
+                if summary.productCount > 0 {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(.tertiarySystemFill))
+                            Capsule()
+                                .fill(OneCartPalette.primary.opacity(0.9))
+                                .frame(width: max(6, geo.size.width * progress))
+                        }
+                    }
+                    .frame(height: 5)
+                }
             }
-
-            Spacer(minLength: 8)
-
-            Text(countLabel)
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(summary.productCount == 0 ? Color.secondary.opacity(0.55) : Color.secondary)
 
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
@@ -376,8 +491,12 @@ private struct ShoppingListRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
         .background(
-            Color(.secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
     }
@@ -389,7 +508,7 @@ private struct ShoppingListRow: View {
                 storeName: store.displayName,
                 fallbackIcon: store.displayIcon,
                 fallbackColorHex: store.displayColorHex,
-                size: 48
+                size: 52
             )
         } else {
             Image(systemName: "list.bullet")
@@ -398,19 +517,23 @@ private struct ShoppingListRow: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(
                     OneCartPalette.primarySoft,
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                 )
         }
     }
 
     private var subtitle: String {
-        if let address = list.store?.address, !address.isEmpty {
-            return address
-        }
         if summary.productCount == 0 {
-            return "Пустой список"
+            return "Пока пусто — добавьте продукты"
         }
-        return "\(summary.productCount) тов."
+        let left = max(summary.productCount - summary.purchasedCount, 0)
+        if left == 0 {
+            return "Всё куплено"
+        }
+        if let address = list.store?.address, !address.isEmpty {
+            return "\(left) ещё · \(address)"
+        }
+        return left == 1 ? "Остался 1 товар" : "Ещё \(left) товаров"
     }
 
     private var countLabel: String {
@@ -436,38 +559,145 @@ struct AddListSheet: View {
     @State private var title = "Список покупок"
     @State private var selectedStoreID: UUID?
 
+    private let titlePresets = ["Продукты", "Еженедельный", "Хозтовары", "Аптека", "Дача", "Праздник"]
+
+    private let storeColumns = [
+        GridItem(.adaptive(minimum: 135), spacing: 10)
+    ]
+
     var body: some View {
         NavigationView {
-            Form {
-                Section("Список") {
-                    TextField("Название", text: $title)
-                    Picker("Магазин", selection: $selectedStoreID) {
-                        Text("Без магазина").tag(UUID?.none)
-                        ForEach(model.stores, id: \.objectID) { store in
-                            Text(store.displayName).tag(store.id)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Field 1: List Title
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("НАЗВАНИЕ СПИСКА")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(OneCartPalette.primarySoft)
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: "cart.fill")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundColor(OneCartPalette.primaryStrong)
+                            }
+
+                            TextField("Название списка", text: $title)
+                                .font(.system(size: 16, weight: .semibold))
+
+                            if !title.isEmpty {
+                                Button {
+                                    title = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .background(OneCartPalette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
+                        )
+
+                        // Presets
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(titlePresets, id: \.self) { preset in
+                                    Button {
+                                        title = preset
+                                    } label: {
+                                        Text(preset)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 7)
+                                            .background(
+                                                title == preset ? OneCartPalette.primarySoft : OneCartPalette.surface,
+                                                in: Capsule()
+                                            )
+                                            .foregroundColor(title == preset ? OneCartPalette.primaryStrong : .primary)
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(title == preset ? OneCartPalette.primary : Color(.separator).opacity(0.5), lineWidth: 1)
+                                            )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 2)
+                            .padding(.vertical, 2)
                         }
                     }
-                    .onChange(of: selectedStoreID) { storeID in
-                        if let store = model.stores.first(where: { $0.id == storeID }) {
-                            title = "Покупки в \(store.displayName)"
-                        } else {
-                            title = "Список покупок"
+
+                    // Field 2: Store Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("МАГАЗИН")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+
+                        LazyVGrid(columns: storeColumns, spacing: 10) {
+                            // General option
+                            StorePickerCardView(
+                                isSelected: selectedStoreID == nil,
+                                title: "Без магазина",
+                                subtitle: "Общий список",
+                                iconName: "bag.fill"
+                            ) {
+                                selectedStoreID = nil
+                            }
+
+                            // Store options
+                            ForEach(model.stores, id: \.objectID) { store in
+                                let isSelected = selectedStoreID == store.id
+                                StorePickerCardView(
+                                    isSelected: isSelected,
+                                    title: store.displayName,
+                                    subtitle: store.address,
+                                    storeName: store.displayName,
+                                    fallbackIcon: store.icon ?? "storefront",
+                                    fallbackColorHex: store.colorHex ?? "#34785B"
+                                ) {
+                                    selectedStoreID = store.id
+                                    title = "Покупки в \(store.displayName)"
+                                }
+                            }
                         }
                     }
                 }
+                .padding(20)
             }
+            .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("Новый список")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") { dismiss() }
+                        .font(.system(size: 16, weight: .regular))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Создать") {
+                    Button {
                         let store = model.stores.first { $0.id == selectedStoreID }
                         Task {
                             await model.addList(title: title, store: store)
                             dismiss()
                         }
+                    } label: {
+                        Text("Создать")
+                            .font(.system(size: 14, weight: .bold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(
+                                title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? OneCartPalette.primary.opacity(0.4)
+                                    : OneCartPalette.primary,
+                                in: Capsule()
+                            )
+                            .foregroundColor(.white)
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -476,14 +706,88 @@ struct AddListSheet: View {
     }
 }
 
+private struct StorePickerCardView: View {
+    let isSelected: Bool
+    let title: String
+    let subtitle: String?
+    var iconName: String? = nil
+    var storeName: String? = nil
+    var fallbackIcon: String = "storefront"
+    var fallbackColorHex: String = "#34785B"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack(alignment: .topTrailing) {
+                    if let storeName = storeName {
+                        StoreBrandMark(
+                            storeName: storeName,
+                            fallbackIcon: fallbackIcon,
+                            fallbackColorHex: fallbackColorHex,
+                            size: 42
+                        )
+                    } else if let iconName = iconName {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(OneCartPalette.primarySoft)
+                                .frame(width: 42, height: 42)
+                            Image(systemName: iconName)
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(OneCartPalette.primaryStrong)
+                        }
+                    }
+
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(OneCartPalette.primary)
+                            .background(Circle().fill(Color.white).padding(2))
+                            .offset(x: 6, y: -4)
+                    }
+                }
+
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    if let subtitle = subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 8)
+            .background(
+                isSelected ? OneCartPalette.primarySoft.opacity(0.6) : OneCartPalette.surface,
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(isSelected ? OneCartPalette.primary : Color(.separator).opacity(0.4), lineWidth: isSelected ? 2 : 1)
+            )
+        }
+        .buttonStyle(HomePressButtonStyle())
+    }
+}
+
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
     let listID: UUID
 
     @State private var showingAddProduct = false
     @State private var showingOfficialCatalog = false
     @State private var editingProduct: ProductEntity?
     @State private var confirmingCompletion = false
+    @State private var confirmingDeleteList = false
+    @State private var pendingDelete: ProductEntity?
 
     private var list: ShoppingListEntity? {
         model.lists.first { $0.id == listID }
@@ -491,6 +795,18 @@ struct ShoppingListView: View {
 
     private var products: [ProductEntity] {
         model.products(inListID: listID)
+    }
+
+    private var remainingCount: Int {
+        products.filter { !$0.isPurchasedValue }.count
+    }
+
+    private var purchasedCount: Int {
+        products.count - remainingCount
+    }
+
+    private var estimatedTotal: Double {
+        products.reduce(0) { $0 + $1.estimatedPriceValue }
     }
 
     private var catalogBrand: StoreBrand? {
@@ -501,16 +817,14 @@ struct ShoppingListView: View {
     var body: some View {
         Group {
             if let list {
-                List {
-                    if !model.canEdit {
-                        Section {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if !model.canEdit {
                             ReadOnlyBanner()
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
                         }
-                    }
 
-                    Section {
+                        listSummaryCard
+
                         if products.isEmpty {
                             EmptyCard(
                                 image: "cart.badge.plus",
@@ -519,77 +833,110 @@ struct ShoppingListView: View {
                                     ? "Добавьте первый товар вручную."
                                     : "Откройте официальный каталог и добавьте товар вместе с фото и ценой."
                             )
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
                         } else {
-                            ForEach(products, id: \.objectID) { product in
-                                ProductRow(
-                                    product: product,
-                                    lists: model.activeLists,
-                                    canEdit: model.canEdit,
-                                    onToggle: {
-                                        Task { await model.togglePurchased(product) }
-                                    },
-                                    onEdit: {
-                                        editingProduct = product
-                                    },
-                                    onMove: { destination in
-                                        Task {
-                                            await model.moveProduct(
-                                                product,
-                                                to: destination
-                                            )
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text("Товары")
+                                        .font(.title3.bold())
+                                    Spacer()
+                                    Text("\(products.count)")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(
+                                            Color(.tertiarySystemFill),
+                                            in: Capsule(style: .continuous)
+                                        )
+                                }
+
+                                ForEach(products, id: \.objectID) { product in
+                                    ProductRow(
+                                        product: product,
+                                        lists: model.activeLists,
+                                        canEdit: model.canEdit,
+                                        onToggle: {
+                                            Task { await model.togglePurchased(product) }
+                                        },
+                                        onEdit: {
+                                            editingProduct = product
+                                        },
+                                        onDelete: {
+                                            pendingDelete = product
+                                        },
+                                        onMove: { destination in
+                                            Task {
+                                                await model.moveProduct(
+                                                    product,
+                                                    to: destination
+                                                )
+                                            }
                                         }
-                                    }
-                                )
-                                .listRowInsets(
-                                    EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 10)
-                                )
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        Task { await model.deleteProduct(product) }
-                                    } label: {
-                                        Label("Удалить", systemImage: "trash")
-                                    }
-                                    .disabled(!model.canEdit)
+                                    )
                                 }
                             }
                         }
-                    } header: {
-                        Text("\(products.count) товаров")
-                    }
 
-                    if !products.isEmpty {
-                        Section {
-                            Button {
-                                confirmingCompletion = true
-                            } label: {
-                                Label("Завершить покупку", systemImage: "checkmark.seal.fill")
-                                    .frame(maxWidth: .infinity)
+                        if !products.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Button {
+                                    confirmingCompletion = true
+                                } label: {
+                                    Label("Завершить покупку", systemImage: "checkmark.seal.fill")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(OneCartPrimaryButtonStyle())
+                                .disabled(!model.canEdit)
+                                .opacity(model.canEdit ? 1 : 0.5)
+
+                                Text("Товары сохранятся в истории, а для магазина появится новый пустой список.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .foregroundColor(OneCartPalette.primary)
-                            .disabled(!model.canEdit)
-                        } footer: {
-                            Text("Товары сохранятся в истории, а для магазина появится новый пустой список.")
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 28)
                 }
+                .background(OneCartPalette.background.ignoresSafeArea())
                 .navigationTitle(list.store?.displayName ?? list.displayTitle)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            if catalogBrand == nil {
-                                showingAddProduct = true
-                            } else {
-                                showingOfficialCatalog = true
+                        Menu {
+                            Button {
+                                if catalogBrand == nil {
+                                    showingAddProduct = true
+                                } else {
+                                    showingOfficialCatalog = true
+                                }
+                            } label: {
+                                Label(catalogBrand == nil ? "Добавить товар" : "Каталог товаров", systemImage: "plus")
                             }
+
+                            if catalogBrand != nil {
+                                Button {
+                                    showingAddProduct = true
+                                } label: {
+                                    Label("Добавить вручную", systemImage: "square.and.pencil")
+                                }
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                confirmingDeleteList = true
+                            } label: {
+                                Label("Удалить список", systemImage: "trash")
+                            }
+                            .disabled(!model.canEdit)
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: "ellipsis.circle")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 44, minHeight: 44)
                         }
-                        .disabled(!model.canEdit)
-                        .accessibilityLabel(
-                            catalogBrand == nil ? "Добавить товар" : "Открыть каталог товаров"
-                        )
                     }
                 }
                 .sheet(isPresented: $showingAddProduct) {
@@ -611,6 +958,34 @@ struct ShoppingListView: View {
                 } message: {
                     Text("Текущие товары перейдут в историю покупок.")
                 }
+                .alert("Удалить этот список?", isPresented: $confirmingDeleteList) {
+                    Button("Отмена", role: .cancel) {}
+                    Button("Удалить", role: .destructive) {
+                        Task {
+                            await model.deleteList(list)
+                            dismiss()
+                        }
+                    }
+                } message: {
+                    Text("Список со всеми его товарами будет безвозвратно удалён.")
+                }
+                .alert(
+                    "Удалить товар?",
+                    isPresented: Binding(
+                        get: { pendingDelete != nil },
+                        set: { if !$0 { pendingDelete = nil } }
+                    )
+                ) {
+                    Button("Отмена", role: .cancel) { pendingDelete = nil }
+                    Button("Удалить", role: .destructive) {
+                        if let pendingDelete {
+                            Task { await model.deleteProduct(pendingDelete) }
+                        }
+                        pendingDelete = nil
+                    }
+                } message: {
+                    Text(pendingDelete?.displayName ?? "Товар будет удалён из списка.")
+                }
             } else {
                 ContentUnavailableViewCompat(
                     image: "questionmark.folder",
@@ -620,6 +995,162 @@ struct ShoppingListView: View {
             }
         }
     }
+
+    private var listSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("В списке")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if products.isEmpty {
+                    Text("Пока пусто")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(purchasedCount) из \(products.count) куплено")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if products.count > 0 {
+                GeometryReader { geo in
+                    let progress = Double(purchasedCount) / Double(products.count)
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color(.tertiarySystemFill))
+                        Capsule()
+                            .fill(OneCartPalette.primary)
+                            .frame(width: max(10, geo.size.width * progress))
+                    }
+                }
+                .frame(height: 9)
+            }
+
+            HStack(spacing: 8) {
+                summaryPill(
+                    value: "\(remainingCount)",
+                    label: "ещё взять",
+                    systemImage: "basket"
+                )
+                if estimatedTotal > 0 {
+                    summaryPill(
+                        value: estimatedTotal.oneCartCurrency,
+                        label: "примерно",
+                        systemImage: "banknote"
+                    )
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
+    }
+
+    private func summaryPill(value: String, label: String, systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(OneCartPalette.primary)
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .background(
+            OneCartPalette.primarySoft.opacity(0.55),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+    }
+}
+
+private struct ProductPriceStack: View {
+    let price: Double
+    let originalPrice: Double?
+    var alignment: HorizontalAlignment = .trailing
+
+    var body: some View {
+        if price > 0 {
+            VStack(alignment: alignment, spacing: 2) {
+                Text(price.oneCartCurrency)
+                    .font(.subheadline.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundColor(
+                        originalPrice == nil ? .primary : OneCartPalette.danger
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                if let originalPrice {
+                    Text(originalPrice.oneCartCurrency)
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .strikethrough(true)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(priceAccessibilityLabel)
+        }
+    }
+
+    private var priceAccessibilityLabel: String {
+        if let originalPrice {
+            return "Цена \(price.oneCartCurrency), было \(originalPrice.oneCartCurrency)"
+        }
+        return "Цена \(price.oneCartCurrency)"
+    }
+}
+
+private struct ProductPurchaseToggle: View {
+    let isPurchased: Bool
+    let canEdit: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(
+                        isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.45),
+                        lineWidth: 2
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(isPurchased ? OneCartPalette.primary : Color.clear)
+                    )
+                if isPurchased {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: 28, height: 28)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(HomePressButtonStyle())
+        .disabled(!canEdit)
+        .accessibilityLabel(isPurchased ? "Отметить как не купленное" : "Отметить как купленное")
+        .accessibilityAddTraits(isPurchased ? [.isSelected] : [])
+    }
 }
 
 private struct ProductRow: View {
@@ -628,103 +1159,141 @@ private struct ProductRow: View {
     let canEdit: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
+    let onDelete: () -> Void
     let onMove: (ShoppingListEntity) -> Void
 
+    private var moveTargets: [ShoppingListEntity] {
+        lists.filter { $0.id != product.list?.id }
+    }
+
     var body: some View {
-        HStack(spacing: 9) {
-            Button(action: onToggle) {
-                Image(
-                    systemName: product.isPurchasedValue
-                        ? "checkmark.circle.fill"
-                        : "circle"
-                )
-                .font(.title3)
-                .foregroundColor(
-                    product.isPurchasedValue
-                        ? OneCartPalette.primary
-                        : Color.secondary
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(!canEdit)
+        HStack(spacing: 12) {
+            ProductPurchaseToggle(
+                isPurchased: product.isPurchasedValue,
+                canEdit: canEdit,
+                action: onToggle
+            )
 
             OfficialProductThumbnail(
                 media: OfficialProductMedia.resolve(product: product),
                 category: product.categoryValue,
-                isPurchased: product.isPurchasedValue
+                isPurchased: product.isPurchasedValue,
+                size: 52
             )
 
             Button(action: onEdit) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(product.displayName)
-                            .font(.subheadline.weight(.semibold))
-                            .strikethrough(product.isPurchasedValue)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
-                        if product.estimatedPriceValue > 0 {
-                            Text(product.estimatedPriceValue.oneCartCurrency)
-                                .font(.subheadline.bold())
-                                .foregroundColor(
-                                    product.originalPriceValue == nil ? .primary : .red
-                                )
-                                .lineLimit(1)
-                        }
-                    }
-                    HStack(spacing: 6) {
-                        Text(productSubtitle)
-                            .font(.caption)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(product.displayName)
+                        .font(.body.weight(.semibold))
+                        .strikethrough(product.isPurchasedValue)
+                        .foregroundStyle(product.isPurchasedValue ? .secondary : .primary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(productSubtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    if product.isCatalogPriceStale {
+                        Label("Цена требует проверки", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.red)
+                    } else if let promotionEndsAt = product.promotionEndsAt,
+                              product.originalPriceValue != nil {
+                        CatalogPromotionCountdown(endsAt: promotionEndsAt, compact: true)
+                    } else if let catalogFetchedAt = product.catalogFetchedAt {
+                        Text("Проверено \(CatalogDateFormatter.string(from: catalogFetchedAt))")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        if let originalPrice = product.originalPriceValue {
-                            Text(originalPrice.oneCartCurrency)
-                                .strikethrough(true)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(!canEdit)
 
-            Menu {
-                if let sourceURL = product.sourceURLValue {
-                    Link(destination: sourceURL) {
-                        Label("Открыть официальный товар", systemImage: "safari")
-                    }
-                }
+            VStack(alignment: .trailing, spacing: 6) {
+                ProductPriceStack(
+                    price: product.estimatedPriceValue,
+                    originalPrice: product.originalPriceValue
+                )
 
-                ForEach(
-                    lists.filter { $0.id != product.list?.id },
-                    id: \.objectID
-                ) { list in
-                    Button(list.store?.displayName ?? list.displayTitle) {
-                        onMove(list)
+                Menu {
+                    Button {
+                        onEdit()
+                    } label: {
+                        Label("Изменить", systemImage: "pencil")
                     }
                     .disabled(!canEdit)
+
+                    if !moveTargets.isEmpty {
+                        Menu {
+                            ForEach(moveTargets, id: \.objectID) { list in
+                                Button(list.store?.displayName ?? list.displayTitle) {
+                                    onMove(list)
+                                }
+                            }
+                        } label: {
+                            Label("Переместить", systemImage: "arrow.right.square")
+                        }
+                        .disabled(!canEdit)
+                    }
+
+                    if let sourceURL = product.sourceURLValue {
+                        Link(destination: sourceURL) {
+                            Label("Проверить на сайте", systemImage: "safari")
+                        }
+                    }
+
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Label("Удалить", systemImage: "trash")
+                    }
+                    .disabled(!canEdit)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Color(.tertiarySystemFill),
+                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        )
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .frame(width: 32, height: 32)
+                .disabled(!canEdit)
+                .accessibilityLabel("Ещё действия")
             }
-            .disabled(product.sourceURLValue == nil && (!canEdit || lists.count < 2))
         }
-        .padding(.vertical, 1)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(
+            product.isPurchasedValue
+                ? OneCartPalette.surface.opacity(0.72)
+                : OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    product.isPurchasedValue
+                        ? Color.primary.opacity(0.03)
+                        : Color.primary.opacity(0.05),
+                    lineWidth: 1
+                )
+        )
+        .accessibilityElement(children: .contain)
     }
 
     private var productSubtitle: String {
-        var parts = [
+        [
             "\(product.quantityValue.oneCartQuantity) \(product.unitValue.localizedName)",
             product.categoryValue.localizedName,
         ]
-        if let purchasedBy = product.purchasedByName, !purchasedBy.isEmpty {
-            parts.append(purchasedBy)
-        }
-        return parts.joined(separator: " · ")
+        .joined(separator: " · ")
     }
 }
 
@@ -784,13 +1353,14 @@ struct ProductEditorSheet: View {
                             OfficialProductThumbnail(
                                 media: media,
                                 category: category,
-                                size: 58
+                                size: 72
                             )
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Каталог \(media.sourceName)")
+                                Text("Из каталога \(media.sourceName)")
                                     .font(.subheadline.weight(.semibold))
-                                Link("Открыть официальный товар", destination: media.sourceURL)
+                                Text("Фото и цена сохранены в OneCart")
                                     .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         .padding(.vertical, 2)
@@ -840,7 +1410,10 @@ struct ProductEditorSheet: View {
             note: note,
             imageURL: product?.imageURL,
             sourceURL: product?.sourceURL,
-            originalPrice: product?.originalPrice?.doubleValue
+            originalPrice: product?.originalPrice?.doubleValue,
+            loyaltyPrice: product?.loyaltyPrice?.doubleValue,
+            catalogFetchedAt: product?.catalogFetchedAt,
+            promotionEndsAt: product?.promotionEndsAt
         )
         Task {
             if let product {
@@ -993,7 +1566,7 @@ struct StoresView: View {
                     pendingDelete = nil
                 }
             } message: {
-                Text("Товары останутся в семейном пространстве без привязки к магазину.")
+                Text("Товары останутся в группе без привязки к магазину.")
             }
         }
         .navigationViewStyle(.stack)
@@ -1082,6 +1655,7 @@ struct StoreEditorSheet: View {
     @State private var address: String
     @State private var externalURL: String
     @State private var isPinned: Bool
+    @State private var confirmingDeleteStore = false
     private let latitude: Double?
     private let longitude: Double?
 
@@ -1140,6 +1714,22 @@ struct StoreEditorSheet: View {
                         }
                     }
                 }
+
+                if store != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            confirmingDeleteStore = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("Удалить магазин", systemImage: "trash")
+                                    .foregroundColor(OneCartPalette.danger)
+                                Spacer()
+                            }
+                        }
+                        .disabled(!model.canEdit)
+                    }
+                }
             }
             .navigationTitle(store == nil ? "Новый магазин" : "Магазин")
             .toolbar {
@@ -1152,6 +1742,19 @@ struct StoreEditorSheet: View {
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .alert("Удалить магазин?", isPresented: $confirmingDeleteStore) {
+                Button("Отмена", role: .cancel) {}
+                Button("Удалить", role: .destructive) {
+                    if let store {
+                        Task {
+                            await model.deleteStore(store)
+                            dismiss()
+                        }
+                    }
+                }
+            } message: {
+                Text("Магазин будет удалён, а его товары останутся в общем списке.")
             }
         }
     }
@@ -1187,50 +1790,40 @@ struct HistoryView: View {
 
     var body: some View {
         NavigationView {
-            List {
-                if model.history.isEmpty {
-                    EmptyCard(
-                        image: "clock",
-                        title: "История пуста",
-                        message: "Завершённые покупки появятся здесь."
-                    )
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } else {
-                    ForEach(model.history, id: \.objectID) { entry in
-                        NavigationLink {
-                            HistoryDetailView(entry: entry)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 5) {
-                                HStack {
-                                    Text(entry.store?.displayName ?? "Общий список")
-                                        .font(.headline)
-                                    Spacer()
-                                    Text(entry.totalValue.oneCartCurrency)
-                                        .font(.headline)
-                                        .foregroundColor(OneCartPalette.primaryStrong)
-                                }
-                                Text(entry.purchaseDate.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text("\(entry.sortedItems.count) товаров · \(entry.membersDisplay)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .swipeActions {
-                            Button(role: .destructive) {
-                                pendingDelete = entry
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if model.history.isEmpty {
+                        EmptyCard(
+                            image: "clock",
+                            title: "История пуста",
+                            message: "Завершённые покупки появятся здесь."
+                        )
+                    } else {
+                        ForEach(model.history, id: \.objectID) { entry in
+                            NavigationLink {
+                                HistoryDetailView(entry: entry)
                             } label: {
-                                Label("Удалить", systemImage: "trash")
+                                HistoryEntryCard(entry: entry)
                             }
-                            .disabled(!model.canEdit)
+                            .buttonStyle(HomePressButtonStyle())
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    pendingDelete = entry
+                                } label: {
+                                    Label("Удалить запись", systemImage: "trash")
+                                }
+                                .disabled(!model.canEdit)
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
             }
+            .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("История")
+            .navigationBarTitleDisplayMode(.inline)
             .alert(
                 "Удалить запись?",
                 isPresented: Binding(
@@ -1251,39 +1844,248 @@ struct HistoryView: View {
     }
 }
 
-private struct HistoryDetailView: View {
+private struct HistoryEntryCard: View {
     let entry: PurchaseHistoryEntity
 
+    private var storeName: String {
+        entry.store?.displayName ?? "Общий список"
+    }
+
     var body: some View {
-        List {
-            Section {
-                LabeledContentCompat(
-                    label: "Дата",
-                    value: entry.purchaseDate.formatted(date: .long, time: .shortened)
-                )
-                LabeledContentCompat(label: "Участники", value: entry.membersDisplay)
-                LabeledContentCompat(label: "Итого", value: entry.totalValue.oneCartCurrency)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(entry.purchaseDate.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        OneCartPalette.primarySoft,
+                        in: Capsule(style: .continuous)
+                    )
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
 
-            Section("Товары") {
-                ForEach(entry.sortedItems, id: \.objectID) { item in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.displayName)
-                                .font(.body.weight(.semibold))
-                            Text(
-                                "\(item.quantityValue.oneCartQuantity) \(item.unitValue.localizedName)"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(item.estimatedPriceValue.oneCartCurrency)
-                    }
+            HStack(spacing: 12) {
+                if let store = entry.store {
+                    StoreBrandMark(
+                        storeName: store.displayName,
+                        fallbackIcon: store.displayIcon,
+                        fallbackColorHex: store.displayColorHex,
+                        size: 48
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                } else {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(OneCartPalette.primaryStrong)
+                        .frame(width: 48, height: 48)
+                        .background(
+                            OneCartPalette.primarySoft,
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
                 }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(storeName)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text("\(entry.sortedItems.count) товаров · \(entry.membersDisplay)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(entry.totalValue.oneCartCurrency)
+                    .font(.headline)
+                    .monospacedDigit()
+                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .navigationTitle(entry.store?.displayName ?? "Покупка")
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct HistoryDetailView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let entry: PurchaseHistoryEntity
+    @State private var confirmingDelete = false
+
+    private var storeName: String {
+        entry.store?.displayName ?? "Покупка"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Дата")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
+                                .font(.body.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 12)
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Итого")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            Text(entry.totalValue.oneCartCurrency)
+                                .font(.title3.bold())
+                                .monospacedDigit()
+                                .foregroundColor(OneCartPalette.primaryStrong)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Участники")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                        Text(entry.membersDisplay)
+                            .font(.body.weight(.medium))
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    OneCartPalette.surface,
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+                )
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Товары")
+                            .font(.title3.bold())
+                        Spacer()
+                        Text("\(entry.sortedItems.count)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Color(.tertiarySystemFill),
+                                in: Capsule(style: .continuous)
+                            )
+                    }
+
+                    ForEach(entry.sortedItems, id: \.objectID) { item in
+                        HistoryProductRow(item: item)
+                    }
+                }
+
+                if model.canEdit {
+                    Button(role: .destructive) {
+                        confirmingDelete = true
+                    } label: {
+                        Label("Удалить запись", systemImage: "trash")
+                            .font(.headline)
+                            .foregroundColor(OneCartPalette.danger)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .background(
+                                OneCartPalette.danger.opacity(0.10),
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            )
+                    }
+                    .buttonStyle(HomePressButtonStyle())
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 28)
+        }
+        .background(OneCartPalette.background.ignoresSafeArea())
+        .navigationTitle(storeName)
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Удалить запись?", isPresented: $confirmingDelete) {
+            Button("Отмена", role: .cancel) {}
+            Button("Удалить", role: .destructive) {
+                Task {
+                    await model.deleteHistory(entry)
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("Запись исчезнет из истории покупок.")
+        }
+    }
+}
+
+private struct HistoryProductRow: View {
+    let item: HistoryItemEntity
+
+    var body: some View {
+        HStack(spacing: 12) {
+            OfficialProductThumbnail(
+                media: OfficialProductMedia.resolve(historyItem: item),
+                category: item.categoryValue,
+                size: 52
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.displayName)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(
+                    "\(item.quantityValue.oneCartQuantity) \(item.unitValue.localizedName)"
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            ProductPriceStack(
+                price: item.estimatedPriceValue,
+                originalPrice: item.originalPriceValue
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1314,15 +2116,29 @@ struct EmptyCard: View {
             Image(systemName: image)
                 .font(.system(size: 28))
                 .foregroundColor(OneCartPalette.primary)
+                .frame(width: 52, height: 52)
+                .background(
+                    OneCartPalette.primarySoft,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
             Text(title)
                 .font(.headline)
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .oneCartCard()
+        .padding(18)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
     }
 }
 

@@ -80,7 +80,7 @@ struct StoreBrand: Identifiable, Hashable {
             id: "fora",
             name: "Фора",
             shortMark: "Ф",
-            colorHex: "#F5A623",
+            colorHex: "#00B15E",
             searchQuery: "Фора",
             aliases: ["фора", "fora", "fora market"],
             officialURL: URL(string: "https://fora.ua")
@@ -124,6 +124,8 @@ struct StoreBrand: Identifiable, Hashable {
         case "silpo":
             values = [
                 ("Каталог", "square.grid.2x2", "https://silpo.ua/catalog"),
+                // Silpo promo landing is behind bot walls; load full catalog and keep
+                // only rows with a confirmed old price (see isShowingDiscounts).
                 ("Акции", "tag.fill", "https://silpo.ua/catalog"),
                 ("Для дома", "sparkles", "https://silpo.ua/category/pobutova-khimiia-4588"),
             ]
@@ -142,11 +144,13 @@ struct StoreBrand: Identifiable, Hashable {
         case "varus":
             values = [
                 ("Каталог", "square.grid.2x2", "https://varus.ua/"),
-                ("Для дома", "sparkles", "https://varus.ua/own-clean"),
+                ("Акции", "tag.fill", "https://varus.ua/price-of-the-week"),
+                ("Для дома", "sparkles", "https://varus.ua/pobutova-himiya"),
             ]
         case "fora":
             values = [
                 ("Каталог", "square.grid.2x2", "https://fora.ua/"),
+                ("Для дома", "sparkles", "https://fora.ua/category/pobutova-khimiia-2984"),
             ]
         case "metro":
             values = [
@@ -183,10 +187,11 @@ struct StoreBrand: Identifiable, Hashable {
             case .drinks:
                 paths = ["294-napoi-bezalkogol-ni", "kava-caj", "292-alkogol-i-tyutyun"]
             case .household:
+                // Keep household focused on home chemicals / home goods.
+                // Hygiene, cosmetics and pet aisles used to leak unrelated catalog noise.
                 paths = [
                     "308-pobutova-khimiya-ta-neprodovol-chi-tovari",
-                    "290-gigiena-i-kosmetika", "358-tovari-dlya-domu",
-                    "436-tovari-dlya-tvarin",
+                    "358-tovari-dlya-domu",
                 ]
             case .other:
                 paths = [
@@ -200,6 +205,80 @@ struct StoreBrand: Identifiable, Hashable {
             }
             return paths.compactMap { path in
                 URL(string: "https://www.atbmarket.com/catalog/\(path)")
+            }
+        }
+
+        // Silpo: load the official category shelves (not name-guessing on /catalog).
+        if id == "silpo" {
+            let paths: [String]
+            switch category {
+            case .produce:
+                paths = [
+                    "frukty-ovochi-4788",
+                    "ovochi-4808",
+                    "frukty-4791",
+                    "sezonni-ovochi-frukty-4789",
+                ]
+            case .dairy:
+                paths = ["molochni-produkty-ta-iaitsia-234", "moloko-253"]
+            case .meat:
+                paths = [
+                    "m-iaso-4411",
+                    "kovbasni-vyroby-i-m-iasni-delikatesy-4731",
+                ]
+            case .drinks:
+                paths = ["napoi-52", "alkogol-22"]
+            case .household:
+                paths = ["pobutova-khimiia-4588"]
+            case .other:
+                paths = []
+            }
+            return paths.compactMap { path in
+                URL(string: "https://silpo.ua/category/\(path)")
+            }
+        }
+
+        // Fora category IDs from public sitemap.
+        if id == "fora" {
+            let paths: [String]
+            switch category {
+            case .produce:
+                paths = ["frukty-ovochi-ta-solinnia-2790", "ovochi-2794", "frukty-2797"]
+            case .dairy:
+                paths = ["molochni-produkty-ta-iaitsia-2656"]
+            case .meat:
+                paths = ["svizhe-m-iaso-5401", "kovbasy-ta-m-iasni-delikatesy-2738", "ryba-2699"]
+            case .drinks:
+                paths = ["soky-ta-napoi-2479", "mineralna-i-pytna-voda-3642"]
+            case .household:
+                paths = ["pobutova-khimiia-2984", "pobutova-khimiia-tovary-dlia-domu-2975"]
+            case .other:
+                paths = []
+            }
+            return paths.compactMap { path in
+                URL(string: "https://fora.ua/category/\(path)")
+            }
+        }
+
+        // VARUS uses flat category slugs (verified live).
+        if id == "varus" {
+            let paths: [String]
+            switch category {
+            case .produce:
+                paths = ["ovochi-svizhi", "frukti-svizhi", "frukti-ovochi-gorihi"]
+            case .dairy:
+                paths = ["molochni-produkti"]
+            case .meat:
+                paths = ["myasni-virobi-ta-yaycya"]
+            case .drinks:
+                paths = ["napoi", "bezalkogolni-napoi"]
+            case .household:
+                paths = ["pobutova-himiya", "own-clean"]
+            case .other:
+                paths = []
+            }
+            return paths.compactMap { path in
+                URL(string: "https://varus.ua/\(path)")
             }
         }
 
@@ -222,8 +301,6 @@ struct StoreBrand: Identifiable, Hashable {
             host = "auchan.zakaz.ua"
             slugs = [
                 "household-chemicals-auchan",
-                "household-and-pets-care-auchan",
-                "personal-hygiene-auchan",
                 "interior-and-textiles-auchan",
             ]
         case ("auchan", .other):
@@ -253,8 +330,9 @@ struct StoreBrand: Identifiable, Hashable {
         case ("metro", .household):
             host = "metro.zakaz.ua"
             slugs = [
-                "chemicals-metro", "household-goods-metro",
-                "personal-hygiene-metro", "home-interior-and-textiles-metro",
+                "chemicals-metro",
+                "household-goods-metro",
+                "home-interior-and-textiles-metro",
             ]
         case ("metro", .other):
             host = "metro.zakaz.ua"
@@ -281,8 +359,9 @@ struct StoreBrand: Identifiable, Hashable {
         case ("novus", .household):
             host = "novus.zakaz.ua"
             slugs = [
-                "household-chemicals", "household-and-cleaning",
-                "personal-hygiene", "interior-and-textiles-novus",
+                "household-chemicals",
+                "household-and-cleaning",
+                "interior-and-textiles-novus",
             ]
         case ("novus", .other):
             host = "novus.zakaz.ua"
@@ -309,11 +388,52 @@ struct StoreBrand: Identifiable, Hashable {
         ProductCategory.allCases.flatMap(catalogURLs(for:))
     }
 
+    /// Maps a loaded store page back to our product category (authoritative aisle tag).
+    func productCategory(forCatalogURL url: URL?) -> ProductCategory? {
+        guard let url else { return nil }
+        let path = url.path.lowercased()
+        // Prefer longest path match so nested produce sub-aisles win over generic catalog.
+        var best: (ProductCategory, Int)?
+        for category in ProductCategory.allCases {
+            for candidate in catalogURLs(for: category) {
+                let candidatePath = candidate.path.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                guard !candidatePath.isEmpty else { continue }
+                let normalizedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                if normalizedPath == candidatePath
+                    || normalizedPath.hasPrefix(candidatePath + "/")
+                    || normalizedPath.contains("/" + candidatePath)
+                    || normalizedPath.hasSuffix(candidatePath) {
+                    let score = candidatePath.count
+                    if best == nil || score > best!.1 {
+                        best = (category, score)
+                    }
+                }
+            }
+        }
+        if let best { return best.0 }
+
+        // Named routes that are not category-complete lists.
+        if path.contains("economy")
+            || path.contains("promotion")
+            || path.contains("promotions")
+            || path.contains("price-of-the-week")
+            || path.contains("rasprodazha") {
+            return nil
+        }
+        if path.contains("pobutova") || path.contains("household") || path.contains("own-clean")
+            || path.contains("chemicals") {
+            return .household
+        }
+        return nil
+    }
+
     func acceptsCatalogURL(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return false }
-        return catalogRoutes.contains { route in
-            guard let allowedHost = route.url.host?.lowercased() else { return false }
-            return host == allowedHost || host.hasSuffix(".\(allowedHost)")
+        let allowedHosts = Set(
+            (catalogRoutes.map(\.url) + completeCatalogURLs).compactMap { $0.host?.lowercased() }
+        )
+        return allowedHosts.contains { allowed in
+            host == allowed || host.hasSuffix(".\(allowed)")
         }
     }
 
@@ -552,18 +672,20 @@ final class StoreLocatorModel: NSObject, ObservableObject, CLLocationManagerDele
     private func publishAccumulatedBranches() {
         guard let searchDistanceOrigin else { return }
         branches = StoreBranch.deduplicated(
-            accumulatedMapItems.map { item in
-                let itemLocation = CLLocation(
-                    latitude: item.placemark.coordinate.latitude,
-                    longitude: item.placemark.coordinate.longitude
-                )
-                return StoreBranch(
-                    name: brand.name,
-                    address: Self.address(for: item.placemark),
-                    coordinate: item.placemark.coordinate,
-                    distance: searchDistanceOrigin.distance(from: itemLocation)
-                )
-            }
+            accumulatedMapItems
+                .filter { brand.matches(mapItemName: $0.name) }
+                .map { item in
+                    let itemLocation = CLLocation(
+                        latitude: item.placemark.coordinate.latitude,
+                        longitude: item.placemark.coordinate.longitude
+                    )
+                    return StoreBranch(
+                        name: brand.name,
+                        address: Self.address(for: item.placemark),
+                        coordinate: item.placemark.coordinate,
+                        distance: searchDistanceOrigin.distance(from: itemLocation)
+                    )
+                }
         )
         .sorted {
             ($0.distance ?? .greatestFiniteMagnitude) <
@@ -628,35 +750,6 @@ final class StoreLocatorModel: NSObject, ObservableObject, CLLocationManagerDele
     }
 }
 
-/// Official Fora basket: trapezoid body + peaked handle (red circle lockup).
-private struct ForaBasketBodyShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let o = rect.origin
-        let w = rect.width
-        let h = rect.height
-        path.move(to: CGPoint(x: o.x + w * 0.12, y: o.y + h * 0.40))
-        path.addLine(to: CGPoint(x: o.x + w * 0.22, y: o.y + h * 0.90))
-        path.addLine(to: CGPoint(x: o.x + w * 0.78, y: o.y + h * 0.90))
-        path.addLine(to: CGPoint(x: o.x + w * 0.88, y: o.y + h * 0.40))
-        path.closeSubpath()
-        return path
-    }
-}
-
-private struct ForaBasketHandleShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let o = rect.origin
-        let w = rect.width
-        let h = rect.height
-        path.move(to: CGPoint(x: o.x + w * 0.28, y: o.y + h * 0.40))
-        path.addLine(to: CGPoint(x: o.x + w * 0.50, y: o.y + h * 0.10))
-        path.addLine(to: CGPoint(x: o.x + w * 0.72, y: o.y + h * 0.40))
-        return path
-    }
-}
-
 private struct NovusLeafShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -703,6 +796,7 @@ struct StoreBrandMark: View {
             brandArtwork
         }
         .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: size * 0.29, style: .continuous)
                 .stroke(Color.white.opacity(0.24), lineWidth: 1)
@@ -718,7 +812,7 @@ struct StoreBrandMark: View {
         case "auchan": return Color(hex: "#FFFDF8")
         case "novus": return Color(hex: "#45B759")
         case "varus": return Color(hex: "#C8E03A")
-        case "fora": return Color(hex: "#1FAF46")
+        case "fora": return Color(hex: "#00B15E")
         case "metro": return Color(hex: "#013E7F")
         default: return Color(hex: brand?.colorHex ?? fallbackColorHex)
         }
@@ -782,42 +876,11 @@ struct StoreBrandMark: View {
                 .scaledToFit()
                 .padding(size * 0.12)
         case "fora":
-            // Official lockup condensed for a square tile: wordmark + basket badge
-            VStack(spacing: size * 0.04) {
-                Text("фора")
-                    .font(.system(size: size * 0.168, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(-size * 0.004)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#EE4036"))
-                    ForaBasketBodyShape()
-                        .fill(Color.white)
-                        .padding(size * 0.055)
-                    ForaBasketHandleShape()
-                        .stroke(
-                            Color.white,
-                            style: StrokeStyle(
-                                lineWidth: max(1.6, size * 0.045),
-                                lineCap: .round,
-                                lineJoin: .round
-                            )
-                        )
-                        .padding(size * 0.055)
-                    HStack(spacing: size * 0.03) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Capsule()
-                                .fill(Color(hex: "#EE4036"))
-                                .frame(width: max(1.4, size * 0.022), height: size * 0.09)
-                        }
-                    }
-                    .offset(y: size * 0.055)
-                }
-                .frame(width: size * 0.42, height: size * 0.42)
-            }
-            .padding(.vertical, size * 0.06)
+            // Official basket only (transparent PNG); tile green comes from backgroundColor
+            Image("StoreMarkFora")
+                .resizable()
+                .scaledToFit()
+                .padding(size * 0.12)
         case "metro":
             ZStack {
                 Capsule()
@@ -949,7 +1012,10 @@ struct StoreLocatorView: View {
                 .buttonStyle(.plain)
             }
         }
-        .frame(height: 270)
+        // Taller map clipped from the top so MapKit's bottom Legal / Apple Maps strip is off-screen.
+        .frame(height: 292)
+        .frame(height: 270, alignment: .top)
+        .clipped()
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 8) {
                 Button {
@@ -967,7 +1033,6 @@ struct StoreLocatorView: View {
                 }
             }
             .buttonStyle(.bordered)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             .padding(12)
         }
     }

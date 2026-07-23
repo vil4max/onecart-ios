@@ -88,7 +88,7 @@ final class LegacyMigrationService {
             let space = FamilySpace(context: context)
             try self.persistence.assign(space, to: .private, in: context)
             space.id = familySpaceID
-            space.name = "Семейный список"
+            space.name = "Группа"
             space.createdAt = now
             space.updatedAt = now
 

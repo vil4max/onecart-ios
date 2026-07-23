@@ -1,5 +1,50 @@
-node_modules
-dist
+# macOS
 .DS_Store
 *.log
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Xcode / Swift
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+
+# CocoaPods / Carthage (if added later)
+Pods/
+Carthage/Build/
+
+# Apple signing & credentials (never commit)
+*.p8
+AuthKey_*
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.key
+*.pem
+OneCart-Signing/
+CertificateSigningRequest.certSigningRequest
+*.csr
+
+# Local archives / exports
+*.xcarchive
+
+# Local tooling
+.private-import/
 ui-ux-pro-max-skill-2.11.0/

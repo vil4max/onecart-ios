@@ -6,17 +6,32 @@ struct OfficialProductMedia: Equatable {
     let sourceName: String
 
     static func resolve(product: ProductEntity) -> OfficialProductMedia? {
-        if let imageURL = product.imageURLValue,
-           let sourceURL = product.sourceURLValue {
+        if let imageURL = product.imageURLValue {
             return OfficialProductMedia(
                 imageURL: imageURL,
-                sourceURL: sourceURL,
+                sourceURL: product.sourceURLValue ?? imageURL,
                 sourceName: product.store?.displayName ?? "официального каталога"
             )
         }
         return resolve(
             productName: product.displayName,
             storeName: product.store?.displayName
+        )
+    }
+
+    static func resolve(historyItem: HistoryItemEntity) -> OfficialProductMedia? {
+        if let imageURL = historyItem.imageURLValue {
+            return OfficialProductMedia(
+                imageURL: imageURL,
+                sourceURL: historyItem.sourceURLValue ?? imageURL,
+                sourceName: historyItem.storeName
+                    ?? historyItem.history?.store?.displayName
+                    ?? "каталога"
+            )
+        }
+        return resolve(
+            productName: historyItem.displayName,
+            storeName: historyItem.storeName ?? historyItem.history?.store?.displayName
         )
     }
 
@@ -116,15 +131,22 @@ struct OfficialProductThumbnail: View {
     var isPurchased = false
     var size: CGFloat = 42
 
+    private var displayURL: URL? {
+        guard let media else { return nil }
+        return OfficialCatalogProductQuality.upgradedImageURL(media.imageURL) ?? media.imageURL
+    }
+
     var body: some View {
         Group {
-            if let media {
-                AsyncImage(url: media.imageURL) { phase in
+            if let displayURL {
+                AsyncImage(url: displayURL) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
-                            .scaledToFill()
+                            // Fit keeps packaging edges; fill was cropping and stacking white frames.
+                            .scaledToFit()
+                            .padding(size * 0.06)
                     case .failure:
                         fallback
                     case .empty:
@@ -142,11 +164,12 @@ struct OfficialProductThumbnail: View {
             }
         }
         .frame(width: size, height: size)
-        .background(OneCartPalette.surface)
+        // Unified studio card: white plate for every store photo (packshots already on white).
+        .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: size * 0.27, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-                .stroke(Color(.separator).opacity(0.55), lineWidth: 0.5)
+                .stroke(Color(.separator).opacity(0.35), lineWidth: 0.5)
         )
         .saturation(isPurchased ? 0.2 : 1)
         .opacity(isPurchased ? 0.68 : 1)

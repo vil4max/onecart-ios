@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 import Foundation
 import os.log
@@ -24,7 +25,9 @@ enum PersistenceError: LocalizedError {
 final class PersistenceController {
     static let shared = PersistenceController()
 
-    let container: NSPersistentContainer
+    static let cloudKitContainerIdentifier = "iCloud.com.vil555tim.onecart"
+
+    let container: NSPersistentCloudKitContainer
     let inMemory: Bool
 
     private(set) var privateStore: NSPersistentStore?
@@ -41,12 +44,13 @@ final class PersistenceController {
 
     init(
         inMemory: Bool = false,
-        storeDirectoryURL: URL? = nil
+        storeDirectoryURL: URL? = nil,
+        cloudKitEnabled: Bool = true
     ) {
         self.inMemory = inMemory
 
         let model = OneCartManagedObjectModel.makeModel()
-        container = NSPersistentContainer(name: "OneCart", managedObjectModel: model)
+        container = NSPersistentCloudKitContainer(name: "OneCart", managedObjectModel: model)
 
         let directory = storeDirectoryURL
             ?? (inMemory
@@ -66,12 +70,14 @@ final class PersistenceController {
         let privateDescription = Self.makeStoreDescription(
             scope: .private,
             directory: directory,
-            inMemory: inMemory
+            inMemory: inMemory,
+            cloudKitEnabled: cloudKitEnabled
         )
         let sharedDescription = Self.makeStoreDescription(
             scope: .shared,
             directory: directory,
-            inMemory: inMemory
+            inMemory: inMemory,
+            cloudKitEnabled: cloudKitEnabled
         )
         container.persistentStoreDescriptions = [privateDescription, sharedDescription]
     }
@@ -201,6 +207,22 @@ final class PersistenceController {
         }
     }
 
+    func acceptShareInvitations(from metadata: [CKShare.Metadata]) async throws {
+        guard !inMemory else { return }
+        let sharedStore = try store(for: .shared)
+        try await withCheckedThrowingContinuation { (
+            continuation: CheckedContinuation<Void, Error>
+        ) in
+            container.acceptShareInvitations(from: metadata, into: sharedStore) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: ())
+                }
+            }
+        }
+    }
+
     private func finishLoading(firstError: Error?) {
         loadLock.lock()
         defer { loadLock.unlock() }
@@ -253,7 +275,8 @@ final class PersistenceController {
     private static func makeStoreDescription(
         scope: PersistentStoreScope,
         directory: URL,
-        inMemory: Bool
+        inMemory: Bool,
+        cloudKitEnabled: Bool
     ) -> NSPersistentStoreDescription {
         let fileName = scope == .private ? "OneCart-private.sqlite" : "OneCart-shared.sqlite"
         let description: NSPersistentStoreDescription
@@ -271,6 +294,14 @@ final class PersistenceController {
             description.shouldAddStoreAsynchronously = true
             description.shouldMigrateStoreAutomatically = true
             description.shouldInferMappingModelAutomatically = true
+
+            if cloudKitEnabled {
+                let cloudKitOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: cloudKitContainerIdentifier
+                )
+                cloudKitOptions.databaseScope = scope == .private ? .private : .shared
+                description.cloudKitContainerOptions = cloudKitOptions
+            }
         }
 
         description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)

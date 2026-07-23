@@ -1,58 +1,30 @@
 # OneCart
 
-OneCart — нативное iOS-приложение на SwiftUI для общих семейных покупок. Пользователь регистрируется по имени, email и паролю; семейные пространства, приглашения и синхронизация работают через Supabase. Core Data остаётся локальной offline-first копией, поэтому продукты можно добавлять без сети.
+OneCart — нативное SwiftUI-приложение для общих семейных покупок. Данные хранятся локально в Core Data и автоматически синхронизируются через iCloud/CloudKit. Отдельной регистрации, email и пароля в приложении нет: используется iCloud-аккаунт устройства.
 
-## Нативное приложение
+## Технологии
 
-- Xcode-проект: `ios/App/App.xcodeproj`
-- Схема: `App`
-- Bundle identifier: `com.vil55tim.onecart`
-- Минимальная версия iOS: 15.0
-- Backend: Supabase Auth, Postgres, Row Level Security и Realtime
-- Локальное хранилище: Core Data
-- Supabase Swift SDK: 2.46.0, закреплён точной версией
+- SwiftUI, iOS 15+
+- Core Data через `NSPersistentCloudKitContainer`
+- CloudKit private/shared databases
+- `CKShare` для приглашений и управления семейным доступом
+- локальный offline-first кэш в двух SQLite stores
 
-Откройте `ios/App/App.xcodeproj`, выберите свою Apple Development Team и запускайте обычную схему `App`. iCloud, CloudKit, Push Notifications и платная Apple Developer Program для синхронизации не требуются. Для установки приложения на собственный iPhone по-прежнему действуют стандартные правила подписи Xcode.
+Bundle ID приложения: `com.vil555tim.onecart`.
+CloudKit container: `iCloud.com.vil555tim.onecart`
 
-Supabase уже настроен в `SupabaseServices.swift` с publishable key. Service-role key в приложение не добавляется. Схема сервера находится в `supabase/migrations/`, а публичный HTTPS-переход из Telegram/Сообщений в установленное приложение — в `supabase/functions/onecart-invite/`.
+## Открытие проекта
 
-Подробная архитектура и сценарий проверки двух аккаунтов описаны в [NATIVE_IOS.md](NATIVE_IOS.md).
+Откройте [ios/App/App.xcodeproj](ios/App/App.xcodeproj) в Xcode. Перед запуском на устройстве включите для App ID возможности iCloud/CloudKit и Push Notifications, привяжите CloudKit container и обновите provisioning profile.
 
-## Проверка
+Подробности архитектуры, настройки и проверки на двух iCloud-аккаунтах находятся в [NATIVE_IOS.md](NATIVE_IOS.md).
 
-Сборка приложения без подписи:
+## Структура репозитория
 
-```bash
-cd ios/App
-xcodebuild \
-  -project App.xcodeproj \
-  -scheme App \
-  -configuration Debug \
-  -destination 'generic/platform=iOS' \
-  CODE_SIGNING_ALLOWED=NO \
-  build
-```
+Единственный runtime — нативный target в [ios/App/App.xcodeproj](ios/App/App.xcodeproj). React/Vite/Capacitor-прототип удалён; веб-кода в репозитории нет.
 
-Компиляция unit-тестов:
+## Миграция со старого backend
 
-```bash
-cd ios/App
-xcodebuild \
-  -project App.xcodeproj \
-  -scheme App \
-  -configuration Debug \
-  -destination 'generic/platform=iOS' \
-  CODE_SIGNING_ALLOWED=NO \
-  build-for-testing
-```
+Supabase SDK, Auth UI, Realtime/RPC sync, Edge Functions и SQL migrations удалены. Локальные данные существующей установки используют прежние SQLite-файлы и после обновления загружаются в private database текущего iCloud-аккаунта. `LegacyMigration` также умеет импортировать старый JSON-снимок (`onecart.app-state` / `onecart-backup.json`), если он есть на устройстве.
 
-## React/Vite-прототип
-
-Каталоги `src/`, `public/` и npm-зависимости сохранены только как визуальный и продуктовый референс. Они не входят в native target и не управляют данными iOS-приложения.
-
-## Брендовые assets
-
-- Мастер app icon: `assets/brand/onecart-app-icon-1024.png`
-- Мастер launch screen: `assets/brand/onecart-launch-master.png`
-- Xcode AppIcon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
-- Xcode Splash: `ios/App/App/Assets.xcassets/Splash.imageset/`
+Supabase Auth-пользователи не являются Apple/iCloud-аккаунтами и не могут быть импортированы как логины CloudKit. Серверные данные других пользователей требуют отдельного защищённого экспорта и последующего переноса владельцами в их iCloud либо повторного приглашения через `CKShare`. Аватары и баннеры остаются только на устройстве и в серверную миграцию не входят.

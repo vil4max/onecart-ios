@@ -31,7 +31,7 @@ final class OneCartTests: XCTestCase {
 
     func testCreatingFamilySpaceAlsoCreatesGeneralList() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
-        let id = try await repository.createFamilySpace(name: "Наша семья")
+        let id = try await repository.createFamilySpace(name: "Наша группа")
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: id))
 
         let request = ShoppingListEntity.fetchRequest()
@@ -41,7 +41,7 @@ final class OneCartTests: XCTestCase {
         )
         let lists = try persistence.container.viewContext.fetch(request)
 
-        XCTAssertEqual(space.displayName, "Наша семья")
+        XCTAssertEqual(space.displayName, "Наша группа")
         XCTAssertEqual(lists.count, 1)
         XCTAssertEqual(lists.first?.displayTitle, "Общий список")
         XCTAssertEqual(lists.first?.statusValue, .active)
@@ -157,7 +157,7 @@ final class OneCartTests: XCTestCase {
         let firstUser = UUID()
         let secondUser = UUID()
         _ = try await repository.createFamilySpace(
-            name: "Первая семья",
+            name: "Первая группа",
             cachedForUserID: firstUser,
             serverRole: FamilyAccess.owner.rawValue,
             needsRemoteCreation: true
@@ -211,7 +211,8 @@ final class OneCartTests: XCTestCase {
 
         let persistence = PersistenceController(
             inMemory: false,
-            storeDirectoryURL: directory
+            storeDirectoryURL: directory,
+            cloudKitEnabled: false
         )
         try await persistence.load()
         let repository = FamilySpaceRepository(
@@ -331,6 +332,8 @@ final class OneCartTests: XCTestCase {
         let familyID = try await repository.createFamilySpace(name: "Family")
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let listID = try XCTUnwrap(space.activeLists.first?.id)
+        let fetchedAt = Date(timeIntervalSince1970: 1_721_280_000)
+        let promotionEndsAt = Date(timeIntervalSince1970: 1_721_366_399)
 
         _ = try await repository.addProduct(
             to: listID,
@@ -343,7 +346,10 @@ final class OneCartTests: XCTestCase {
                 note: "",
                 imageURL: "https://example.com/product.jpg",
                 sourceURL: "https://example.com/product/1",
-                originalPrice: 119.99
+                originalPrice: 119.99,
+                loyaltyPrice: 74.99,
+                catalogFetchedAt: fetchedAt,
+                promotionEndsAt: promotionEndsAt
             )
         )
 
@@ -351,11 +357,15 @@ final class OneCartTests: XCTestCase {
         let product = try XCTUnwrap(products.first)
         XCTAssertEqual(product.imageURLValue?.absoluteString, "https://example.com/product.jpg")
         XCTAssertEqual(product.sourceURLValue?.absoluteString, "https://example.com/product/1")
-        XCTAssertEqual(product.originalPriceValue ?? 0, 119.99, accuracy: 0.001)
+        XCTAssertEqual(product.originalPrice?.doubleValue ?? 0, 119.99, accuracy: 0.001)
+        XCTAssertEqual(product.loyaltyPrice?.doubleValue ?? 0, 74.99, accuracy: 0.001)
+        XCTAssertEqual(product.catalogFetchedAt, fetchedAt)
+        XCTAssertEqual(product.promotionEndsAt, promotionEndsAt)
     }
 
     func testCatalogProductCategoryIsInferredWithoutManualForm() {
         XCTAssertEqual(ProductCategory.inferred(from: "Засіб для миття посуду"), .household)
+        XCTAssertEqual(ProductCategory.inferred(from: "Побутова хімія універсальний очисник"), .household)
         XCTAssertEqual(ProductCategory.inferred(from: "Молоко ультрапастеризоване"), .dairy)
         XCTAssertEqual(ProductCategory.inferred(from: "Банани вагові"), .produce)
         XCTAssertEqual(
@@ -368,6 +378,248 @@ final class OneCartTests: XCTestCase {
         )
         XCTAssertEqual(ProductCategory.inferred(from: "Кава Ambassador мелена 225г"), .drinks)
         XCTAssertEqual(ProductCategory.inferred(from: "Морква мита за 1 кг"), .produce)
+        // Fruit-flavoured bakery must not leak into produce (Silpo filter bug).
+        XCTAssertEqual(ProductCategory.inferred(from: "Торт фруктовий Київський 1кг"), .other)
+        XCTAssertEqual(ProductCategory.inferred(from: "Пиріг з яблуками домашній"), .other)
+        XCTAssertEqual(ProductCategory.inferred(from: "Печиво з фруктовою начинкою"), .other)
+    }
+
+    func testSilpoAndVarusCategoryShelvesOpenOfficialPages() throws {
+        let silpo = try XCTUnwrap(StoreBrand.popular.first { $0.id == "silpo" })
+        XCTAssertEqual(
+            silpo.catalogURL(for: .produce)?.path,
+            "/category/frukty-ovochi-4788"
+        )
+        XCTAssertTrue(
+            silpo.catalogURLs(for: .dairy).contains {
+                $0.path.contains("molochni-produkty-ta-iaitsia-234")
+            }
+        )
+        XCTAssertEqual(
+            silpo.productCategory(
+                forCatalogURL: URL(string: "https://silpo.ua/category/frukty-ovochi-4788")
+            ),
+            .produce
+        )
+        XCTAssertEqual(
+            silpo.productCategory(
+                forCatalogURL: URL(string: "https://silpo.ua/category/pobutova-khimiia-4588")
+            ),
+            .household
+        )
+
+        let varus = try XCTUnwrap(StoreBrand.popular.first { $0.id == "varus" })
+        XCTAssertEqual(varus.catalogURL(for: .produce)?.path, "/ovochi-svizhi")
+        XCTAssertEqual(
+            varus.productCategory(forCatalogURL: URL(string: "https://varus.ua/molochni-produkti")),
+            .dairy
+        )
+
+        let fora = try XCTUnwrap(StoreBrand.popular.first { $0.id == "fora" })
+        XCTAssertTrue(
+            fora.catalogURLs(for: .produce).contains {
+                $0.path.contains("frukty-ovochi-ta-solinnia-2790")
+            }
+        )
+    }
+
+    func testPageCategoryBeatsNameInferenceForCatalogFilters() throws {
+        let cakeURL = try XCTUnwrap(URL(string: "https://silpo.ua/product/tort-fruktovyi-1"))
+        let cakeOnProduceShelf = OfficialCatalogProduct(
+            name: "Торт фруктовий",
+            price: 299,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: cakeURL,
+            storeName: "Сільпо",
+            pageCategory: .produce
+        )
+        // If the store shelf itself is produce, we trust the aisle.
+        XCTAssertEqual(cakeOnProduceShelf.category, .produce)
+
+        let cakeFromMixedCatalog = OfficialCatalogProduct(
+            name: "Торт фруктовий",
+            price: 299,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: cakeURL,
+            storeName: "Сільпо",
+            pageCategory: nil
+        )
+        // Without aisle context, name inference must not call bakery "produce".
+        XCTAssertEqual(cakeFromMixedCatalog.category, .other)
+    }
+
+    func testCatalogProductQualityRejectsFilesBadPricesAndFoodOnHousehold() throws {
+        XCTAssertFalse(
+            OfficialCatalogProductQuality.isAcceptableName("catalog.pdf")
+        )
+        XCTAssertFalse(
+            OfficialCatalogProductQuality.isAcceptableName("Завантажити")
+        )
+        XCTAssertTrue(
+            OfficialCatalogProductQuality.isAcceptableName("Засіб для миття посуду 500 мл")
+        )
+
+        XCTAssertFalse(
+            OfficialCatalogProductQuality.isAcceptableName("Оберіть спосіб доставки")
+        )
+        XCTAssertFalse(
+            OfficialCatalogProductQuality.isAcceptableName("Оберіть магазин")
+        )
+
+        // Title cleaning tests
+        XCTAssertEqual(
+            OfficialCatalogProductQuality.cleanTitle("Перець солодкий червоний купити в Києві та Україні за ціною від 99.95 грн ★ АТБ Маркет"),
+            "Перець солодкий червоний"
+        )
+        XCTAssertEqual(
+            OfficialCatalogProductQuality.cleanTitle("Кава мелена Jacobs 250г - купити за ціною 199 грн | Сільпо"),
+            "Кава мелена Jacobs 250г"
+        )
+        XCTAssertEqual(
+            OfficialCatalogProductQuality.cleanTitle("Молоко Яготинське 2.6% 900g ★ АТБ-Маркет"),
+            "Молоко Яготинське 2.6% 900g"
+        )
+
+        // Summary cleaning tests
+        XCTAssertNil(
+            OfficialCatalogProductQuality.cleanSummary(
+                "Кукурудза 1 шт, 1 гат. купити в супермаркеті ➡️ АТБМаркеті ✈️ Доставка додому та по всій Україні ✅ Великий вибір продуктів за низькими цінами ✨ Контроль якості та свіжості продуктів! ☎️ 0-800-500-415",
+                productName: "Кукурудза 1 шт, 1 гат."
+            )
+        )
+
+        let fileURL = try XCTUnwrap(
+            URL(string: "https://shop.example.com/products/manual.pdf")
+        )
+        let productURL = try XCTUnwrap(
+            URL(string: "https://shop.example.com/products/cleaner-500")
+        )
+        let silpoURL = try XCTUnwrap(
+            URL(string: "https://silpo.ua/product/zasib-dlia-myttia-posudu-123")
+        )
+        let zakazURL = try XCTUnwrap(
+            URL(string: "https://auchan.zakaz.ua/uk/products/zasib-domestos-1000ml--08717163094921/")
+        )
+        let varusURL = try XCTUnwrap(
+            URL(string: "https://varus.ua/sredstvo-dlya-mytya-posudy-varto-clean-limon-500-ml")
+        )
+        let varusHome = try XCTUnwrap(URL(string: "https://varus.ua/own-clean"))
+        XCTAssertFalse(OfficialCatalogProductQuality.isAcceptableProductURL(fileURL))
+        XCTAssertTrue(OfficialCatalogProductQuality.isAcceptableProductURL(productURL))
+        XCTAssertTrue(OfficialCatalogProductQuality.isAcceptableProductURL(silpoURL))
+        XCTAssertTrue(OfficialCatalogProductQuality.isAcceptableProductURL(zakazURL))
+        XCTAssertTrue(OfficialCatalogProductQuality.isAcceptableProductURL(varusURL))
+        XCTAssertFalse(OfficialCatalogProductQuality.isAcceptableProductURL(varusHome))
+
+        XCTAssertNil(
+            OfficialCatalogProductQuality.sanitizedPrices(
+                price: 0.2,
+                originalPrice: nil,
+                loyaltyPrice: nil
+            )
+        )
+        XCTAssertNil(
+            OfficialCatalogProductQuality.sanitizedPrices(
+                price: 10,
+                originalPrice: 120,
+                loyaltyPrice: nil
+            )?.originalPrice
+        )
+        let deepPromo = try XCTUnwrap(
+            OfficialCatalogProductQuality.sanitizedPrices(
+                price: 899,
+                originalPrice: 2_482.92,
+                loyaltyPrice: nil
+            )
+        )
+        XCTAssertEqual(deepPromo.originalPrice ?? 0, 2_482.92, accuracy: 0.01)
+
+        let sane = try XCTUnwrap(
+            OfficialCatalogProductQuality.sanitizedPrices(
+                price: 79.99,
+                originalPrice: 119.99,
+                loyaltyPrice: 74.5
+            )
+        )
+        XCTAssertEqual(sane.price, 79.99, accuracy: 0.001)
+        XCTAssertEqual(sane.originalPrice ?? 0, 119.99, accuracy: 0.001)
+        XCTAssertEqual(sane.loyaltyPrice ?? 0, 74.5, accuracy: 0.001)
+
+        let foodOnHousehold = OfficialCatalogProduct(
+            name: "Банани вагові",
+            price: 45,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: productURL,
+            storeName: "АТБ"
+        )
+        let cleaner = OfficialCatalogProduct(
+            name: "Засіб для миття посуду",
+            price: 79.99,
+            originalPrice: 119.99,
+            imageURL: nil,
+            sourceURL: productURL,
+            storeName: "АТБ"
+        )
+        XCTAssertFalse(OfficialCatalogProductQuality.isPlausibleForHouseholdRoute(foodOnHousehold))
+        XCTAssertTrue(OfficialCatalogProductQuality.isPlausibleForHouseholdRoute(cleaner))
+        XCTAssertEqual(cleaner.discountPercent, 33)
+
+        let upgraded = OfficialCatalogProductQuality.upgradedImageURL(
+            try XCTUnwrap(
+                URL(string: "https://img3.zakaz.ua/abc/1778389712-s200x200.jpg")
+            )
+        )
+        XCTAssertEqual(
+            upgraded?.absoluteString,
+            "https://img3.zakaz.ua/abc/1778389712-s1350x1350.jpg"
+        )
+        let varusImage = OfficialCatalogProductQuality.upgradedImageURL(
+            try XCTUnwrap(
+                URL(string: "https://varus.ua:443/img/product/150/150/2549214")
+            )
+        )
+        XCTAssertEqual(
+            varusImage?.absoluteString,
+            "https://varus.ua/img/product/420/420/2549214"
+        )
+    }
+
+    func testCatalogMergeDropsInvalidScrapedRows() throws {
+        let validURL = try XCTUnwrap(URL(string: "https://shop.example.com/products/valid-1"))
+        let junkURL = try XCTUnwrap(URL(string: "https://shop.example.com/products/file.pdf"))
+        let valid = OfficialCatalogProduct(
+            name: "Гель для прання",
+            price: 199,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: validURL,
+            storeName: "Магазин"
+        )
+        let junkFile = OfficialCatalogProduct(
+            name: "Інструкція",
+            price: 12,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: junkURL,
+            storeName: "Магазин"
+        )
+        let absurdPrice = OfficialCatalogProduct(
+            name: "Ще один товар",
+            price: 0.01,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: try XCTUnwrap(URL(string: "https://shop.example.com/products/bad-price")),
+            storeName: "Магазин"
+        )
+
+        let merged = OfficialCatalogProductCollection.merged(
+            current: [],
+            incoming: [valid, junkFile, absurdPrice]
+        )
+        XCTAssertEqual(merged.map(\.id), [valid.id])
     }
 
     func testDiscountRoutesPointToProductCollections() {
@@ -424,7 +676,7 @@ final class OneCartTests: XCTestCase {
                 $0.path == "/catalog/308-pobutova-khimiya-ta-neprodovol-chi-tovari"
             }
         )
-        XCTAssertEqual(brand.completeCatalogURLs.count, 25)
+        XCTAssertEqual(brand.completeCatalogURLs.count, 23)
         XCTAssertTrue(
             brand.completeCatalogURLs.allSatisfy { $0.path.hasPrefix("/catalog/") }
         )
@@ -520,6 +772,117 @@ final class OneCartTests: XCTestCase {
         XCTAssertEqual(products.first?.details?.country, "Украина")
     }
 
+    func testOfficialPromotionExpiryComesFromRetailerDate() throws {
+        let formatter = ISO8601DateFormatter()
+        let fetchedAt = try XCTUnwrap(formatter.date(from: "2026-07-18T08:00:00Z"))
+        let structuredExpiry = try XCTUnwrap(
+            OfficialCatalogPromotionParser.expiryDate(
+                from: "2026-07-19",
+                fetchedAt: fetchedAt
+            )
+        )
+        let visibleExpiry = try XCTUnwrap(
+            OfficialCatalogPromotionParser.expiryDate(
+                from: "Акція до 19.07",
+                fetchedAt: fetchedAt
+            )
+        )
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Kyiv"))
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: structuredExpiry
+        )
+        XCTAssertEqual(components.year, 2026)
+        XCTAssertEqual(components.month, 7)
+        XCTAssertEqual(components.day, 19)
+        XCTAssertEqual(components.hour, 23)
+        XCTAssertEqual(components.minute, 59)
+        XCTAssertEqual(components.second, 59)
+        XCTAssertEqual(visibleExpiry, structuredExpiry)
+        XCTAssertNil(
+            OfficialCatalogPromotionParser.expiryDate(
+                from: "Знижка цього тижня",
+                fetchedAt: fetchedAt
+            )
+        )
+    }
+
+    func testExpiredPromotionIsNotPresentedAsDiscount() throws {
+        let now = Date(timeIntervalSince1970: 1_721_280_000)
+        let product = OfficialCatalogProduct(
+            name: "Акційний товар",
+            price: 50,
+            originalPrice: 100,
+            imageURL: nil,
+            sourceURL: try XCTUnwrap(URL(string: "https://shop.example.com/product/expired")),
+            storeName: "Магазин",
+            promotionEndsAt: now.addingTimeInterval(-1),
+            fetchedAt: now.addingTimeInterval(-60),
+            isDetailVerified: true
+        )
+
+        XCTAssertNil(product.discountPercent(at: now))
+        XCTAssertFalse(product.isPriceFresh(at: now))
+        XCTAssertNil(product.draft.originalPrice)
+    }
+
+    func testFreshRegularPriceClearsPreviousPromotion() throws {
+        let sourceURL = try XCTUnwrap(URL(string: "https://shop.example.com/product/1"))
+        let firstFetch = Date(timeIntervalSince1970: 1_721_280_000)
+        let previous = OfficialCatalogProduct(
+            name: "Товар",
+            price: 70,
+            originalPrice: 100,
+            imageURL: nil,
+            sourceURL: sourceURL,
+            storeName: "Магазин",
+            promotionEndsAt: firstFetch.addingTimeInterval(3_600),
+            fetchedAt: firstFetch,
+            isDetailVerified: true
+        )
+        let refreshed = OfficialCatalogProduct(
+            name: "Товар",
+            price: 90,
+            originalPrice: nil,
+            imageURL: nil,
+            sourceURL: sourceURL,
+            storeName: "Магазин",
+            promotionEndsAt: nil,
+            fetchedAt: firstFetch.addingTimeInterval(600),
+            isDetailVerified: true
+        )
+
+        let merged = try XCTUnwrap(
+            OfficialCatalogProductCollection.merged(
+                current: [previous],
+                incoming: [refreshed]
+            ).first
+        )
+        XCTAssertEqual(merged.price, 90, accuracy: 0.001)
+        XCTAssertNil(merged.originalPrice)
+        XCTAssertNil(merged.promotionEndsAt)
+    }
+
+    func testOfficialPriceBasisParserUsesRetailerUnit() {
+        let kilogram = OfficialCatalogPriceBasisParser.parse(
+            rawUnit: "kg",
+            priceText: "75,00 грн",
+            productName: "Банани"
+        )
+        XCTAssertEqual(kilogram.quantity, 1, accuracy: 0.001)
+        XCTAssertEqual(kilogram.unit, .kg)
+
+        let hundredGrams = OfficialCatalogPriceBasisParser.parse(
+            rawUnit: nil,
+            priceText: "Ціна за 100 г — 32,90 грн",
+            productName: "Сир"
+        )
+        XCTAssertEqual(hundredGrams.quantity, 100, accuracy: 0.001)
+        XCTAssertEqual(hundredGrams.unit, .g)
+    }
+
     func testOfficialCatalogPriceAndDiscountSorting() throws {
         XCTAssertEqual(
             OfficialCatalogPriceParser.value(from: "1 299,50 грн") ?? 0,
@@ -578,35 +941,23 @@ final class OneCartTests: XCTestCase {
         )
     }
 
-    func testFamilyInviteURLRoundTripsThroughShareAndDeepLinks() throws {
-        let token = try XCTUnwrap(UUID(uuidString: "7A4E7A84-38A1-4E6B-8E4C-6A5D0D18B0C2"))
-        let shareURL = OneCartInviteURL.shareURL(for: token)
-        let deepLink = try XCTUnwrap(
-            URL(string: "onecart://invite/\(token.uuidString.lowercased())")
+    func testCloudKitFamilyInviteShareMessageContainsShareURL() throws {
+        let shareURL = try XCTUnwrap(
+            URL(string: "https://www.icloud.com/share/onecart-family")
         )
         let invite = FamilyInviteLink(
-            token: token,
-            familyName: "Наша семья",
-            expiresAt: Date().addingTimeInterval(3_600)
+            id: try XCTUnwrap(UUID(uuidString: "7A4E7A84-38A1-4E6B-8E4C-6A5D0D18B0C2")),
+            familyName: "Наша группа",
+            url: shareURL
         )
 
-        XCTAssertEqual(OneCartInviteURL.token(from: shareURL), token)
-        XCTAssertEqual(OneCartInviteURL.token(from: deepLink), token)
         XCTAssertTrue(invite.shareMessage.contains(shareURL.absoluteString))
-    }
-
-    func testFamilyInviteURLRejectsForeignAndMalformedLinks() throws {
-        let foreignURL = try XCTUnwrap(
-            URL(string: "https://example.com/invite?token=123")
-        )
-        let malformedURL = try XCTUnwrap(
-            URL(string: "onecart://invite/not-a-token")
-        )
-        let unrelatedRoute = try XCTUnwrap(URL(string: "onecart://settings"))
-
-        XCTAssertNil(OneCartInviteURL.token(from: foreignURL))
-        XCTAssertNil(OneCartInviteURL.token(from: malformedURL))
-        XCTAssertNil(OneCartInviteURL.token(from: unrelatedRoute))
+        XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
+        XCTAssertTrue(invite.shareMessage.contains("группе"))
+        XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart"))
+        XCTAssertEqual(invite.shareTitle, "OneCart")
+        XCTAssertEqual(invite.expiresAt, .distantFuture)
+        XCTAssertFalse(OneCartShareBranding.thumbnailImageData.isEmpty)
     }
 
     private func makeInMemoryRepository() async throws
