@@ -33,6 +33,12 @@ final class PersistenceController {
     private(set) var privateStore: NSPersistentStore?
     private(set) var sharedStore: NSPersistentStore?
 
+    var isLoaded: Bool {
+        loadLock.lock()
+        defer { loadLock.unlock() }
+        return loaded
+    }
+
     private let logger = Logger(
         subsystem: "com.vil55tim.onecart",
         category: "Persistence"

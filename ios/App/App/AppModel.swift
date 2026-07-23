@@ -428,6 +428,7 @@ final class AppModel: ObservableObject {
     }
 
     func acceptPendingCloudKitShares() async {
+        guard persistence.isLoaded else { return }
         let metadata = AppDelegate.takePendingShareMetadata()
         guard !metadata.isEmpty else { return }
         isBusy = true
@@ -439,6 +440,7 @@ final class AppModel: ObservableObject {
             scheduleCloudReload(delayNanoseconds: 350_000_000)
             showToast("Общая группа добавлена")
         } catch {
+            AppDelegate.requeue(metadata)
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
             show(error)

@@ -258,6 +258,7 @@ struct MainTabView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SyncStatusBanner()
             TabView {
                 HomeView()
                     .tabItem { Label("Главная", systemImage: "cart.fill") }
@@ -271,6 +272,53 @@ struct MainTabView: View {
             .tint(OneCartPalette.primary)
         }
         .background(OneCartPalette.background)
+    }
+}
+
+private struct SyncStatusBanner: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        let state = model.syncState
+        if state != .synchronized {
+            HStack(spacing: 8) {
+                Image(systemName: state.systemImage)
+                Text(statusText(for: state))
+                    .font(.footnote.weight(.medium))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(foreground(for: state))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(background(for: state))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(statusText(for: state))
+        }
+    }
+
+    private func statusText(for state: OneCartSyncState) -> String {
+        if state == .failed {
+            let detail = model.lastSyncError?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !detail.isEmpty { return detail }
+        }
+        return state.title
+    }
+
+    private func foreground(for state: OneCartSyncState) -> Color {
+        switch state {
+        case .failed: return OneCartPalette.danger
+        case .offline: return Color.orange
+        default: return OneCartPalette.primaryStrong
+        }
+    }
+
+    private func background(for state: OneCartSyncState) -> Color {
+        switch state {
+        case .failed: return OneCartPalette.danger.opacity(0.12)
+        case .offline: return Color.orange.opacity(0.12)
+        default: return OneCartPalette.primarySoft
+        }
     }
 }
 

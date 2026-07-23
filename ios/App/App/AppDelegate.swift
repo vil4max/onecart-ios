@@ -8,7 +8,8 @@ extension Notification.Name {
 }
 
 final class AppDelegate: UIResponder, UIApplicationDelegate {
-    private(set) static var pendingShareMetadata: [CKShare.Metadata] = []
+    private static let metadataLock = NSLock()
+    private static var pendingShareMetadata: [CKShare.Metadata] = []
 
     func application(
         _ application: UIApplication,
@@ -23,12 +24,28 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        Self.pendingShareMetadata.append(cloudKitShareMetadata)
+        Self.enqueue(cloudKitShareMetadata)
         NotificationCenter.default.post(name: .oneCartDidReceiveCloudKitShare, object: nil)
     }
 
+    static func enqueue(_ metadata: CKShare.Metadata) {
+        metadataLock.lock()
+        pendingShareMetadata.append(metadata)
+        metadataLock.unlock()
+    }
+
     static func takePendingShareMetadata() -> [CKShare.Metadata] {
-        defer { pendingShareMetadata.removeAll() }
-        return pendingShareMetadata
+        metadataLock.lock()
+        defer { metadataLock.unlock() }
+        let copy = pendingShareMetadata
+        pendingShareMetadata.removeAll()
+        return copy
+    }
+
+    static func requeue(_ metadata: [CKShare.Metadata]) {
+        guard !metadata.isEmpty else { return }
+        metadataLock.lock()
+        pendingShareMetadata.append(contentsOf: metadata)
+        metadataLock.unlock()
     }
 }

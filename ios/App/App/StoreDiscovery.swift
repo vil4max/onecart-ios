@@ -1012,10 +1012,7 @@ struct StoreLocatorView: View {
                 .buttonStyle(.plain)
             }
         }
-        // Taller map clipped from the top so MapKit's bottom Legal / Apple Maps strip is off-screen.
-        .frame(height: 292)
-        .frame(height: 270, alignment: .top)
-        .clipped()
+        .frame(height: 270)
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 8) {
                 Button {

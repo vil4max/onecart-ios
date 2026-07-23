@@ -63,3 +63,26 @@
 7. Повторить запуск без сети: локальные данные должны открываться, а новые изменения — отправиться после восстановления сети.
 
 Симулятор подходит для проверки UI и локального Core Data, но полноценный `CKShare` flow следует проверять на физических устройствах.
+
+## CloudKit Production schema
+
+Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCartCoreDataV4`):
+
+`FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, плюс системный `CKShare` на корневом `FamilySpace`.
+
+Перед TestFlight / App Store:
+
+1. Открыть [CloudKit Console](https://icloud.developer.apple.com/) → container → Schema.
+2. Убедиться, что все типы есть в Development.
+3. **Deploy Schema Changes to Production**.
+4. Повторить двухдевайсный чеклист выше уже на Production-окружении.
+
+## Безопасность: legacy Supabase
+
+Файлы `SupabaseServices.swift`, `supabase/` и `invite-site/` удалены из текущего `main`. Publishable key из старого коммита `ebd4583` всё ещё виден в git history.
+
+Обязательно:
+
+1. В [Supabase Dashboard](https://supabase.com/dashboard) для проекта `<redacted>` — **rotate / revoke** publishable key и при возможности поставить проект на pause или удалить.
+2. History rewrite (`git filter-repo` + force-push на `main`) намеренно не выполнялся автоматически: репозиторий private, но force-push на `main` требует явного ручного подтверждения владельца.
+

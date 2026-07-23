@@ -54,7 +54,9 @@
 		A1000000000000000000000B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000D /* OneCartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000000E /* OneCartTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneCartTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A1000000000000000000000F /* AppLocal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppLocal.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000000F /* AppDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppDebug.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000014 /* AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppRelease.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000015 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A10000000000000000000010 /* ProductMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductMedia.swift; sourceTree = "<group>"; };
 		A10000000000000000000011 /* StoreDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreDiscovery.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* OfficialCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficialCatalogView.swift; sourceTree = "<group>"; };
@@ -116,7 +118,9 @@
 				A10000000000000000000012 /* OfficialCatalogView.swift */,
 				A1000000000000000000000B /* SettingsView.swift */,
 				A10000000000000000000013 /* ProfileView.swift */,
-				A1000000000000000000000F /* AppLocal.entitlements */,
+				A1000000000000000000000F /* AppDebug.entitlements */,
+				A10000000000000000000014 /* AppRelease.entitlements */,
+				A10000000000000000000015 /* PrivacyInfo.xcprivacy */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
@@ -409,7 +413,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/AppLocal.entitlements;
+				CODE_SIGN_ENTITLEMENTS = App/AppDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BTHRDS7254;
@@ -435,7 +439,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = App/AppLocal.entitlements;
+				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BTHRDS7254;

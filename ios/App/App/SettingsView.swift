@@ -428,6 +428,15 @@ struct FamilyManagementSheet: View {
             }
             .disabled(preparingInviteAction != nil || !model.isOnline)
 
+            if !model.isOnline {
+                Label(
+                    "Приглашения доступны только онлайн. Подключитесь к интернету, чтобы поделиться ссылкой.",
+                    systemImage: "wifi.slash"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+
             Label("Доступом и участниками управляет владелец пространства.", systemImage: "lock.fill")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -859,14 +868,11 @@ private struct PreferencesSettingsSection: View {
                     image: "globe",
                     title: "Язык"
                 ) {
-                    Picker("Язык", selection: $preferences.locale) {
-                        ForEach(AppLocale.allCases) { locale in
-                            Text(locale.title).tag(locale)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(OneCartPalette.primaryStrong)
+                    Text("Русский")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+                .accessibilityHint("Локализация интерфейса пока только на русском")
 
                 Divider().padding(.leading, 58)
 

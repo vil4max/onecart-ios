@@ -277,10 +277,11 @@ final class CloudKitBackendService {
 
         let currentRecordName = share.currentUserParticipant?
             .userIdentity.userRecordID?.recordName
-        return share.participants.map { participant in
+        return share.participants.compactMap { participant -> FamilyMember? in
             let recordName = participant.userIdentity.userRecordID?.recordName
                 ?? participant.userIdentity.lookupInfo?.emailAddress
-                ?? UUID().uuidString
+                ?? participant.userIdentity.lookupInfo?.phoneNumber
+            guard let recordName, !recordName.isEmpty else { return nil }
             let name = participant.userIdentity.nameComponents.map {
                 PersonNameComponentsFormatter.localizedString(
                     from: $0,
@@ -306,7 +307,8 @@ final class CloudKitBackendService {
     }
 
     func removeMember(_ member: FamilyMember, from family: FamilySpace) async throws {
-        guard let share = try share(for: family) else {
+        let objectID = family.objectID
+        guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
         guard let participant = share.participants.first(where: {
@@ -322,7 +324,8 @@ final class CloudKitBackendService {
     }
 
     func leaveFamily(_ family: FamilySpace) async throws {
-        guard let share = try share(for: family) else {
+        let objectID = family.objectID
+        guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
         let sharedStore = try persistence.store(for: .shared)
@@ -343,7 +346,11 @@ final class CloudKitBackendService {
     }
 
     private func share(for family: FamilySpace) throws -> CKShare? {
-        try persistence.container.fetchShares(matching: [family.objectID])[family.objectID]
+        try share(forObjectID: family.objectID)
+    }
+
+    private func share(forObjectID objectID: NSManagedObjectID) throws -> CKShare? {
+        try persistence.container.fetchShares(matching: [objectID])[objectID]
     }
 
     private func persist(_ share: CKShare, in store: NSPersistentStore) async throws -> CKShare {

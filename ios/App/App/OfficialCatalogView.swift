@@ -1606,7 +1606,7 @@ private struct OfficialCatalogDataBridge: UIViewRepresentable {
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = contentController
-        configuration.websiteDataStore = .default()
+        configuration.websiteDataStore = .nonPersistent()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         // Stay close to mobile Safari — store CDNs / Cloudflare are less hostile than custom bots.
         configuration.applicationNameForUserAgent = "Mobile/15E148"
@@ -1682,6 +1682,22 @@ private struct OfficialCatalogDataBridge: UIViewRepresentable {
             var request = URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData)
             request.timeoutInterval = 18
             webView.load(request)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.cancel)
+                return
+            }
+            if url.scheme == "about" || url.scheme == "blob" || url.scheme == "data" {
+                decisionHandler(.allow)
+                return
+            }
+            decisionHandler(brand.acceptsCatalogURL(url) ? .allow : .cancel)
         }
 
         func webView(
@@ -2495,9 +2511,7 @@ private struct OfficialCatalogProductDetailSheet: View {
     private var verificationCard: some View {
         if currentProduct.isDetailVerified {
             Label(
-                serverProduct == nil
-                    ? "Цена проверена в оригинальной карточке магазина"
-                    : "Цена проверена сервером по оригинальной карточке магазина",
+                "Цена проверена в оригинальной карточке магазина",
                 systemImage: "checkmark.shield.fill"
             )
                 .font(.subheadline.weight(.semibold))

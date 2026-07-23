@@ -145,7 +145,7 @@ struct ProfileEditorSheet: View {
                             .font(.footnote)
                             .foregroundColor(OneCartPalette.danger)
                     }
-                    Text("Имя, аватар и баннер видит вся группа. После «Сохранить» окно закроется.")
+                    Text("Имя, аватар и баннер хранятся только на этом устройстве и не синхронизируются с группой через iCloud.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

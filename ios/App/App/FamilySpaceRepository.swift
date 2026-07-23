@@ -166,9 +166,14 @@ final class FamilySpaceRepository {
     func claimUnassignedFamilySpaces(for userID: UUID) async throws {
         try await persistence.performBackgroundTask(author: "OneCartAccountClaim") { context in
             let request = FamilySpace.fetchRequest()
-            request.predicate = NSPredicate(format: "cachedForUserID == nil")
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "cachedForUserID == nil"),
+                NSPredicate(format: "deletedAt == nil"),
+            ])
             let spaces = try context.fetch(request)
             for space in spaces {
+                // Never stamp owner cache metadata onto shared-store records.
+                guard self.persistence.scope(for: space) != .shared else { continue }
                 space.cachedForUserID = userID
                 space.serverRole = "owner"
                 space.needsRemoteCreation = false
@@ -784,6 +789,7 @@ final class FamilySpaceRepository {
         familySpaceID: (T) -> UUID?,
         stableID: (T) -> UUID?,
         updatedAt: (T) -> Date?,
+        deletedAt: (T) -> Date? = { ($0 as? SoftDeletable)?.deletedAt },
         in context: NSManagedObjectContext
     ) throws {
         let objects = try context.fetch(request)
@@ -802,17 +808,57 @@ final class FamilySpaceRepository {
                 continue
             }
 
-            let existingDate = updatedAt(winner) ?? .distantPast
-            let candidateDate = updatedAt(object) ?? .distantPast
-            if candidateDate > existingDate {
-                context.delete(winner)
-                winners[key] = object
-            } else {
-                context.delete(object)
+            let preferred = preferredDuplicate(
+                existing: winner,
+                candidate: object,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt
+            )
+            let loser = preferred === winner ? object : winner
+            winners[key] = preferred
+            // Soft-delete losers instead of hard-deleting mirrored CloudKit rows.
+            if let softLoser = loser as? SoftDeletable, softLoser.deletedAt == nil {
+                let now = Date()
+                softLoser.deletedAt = now
+                if let stamped = loser as? Timestamped {
+                    stamped.updatedAt = now
+                }
+            } else if deletedAt(loser) == nil {
+                context.delete(loser)
             }
         }
     }
+
+    private static func preferredDuplicate<T: NSManagedObject>(
+        existing: T,
+        candidate: T,
+        updatedAt: (T) -> Date?,
+        deletedAt: (T) -> Date?
+    ) -> T {
+        let existingDeleted = deletedAt(existing) != nil
+        let candidateDeleted = deletedAt(candidate) != nil
+        if existingDeleted != candidateDeleted {
+            return candidateDeleted ? existing : candidate
+        }
+        let existingDate = updatedAt(existing) ?? .distantPast
+        let candidateDate = updatedAt(candidate) ?? .distantPast
+        return candidateDate > existingDate ? candidate : existing
+    }
 }
+
+protocol SoftDeletable: AnyObject {
+    var deletedAt: Date? { get set }
+}
+
+protocol Timestamped: AnyObject {
+    var updatedAt: Date? { get set }
+}
+
+extension FamilySpace: SoftDeletable, Timestamped {}
+extension StoreEntity: SoftDeletable, Timestamped {}
+extension ShoppingListEntity: SoftDeletable, Timestamped {}
+extension ProductEntity: SoftDeletable, Timestamped {}
+extension PurchaseHistoryEntity: SoftDeletable, Timestamped {}
 
 private extension String {
     var trimmedNilIfEmpty: String? {
