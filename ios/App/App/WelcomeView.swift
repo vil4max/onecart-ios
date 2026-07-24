@@ -90,6 +90,7 @@ struct WelcomeView: View {
             )
             .frame(maxWidth: .infinity)
             .frame(height: 50)
+            .opacity(preferences.familyJoinIntent == nil ? 0.55 : 1)
         }
     }
 
