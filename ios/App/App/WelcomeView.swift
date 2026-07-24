@@ -3,7 +3,6 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject private var model: AppModel
-    @ObservedObject var preferences: DevicePreferences
 
     var body: some View {
         VStack(spacing: 24) {
@@ -13,7 +12,7 @@ struct WelcomeView: View {
                 OneCartMark()
                 Text("Семейная корзина")
                     .font(.largeTitle.bold())
-                Text(headerSubtitle)
+                Text("Войдите с Apple ID — списки подтянутся из iCloud автоматически.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -21,35 +20,16 @@ struct WelcomeView: View {
 
             content
 
-            footerNote
+            Text("Нужен Apple ID и включённый iCloud на устройстве.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
 
             Spacer()
         }
         .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(OneCartPalette.background)
-    }
-
-    private var headerSubtitle: String {
-        switch model.welcomePhase {
-        case .awaitingInvite:
-            return "Войдите выполнен. Откройте ссылку-приглашение, которую прислал владелец семейной корзины."
-        default:
-            return "Один Apple ID — одна общая корзина для всей семьи через iCloud."
-        }
-    }
-
-    @ViewBuilder
-    private var footerNote: some View {
-        switch model.welcomePhase {
-        case .awaitingInvite:
-            EmptyView()
-        default:
-            Text("Нужен Apple ID и включённый iCloud на устройстве.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
     }
 
     @ViewBuilder
@@ -59,101 +39,34 @@ struct WelcomeView: View {
             signInContent
         case .connecting:
             connectingContent
-        case .awaitingInvite:
-            awaitingInviteContent
         case .failed(let message):
             failedContent(message: message)
         }
     }
 
     private var signInContent: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 10) {
-                ForEach(FamilyJoinIntent.allCases) { intent in
-                    joinIntentButton(intent)
-                }
+        AppleSignInAuthorizationButton(
+            onRequest: { request in
+                request.requestedScopes = [.fullName, .email]
+            },
+            onCompletion: { result in
+                handleSignInResult(result)
             }
-
-            AppleSignInAuthorizationButton(
-                canSignIn: { preferences.familyJoinIntent != nil },
-                onBlocked: {
-                    model.reportWelcomeFailure(
-                        "Выберите, создаёте вы корзину или вас пригласили."
-                    )
-                },
-                onRequest: { request in
-                    request.requestedScopes = [.fullName, .email]
-                },
-                onCompletion: { result in
-                    handleSignInResult(result)
-                }
-            )
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .opacity(preferences.familyJoinIntent == nil ? 0.55 : 1)
-        }
-    }
-
-    private func joinIntentButton(_ intent: FamilyJoinIntent) -> some View {
-        let isSelected = preferences.familyJoinIntent == intent
-        return Button {
-            model.chooseJoinIntent(intent)
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: intent == .owner ? "house.fill" : "link")
-                    .font(.title3)
-                    .foregroundColor(OneCartPalette.primary)
-                    .frame(width: 28)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(intent.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(intent.subtitle)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? OneCartPalette.primary : .secondary)
-            }
-            .padding(14)
-            .background(
-                isSelected ? OneCartPalette.primarySoft : OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-        }
-        .buttonStyle(.plain)
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
     }
 
     private var connectingContent: some View {
         VStack(spacing: 10) {
             ProgressView()
                 .controlSize(.large)
-            Text("Подключаем семейную корзину…")
+            Text("Подключаем iCloud…")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-    }
-
-    private var awaitingInviteContent: some View {
-        VStack(spacing: 14) {
-            Label("Ждём приглашение", systemImage: "envelope.open.fill")
-                .font(.headline)
-                .foregroundColor(OneCartPalette.primaryStrong)
-
-            Text("Откройте ссылку из iMessage, Telegram или почты. iCloud покажет системный диалог — нажмите «Принять».")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button("Я принял приглашение") {
-                Task { await model.refreshInviteAcceptance() }
-            }
-            .buttonStyle(OneCartPrimaryButtonStyle())
-        }
     }
 
     private func failedContent(message: String) -> some View {
@@ -269,18 +182,11 @@ struct CartMergeSheet: View {
 }
 
 private struct AppleSignInAuthorizationButton: UIViewRepresentable {
-    var canSignIn: () -> Bool
-    var onBlocked: () -> Void
     var onRequest: (ASAuthorizationAppleIDRequest) -> Void
     var onCompletion: (Result<ASAuthorization, Error>) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(
-            canSignIn: canSignIn,
-            onBlocked: onBlocked,
-            onRequest: onRequest,
-            onCompletion: onCompletion
-        )
+        Coordinator(onRequest: onRequest, onCompletion: onCompletion)
     }
 
     func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
@@ -298,37 +204,24 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: ASAuthorizationAppleIDButton, context: Context) {
-        context.coordinator.canSignIn = canSignIn
-        context.coordinator.onBlocked = onBlocked
         context.coordinator.onRequest = onRequest
         context.coordinator.onCompletion = onCompletion
     }
 
     final class Coordinator: NSObject, ASAuthorizationControllerDelegate,
         ASAuthorizationControllerPresentationContextProviding {
-        var canSignIn: () -> Bool
-        var onBlocked: () -> Void
         var onRequest: (ASAuthorizationAppleIDRequest) -> Void
         var onCompletion: (Result<ASAuthorization, Error>) -> Void
 
         init(
-            canSignIn: @escaping () -> Bool,
-            onBlocked: @escaping () -> Void,
             onRequest: @escaping (ASAuthorizationAppleIDRequest) -> Void,
             onCompletion: @escaping (Result<ASAuthorization, Error>) -> Void
         ) {
-            self.canSignIn = canSignIn
-            self.onBlocked = onBlocked
             self.onRequest = onRequest
             self.onCompletion = onCompletion
         }
 
         @objc func handleTap() {
-            guard canSignIn() else {
-                onBlocked()
-                return
-            }
-
             let request = ASAuthorizationAppleIDProvider().createRequest()
             onRequest(request)
 

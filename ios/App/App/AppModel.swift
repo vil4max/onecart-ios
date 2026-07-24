@@ -56,15 +56,6 @@ final class DevicePreferences: ObservableObject {
             )
         }
     }
-    @Published var familyJoinIntent: FamilyJoinIntent? {
-        didSet {
-            if let familyJoinIntent {
-                defaults.set(familyJoinIntent.rawValue, forKey: Keys.familyJoinIntent)
-            } else {
-                defaults.removeObject(forKey: Keys.familyJoinIntent)
-            }
-        }
-    }
 
     private let defaults: UserDefaults
 
@@ -78,8 +69,6 @@ final class DevicePreferences: ObservableObject {
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
-        familyJoinIntent = defaults.string(forKey: Keys.familyJoinIntent)
-            .flatMap(FamilyJoinIntent.init(rawValue:))
     }
 
     func reloadFromDefaults() {
@@ -91,8 +80,6 @@ final class DevicePreferences: ObservableObject {
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
-        familyJoinIntent = defaults.string(forKey: Keys.familyJoinIntent)
-            .flatMap(FamilyJoinIntent.init(rawValue:))
     }
 
     private enum Keys {
@@ -100,7 +87,6 @@ final class DevicePreferences: ObservableObject {
         static let locale = "onecart.locale"
         static let defaultUnit = "onecart.default-unit"
         static let participantDisplayName = "onecart.participant-display-name"
-        static let familyJoinIntent = "onecart.family-join-intent"
     }
 }
 
@@ -154,7 +140,6 @@ enum InviteLinkError: LocalizedError {
 enum WelcomePhase: Equatable {
     case signIn
     case connecting
-    case awaitingInvite
     case failed(String)
 }
 
@@ -269,29 +254,21 @@ final class AppModel: ObservableObject {
         await retryWelcome()
     }
 
-    func chooseJoinIntent(_ intent: FamilyJoinIntent) {
-        preferences.familyJoinIntent = intent
-    }
-
-    func refreshInviteAcceptance() async {
+    func refreshFamilyCartFromCloud() async {
         guard account != nil else { return }
-        welcomePhase = .connecting
-        needsWelcome = true
+        isBusy = true
+        defer { isBusy = false }
         await acceptPendingCloudKitShares()
         do {
             try reload()
-            if familySpaces.contains(where: { persistence.scope(for: $0) == .shared }) {
-                if let account {
-                    _ = try await resolveFamilyCartConflicts(for: account)
-                }
-                needsWelcome = false
-            } else {
-                welcomePhase = .awaitingInvite
-                needsWelcome = true
+            if let account {
+                _ = try await resolveFamilyCartConflicts(for: account)
+            }
+            if activeFamilySpace != nil {
+                showToast("Семейная корзина подключена")
             }
         } catch {
-            welcomePhase = .failed(userFacingMessage(for: error))
-            needsWelcome = true
+            show(error)
         }
     }
 
@@ -363,7 +340,6 @@ final class AppModel: ObservableObject {
         clearAccountData()
         account = nil
         pendingCartMerge = nil
-        preferences.familyJoinIntent = nil
         needsWelcome = true
         welcomePhase = .signIn
         isReady = true
@@ -411,7 +387,7 @@ final class AppModel: ObservableObject {
             )
             defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
             try reload(preferredFamilySpaceID: id)
-            showToast("Группа создана")
+            showToast("Корзина создана")
         } catch {
             show(error)
         }
@@ -793,32 +769,18 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Returns `false` when onboarding should stay on welcome (awaiting invite).
+    /// Syncs CloudKit shares and picks the active family cart when available.
     @discardableResult
     private func finishFamilyCartSetup(for account: OneCartAccount) async throws -> Bool {
         try reload()
-        let hasSharedFamily = familySpaces.contains {
-            persistence.scope(for: $0) == .shared
-        }
-        let joinIntent = preferences.familyJoinIntent ?? .owner
-
-        if hasSharedFamily {
-            _ = try await resolveFamilyCartConflicts(for: account)
-            if pendingCartMerge == nil {
-                try reload(preferredFamilySpaceID: preferredSharedFamilyID())
-            }
+        guard familySpaces.contains(where: { persistence.scope(for: $0) == .shared }) else {
             return true
         }
 
-        if joinIntent == .invitee {
-            needsWelcome = true
-            welcomePhase = .awaitingInvite
-            isReady = true
-            return false
+        _ = try await resolveFamilyCartConflicts(for: account)
+        if pendingCartMerge == nil {
+            try reload(preferredFamilySpaceID: preferredSharedFamilyID())
         }
-
-        try await ensureDefaultFamilySpace(for: account)
-        try reload()
         return true
     }
 
@@ -864,19 +826,6 @@ final class AppModel: ObservableObject {
             forKey: activeFamilyKey(accountID: account.id)
         )
         return true
-    }
-
-    private func ensureDefaultFamilySpace(for account: OneCartAccount) async throws {
-        try reload()
-        guard familySpaces.isEmpty else { return }
-        let id = try await repository.createFamilySpace(
-            name: Self.defaultFamilyName,
-            cachedForUserID: account.id,
-            serverRole: FamilyAccess.owner.rawValue,
-            needsRemoteCreation: false
-        )
-        defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
-        try reload(preferredFamilySpaceID: id)
     }
 
     private func clearAccountData() {

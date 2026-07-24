@@ -1,28 +1,5 @@
 import Foundation
 
-enum FamilyJoinIntent: String, CaseIterable, Identifiable {
-    case owner
-    case invitee
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .owner: return "Создаю корзину для семьи"
-        case .invitee: return "Меня пригласили"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .owner:
-            return "Вы первый — после входа появится общая корзина, остальным отправите ссылку."
-        case .invitee:
-            return "Сначала войдите, затем откройте ссылку-приглашение из сообщения."
-        }
-    }
-}
-
 struct FamilySpaceContentSummary: Equatable {
     let productCount: Int
     let storeCount: Int

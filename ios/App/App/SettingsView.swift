@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var showingCreateSpace = false
     @State private var showingProfile = false
 
     var body: some View {
@@ -26,9 +25,6 @@ struct SettingsView: View {
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingCreateSpace) {
-                CreateFamilySpaceSheet()
-            }
             .sheet(isPresented: $showingProfile) {
                 if let account = model.account {
                     ProfileEditorSheet(
@@ -174,12 +170,14 @@ struct SettingsView: View {
 
                 if model.familySpaces.isEmpty {
                     Button {
-                        showingCreateSpace = true
+                        Task {
+                            await model.createFamilySpace(name: AppModel.defaultFamilyName)
+                        }
                     } label: {
                         SettingsActionRow(
                             image: "plus.circle.fill",
-                            title: "Новая группа",
-                            detail: "Отдельное пространство со своими списками",
+                            title: "Создать корзину",
+                            detail: "Общий список для семьи через iCloud",
                             showsChevron: true
                         )
                     }
