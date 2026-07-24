@@ -269,7 +269,7 @@ final class OneCartTests: XCTestCase {
         let destination = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
         XCTAssertEqual(destination.sortedProducts.count, 1)
         XCTAssertEqual(destination.sortedProducts.first?.displayName, "Молоко")
-        XCTAssertNil(repository.fetchFamilySpace(id: sourceID))
+        XCTAssertNil(try repository.fetchFamilySpace(id: sourceID))
     }
 
     func testDefaultFamilyNameIsStable() {
