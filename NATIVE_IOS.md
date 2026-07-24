@@ -122,10 +122,41 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCart
 
 ### 3. TestFlight (внутренняя семья)
 
+**Автоматически (GitHub Actions):**
+
+1. Добавить secrets в репозиторий (Settings → Secrets and variables → Actions):
+
+| Secret | Описание |
+|--------|----------|
+| `ASC_KEY_ID` | Key ID из App Store Connect → Users and Access → Keys |
+| `ASC_ISSUER_ID` | Issuer ID (верх страницы Keys) |
+| `ASC_KEY_CONTENT` | Содержимое `.p8` в base64: `base64 -i AuthKey_XXX.p8 \| pbcopy` |
+| `IOS_DISTRIBUTION_CERT_P12_BASE64` | Distribution certificate `.p12` в base64 |
+| `IOS_DISTRIBUTION_CERT_PASSWORD` | Пароль от `.p12` |
+| `KEYCHAIN_PASSWORD` | Любой случайный пароль для CI keychain |
+| `IOS_APPSTORE_PROFILE_BASE64` | App Store provisioning profile в base64 |
+
+2. Запустить workflow **TestFlight** → *Run workflow* (Actions → TestFlight → Run workflow).
+3. Или создать тег `v1.1.0` — workflow запустится автоматически и загрузит билд.
+
+**Локально (Mac с Xcode):**
+
+```bash
+bundle install
+export ASC_KEY_ID=...
+export ASC_ISSUER_ID=...
+export ASC_KEY_CONTENT="$(base64 -i AuthKey_XXX.p8)"
+export ASC_KEY_BASE64=true
+bundle exec fastlane ios beta
+```
+
+4. App Store Connect → TestFlight → Internal Testing → добавить Apple ID всех четырёх участников.
+5. Владелец создаёт семью и шлёт CKShare-ссылку; остальные принимают после установки из TestFlight.
+
+**Вручную (Xcode):**
+
 1. Xcode → Product → Archive (схема `App`, конфигурация **Release**).
 2. Distribute App → App Store Connect.
-3. App Store Connect → TestFlight → Internal Testing → добавить Apple ID всех четырёх участников как тестеров (роль Developer/App Manager может приглашать Internal без review).
-4. Владелец создаёт семью и шлёт CKShare-ссылку; остальные принимают после установки из TestFlight.
 
 ### 4. Публичный App Store (опционально)
 
