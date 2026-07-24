@@ -160,7 +160,7 @@ enum WelcomePhase: Equatable {
 
 @MainActor
 final class AppModel: ObservableObject {
-    static let defaultFamilyName = "Наша семья"
+    nonisolated static let defaultFamilyName = "Наша семья"
 
     @Published private(set) var isReady = false
     @Published private(set) var isBusy = false

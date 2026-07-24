@@ -72,7 +72,7 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     }
 
     func load() -> AppleSignInCredential? {
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
@@ -168,6 +168,8 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
             return .revoked
         case .notFound:
             return .notFound
+        case .transferred:
+            return .unknown
         @unknown default:
             return .unknown
         }

@@ -22,7 +22,7 @@ enum PersistenceError: LocalizedError {
     }
 }
 
-final class PersistenceController {
+final class PersistenceController: @unchecked Sendable {
     static let shared = PersistenceController()
 
     static let cloudKitContainerIdentifier = "iCloud.com.vil555tim.onecart"

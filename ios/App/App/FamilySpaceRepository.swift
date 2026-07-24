@@ -257,7 +257,7 @@ final class FamilySpaceRepository {
 
             let destinationList = destination.activeLists.first
                 ?? destination.sortedLists.first
-            guard let targetList = destinationList, let targetListID = targetList.id else {
+            guard let targetList = destinationList, targetList.id != nil else {
                 throw RepositoryError.listNotFound
             }
 

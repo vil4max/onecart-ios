@@ -440,12 +440,10 @@ private enum FamilyInviteLinkBuilder {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while Date() < deadline {
             try Task.checkCancellation()
-            do {
-                _ = try persistence.container.recordID(for: objectID)
+            if persistence.container.recordID(for: objectID) != nil {
                 return
-            } catch {
-                try await Task.sleep(nanoseconds: 400_000_000)
             }
+            try await Task.sleep(nanoseconds: 400_000_000)
         }
         throw OneCartCloudKitError.stillSyncing
     }

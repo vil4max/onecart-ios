@@ -878,10 +878,6 @@ enum OfficialCatalogPriceParser {
         } ?? []
 
         let normalizedText = StoreBrand.normalize(text)
-        let hasDiscount = normalizedText.range(
-            of: #"(?:-|−)\s*\d+\s*%|акц|зниж|скид|економ"#,
-            options: .regularExpression
-        ) != nil
         let hasLoyaltyPrice = normalizedText.range(
             of: #"картк|карточк|atb\s*card|атб\s*card"#,
             options: .regularExpression
