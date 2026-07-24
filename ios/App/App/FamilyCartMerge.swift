@@ -68,7 +68,7 @@ enum FamilyCartMerge {
 
     static func isDeletableStarter(
         _ space: FamilySpace,
-        scope: PersistenceStoreScope
+        scope: PersistentStoreScope
     ) -> Bool {
         guard scope == .private else { return false }
         guard isStarterFamilyName(space.displayName) else { return false }

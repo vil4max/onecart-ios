@@ -213,6 +213,63 @@ final class OneCartTests: XCTestCase {
         XCTAssertNil(store.load())
     }
 
+    func testDeletableStarterFamilyDetection() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: AppModel.defaultFamilyName)
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertTrue(
+            FamilyCartMerge.isDeletableStarter(
+                space,
+                scope: persistence.scope(for: space)
+            )
+        )
+
+        _ = try await repository.addProduct(
+            to: try XCTUnwrap(space.activeLists.first?.id),
+            draft: ProductDraft(
+                name: "Хлеб",
+                quantity: 1,
+                unit: .piece,
+                category: .other,
+                estimatedPrice: 30,
+                note: ""
+            )
+        )
+        let updated = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertFalse(
+            FamilyCartMerge.isDeletableStarter(
+                updated,
+                scope: persistence.scope(for: updated)
+            )
+        )
+    }
+
+    func testMergeFamilyContentCopiesProducts() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let sourceID = try await repository.createFamilySpace(name: "Моя")
+        let destinationID = try await repository.createFamilySpace(name: "Семейная")
+        let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
+        let listID = try XCTUnwrap(source.activeLists.first?.id)
+        _ = try await repository.addProduct(
+            to: listID,
+            draft: ProductDraft(
+                name: "Молоко",
+                quantity: 2,
+                unit: .piece,
+                category: .other,
+                estimatedPrice: 55,
+                note: ""
+            )
+        )
+
+        try await repository.mergeFamilyContent(from: sourceID, into: destinationID)
+
+        let destination = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
+        XCTAssertEqual(destination.sortedProducts.count, 1)
+        XCTAssertEqual(destination.sortedProducts.first?.displayName, "Молоко")
+        XCTAssertNil(repository.fetchFamilySpace(id: sourceID))
+    }
+
     func testDefaultFamilyNameIsStable() {
         XCTAssertEqual(AppModel.defaultFamilyName, "Наша семья")
     }

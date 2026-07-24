@@ -587,6 +587,9 @@ final class AppModel: ObservableObject {
             if let account {
                 _ = try await resolveFamilyCartConflicts(for: account)
             }
+            if familySpaces.contains(where: { persistence.scope(for: $0) == .shared }) {
+                needsWelcome = false
+            }
             scheduleCloudReload(delayNanoseconds: 350_000_000)
             showToast("Семейная корзина подключена")
         } catch {
