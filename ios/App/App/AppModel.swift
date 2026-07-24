@@ -211,13 +211,14 @@ final class AppModel: ObservableObject {
     private var scheduledReloadTask: Task<Void, Never>?
 
     init(
-        persistence: PersistenceController = .shared,
+        persistence: PersistenceController? = nil,
         preferences: DevicePreferences = DevicePreferences(),
         defaults: UserDefaults = .standard,
         legacySnapshotProvider: LegacySnapshotProviding = DefaultLegacySnapshotProvider(),
         backend: CloudKitBackendService? = nil,
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared
     ) {
+        let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
         self.preferences = preferences
         self.defaults = defaults
@@ -235,6 +236,13 @@ final class AppModel: ObservableObject {
             persistence: persistence,
             userDefaults: defaults
         )
+    }
+
+    private static func makeDefaultPersistence() -> PersistenceController {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return PersistenceController(inMemory: true, cloudKitEnabled: false)
+        }
+        return .shared
     }
 
     deinit {
