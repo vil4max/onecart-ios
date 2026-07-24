@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var showingCreateSpace = false
     @State private var showingProfile = false
 
     var body: some View {
@@ -26,9 +25,6 @@ struct SettingsView: View {
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingCreateSpace) {
-                CreateFamilySpaceSheet()
-            }
             .sheet(isPresented: $showingProfile) {
                 if let account = model.account {
                     ProfileEditorSheet(
@@ -174,12 +170,14 @@ struct SettingsView: View {
 
                 if model.familySpaces.isEmpty {
                     Button {
-                        showingCreateSpace = true
+                        Task {
+                            await model.createFamilySpace(name: AppModel.defaultFamilyName)
+                        }
                     } label: {
                         SettingsActionRow(
                             image: "plus.circle.fill",
-                            title: "Новая группа",
-                            detail: "Отдельное пространство со своими списками",
+                            title: "Создать корзину",
+                            detail: "Общий список для семьи через iCloud",
                             showsChevron: true
                         )
                     }
@@ -1058,57 +1056,5 @@ private struct FamilyAvatarView: View {
             remoteURL: member.avatarURL,
             size: size
         )
-    }
-}
-
-private struct CreateFamilySpaceSheet: View {
-    @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var name = "Новая группа"
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Название")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(OneCartPalette.primary)
-                        .textCase(.uppercase)
-
-                    TextField("Например: Дом или Дача", text: $name)
-                        .textInputAutocapitalization(.sentences)
-                        .padding(14)
-                        .background(
-                            OneCartPalette.surface,
-                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        )
-
-                    Text("Сразу можно добавлять товары и приглашать участников. Название можно поменять позже.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(20)
-            }
-            .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("Новая группа")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Создать") {
-                        Task {
-                            await model.createFamilySpace(name: name)
-                            dismiss()
-                        }
-                    }
-                    .font(.body.weight(.semibold))
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .navigationViewStyle(.stack)
     }
 }

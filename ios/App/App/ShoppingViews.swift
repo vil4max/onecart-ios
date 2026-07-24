@@ -11,73 +11,82 @@ struct HomeView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if !model.canEdit {
-                        ReadOnlyBanner()
+                    if model.activeFamilySpace == nil {
+                        HomeNoFamilyPanel()
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                             .padding(.bottom, 16)
+                    } else {
+                        if !model.canEdit {
+                            ReadOnlyBanner()
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                                .padding(.bottom, 16)
+                        }
+
+                        HomeMasthead(
+                            familyName: model.activeFamilySpace?.displayName ?? "OneCart",
+                            listCount: model.activeLists.count,
+                            overview: overview
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+
+                        HomeFamilyInviteRow(
+                            symbol: familySymbol,
+                            title: familyTitle,
+                            detail: familyDetail,
+                            actionTitle: familyAction
+                        ) {
+                            model.showFamilyManagement()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 24)
                     }
 
-                    HomeMasthead(
-                        familyName: model.activeFamilySpace?.displayName ?? "OneCart",
-                        listCount: model.activeLists.count,
-                        overview: overview
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-
-                    HomeFamilyInviteRow(
-                        symbol: familySymbol,
-                        title: familyTitle,
-                        detail: familyDetail,
-                        actionTitle: familyAction
-                    ) {
-                        model.showFamilyManagement()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
-
-                    HomeListsHeader(
-                        count: model.activeLists.count,
-                        canAdd: model.canEdit
-                    ) {
-                        showingAddList = true
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 12)
-
-                    if model.activeLists.isEmpty {
-                        HomeEmptyListsPanel(canEdit: model.canEdit) {
+                    if model.activeFamilySpace != nil {
+                        HomeListsHeader(
+                            count: model.activeLists.count,
+                            canAdd: model.canEdit
+                        ) {
                             showingAddList = true
                         }
                         .padding(.horizontal, 20)
-                    } else {
-                        VStack(spacing: 10) {
-                            ForEach(model.activeLists, id: \.objectID) { list in
-                                if let id = list.id {
-                                    NavigationLink {
-                                        ShoppingListView(listID: id)
-                                    } label: {
-                                        ShoppingListRow(
-                                            list: list,
-                                            summary: model.summary(for: id)
-                                        )
-                                    }
-                                    .buttonStyle(HomePressButtonStyle())
-                                    .contextMenu {
-                                        if model.canEdit {
-                                            Button(role: .destructive) {
-                                                pendingDeleteList = list
-                                            } label: {
-                                                Label("Удалить список", systemImage: "trash")
+                        .padding(.bottom, 12)
+
+                        if model.activeLists.isEmpty {
+                            HomeEmptyListsPanel(canEdit: model.canEdit) {
+                                showingAddList = true
+                            }
+                            .padding(.horizontal, 20)
+                        } else {
+                            VStack(spacing: 10) {
+                                ForEach(model.activeLists, id: \.objectID) { list in
+                                    if let id = list.id {
+                                        NavigationLink {
+                                            ShoppingListView(listID: id)
+                                        } label: {
+                                            ShoppingListRow(
+                                                list: list,
+                                                summary: model.summary(for: id)
+                                            )
+                                        }
+                                        .buttonStyle(HomePressButtonStyle())
+                                        .contextMenu {
+                                            if model.canEdit {
+                                                Button(role: .destructive) {
+                                                    pendingDeleteList = list
+                                                } label: {
+                                                    Label("Удалить список", systemImage: "trash")
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
+                            .padding(.horizontal, 20)
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
                 .padding(.bottom, 28)
@@ -94,7 +103,7 @@ struct HomeView: View {
                             .font(.body.weight(.semibold))
                             .frame(minWidth: 44, minHeight: 44)
                     }
-                    .disabled(!model.canEdit)
+                    .disabled(model.activeFamilySpace == nil || !model.canEdit)
                     .accessibilityLabel("Добавить список")
                 }
             }
@@ -159,6 +168,49 @@ struct HomeView: View {
         case .member?: return "Участники"
         case nil: return "Открыть"
         }
+    }
+}
+
+private struct HomeNoFamilyPanel: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Семейная корзина", systemImage: "cart.fill")
+                .font(.headline)
+                .foregroundColor(OneCartPalette.primaryStrong)
+
+            Text("Корзина подтянется из iCloud, если вы уже пользовались OneCart или приняли приглашение.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 10) {
+                Button {
+                    Task {
+                        await model.createFamilySpace(name: AppModel.defaultFamilyName)
+                    }
+                } label: {
+                    Label("Создать корзину", systemImage: "plus.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(OneCartPrimaryButtonStyle())
+
+                Button {
+                    Task { await model.refreshFamilyCartFromCloud() }
+                } label: {
+                    Label("Обновить из iCloud", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(OneCartSecondaryButtonStyle())
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
     }
 }
 

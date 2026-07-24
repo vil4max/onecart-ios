@@ -79,7 +79,7 @@ struct RootView: View {
         case .loading:
             OneCartPalette.background.ignoresSafeArea()
         case .welcome:
-            WelcomeView(preferences: model.preferences)
+            WelcomeView()
         case .main:
             MainTabView()
         }
