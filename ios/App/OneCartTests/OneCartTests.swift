@@ -174,6 +174,108 @@ final class OneCartTests: XCTestCase {
         XCTAssertTrue(FamilyAccess.member.isParticipant)
     }
 
+    func testStableIDIsDeterministic() {
+        let first = OneCartStableID.uuid(for: "apple:user-1")
+        let second = OneCartStableID.uuid(for: "apple:user-1")
+        XCTAssertEqual(first, second)
+        XCTAssertNotEqual(
+            OneCartStableID.uuid(for: "apple:user-1"),
+            OneCartStableID.uuid(for: "apple:user-2")
+        )
+    }
+
+    func testAppleSignInCredentialBuildsDisplayNameAndAccountID() {
+        let credential = AppleSignInCredential(
+            userID: "001234.abcd",
+            email: "user@example.com",
+            givenName: "Иван",
+            familyName: "Петров"
+        )
+        XCTAssertEqual(credential.displayName, "Иван Петров")
+        XCTAssertEqual(
+            credential.accountID,
+            OneCartStableID.uuid(for: "apple:001234.abcd")
+        )
+    }
+
+    func testKeychainAppleSignInCredentialStorePersistsCredential() {
+        let service = "onecart.tests.\(UUID().uuidString)"
+        let store = KeychainAppleSignInCredentialStore(service: service)
+        let credential = AppleSignInCredential(
+            userID: "001234.abcd",
+            email: nil,
+            givenName: "Test",
+            familyName: nil
+        )
+        store.save(credential)
+        XCTAssertEqual(store.load(), credential)
+        store.clear()
+        XCTAssertNil(store.load())
+    }
+
+    func testDeletableStarterFamilyDetection() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: AppModel.defaultFamilyName)
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let scope = try XCTUnwrap(persistence.scope(for: space))
+        XCTAssertTrue(
+            FamilyCartMerge.isDeletableStarter(
+                space,
+                scope: scope
+            )
+        )
+
+        _ = try await repository.addProduct(
+            to: try XCTUnwrap(space.activeLists.first?.id),
+            draft: ProductDraft(
+                name: "Хлеб",
+                quantity: 1,
+                unit: .piece,
+                category: .other,
+                estimatedPrice: 30,
+                note: ""
+            )
+        )
+        let updated = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let updatedScope = try XCTUnwrap(persistence.scope(for: updated))
+        XCTAssertFalse(
+            FamilyCartMerge.isDeletableStarter(
+                updated,
+                scope: updatedScope
+            )
+        )
+    }
+
+    func testMergeFamilyContentCopiesProducts() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let sourceID = try await repository.createFamilySpace(name: "Моя")
+        let destinationID = try await repository.createFamilySpace(name: "Семейная")
+        let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
+        let listID = try XCTUnwrap(source.activeLists.first?.id)
+        _ = try await repository.addProduct(
+            to: listID,
+            draft: ProductDraft(
+                name: "Молоко",
+                quantity: 2,
+                unit: .piece,
+                category: .other,
+                estimatedPrice: 55,
+                note: ""
+            )
+        )
+
+        try await repository.mergeFamilyContent(from: sourceID, into: destinationID)
+
+        let destination = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
+        XCTAssertEqual(destination.sortedProducts.count, 1)
+        XCTAssertEqual(destination.sortedProducts.first?.displayName, "Молоко")
+        XCTAssertNil(try repository.fetchFamilySpace(id: sourceID))
+    }
+
+    func testDefaultFamilyNameIsStable() {
+        XCTAssertEqual(AppModel.defaultFamilyName, "Наша семья")
+    }
+
     func testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Offline")

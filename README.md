@@ -1,6 +1,6 @@
 # OneCart
 
-OneCart — нативное SwiftUI-приложение для общих семейных покупок. Данные хранятся локально в Core Data и автоматически синхронизируются через iCloud/CloudKit. Отдельной регистрации, email и пароля в приложении нет: используется iCloud-аккаунт устройства.
+OneCart — семейный список покупок для 4 человек. Один экран входа через **Sign in with Apple**; корзина синхронизируется через iCloud/CloudKit. При первом входе создаётся пространство «Наша семья»; остальные подключаются по ссылке-приглашению.
 
 ## Технологии
 
@@ -15,7 +15,7 @@ CloudKit container: `iCloud.com.vil555tim.onecart`
 
 ## Открытие проекта
 
-Откройте [ios/App/App.xcodeproj](ios/App/App.xcodeproj) в Xcode. Перед запуском на устройстве включите для App ID возможности iCloud/CloudKit и Push Notifications, привяжите CloudKit container и обновите provisioning profile.
+Откройте [ios/App/App.xcodeproj](ios/App/App.xcodeproj) в Xcode. Перед запуском на устройстве включите для App ID возможности Sign in with Apple, iCloud/CloudKit и Push Notifications, привяжите CloudKit container и обновите provisioning profile.
 
 Подробности архитектуры, настройки и проверки на двух iCloud-аккаунтах находятся в [NATIVE_IOS.md](NATIVE_IOS.md).
 

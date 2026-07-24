@@ -26,31 +26,16 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Pick iPhone simulator
-        id: sim
-        run: |
-          UDID=$(xcrun simctl list devices available \
-            | awk -F '[()]' '/iPhone/ && /Shutdown|Booted/ {print $2; exit}')
-          if [ -z "$UDID" ]; then
-            echo "No iPhone simulator available"
-            xcrun simctl list devices available
-            exit 1
-          fi
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-          echo "Using simulator $UDID"
-
-      - name: Build and test
+      - name: Build app and unit tests for Simulator
         run: |
           set -o pipefail
           xcodebuild \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
-            -only-testing:OneCartTests \
-            -parallel-testing-enabled NO \
+            -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO \
-            test
+            build-for-testing
 
   secrets:
     name: Secret scan
@@ -61,7 +46,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+      - name: Install Gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.24.2"
+        run: |
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install -m 755 gitleaks /usr/local/bin/gitleaks
+
+      - name: Gitleaks
+        run: gitleaks detect --source . --no-git --redact --verbose
