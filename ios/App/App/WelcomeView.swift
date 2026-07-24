@@ -74,16 +74,22 @@ struct WelcomeView: View {
                 }
             }
 
-            if preferences.familyJoinIntent != nil {
-                SignInWithAppleButton(.signIn) { request in
+            AppleSignInAuthorizationButton(
+                canSignIn: { preferences.familyJoinIntent != nil },
+                onBlocked: {
+                    model.reportWelcomeFailure(
+                        "Выберите, создаёте вы корзину или вас пригласили."
+                    )
+                },
+                onRequest: { request in
                     request.requestedScopes = [.fullName, .email]
-                } onCompletion: { result in
+                },
+                onCompletion: { result in
                     handleSignInResult(result)
                 }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
         }
     }
 
@@ -164,10 +170,6 @@ struct WelcomeView: View {
     }
 
     private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
-        guard preferences.familyJoinIntent != nil else {
-            model.reportWelcomeFailure("Выберите, создаёте вы корзину или вас пригласили.")
-            return
-        }
         switch result {
         case .success(let authorization):
             Task { await model.completeAppleSignIn(authorization: authorization) }
@@ -262,5 +264,95 @@ struct CartMergeSheet: View {
             parts.append("\(summary.historyCount) покупок в истории")
         }
         return parts.isEmpty ? "Пустая стартовая корзина" : parts.joined(separator: ", ")
+    }
+}
+
+private struct AppleSignInAuthorizationButton: UIViewRepresentable {
+    var canSignIn: () -> Bool
+    var onBlocked: () -> Void
+    var onRequest: (ASAuthorizationAppleIDRequest) -> Void
+    var onCompletion: (Result<ASAuthorization, Error>) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            canSignIn: canSignIn,
+            onBlocked: onBlocked,
+            onRequest: onRequest,
+            onCompletion: onCompletion
+        )
+    }
+
+    func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
+        let button = ASAuthorizationAppleIDButton(
+            authorizationButtonType: .signIn,
+            authorizationButtonStyle: .black
+        )
+        button.cornerRadius = 14
+        button.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.handleTap),
+            for: .touchUpInside
+        )
+        return button
+    }
+
+    func updateUIView(_ uiView: ASAuthorizationAppleIDButton, context: Context) {
+        context.coordinator.canSignIn = canSignIn
+        context.coordinator.onBlocked = onBlocked
+        context.coordinator.onRequest = onRequest
+        context.coordinator.onCompletion = onCompletion
+    }
+
+    final class Coordinator: NSObject, ASAuthorizationControllerDelegate,
+        ASAuthorizationControllerPresentationContextProviding {
+        var canSignIn: () -> Bool
+        var onBlocked: () -> Void
+        var onRequest: (ASAuthorizationAppleIDRequest) -> Void
+        var onCompletion: (Result<ASAuthorization, Error>) -> Void
+
+        init(
+            canSignIn: @escaping () -> Bool,
+            onBlocked: @escaping () -> Void,
+            onRequest: @escaping (ASAuthorizationAppleIDRequest) -> Void,
+            onCompletion: @escaping (Result<ASAuthorization, Error>) -> Void
+        ) {
+            self.canSignIn = canSignIn
+            self.onBlocked = onBlocked
+            self.onRequest = onRequest
+            self.onCompletion = onCompletion
+        }
+
+        @objc func handleTap() {
+            guard canSignIn() else {
+                onBlocked()
+                return
+            }
+
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            onRequest(request)
+
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+
+        func authorizationController(
+            controller: ASAuthorizationController,
+            didCompleteWithAuthorization authorization: ASAuthorization
+        ) {
+            onCompletion(.success(authorization))
+        }
+
+        func authorizationController(
+            controller: ASAuthorizationController,
+            didCompleteWithError error: Error
+        ) {
+            onCompletion(.failure(error))
+        }
+
+        func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+            AppleSignInPresentationAnchor.current
+        }
     }
 }
