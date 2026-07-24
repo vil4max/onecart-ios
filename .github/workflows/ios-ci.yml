@@ -39,6 +39,11 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "Using simulator $UDID"
 
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" 2>/dev/null || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
       - name: Build and test
         run: |
           set -o pipefail

@@ -30,10 +30,16 @@ private struct OneCartScene: View {
             .environmentObject(model)
             .preferredColorScheme(preferences.theme.colorScheme)
             .task {
+                guard !Self.isRunningUnitTests else { return }
                 await model.start()
             }
             .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
+                guard !Self.isRunningUnitTests else { return }
                 Task { await model.acceptPendingCloudKitShares() }
             }
+    }
+
+    private static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 }
