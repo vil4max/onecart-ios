@@ -213,6 +213,10 @@ final class OneCartTests: XCTestCase {
         XCTAssertNil(store.load())
     }
 
+    func testDefaultFamilyNameIsStable() {
+        XCTAssertEqual(AppModel.defaultFamilyName, "Наша семья")
+    }
+
     func testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Offline")

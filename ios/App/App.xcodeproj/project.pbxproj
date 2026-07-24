@@ -28,6 +28,7 @@
 		E20000000000000000000001 /* OneCartStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* OneCartStableID.swift */; };
 		E20000000000000000000002 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* AppleSignInService.swift */; };
 		E20000000000000000000003 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* WelcomeView.swift */; };
+		F20000000000000000000001 /* FamilyCartMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* FamilyCartMerge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +69,7 @@
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		E10000000000000000000003 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		F10000000000000000000001 /* FamilyCartMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartMerge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +120,7 @@
 				E10000000000000000000001 /* OneCartStableID.swift */,
 				E10000000000000000000002 /* AppleSignInService.swift */,
 				E10000000000000000000003 /* WelcomeView.swift */,
+				F10000000000000000000001 /* FamilyCartMerge.swift */,
 				A10000000000000000000006 /* LegacyMigration.swift */,
 				A10000000000000000000008 /* AppModel.swift */,
 				A10000000000000000000009 /* RootView.swift */,
@@ -273,6 +276,7 @@
 				E20000000000000000000001 /* OneCartStableID.swift in Sources */,
 				E20000000000000000000002 /* AppleSignInService.swift in Sources */,
 				E20000000000000000000003 /* WelcomeView.swift in Sources */,
+				F20000000000000000000001 /* FamilyCartMerge.swift in Sources */,
 				A20000000000000000000006 /* LegacyMigration.swift in Sources */,
 				A20000000000000000000008 /* AppModel.swift in Sources */,
 				A20000000000000000000009 /* RootView.swift in Sources */,

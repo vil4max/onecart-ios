@@ -172,17 +172,19 @@ struct SettingsView: View {
 
                 settingsDivider
 
-                Button {
-                    showingCreateSpace = true
-                } label: {
-                    SettingsActionRow(
-                        image: "plus.circle.fill",
-                        title: "Новая группа",
-                        detail: "Отдельное пространство со своими списками",
-                        showsChevron: true
-                    )
+                if model.familySpaces.isEmpty {
+                    Button {
+                        showingCreateSpace = true
+                    } label: {
+                        SettingsActionRow(
+                            image: "plus.circle.fill",
+                            title: "Новая группа",
+                            detail: "Отдельное пространство со своими списками",
+                            showsChevron: true
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .background(
                 OneCartPalette.surface,
