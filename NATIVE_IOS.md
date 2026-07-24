@@ -10,8 +10,8 @@
 - `AppDelegate.swift` — приём системных CloudKit share invitations.
 - `AppModel.swift` — запуск, выбранная семья, sync state и реакция на CloudKit events.
 - `AppleSignInService.swift` — Sign in with Apple, Keychain-сессия.
-- `SignInView.swift` — экран входа.
-- `RootView.swift` — первое семейное пространство и основные вкладки.
+- `WelcomeView.swift` — единый экран: Sign in with Apple + подключение iCloud.
+- `RootView.swift` — запуск, welcome или основные вкладки.
 - `SettingsView.swift` — участники, системная share-ссылка и управление семьёй.
 
 ## Хранилища и синхронизация
@@ -25,15 +25,23 @@
 
 ## Аккаунт и профиль
 
-Перед использованием приложения пользователь входит через **Sign in with Apple**. Учётные данные сохраняются в Keychain; при следующем запуске сессия восстанавливается автоматически.
+Один экран **WelcomeView**: Sign in with Apple → «Подключаем семейную корзину…» → главный экран. Ошибки iCloud показываются на том же экране с кнопкой «Повторить».
 
-Для синхронизации списков дополнительно требуется iCloud-аккаунт устройства: приложение проверяет `CKContainer.accountStatus` после входа через Apple. Формы email/password отсутствуют.
+После первого входа приложение автоматически создаёт семейное пространство «Наша семья» с общим списком покупок. Отдельный онбординг «Создайте группу» не нужен.
+
+Учётные данные Apple ID хранятся в Keychain. Для синхронизации требуется iCloud на устройстве (`CKContainer.accountStatus`). Формы email/password отсутствуют.
 
 Отображаемое имя и медиа профиля являются настройками этого устройства. Аватар и баннер не отправляются в CloudKit и намеренно не входят в миграцию.
 
-## Семейный доступ
+## Семейный доступ (4 человека)
 
-Владелец создаёт системную `CKShare`-ссылку из экрана семьи. Получатель открывает ссылку и подтверждает доступ системным интерфейсом iCloud. Роль владельца определяется private store, роль участника — shared store. Удаление участника изменяет список участников `CKShare`; выход участника очищает принятую shared zone на его устройстве.
+Модель: **одна корзина на семью**. Владелец (кто первым вошёл) получает пространство «Наша семья». Остальные трое подключаются через системную `CKShare`-ссылку:
+
+1. Владелец: Настройки → Участники → Пригласить → отправить ссылку в семейный чат.
+2. Участник: установить OneCart → Sign in with Apple → открыть ссылку → принять доступ в системном диалоге iCloud.
+3. У всех четверых один и тот же список; изменения синхронизируются через CloudKit.
+
+Владелец создаёт системную `CKShare`-ссылку из экрана участников. Получатель открывает ссылку и подтверждает доступ системным интерфейсом iCloud. Роль владельца определяется private store, роль участника — shared store.
 
 Старые `onecart://invite/...` токены, отдельный invite endpoint и срок жизни в 14 дней больше не используются.
 
@@ -81,6 +89,47 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCart
 2. Убедиться, что все типы есть в Development.
 3. **Deploy Schema Changes to Production**.
 4. Повторить двухдевайсный чеклист выше уже на Production-окружении.
+
+## Выпуск в App Store (pet project)
+
+Минимальный путь для семейного приложения без бэкенда:
+
+### 1. Apple Developer
+
+- Платная программа ($99/год), Team `BTHRDS7254`.
+- App ID `com.vil555tim.onecart`: Sign in with Apple + iCloud (CloudKit) + Push.
+- Provisioning profiles пересоздать после capabilities.
+
+### 2. CloudKit Production
+
+Обязательно до TestFlight: [CloudKit Console](https://icloud.developer.apple.com/) → Deploy Schema to Production.
+
+### 3. TestFlight (внутренняя семья)
+
+1. Xcode → Product → Archive (схема `App`, конфигурация **Release**).
+2. Distribute App → App Store Connect.
+3. App Store Connect → TestFlight → Internal Testing → добавить Apple ID всех четырёх участников как тестеров (роль Developer/App Manager может приглашать Internal без review).
+4. Владелец создаёт семью и шлёт CKShare-ссылку; остальные принимают после установки из TestFlight.
+
+### 4. Публичный App Store (опционально)
+
+- Distribution → Manual release или автоматический.
+- Privacy Nutrition Labels: имя, user ID, пользовательский контент (списки), геолокация магазинов — всё «App Functionality», без трекинга (`PrivacyInfo.xcprivacy` уже в проекте).
+- Скриншоты iPhone 6.7" и 6.5" (можно с симулятора).
+- Описание: «Семейный список покупок с синхронизацией через iCloud».
+- Review notes: «Sign in with Apple required; family sharing via iCloud CKShare invite link in Settings».
+
+### 5. Что не нужно для pet project
+
+- Собственный сервер, Supabase, fastlane (можно добавить позже).
+- Отдельная регистрация email/password.
+- Несколько семейных пространств (код поддерживает, но UI скрывает создание второй группы).
+
+### 6. Регулярная эксплуатация
+
+- Следить за квотами CloudKit (для 4 человек — с запасом).
+- При смене Core Data модели — снова deploy schema в Production.
+- Xcode Organizer или CI для загрузки билдов.
 
 ## Безопасность: legacy Supabase
 

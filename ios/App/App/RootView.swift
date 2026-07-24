@@ -11,9 +11,7 @@ enum OneCartPalette {
 
 private enum RootPhase: Equatable {
     case loading
-    case signIn
-    case launchError
-    case familySetup
+    case welcome
     case main
 }
 
@@ -27,14 +25,8 @@ struct RootView: View {
         if !model.isReady {
             return .loading
         }
-        if model.needsSignIn {
-            return .signIn
-        }
-        if model.launchError != nil {
-            return .launchError
-        }
-        if model.familySpaces.isEmpty {
-            return .familySetup
+        if model.needsWelcome {
+            return .welcome
         }
         return .main
     }
@@ -83,12 +75,8 @@ struct RootView: View {
         switch phase {
         case .loading:
             OneCartPalette.background.ignoresSafeArea()
-        case .signIn:
-            SignInView()
-        case .launchError:
-            LaunchErrorView(message: model.launchError ?? "")
-        case .familySetup:
-            FamilySetupView()
+        case .welcome:
+            WelcomeView()
         case .main:
             MainTabView()
         }
@@ -174,88 +162,6 @@ private struct LaunchCartRideView: View {
             if ready { return true }
         }
         return false
-    }
-}
-
-private struct LaunchErrorView: View {
-    @EnvironmentObject private var model: AppModel
-    let message: String
-
-    var body: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 42))
-                .foregroundColor(.orange)
-            Text("OneCart не удалось запустить")
-                .font(.title2.bold())
-            Text(message)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button("Повторить") {
-                Task { await model.retryStartup() }
-            }
-            .buttonStyle(OneCartPrimaryButtonStyle())
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(OneCartPalette.background)
-    }
-}
-
-struct FamilySetupView: View {
-    @EnvironmentObject private var model: AppModel
-    @State private var familyName = "Наша группа"
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        OneCartMark()
-                        Text("Создайте группу")
-                            .font(.largeTitle.bold())
-                        if let account = model.account {
-                            Text(account.displayName)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Своё пространство", systemImage: "person.3.fill")
-                            .font(.headline)
-                            .foregroundColor(OneCartPalette.primaryStrong)
-                        TextField("Наша группа", text: $familyName)
-                            .textFieldStyle(.roundedBorder)
-                        Text("Вы станете владельцем и сможете приглашать участников обычной ссылкой. Название можно изменить в любой момент.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .oneCartCard()
-
-                    Button {
-                        Task { await model.createFamilySpace(name: familyName) }
-                    } label: {
-                        HStack {
-                            if model.isBusy {
-                                ProgressView().tint(.white)
-                            }
-                            Label("Создать группу", systemImage: "plus")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(OneCartPrimaryButtonStyle())
-                    .disabled(
-                        model.isBusy
-                            || familyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-
-                }
-                .padding(20)
-            }
-            .background(OneCartPalette.background)
-            .navigationBarHidden(true)
-        }
-        .navigationViewStyle(.stack)
     }
 }
 

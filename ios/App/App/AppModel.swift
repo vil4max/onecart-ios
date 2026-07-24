@@ -137,12 +137,20 @@ enum InviteLinkError: LocalizedError {
     }
 }
 
+enum WelcomePhase: Equatable {
+    case signIn
+    case connecting
+    case failed(String)
+}
+
 @MainActor
 final class AppModel: ObservableObject {
+    static let defaultFamilyName = "Наша семья"
+
     @Published private(set) var isReady = false
     @Published private(set) var isBusy = false
-    @Published private(set) var needsSignIn = false
-    @Published private(set) var launchError: String?
+    @Published private(set) var needsWelcome = false
+    @Published private(set) var welcomePhase: WelcomePhase = .signIn
     @Published private(set) var account: OneCartAccount?
     @Published private(set) var syncState: OneCartSyncState = .synchronized
     @Published private(set) var lastSyncError: String?
@@ -231,23 +239,40 @@ final class AppModel: ObservableObject {
     }
 
     func retryStartup() async {
-        launchError = nil
-        await bootstrapSession()
+        await retryWelcome()
+    }
+
+    func retryWelcome() async {
+        guard let credential = appleSignIn.storedCredential() else {
+            needsWelcome = true
+            welcomePhase = .signIn
+            isReady = true
+            return
+        }
+        needsWelcome = true
+        welcomePhase = .connecting
+        isReady = true
+        await prepareApplication(appleCredential: credential)
+    }
+
+    func reportWelcomeFailure(_ message: String) {
+        needsWelcome = true
+        welcomePhase = .failed(message)
+        isReady = true
     }
 
     func completeAppleSignIn(authorization: ASAuthorization) async {
-        launchError = nil
+        needsWelcome = true
+        welcomePhase = .connecting
+        isReady = true
         isBusy = true
         defer { isBusy = false }
         do {
             let credential = try appleSignIn.makeCredential(from: authorization)
             appleSignIn.save(credential)
-            needsSignIn = false
             await prepareApplication(appleCredential: credential)
         } catch {
-            launchError = userFacingMessage(for: error)
-            needsSignIn = true
-            isReady = true
+            welcomePhase = .failed(userFacingMessage(for: error))
         }
     }
 
@@ -255,8 +280,8 @@ final class AppModel: ObservableObject {
         appleSignIn.clearCredential()
         clearAccountData()
         account = nil
-        launchError = nil
-        needsSignIn = true
+        needsWelcome = true
+        welcomePhase = .signIn
         isReady = true
         started = true
     }
@@ -265,14 +290,16 @@ final class AppModel: ObservableObject {
         if let credential = appleSignIn.storedCredential() {
             let state = await appleSignIn.credentialState(for: credential.userID)
             if state == .authorized {
-                needsSignIn = false
+                needsWelcome = false
+                welcomePhase = .connecting
                 await prepareApplication(appleCredential: credential)
                 return
             }
             appleSignIn.clearCredential()
         }
 
-        needsSignIn = true
+        needsWelcome = true
+        welcomePhase = .signIn
         isReady = true
     }
 
@@ -660,15 +687,31 @@ final class AppModel: ObservableObject {
             }
             reloadProfileMedia(for: restoredAccount.id)
             try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
+            try await ensureDefaultFamilySpace(for: restoredAccount)
             try reload()
             syncState = online ? .synchronized : .offline
             await acceptPendingCloudKitShares()
             await refreshFamilyMetadata(showErrors: false)
+            needsWelcome = false
             isReady = true
         } catch {
-            launchError = userFacingMessage(for: error)
+            needsWelcome = true
+            welcomePhase = .failed(userFacingMessage(for: error))
             isReady = true
         }
+    }
+
+    private func ensureDefaultFamilySpace(for account: OneCartAccount) async throws {
+        try reload()
+        guard familySpaces.isEmpty else { return }
+        let id = try await repository.createFamilySpace(
+            name: Self.defaultFamilyName,
+            cachedForUserID: account.id,
+            serverRole: FamilyAccess.owner.rawValue,
+            needsRemoteCreation: false
+        )
+        defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        try reload(preferredFamilySpaceID: id)
     }
 
     private func clearAccountData() {

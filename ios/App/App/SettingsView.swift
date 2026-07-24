@@ -121,7 +121,7 @@ struct SettingsView: View {
 
     private var familyCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsSectionLabel(title: "Группа")
+            SettingsSectionLabel(title: "Семейная корзина")
 
             VStack(spacing: 0) {
                 if model.familySpaces.count > 1 {
