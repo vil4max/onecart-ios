@@ -70,4 +70,4 @@ jobs:
           sudo install -m 755 gitleaks /usr/local/bin/gitleaks
 
       - name: Gitleaks
-        run: gitleaks detect --source . --redact --verbose
+        run: gitleaks detect --source . --no-git --redact --verbose

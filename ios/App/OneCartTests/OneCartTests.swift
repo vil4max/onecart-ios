@@ -217,10 +217,11 @@ final class OneCartTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: AppModel.defaultFamilyName)
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let scope = try XCTUnwrap(persistence.scope(for: space))
         XCTAssertTrue(
             FamilyCartMerge.isDeletableStarter(
                 space,
-                scope: persistence.scope(for: space)
+                scope: scope
             )
         )
 
@@ -236,10 +237,11 @@ final class OneCartTests: XCTestCase {
             )
         )
         let updated = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let updatedScope = try XCTUnwrap(persistence.scope(for: updated))
         XCTAssertFalse(
             FamilyCartMerge.isDeletableStarter(
                 updated,
-                scope: persistence.scope(for: updated)
+                scope: updatedScope
             )
         )
     }
