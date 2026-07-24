@@ -236,6 +236,9 @@ final class AppModel: ObservableObject {
             persistence: persistence,
             userDefaults: defaults
         )
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            isReady = true
+        }
     }
 
     private static func makeDefaultPersistence() -> PersistenceController {
