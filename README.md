@@ -19,6 +19,8 @@ CloudKit container: `iCloud.com.vil555tim.onecart`
 
 Подробности архитектуры, настройки и проверки на двух iCloud-аккаунтах находятся в [NATIVE_IOS.md](NATIVE_IOS.md).
 
+Релиз в TestFlight — через **Xcode Cloud** (Report navigator → Cloud → Get Started). Локальный Archive — только fallback; см. секцию TestFlight в [NATIVE_IOS.md](NATIVE_IOS.md).
+
 ## Структура репозитория
 
 Единственный runtime — нативный target в [ios/App/App.xcodeproj](ios/App/App.xcodeproj). React/Vite/Capacitor-прототип удалён; веб-кода в репозитории нет.

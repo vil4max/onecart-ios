@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject private var model: AppModel
+    @ObservedObject var preferences: DevicePreferences
 
     var body: some View {
         VStack(spacing: 24) {
@@ -73,7 +74,7 @@ struct WelcomeView: View {
                 }
             }
 
-            if model.preferences.familyJoinIntent != nil {
+            if preferences.familyJoinIntent != nil {
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = [.fullName, .email]
                 } onCompletion: { result in
@@ -87,7 +88,7 @@ struct WelcomeView: View {
     }
 
     private func joinIntentButton(_ intent: FamilyJoinIntent) -> some View {
-        let isSelected = model.preferences.familyJoinIntent == intent
+        let isSelected = preferences.familyJoinIntent == intent
         return Button {
             model.chooseJoinIntent(intent)
         } label: {
@@ -163,7 +164,7 @@ struct WelcomeView: View {
     }
 
     private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
-        guard model.preferences.familyJoinIntent != nil else {
+        guard preferences.familyJoinIntent != nil else {
             model.reportWelcomeFailure("Выберите, создаёте вы корзину или вас пригласили.")
             return
         }

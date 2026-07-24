@@ -45,12 +45,6 @@ CertificateSigningRequest.certSigningRequest
 # Local archives / exports
 *.xcarchive
 build/
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots
-fastlane/test_output
-vendor/bundle/
-.bundle/
 
 # Local tooling
 .private-import/

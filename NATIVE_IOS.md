@@ -122,41 +122,73 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCart
 
 ### 3. TestFlight (внутренняя семья)
 
-**Автоматически (GitHub Actions):**
+#### Preferred path: Xcode Cloud → TestFlight
 
-1. Добавить secrets в репозиторий (Settings → Secrets and variables → Actions):
+Предпочтительный путь — [Xcode Cloud](https://developer.apple.com/xcode-cloud/get-started/), а не локальный Archive upload. В ADP входит 25 compute hours в месяц. GitHub Actions и fastlane в этом репозитории не используются (как в regional-check).
 
-| Secret | Описание |
-|--------|----------|
-| `ASC_KEY_ID` | Key ID из App Store Connect → Users and Access → Keys |
-| `ASC_ISSUER_ID` | Issuer ID (верх страницы Keys) |
-| `ASC_KEY_CONTENT` | Содержимое `.p8` в base64: `base64 -i AuthKey_XXX.p8 \| pbcopy` |
-| `IOS_DISTRIBUTION_CERT_P12_BASE64` | Distribution certificate `.p12` в base64 |
-| `IOS_DISTRIBUTION_CERT_PASSWORD` | Пароль от `.p12` |
-| `KEYCHAIN_PASSWORD` | Любой случайный пароль для CI keychain |
-| `IOS_APPSTORE_PROFILE_BASE64` | App Store provisioning profile в base64 |
+##### Repo prerequisites (уже выполнены)
 
-2. Запустить workflow **TestFlight** → *Run workflow* (Actions → TestFlight → Run workflow).
-3. Или создать тег `v1.1.0` — workflow запустится автоматически и загрузит билд.
+- Shared scheme `App` с Archive (`buildForArchiving = YES`)
+- Archivable product: `com.vil555tim.onecart` / team `BTHRDS7254`
+- App Store Connect app record для этого bundle ID
+- CloudKit Production schema (см. выше)
+- `ci_scripts` не нужны (нет сторонних package installs)
 
-**Локально (Mac с Xcode):**
+Проверка локально:
 
 ```bash
-bundle install
-export ASC_KEY_ID=...
-export ASC_ISSUER_ID=...
-export ASC_KEY_CONTENT="$(base64 -i AuthKey_XXX.p8)"
-export ASC_KEY_BASE64=true
-bundle exec fastlane ios beta
+xcodebuild -project ios/App/App.xcodeproj -describeAllArchivableProducts -json
 ```
 
-4. App Store Connect → TestFlight → Internal Testing → добавить Apple ID всех четырёх участников.
-5. Владелец создаёт семью и шлёт CKShare-ссылку; остальные принимают после установки из TestFlight.
+##### First-time setup (Xcode UI)
 
-**Вручную (Xcode):**
+Нужна роль Account Holder, Admin, App Manager, или Developer/Marketing с правом Create Apps.
 
-1. Xcode → Product → Archive (схема `App`, конфигурация **Release**).
-2. Distribute App → App Store Connect.
+1. Запушить `main` в GitHub (`vil4engineering/OneCart`).
+2. Открыть `ios/App/App.xcodeproj` в Xcode 15+.
+3. Report navigator → Cloud → Get Started.
+4. Выбрать product `App`, team `BTHRDS7254`.
+5. Выдать Xcode Cloud доступ к Git-репозиторию.
+6. Start Build, затем в App Store Connect → Xcode Cloud → **Управление рабочими процессами** выставить workflow **точно как в Regional Check** (см. ниже).
+
+После первого Get Started Xcode создаст `ios/App/App.xcodeproj/xcshareddata/xcodecloud/manifest.json` — закоммитить его в репозиторий.
+
+Docs: [Configuring your first Xcode Cloud workflow](https://developer.apple.com/documentation/xcode/configuring-your-first-xcode-cloud-workflow).
+
+##### Целевой workflow (зеркало Regional Check)
+
+В App Store Connect → OneCart → Xcode Cloud → Управление рабочими процессами:
+
+| Поле | Значение |
+|------|----------|
+| Основной репозиторий | `https://github.com/vil4engineering/OneCart.git` |
+| Проект или рабочее пространство | `ios/App/App.xcodeproj` |
+| Среда → Xcode | Currently Xcode (как у Regional Check) |
+| Среда → macOS | Currently macOS (как у Regional Check) |
+| Очистка | без восстановления DerivedData / кэша сборок |
+| Переменные среды | нет |
+| Начальные условия | **Изменения ветки** → ветка `main` |
+| Автоотмена сборок | включена (новая сборка на той же ветке отменяет текущие/ожидающие) |
+| Файлы и папки | любой изменённый файл |
+| Действие 1 | **Тестирование — iOS**, схема `App`, обязательно для прохождения, параметр «Тестировать (настройки схемы)», 1 destination |
+| Действие 2 | **Архивирование — iOS**, схема `App`, подготовка к распространению: **TestFlight (только внутреннее тестирование)** |
+| Последующие действия | **Внутреннее тестирование TestFlight — iOS**, артефакт Archive - iOS, группа **Friends&Family** (или та же семейная группа, что у Regional Check) |
+
+После зелёного билда:
+
+1. Если ASC ждёт build `1`, выставить next Xcode Cloud build number на `2+`: [Setting the next build number](https://developer.apple.com/documentation/xcode/setting-the-next-build-number-for-xcode-cloud-builds).
+2. TestFlight → Internal Testing → Friends&Family → убедиться, что все семейные Apple ID в группе.
+3. Владелец создаёт семью и шлёт CKShare-ссылку; остальные принимают после установки из TestFlight.
+
+Builds в TestFlight живут 90 дней. Артефакты Xcode Cloud — 30 дней; для App Store-bound билдов скачать symbols.
+
+#### Fallback: local Archive
+
+Только если Xcode Cloud недоступен:
+
+1. Увеличить `CURRENT_PROJECT_VERSION`.
+2. Product → Archive (схема `App`, конфигурация **Release**).
+3. Distribute App → App Store Connect → TestFlight.
 
 ### 4. Публичный App Store (опционально)
 
@@ -168,7 +200,7 @@ bundle exec fastlane ios beta
 
 ### 5. Что не нужно для pet project
 
-- Собственный сервер, Supabase, fastlane (можно добавить позже).
+- Собственный сервер, Supabase, GitHub Actions, fastlane.
 - Отдельная регистрация email/password.
 - Несколько семейных пространств (код поддерживает, но UI скрывает создание второй группы).
 
@@ -176,7 +208,7 @@ bundle exec fastlane ios beta
 
 - Следить за квотами CloudKit (для 4 человек — с запасом).
 - При смене Core Data модели — снова deploy schema в Production.
-- Xcode Organizer или CI для загрузки билдов.
+- Xcode Cloud (или локальный Archive) для загрузки билдов в TestFlight.
 
 ## Безопасность: legacy Supabase
 
