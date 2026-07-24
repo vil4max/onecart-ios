@@ -830,8 +830,8 @@ final class AppModel: ObservableObject {
         }
 
         for privateFamily in privateFamilies {
-            guard let privateID = privateFamily.id else { continue }
-            let scope = persistence.scope(for: privateFamily)
+            guard let privateID = privateFamily.id,
+                  let scope = persistence.scope(for: privateFamily) else { continue }
             if FamilyCartMerge.isDeletableStarter(privateFamily, scope: scope) {
                 try await repository.archiveFamilySpace(id: privateID)
                 continue
