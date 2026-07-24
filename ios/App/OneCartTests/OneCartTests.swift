@@ -174,6 +174,45 @@ final class OneCartTests: XCTestCase {
         XCTAssertTrue(FamilyAccess.member.isParticipant)
     }
 
+    func testStableIDIsDeterministic() {
+        let first = OneCartStableID.uuid(for: "apple:user-1")
+        let second = OneCartStableID.uuid(for: "apple:user-1")
+        XCTAssertEqual(first, second)
+        XCTAssertNotEqual(
+            OneCartStableID.uuid(for: "apple:user-1"),
+            OneCartStableID.uuid(for: "apple:user-2")
+        )
+    }
+
+    func testAppleSignInCredentialBuildsDisplayNameAndAccountID() {
+        let credential = AppleSignInCredential(
+            userID: "001234.abcd",
+            email: "user@example.com",
+            givenName: "Иван",
+            familyName: "Петров"
+        )
+        XCTAssertEqual(credential.displayName, "Иван Петров")
+        XCTAssertEqual(
+            credential.accountID,
+            OneCartStableID.uuid(for: "apple:001234.abcd")
+        )
+    }
+
+    func testKeychainAppleSignInCredentialStorePersistsCredential() {
+        let service = "onecart.tests.\(UUID().uuidString)"
+        let store = KeychainAppleSignInCredentialStore(service: service)
+        let credential = AppleSignInCredential(
+            userID: "001234.abcd",
+            email: nil,
+            givenName: "Test",
+            familyName: nil
+        )
+        store.save(credential)
+        XCTAssertEqual(store.load(), credential)
+        store.clear()
+        XCTAssertNil(store.load())
+    }
+
     func testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Offline")

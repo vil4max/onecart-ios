@@ -25,6 +25,9 @@
 		A2000000000000000000000F /* OfficialCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* OfficialCatalogView.swift */; };
 		A20000000000000000000010 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* ProfileView.swift */; };
 		D20000000000000000000002 /* CloudKitServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitServices.swift */; };
+		E20000000000000000000001 /* OneCartStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* OneCartStableID.swift */; };
+		E20000000000000000000002 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* AppleSignInService.swift */; };
+		E20000000000000000000003 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* SignInView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +65,9 @@
 		A10000000000000000000012 /* OfficialCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficialCatalogView.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		D10000000000000000000001 /* CloudKitServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitServices.swift; sourceTree = "<group>"; };
+		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
+		E10000000000000000000002 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		E10000000000000000000003 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +115,9 @@
 				A10000000000000000000004 /* PersistenceController.swift */,
 				A10000000000000000000005 /* FamilySpaceRepository.swift */,
 				D10000000000000000000001 /* CloudKitServices.swift */,
+				E10000000000000000000001 /* OneCartStableID.swift */,
+				E10000000000000000000002 /* AppleSignInService.swift */,
+				E10000000000000000000003 /* SignInView.swift */,
 				A10000000000000000000006 /* LegacyMigration.swift */,
 				A10000000000000000000008 /* AppModel.swift */,
 				A10000000000000000000009 /* RootView.swift */,
@@ -195,6 +204,9 @@
 							com.apple.Push = {
 								enabled = 1;
 							};
+							com.apple.SignInWithApple = {
+								enabled = 1;
+							};
 							com.apple.iCloud = {
 								enabled = 1;
 							};
@@ -258,6 +270,9 @@
 				A20000000000000000000004 /* PersistenceController.swift in Sources */,
 				A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */,
 				D20000000000000000000002 /* CloudKitServices.swift in Sources */,
+				E20000000000000000000001 /* OneCartStableID.swift in Sources */,
+				E20000000000000000000002 /* AppleSignInService.swift in Sources */,
+				E20000000000000000000003 /* SignInView.swift in Sources */,
 				A20000000000000000000006 /* LegacyMigration.swift in Sources */,
 				A20000000000000000000008 /* AppModel.swift in Sources */,
 				A20000000000000000000009 /* RootView.swift in Sources */,

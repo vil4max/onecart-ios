@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Combine
 import CoreData
 import Foundation
@@ -140,6 +141,7 @@ enum InviteLinkError: LocalizedError {
 final class AppModel: ObservableObject {
     @Published private(set) var isReady = false
     @Published private(set) var isBusy = false
+    @Published private(set) var needsSignIn = false
     @Published private(set) var launchError: String?
     @Published private(set) var account: OneCartAccount?
     @Published private(set) var syncState: OneCartSyncState = .synchronized
@@ -173,6 +175,7 @@ final class AppModel: ObservableObject {
 
     private let repository: FamilySpaceRepository
     private let backend: CloudKitBackendService
+    private let appleSignIn: AppleSignInAuthenticating
     private let migrationService: LegacyMigrationService
     private let legacySnapshotProvider: LegacySnapshotProviding
     private let defaults: UserDefaults
@@ -188,12 +191,14 @@ final class AppModel: ObservableObject {
         preferences: DevicePreferences = DevicePreferences(),
         defaults: UserDefaults = .standard,
         legacySnapshotProvider: LegacySnapshotProviding = DefaultLegacySnapshotProvider(),
-        backend: CloudKitBackendService? = nil
+        backend: CloudKitBackendService? = nil,
+        appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared
     ) {
         self.persistence = persistence
         self.preferences = preferences
         self.defaults = defaults
         self.legacySnapshotProvider = legacySnapshotProvider
+        self.appleSignIn = appleSignIn
 
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -222,12 +227,53 @@ final class AppModel: ObservableObject {
     func start() async {
         guard !started else { return }
         started = true
-        await prepareApplication()
+        await bootstrapSession()
     }
 
     func retryStartup() async {
         launchError = nil
-        await prepareApplication()
+        await bootstrapSession()
+    }
+
+    func completeAppleSignIn(authorization: ASAuthorization) async {
+        launchError = nil
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let credential = try appleSignIn.makeCredential(from: authorization)
+            appleSignIn.save(credential)
+            needsSignIn = false
+            await prepareApplication(appleCredential: credential)
+        } catch {
+            launchError = userFacingMessage(for: error)
+            needsSignIn = true
+            isReady = true
+        }
+    }
+
+    func signOut() {
+        appleSignIn.clearCredential()
+        clearAccountData()
+        account = nil
+        launchError = nil
+        needsSignIn = true
+        isReady = true
+        started = true
+    }
+
+    private func bootstrapSession() async {
+        if let credential = appleSignIn.storedCredential() {
+            let state = await appleSignIn.credentialState(for: credential.userID)
+            if state == .authorized {
+                needsSignIn = false
+                await prepareApplication(appleCredential: credential)
+                return
+            }
+            appleSignIn.clearCredential()
+        }
+
+        needsSignIn = true
+        isReady = true
     }
 
     func setActiveFamilySpace(_ space: FamilySpace) {
@@ -591,18 +637,22 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func prepareApplication() async {
+    private func prepareApplication(appleCredential: AppleSignInCredential) async {
         do {
             try await persistence.load()
             let legacyData = legacySnapshotProvider.loadSnapshotData()
             _ = try await migrationService.migrateIfNeeded(data: legacyData)
             try await repository.deduplicateStableIDs()
             preferences.reloadFromDefaults()
+
+            let preferredName = preferences.participantDisplayName.nilIfBlank
+                ?? appleCredential.displayName
             installConnectivityMonitor()
             installCloudObservers()
 
             let restoredAccount = try await backend.restoredAccount(
-                displayName: preferences.participantDisplayName.nilIfBlank
+                appleUserID: appleCredential.userID,
+                displayName: preferredName
             )
             account = restoredAccount
             if preferences.participantDisplayName.nilIfBlank == nil {

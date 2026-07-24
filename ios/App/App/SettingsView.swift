@@ -16,6 +16,8 @@ struct SettingsView: View {
                     familyCard
 
                     PreferencesSettingsSection(preferences: model.preferences)
+
+                    signOutCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -41,6 +43,24 @@ struct SettingsView: View {
     }
 
     // MARK: - Account / Profile
+
+    private var signOutCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SettingsSectionLabel(title: "Аккаунт")
+            Button(role: .destructive) {
+                model.signOut()
+            } label: {
+                Label("Выйти из Apple ID", systemImage: "rectangle.portrait.and.arrow.right")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .padding(16)
+            .background(
+                OneCartPalette.surface,
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+        }
+    }
 
     private var accountCard: some View {
         Button {

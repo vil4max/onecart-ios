@@ -11,6 +11,7 @@ enum OneCartPalette {
 
 private enum RootPhase: Equatable {
     case loading
+    case signIn
     case launchError
     case familySetup
     case main
@@ -25,6 +26,9 @@ struct RootView: View {
     private var phase: RootPhase {
         if !model.isReady {
             return .loading
+        }
+        if model.needsSignIn {
+            return .signIn
         }
         if model.launchError != nil {
             return .launchError
@@ -79,6 +83,8 @@ struct RootView: View {
         switch phase {
         case .loading:
             OneCartPalette.background.ignoresSafeArea()
+        case .signIn:
+            SignInView()
         case .launchError:
             LaunchErrorView(message: model.launchError ?? "")
         case .familySetup:

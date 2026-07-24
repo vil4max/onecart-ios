@@ -9,7 +9,9 @@
 - `FamilySpaceRepository.swift` — локальные CRUD-операции и проверка разрешений shared records.
 - `AppDelegate.swift` — приём системных CloudKit share invitations.
 - `AppModel.swift` — запуск, выбранная семья, sync state и реакция на CloudKit events.
-- `RootView.swift` — первое семейное пространство и основные вкладки без Auth UI.
+- `AppleSignInService.swift` — Sign in with Apple, Keychain-сессия.
+- `SignInView.swift` — экран входа.
+- `RootView.swift` — первое семейное пространство и основные вкладки.
 - `SettingsView.swift` — участники, системная share-ссылка и управление семьёй.
 
 ## Хранилища и синхронизация
@@ -23,7 +25,9 @@
 
 ## Аккаунт и профиль
 
-Приложение проверяет `CKContainer.accountStatus` и использует стабильный локальный UUID, производный от iCloud user record ID. Формы регистрации, email/password, Sign in with Apple и выход из OneCart отсутствуют.
+Перед использованием приложения пользователь входит через **Sign in with Apple**. Учётные данные сохраняются в Keychain; при следующем запуске сессия восстанавливается автоматически.
+
+Для синхронизации списков дополнительно требуется iCloud-аккаунт устройства: приложение проверяет `CKContainer.accountStatus` после входа через Apple. Формы email/password отсутствуют.
 
 Отображаемое имя и медиа профиля являются настройками этого устройства. Аватар и баннер не отправляются в CloudKit и намеренно не входят в миграцию.
 
@@ -38,13 +42,14 @@
 Для App ID `com.vil555tim.onecart` нужно:
 
 1. Создать или подключить iCloud container `iCloud.com.vil555tim.onecart`.
-2. Включить iCloud с сервисом CloudKit.
-3. Включить Push Notifications — они нужны для фоновых изменений CloudKit.
-4. Пересоздать Development/Distribution provisioning profiles после добавления capabilities.
-5. Убедиться, что выбранная Team совпадает с Team проекта в Xcode.
-6. После создания схемы в Development открыть CloudKit Console и развернуть её в Production перед TestFlight или Distribution-сборкой.
+2. Включить **Sign in with Apple**.
+3. Включить iCloud с сервисом CloudKit.
+4. Включить Push Notifications — они нужны для фоновых изменений CloudKit.
+5. Пересоздать Development/Distribution provisioning profiles после добавления capabilities.
+6. Убедиться, что выбранная Team совпадает с Team проекта в Xcode.
+7. После создания схемы в Development открыть CloudKit Console и развернуть её в Production перед TestFlight или Distribution-сборкой.
 
-В проект уже добавлены iCloud/CloudKit entitlements, `CKSharingSupported` и обработчик принятия share metadata. До настройки App ID сборка без подписи компилируется, но подписанная установка и реальная синхронизация работать не будут.
+В проект уже добавлены Sign in with Apple, iCloud/CloudKit entitlements, `CKSharingSupported` и обработчик принятия share metadata. До настройки App ID сборка без подписи компилируется, но подписанная установка и реальная синхронизация работать не будут.
 
 ## Перенос данных со старой установки
 
