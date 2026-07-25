@@ -22,3 +22,7 @@ OneCart используется как личное iOS-приложение и
 - Старый локальный Core Data кэш может быть экспортирован в iCloud без смены SQLite-путей.
 - Supabase Auth users нельзя преобразовать в iCloud users. Серверные данные переносятся отдельно, а участников приглашают заново через `CKShare`.
 - Серверная catalog Edge Function отсутствует; остаётся on-device проверка страницы магазина.
+
+## Clarification (2026-07-25)
+
+Sign in with Apple remains for local session. CloudKit iCloud identity drives sync. Apple Family is product positioning; sharing uses private CKShare (`publicPermission = .none`), not Family Sharing membership APIs.

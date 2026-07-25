@@ -1,6 +1,6 @@
 # OneCart iOS: Core Data + CloudKit
 
-Нативный target `App` построен на SwiftUI — это единственный runtime OneCart (веб-прототип и Capacitor удалены). `NSPersistentCloudKitContainer` сохраняет offline-first поведение Core Data и синхронизирует данные через родной iCloud без отдельной учётной записи OneCart.
+Нативный target `OneCart` построен на SwiftUI — это единственный runtime OneCart (веб-прототип и Capacitor удалены). `NSPersistentCloudKitContainer` сохраняет offline-first поведение Core Data и синхронизирует данные через родной iCloud без отдельной учётной записи OneCart.
 
 ## Owner-файлы
 
@@ -128,7 +128,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCart
 
 ##### Repo prerequisites (уже выполнены)
 
-- Shared scheme `App` с Archive (`buildForArchiving = YES`)
+- Shared scheme `OneCart` с Archive (`buildForArchiving = YES`)
 - Archivable product: `com.vil555tim.onecart` / team `BTHRDS7254`
 - App Store Connect app record для этого bundle ID
 - CloudKit Production schema (см. выше)
@@ -137,7 +137,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (из Core Data `OneCart
 Проверка локально:
 
 ```bash
-xcodebuild -project ios/App/App.xcodeproj -describeAllArchivableProducts -json
+xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -json
 ```
 
 ##### First-time setup (Xcode UI)
@@ -145,13 +145,13 @@ xcodebuild -project ios/App/App.xcodeproj -describeAllArchivableProducts -json
 Нужна роль Account Holder, Admin, App Manager, или Developer/Marketing с правом Create Apps.
 
 1. Запушить `main` в GitHub (`vil4engineering/OneCart`).
-2. Открыть `ios/App/App.xcodeproj` в Xcode 15+.
+2. Открыть `OneCart.xcodeproj` в Xcode 15+.
 3. Report navigator → Cloud → Get Started.
 4. Выбрать product `App`, team `BTHRDS7254`.
 5. Выдать Xcode Cloud доступ к Git-репозиторию.
 6. Start Build, затем в App Store Connect → Xcode Cloud → **Управление рабочими процессами** выставить workflow **точно как в Regional Check** (см. ниже).
 
-После первого Get Started Xcode создаст `ios/App/App.xcodeproj/xcshareddata/xcodecloud/manifest.json` — закоммитить его в репозиторий.
+После первого Get Started Xcode создаст `OneCart.xcodeproj/xcshareddata/xcodecloud/manifest.json` — закоммитить его в репозиторий.
 
 Docs: [Configuring your first Xcode Cloud workflow](https://developer.apple.com/documentation/xcode/configuring-your-first-xcode-cloud-workflow).
 
@@ -162,7 +162,7 @@ Docs: [Configuring your first Xcode Cloud workflow](https://developer.apple.com/
 | Поле | Значение |
 |------|----------|
 | Основной репозиторий | `https://github.com/vil4engineering/OneCart.git` |
-| Проект или рабочее пространство | `ios/App/App.xcodeproj` |
+| Проект или рабочее пространство | `OneCart.xcodeproj` |
 | Среда → Xcode | Currently Xcode (как у Regional Check) |
 | Среда → macOS | Currently macOS (как у Regional Check) |
 | Очистка | без восстановления DerivedData / кэша сборок |

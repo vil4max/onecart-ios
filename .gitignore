@@ -8,7 +8,8 @@
 !.env.example
 
 # Xcode / Swift
-build/
+/build/
+!Tooling/HostBuild/build/
 DerivedData/
 *.xcuserstate
 *.xcscmblueprint
@@ -44,8 +45,10 @@ CertificateSigningRequest.certSigningRequest
 
 # Local archives / exports
 *.xcarchive
-build/
 
 # Local tooling
 .private-import/
 ui-ux-pro-max-skill-2.11.0/
+.cursor/
+runtime.local.yml
+

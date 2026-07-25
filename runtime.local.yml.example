@@ -1,0 +1,5 @@
+# Local overrides (gitignored). Example:
+# simulator:
+#   name: iPhone 16 Pro
+# backend:
+#   prefer: xcodebuild

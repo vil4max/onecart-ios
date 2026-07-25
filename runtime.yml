@@ -1,0 +1,11 @@
+scheme: OneCart
+project: OneCart/OneCart.xcodeproj
+workspace: ""
+simulator:
+  name: iPhone 17
+backend:
+  prefer: auto
+lint: true
+format: true
+tests: true
+todo_scan: false

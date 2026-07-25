@@ -1,0 +1,27 @@
+disabled_rules:
+  - trailing_whitespace
+  - force_try
+  - opening_brace
+  - trailing_comma
+  - static_over_final_class
+  - type_name
+  - large_tuple
+  - function_parameter_count
+  - cyclomatic_complexity
+  - empty_count
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+line_length: 200
+identifier_name:
+  min_length: 1
+file_length:
+  warning: 1200
+  error: 3500
+type_body_length:
+  warning: 500
+  error: 1200
+function_body_length:
+  warning: 100
+  error: 250

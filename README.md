@@ -1,32 +1,61 @@
 # OneCart
 
-OneCart — семейный список покупок для 4 человек. Один экран входа через **Sign in with Apple**; корзина синхронизируется через iCloud/CloudKit. При первом входе создаётся пространство «Наша семья»; остальные подключаются по ссылке-приглашению.
+Family shopping list for up to four people on iOS. One Welcome screen with **Sign in with Apple**; the shared cart syncs through iCloud / CloudKit. The first signed-in owner gets a Household cart; others join via a private invite link (`CKShare`).
 
-## Технологии
+## Stack
 
 - SwiftUI, iOS 15+
-- Core Data через `NSPersistentCloudKitContainer`
-- CloudKit private/shared databases
-- `CKShare` для приглашений и управления семейным доступом
-- локальный offline-first кэш в двух SQLite stores
+- Core Data via `NSPersistentCloudKitContainer`
+- CloudKit private / shared databases
+- Private `CKShare` invites (`publicPermission = .none`)
+- Offline-first local SQLite stores
 
-Bundle ID приложения: `com.vil555tim.onecart`.
+Bundle ID: `com.vil555tim.onecart`  
 CloudKit container: `iCloud.com.vil555tim.onecart`
 
-## Открытие проекта
+## Open in Xcode
 
-Откройте [ios/App/App.xcodeproj](ios/App/App.xcodeproj) в Xcode. Перед запуском на устройстве включите для App ID возможности Sign in with Apple, iCloud/CloudKit и Push Notifications, привяжите CloudKit container и обновите provisioning profile.
+Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`).
 
-Подробности архитектуры, настройки и проверки на двух iCloud-аккаунтах находятся в [NATIVE_IOS.md](NATIVE_IOS.md).
+Before device / TestFlight runs, enable Sign in with Apple, iCloud / CloudKit, and Push Notifications on the App ID, attach the CloudKit container, and refresh provisioning profiles.
 
-Релиз в TestFlight — через **Xcode Cloud** (Report navigator → Cloud → Get Started). Локальный Archive — только fallback; см. секцию TestFlight в [NATIVE_IOS.md](NATIVE_IOS.md).
+Details, two-account checks, and TestFlight notes: [NATIVE_IOS.md](NATIVE_IOS.md).
 
-## Структура репозитория
+TestFlight releases go through **Xcode Cloud**. Point the workflow at **`OneCart/OneCart.xcodeproj`** (not the old `ios/App/App.xcodeproj`). Local Archive is fallback only.
 
-Единственный runtime — нативный target в [ios/App/App.xcodeproj](ios/App/App.xcodeproj). React/Vite/Capacitor-прототип удалён; веб-кода в репозитории нет.
+## Layout
 
-## Миграция со старого backend
+| Path | Responsibility |
+|------|----------------|
+| `OneCart/` | Xcode project, app sources, tests |
+| `OneCart/OneCart.xcodeproj` | Project / scheme `OneCart` |
+| `OneCart/Application/` | App entry, `AppSession`, root UI |
+| `OneCart/Features/` | Feature UI + ViewModels |
+| `OneCart/Data/` | Persistence, CloudKit, Auth, Migration |
+| `OneCart/Shared/` | Cross-feature helpers |
+| `OneCart/Resources/` | Assets, Info.plist, entitlements, String Catalog |
+| `OneCart/Tests/` | Unit tests (`OneCartTests`) |
+| `docs/` | Architecture, product flow, review changelog |
+| `assets/` | Brand / store masters (not in the app bundle) |
+| `Tooling/` | Engineering Runtime host adapters (not CloudKit) |
 
-Supabase SDK, Auth UI, Realtime/RPC sync, Edge Functions и SQL migrations удалены. Локальные данные существующей установки используют прежние SQLite-файлы и после обновления загружаются в private database текущего iCloud-аккаунта. `LegacyMigration` также умеет импортировать старый JSON-снимок (`onecart.app-state` / `onecart-backup.json`), если он есть на устройстве.
+Native SwiftUI only — no web / Capacitor stack in this repo.
 
-Supabase Auth-пользователи не являются Apple/iCloud-аккаунтами и не могут быть импортированы как логины CloudKit. Серверные данные других пользователей требуют отдельного защищённого экспорта и последующего переноса владельцами в их iCloud либо повторного приглашения через `CKShare`. Аватары и баннеры остаются только на устройстве и в серверную миграцию не входят.
+## Commands
+
+```bash
+just doctor
+just build
+just test
+just verify
+```
+
+## Review
+
+PR review starts at [docs/review-changelog.md](docs/review-changelog.md).
+
+## Legacy migration
+
+Local SQLite from older installs is reused. `LegacyMigration` can also import a JSON snapshot (`onecart.app-state` / `onecart-backup.json`) when present on device.
+
+Former Supabase Auth users are not Apple / iCloud accounts and cannot be imported as CloudKit logins. Server-side data for other users needs a separate owner-led export into iCloud or a fresh `CKShare` invite. Avatars and banners stay device-local.
