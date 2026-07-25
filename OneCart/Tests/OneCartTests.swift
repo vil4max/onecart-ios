@@ -1,6 +1,7 @@
-@testable import OneCart
+import CloudKit
 import CoreData
 import CoreLocation
+@testable import OneCart
 import XCTest
 
 final class OneCartTests: XCTestCase {
@@ -986,6 +987,42 @@ final class OneCartTests: XCTestCase {
         XCTAssertEqual(invite.shareTitle, "OneCart")
         XCTAssertEqual(invite.expiresAt, .distantFuture)
         XCTAssertFalse(OneCartShareBranding.thumbnailImageData.isEmpty)
+    }
+
+    func testCloudKitUserFacingErrorReplacesOpaquePartialFailure() {
+        let opaque = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: nil
+        )
+        let message = CloudKitUserFacingError.message(for: opaque)
+        XCTAssertEqual(message, CloudKitUserFacingError.genericSyncFailure)
+        XCTAssertFalse(message.lowercased().contains("ckerrordomain"))
+    }
+
+    func testCloudKitUserFacingErrorUnwrapsNestedQuotaExceeded() {
+        let quota = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.quotaExceeded.rawValue,
+            userInfo: nil
+        )
+        let partial = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [CKPartialErrorsByItemIDKey: ["record": quota]]
+        )
+        let message = CloudKitUserFacingError.message(for: partial)
+        XCTAssertTrue(message.contains("iCloud"))
+        XCTAssertTrue(message.contains("место"))
+    }
+
+    func testCloudKitUserFacingErrorDetectsNetworkFailure() {
+        let network = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.networkUnavailable.rawValue,
+            userInfo: nil
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isNetworkError(network))
     }
 
     private func makeInMemoryRepository() async throws

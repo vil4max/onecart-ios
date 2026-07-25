@@ -176,6 +176,141 @@ enum OneCartCloudKitError: LocalizedError {
     }
 }
 
+/// Maps CloudKit / Core Data sync failures to short Russian copy for banners and toasts.
+enum CloudKitUserFacingError {
+    static let genericSyncFailure =
+        "Не удалось синхронизировать с iCloud. Проверьте сеть и место в iCloud, затем повторите."
+
+    static func message(for error: Error) -> String {
+        if let localized = error as? LocalizedError,
+           let description = localized.errorDescription?.nilIfBlank,
+           !(error is CKError)
+        {
+            return description
+        }
+
+        for candidate in flattened(error) {
+            if let message = message(forCKError: candidate) {
+                return message
+            }
+            if let message = message(forCocoaError: candidate) {
+                return message
+            }
+        }
+
+        let raw = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty || looksLikeOpaqueCloudKitCode(raw) {
+            return genericSyncFailure
+        }
+        if raw.lowercased().contains("not authenticated") || raw.lowercased().contains("not signed in") {
+            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
+        }
+        return raw
+    }
+
+    static func isNetworkError(_ error: Error) -> Bool {
+        for candidate in flattened(error) {
+            let nsError = candidate as NSError
+            if nsError.domain == NSURLErrorDomain {
+                return true
+            }
+            if let ckError = candidate as? CKError {
+                switch ckError.code {
+                case .networkUnavailable, .networkFailure, .serviceUnavailable, .zoneBusy,
+                     .requestRateLimited, .serverResponseLost:
+                    return true
+                default:
+                    break
+                }
+            }
+            let text = candidate.localizedDescription.lowercased()
+            if text.contains("network connection")
+                || text.contains("internet connection")
+                || text.contains("timed out")
+                || text.contains("could not connect")
+                || text.contains("offline")
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func message(forCKError error: Error) -> String? {
+        guard let ckError = error as? CKError else { return nil }
+        switch ckError.code {
+        case .notAuthenticated:
+            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
+        case .networkUnavailable, .networkFailure:
+            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
+        case .quotaExceeded:
+            return "В iCloud закончилось место. Освободите место в Настройках iPhone и повторите."
+        case .accountTemporarilyUnavailable:
+            return "Синхронизация временно недоступна. Попробуйте ещё раз позже."
+        case .permissionFailure:
+            return "Нет доступа к общей группе в iCloud. Попросите владельца пригласить вас снова."
+        case .serverRejectedRequest, .invalidArguments, .incompatibleVersion:
+            return genericSyncFailure
+        case .zoneNotFound, .userDeletedZone:
+            return "Облачная зона OneCart недоступна. Перезапустите приложение и проверьте iCloud."
+        case .limitExceeded, .requestRateLimited, .zoneBusy, .serviceUnavailable:
+            return "iCloud временно перегружен. Подождите немного — синхронизация продолжится сама."
+        case .partialFailure:
+            // Nested item errors carry the real reason; outer code 2 is opaque.
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    private static func message(forCocoaError error: Error) -> String? {
+        let nsError = error as NSError
+        guard nsError.domain == NSCocoaErrorDomain else { return nil }
+        // 133021 = NSManagedObjectConstraintMergeError (unique constraint vs CloudKit import).
+        if nsError.code == NSManagedObjectConstraintMergeError {
+            return genericSyncFailure
+        }
+        if nsError.code == NSCloudSharingQuotaExceededError {
+            return "В iCloud закончилось место. Освободите место в Настройках iPhone и повторите."
+        }
+        return nil
+    }
+
+    private static func flattened(_ error: Error) -> [Error] {
+        var result: [Error] = []
+        var queue: [Error] = [error]
+        var depth = 0
+
+        while let current = queue.first, depth < 24 {
+            queue.removeFirst()
+            depth += 1
+            result.append(current)
+
+            let nsError = current as NSError
+            if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+                queue.append(underlying)
+            }
+            if let detailed = nsError.userInfo[NSDetailedErrorsKey] as? [Error] {
+                queue.append(contentsOf: detailed)
+            }
+            if let partial = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] {
+                queue.append(contentsOf: partial.values)
+            } else if let ckError = current as? CKError, let partial = ckError.partialErrorsByItemID {
+                queue.append(contentsOf: partial.values)
+            }
+        }
+        return result
+    }
+
+    private static func looksLikeOpaqueCloudKitCode(_ raw: String) -> Bool {
+        let normalized = raw.lowercased()
+        return normalized.contains("ckerrordomain")
+            || normalized.contains("ckerror")
+            || (normalized.contains("couldn't be completed") && normalized.contains("error"))
+            || (normalized.contains("could not be completed") && normalized.contains("error"))
+    }
+}
+
 final class CloudKitPermissionAuthorizer: PermissionAuthorizing {
     private let persistence: PersistenceController
 

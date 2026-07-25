@@ -1218,33 +1218,17 @@ final class AppSession: ObservableObject {
     }
 
     private func userFacingMessage(for error: Error) -> String {
-        let raw = error.localizedDescription
-        let normalized = raw.lowercased()
-
-        if normalized.contains("not authenticated") || normalized.contains("not signed in") {
-            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
-        }
-        if isNetworkError(error) {
-            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
-        }
         if PersistenceController.isUserFacingCoreDataFailure(error) {
             return String(localized: "welcome.core_data_failed")
         }
-        return (error as? LocalizedError)?.errorDescription
-            ?? (raw.isEmpty ? "Не удалось завершить операцию." : raw)
+        if CloudKitUserFacingError.isNetworkError(error) {
+            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
+        }
+        return CloudKitUserFacingError.message(for: error)
     }
 
     private func isNetworkError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain {
-            return true
-        }
-        let text = error.localizedDescription.lowercased()
-        return text.contains("network connection")
-            || text.contains("internet connection")
-            || text.contains("timed out")
-            || text.contains("could not connect")
-            || text.contains("offline")
+        CloudKitUserFacingError.isNetworkError(error)
     }
 }
 
