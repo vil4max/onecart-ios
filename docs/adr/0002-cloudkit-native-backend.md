@@ -26,3 +26,5 @@ OneCart используется как личное iOS-приложение и
 ## Clarification (2026-07-25)
 
 Sign in with Apple remains for local session. CloudKit iCloud identity drives sync. Apple Family is product positioning; sharing uses private CKShare (`publicPermission = .none`), not Family Sharing membership APIs.
+
+See [architecture.md](../architecture.md), [product.md](../product.md), [release.md](../release.md).

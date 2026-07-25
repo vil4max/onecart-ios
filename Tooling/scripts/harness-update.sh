@@ -11,7 +11,11 @@ if [[ ! -d "$HARNESS_ROOT/scripts" ]]; then
 fi
 
 CURRENT="0.0.0"
-[[ -f "$APP_ROOT/.harness-version" ]] && CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/.harness-version")"
+if [[ -f "$APP_ROOT/Tooling/.harness-version" ]]; then
+  CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/Tooling/.harness-version")"
+elif [[ -f "$APP_ROOT/.harness-version" ]]; then
+  CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/.harness-version")"
+fi
 LATEST="$(tr -d '[:space:]' <"$HARNESS_ROOT/HARNESS_VERSION")"
 
 echo "Current $CURRENT"

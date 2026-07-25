@@ -7,13 +7,15 @@ Project facts only. Agent behavior lives in the Cursor Brain (`cursor-agent-kit`
 - Name: OneCart
 - Context: see `.cursor/project-context` (`personal`)
 - Open: `OneCart/OneCart.xcodeproj`
-- See [README.md](README.md), [NATIVE_IOS.md](NATIVE_IOS.md), [docs/architecture.md](docs/architecture.md), [docs/product-flow-v1.1.md](docs/product-flow-v1.1.md)
+- Docs index: [docs/README.md](docs/README.md)
 
 ## Review
 
 For PR review (alex / review agent), start at [docs/review-changelog.md](docs/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
 
 ## Config
+
+Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
 
 ```yaml
 scheme: OneCart
@@ -30,7 +32,10 @@ project: OneCart/OneCart.xcodeproj
 | `OneCart/Shared/` | Cross-feature helpers |
 | `OneCart/Resources/` | Bundle resources |
 | `OneCart/Tests/` | Unit tests (`OneCartTests` target) |
-| `Tooling/` | Engineering Runtime (host build adapters — not CloudKit) |
+| `docs/` | See [docs/README.md](docs/README.md) |
+| `assets/` | Brand / store masters (not in the app bundle) |
+| `Tooling/` | Engineering Runtime — see [Tooling/README.md](Tooling/README.md) |
+| `justfile` | Thin shim that imports `Tooling/justfile` |
 
 ## Definition of Done
 
@@ -41,6 +46,7 @@ just verify
 ## Commands
 
 ```bash
+brew bundle --file=Tooling/Brewfile
 just doctor
 just diagnose
 just build

@@ -1,6 +1,6 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# Public Runtime API — thin wrappers only.
+# Recipes — imported by the root justfile. Run from repo root: `just <recipe>`
 
 doctor *args:
     ./Tooling/scripts/doctor.sh {{args}}

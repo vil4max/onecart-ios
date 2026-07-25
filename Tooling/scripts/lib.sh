@@ -15,7 +15,9 @@ export HOST_BUILD_ROOT="$TOOLING_ROOT/HostBuild"
 have() { command -v "$1" >/dev/null 2>&1; }
 
 runtime_config_path() {
-  if [[ -f "$PWD/runtime.yml" ]]; then
+  if [[ -f "$TOOLING_ROOT/runtime.yml" ]]; then
+    echo "$TOOLING_ROOT/runtime.yml"
+  elif [[ -f "$PWD/runtime.yml" ]]; then
     echo "$PWD/runtime.yml"
   elif [[ -f "$RUNTIME_ROOT/templates/runtime.yml" ]]; then
     echo "$RUNTIME_ROOT/templates/runtime.yml"
@@ -24,10 +26,20 @@ runtime_config_path() {
   fi
 }
 
+runtime_local_path() {
+  if [[ -f "$TOOLING_ROOT/runtime.local.yml" ]]; then
+    echo "$TOOLING_ROOT/runtime.local.yml"
+  elif [[ -f "$PWD/runtime.local.yml" ]]; then
+    echo "$PWD/runtime.local.yml"
+  else
+    echo ""
+  fi
+}
+
 cfg_get() {
   local key="$1"
   local default="${2:-}"
-  local file
+  local file local_file
   file="$(runtime_config_path)"
   if [[ -z "$file" ]]; then
     echo "$default"
@@ -36,9 +48,10 @@ cfg_get() {
   if have yq; then
     local v
     v="$(yq -r ".$key // \"\"" "$file" 2>/dev/null || true)"
-    if [[ -f "$PWD/runtime.local.yml" ]]; then
+    local_file="$(runtime_local_path)"
+    if [[ -n "$local_file" ]]; then
       local lv
-      lv="$(yq -r ".$key // \"\"" "$PWD/runtime.local.yml" 2>/dev/null || true)"
+      lv="$(yq -r ".$key // \"\"" "$local_file" 2>/dev/null || true)"
       if [[ -n "$lv" && "$lv" != "null" ]]; then
         v="$lv"
       fi
@@ -125,6 +138,8 @@ destination_spec() {
 harness_version() {
   if [[ -f "$RUNTIME_ROOT/HARNESS_VERSION" ]]; then
     tr -d '[:space:]' <"$RUNTIME_ROOT/HARNESS_VERSION"
+  elif [[ -f "$TOOLING_ROOT/.harness-version" ]]; then
+    tr -d '[:space:]' <"$TOOLING_ROOT/.harness-version"
   elif [[ -f "$PWD/.harness-version" ]]; then
     tr -d '[:space:]' <"$PWD/.harness-version"
   else

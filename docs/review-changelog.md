@@ -4,6 +4,10 @@ Branch: refactor/onecart-structure-naming
 Base: main
 Audience: human reviewer + review agent (alex)
 
+## Current layout (post-reorg)
+
+Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs under `Tooling/`. Root `justfile` imports `Tooling/justfile`.
+
 ## How to review
 1. Read this file top to bottom by ID.
 2. For each `done` item, open listed paths and confirm behavior/notes.
@@ -24,61 +28,61 @@ Audience: human reviewer + review agent (alex)
 
 ### RC01 — Engineering Runtime harness
 - Status: done
-- Paths: justfile, runtime.yml, Tooling/scripts/, Tooling/HostBuild/, Brewfile, .swiftformat, .swiftlint.yml, AGENTS.md, .gitignore
-- What changed: ios-agent-harness install (--personal)
+- Paths: justfile, Tooling/justfile, Tooling/runtime.yml, Tooling/scripts/, Tooling/HostBuild/, Tooling/Brewfile, Tooling/.swiftformat, Tooling/.swiftlint.yml, AGENTS.md, .gitignore
+- What changed: ios-agent-harness install (--personal); configs later moved under `Tooling/`
 - How to verify: `just doctor`
 
 ### RC02 — SwiftFormat baseline
 - Status: done
-- Paths: ios/**/*.swift
+- Paths: OneCart/**/*.swift
 - How to verify: `just format` idempotent
 
 ### RC03 — Rename App → OneCart
 - Status: done
-- Paths: OneCart.xcodeproj, scheme OneCart, runtime.yml
+- Paths: OneCart/OneCart.xcodeproj, scheme OneCart, Tooling/runtime.yml
 - What changed: project/target/product/scheme renamed; bundle ID unchanged
 - How to verify: `just build`
 
 ### RC04 — Folder layout Application/Features/Data/Shared
 - Status: done
-- Paths: Application/, Features/, Data/, Shared/, Resources/
+- Paths: OneCart/Application/, OneCart/Features/, OneCart/Data/, OneCart/Shared/, OneCart/Resources/
 - How to verify: open project; `just build`
 
 ### RC05 — AppSession + Level 1 MVVM composition root
 - Status: done
-- Paths: Application/AppSession.swift, Features/*/WelcomeViewModel.swift, ShoppingViewModel.swift, SettingsViewModel.swift
+- Paths: OneCart/Application/AppSession.swift, OneCart/Features/*/WelcomeViewModel.swift, ShoppingViewModel.swift, SettingsViewModel.swift
 - What changed: AppSession composition root; thin feature ViewModels wired for onboarding/home/settings
 - How to verify: app boots; Welcome/Settings/Home use ViewModels
 
 ### RC06 — Split Shopping/Catalog/Stores/Settings god files
 - Status: done
-- Paths: Features/Catalog/CatalogParsers.swift, Features/Stores/StoreLocatorModel.swift
+- Paths: OneCart/Features/Catalog/CatalogParsers.swift, OneCart/Features/Stores/StoreLocatorModel.swift
 - What changed: extracted catalog parsers and store locator model; remaining UI monoliths tracked as FU05 polish
 - How to verify: `just build`; types live in new files
 
 ### RC07 — String Catalog + system locale
 - Status: done
-- Paths: Resources/Localizable.xcstrings, Welcome/Home/Settings/tabs strings
+- Paths: OneCart/Resources/Localizable.xcstrings, Welcome/Home/Settings/tabs strings
 - What changed: String Catalog en/ru/uk with human copy; language follows system locale (no in-app language picker); tech jargon removed from Welcome footer
 - How to verify: change device/simulator language; Welcome and tabs follow system
 
 ### RC08 — v1.1 Who is OneCart for + Household flow
 - Status: done
-- Paths: Features/Onboarding/WelcomeView.swift, Application/AppSession.swift
+- Paths: OneCart/Features/Onboarding/WelcomeView.swift, OneCart/Application/AppSession.swift
 - What changed: audience picker Just me / My partner / My Apple Family; auto-create Household cart
 - How to verify: fresh install → Sign in → audience → Home
 
 ### RC09 — Default cart title «Наши покупки» + household-default identity
 - Status: done
-- Paths: ManagedObjects.swift, FamilySpaceRepository.swift, FamilyCartMerge.swift, AppSession.swift
+- Paths: OneCart/Data/Persistence/ManagedObjects.swift, OneCart/Data/Persistence/FamilySpaceRepository.swift, OneCart/Shared/Support/FamilyCartMerge.swift, OneCart/Application/AppSession.swift
 - What changed: `isHouseholdDefault`; default title via catalog; legacy name migration; starter delete by flag
 - How to verify: unit tests `testDeletableStarterFamilyDetection`, model attribute present
 
 ### RC10 — CKShare publicPermission .none + Apple Family positioning docs
 - Status: done
-- Paths: CloudKitServices.swift, docs/product-flow-v1.1.md
+- Paths: OneCart/Data/CloudKit/CloudKitServices.swift, docs/product.md
 - What changed: `publicPermission = .none`; docs state positioning vs missing Family APIs
-- How to verify: grep publicPermission; read product-flow doc
+- How to verify: grep publicPermission; read product doc
 
 ### RC11 — Merge policy / uniqueness / concurrency hardening
 - Status: done
@@ -88,20 +92,20 @@ Audience: human reviewer + review agent (alex)
 
 ### RC12 — Tests split + ViewModel coverage
 - Status: done
-- Paths: OneCartTests.swift, FamilyCartMergeTests.swift, ManagedObjectModelTests.swift
+- Paths: OneCart/Tests/OneCartTests.swift, FamilyCartMergeTests.swift, ManagedObjectModelTests.swift
 - What changed: split merge/model tests; defaults/flags covered
 - How to verify: simulator OneCartTests green
 
 ### RC13 — Lint / just verify green
 - Status: done
-- Paths: .swiftlint.yml
+- Paths: Tooling/.swiftlint.yml
 - What changed: thresholds relaxed for remaining monoliths; lint 0 serious
 - How to verify: `just lint`; `just build`; tests (destination id=simulator to avoid device hangs)
 
-### RC14 — Docs architecture + product-flow + ADR/NATIVE sync
+### RC14 — Docs architecture + product + ADR sync
 - Status: done
-- Paths: docs/architecture.md, docs/product-flow-v1.1.md, README.md, AGENTS.md, docs/review-changelog.md
-- How to verify: read docs; AGENTS points here
+- Paths: docs/architecture.md, docs/product.md, docs/release.md, docs/legacy.md, docs/README.md, README.md, AGENTS.md, docs/review-changelog.md
+- How to verify: read docs/README.md; AGENTS points there
 
 ### RC15 — Xcode project under OneCart/ (single product directory)
 - Status: done

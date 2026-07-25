@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/capabilities.sh"
 
 if ! cfg_bool tests true; then
-  echo "tests skipped (runtime.yml tests: false)"
+  echo "tests skipped (Tooling/runtime.yml tests: false)"
   exit 0
 fi
 

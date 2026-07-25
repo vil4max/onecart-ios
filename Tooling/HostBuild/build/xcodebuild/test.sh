@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../scripts" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
 SCHEME="$(scheme_name)"
-[[ -n "$SCHEME" ]] || { echo "scheme missing — set runtime.yml scheme" >&2; exit 1; }
+[[ -n "$SCHEME" ]] || { echo "scheme missing — set Tooling/runtime.yml scheme" >&2; exit 1; }
 
 PROJ="$(find_xcodeproj)"
 WS="$(find_xcworkspace)"

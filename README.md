@@ -17,45 +17,43 @@ CloudKit container: `iCloud.com.vil555tim.onecart`
 
 Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`).
 
-Before device / TestFlight runs, enable Sign in with Apple, iCloud / CloudKit, and Push Notifications on the App ID, attach the CloudKit container, and refresh provisioning profiles.
-
-Details, two-account checks, and TestFlight notes: [NATIVE_IOS.md](NATIVE_IOS.md).
-
-TestFlight releases go through **Xcode Cloud**. Point the workflow at **`OneCart/OneCart.xcodeproj`** (not the old `ios/App/App.xcodeproj`). Local Archive is fallback only.
+For device / TestFlight: App ID capabilities and CloudKit Production — see [docs/release.md](docs/release.md).
 
 ## Layout
 
-| Path | Responsibility |
-|------|----------------|
-| `OneCart/` | Xcode project, app sources, tests |
-| `OneCart/OneCart.xcodeproj` | Project / scheme `OneCart` |
-| `OneCart/Application/` | App entry, `AppSession`, root UI |
-| `OneCart/Features/` | Feature UI + ViewModels |
-| `OneCart/Data/` | Persistence, CloudKit, Auth, Migration |
-| `OneCart/Shared/` | Cross-feature helpers |
-| `OneCart/Resources/` | Assets, Info.plist, entitlements, String Catalog |
-| `OneCart/Tests/` | Unit tests (`OneCartTests`) |
-| `docs/` | Architecture, product flow, review changelog |
-| `assets/` | Brand / store masters (not in the app bundle) |
-| `Tooling/` | Engineering Runtime host adapters (not CloudKit) |
+```text
+.
+├── OneCart/                 # App product
+│   ├── OneCart.xcodeproj
+│   ├── Application/         # App entry, AppSession, root UI
+│   ├── Features/            # Feature UI + ViewModels
+│   ├── Data/                # Persistence, CloudKit, Auth, Migration
+│   ├── Shared/
+│   ├── Resources/
+│   └── Tests/
+├── docs/                    # See docs/README.md
+├── assets/                  # Brand / store masters (not in the app bundle)
+├── Tooling/                 # Engineering Runtime — see Tooling/README.md
+├── justfile                 # Thin shim → import Tooling/justfile
+├── README.md
+├── AGENTS.md
+└── .gitignore
+```
 
-Native SwiftUI only — no web / Capacitor stack in this repo.
+Native SwiftUI only — no web / Capacitor stack.
 
 ## Commands
 
 ```bash
+brew bundle --file=Tooling/Brewfile
 just doctor
 just build
 just test
 just verify
 ```
 
-## Review
+Config: [`Tooling/runtime.yml`](Tooling/runtime.yml). Local overrides: `Tooling/runtime.local.yml.example` → `Tooling/runtime.local.yml`.
 
-PR review starts at [docs/review-changelog.md](docs/review-changelog.md).
+## Docs
 
-## Legacy migration
-
-Local SQLite from older installs is reused. `LegacyMigration` can also import a JSON snapshot (`onecart.app-state` / `onecart-backup.json`) when present on device.
-
-Former Supabase Auth users are not Apple / iCloud accounts and cannot be imported as CloudKit logins. Server-side data for other users needs a separate owner-led export into iCloud or a fresh `CKShare` invite. Avatars and banners stay device-local.
+Start at [docs/README.md](docs/README.md) — architecture, product, release, legacy, review changelog.

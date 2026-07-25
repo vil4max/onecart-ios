@@ -2,33 +2,34 @@
 .DS_Store
 *.log
 
-# Env
+# Env / local secrets
 .env
 .env.*
 !.env.example
+.netrc
+runtime.local.yml
+Tooling/runtime.local.yml
 
-# Xcode / Swift
-/build/
-!Tooling/HostBuild/build/
-DerivedData/
+# Xcode
+xcuserdata/
 *.xcuserstate
 *.xcscmblueprint
 *.xccheckout
-xcuserdata/
 *.moved-aside
 *.hmap
+/build/
+DerivedData/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.xcarchive
 timeline.xctimeline
 playground.xcworkspace
+
+# Swift Package Manager
+.build/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
-.netrc
-
-# CocoaPods / Carthage (if added later)
-Pods/
-Carthage/Build/
 
 # Apple signing & credentials (never commit)
 *.p8
@@ -39,16 +40,9 @@ AuthKey_*
 *.provisionprofile
 *.key
 *.pem
-OneCart-Signing/
-CertificateSigningRequest.certSigningRequest
 *.csr
-
-# Local archives / exports
-*.xcarchive
+*.certSigningRequest
 
 # Local tooling
 .private-import/
-ui-ux-pro-max-skill-2.11.0/
 .cursor/
-runtime.local.yml
-

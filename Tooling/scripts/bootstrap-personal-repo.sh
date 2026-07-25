@@ -34,7 +34,7 @@ ${README_HINT}
 
 ## Config
 
-Scheme / simulator / backend: \`runtime.yml\` (see Runtime install).
+Scheme / simulator / backend: \`Tooling/runtime.yml\` (see Runtime install).
 
 ## Brain (Cursor)
 

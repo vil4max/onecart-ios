@@ -75,12 +75,12 @@ scheme="$(scheme_name)"
 if [[ -n "$scheme" ]]; then
   add_check scheme true "scheme=$scheme"
 else
-  WARNINGS+=("scheme not resolved — set runtime.yml scheme")
+  WARNINGS+=("scheme not resolved — set Tooling/runtime.yml scheme")
   add_check scheme true "scheme soft until configured"
 fi
 
 if ! have yq; then
-  WARNINGS+=("yq missing — install via Brewfile for runtime.yml")
+  WARNINGS+=("yq missing — install via Tooling/Brewfile for Tooling/runtime.yml")
 fi
 
 CHECKS_JSON="["
