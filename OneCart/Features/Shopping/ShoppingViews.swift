@@ -19,10 +19,13 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if model.activeFamilySpace == nil {
-                        HomeNoFamilyPanel(viewModel: viewModel)
+                        HomeConnectingCartPanel()
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                             .padding(.bottom, 16)
+                            .task {
+                                await viewModel.ensureHouseholdCartIfNeeded()
+                            }
                     } else {
                         if !model.canEdit {
                             ReadOnlyBanner()
@@ -178,42 +181,18 @@ struct HomeView: View {
     }
 }
 
-private struct HomeNoFamilyPanel: View {
-    let viewModel: ShoppingViewModel
-
+private struct HomeConnectingCartPanel: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("home.empty_panel.title", systemImage: "cart.fill")
-                .font(.headline)
-                .foregroundColor(OneCartPalette.primaryStrong)
-
-            Text("home.empty_panel.body")
+        VStack(spacing: 12) {
+            ProgressView()
+                .controlSize(.large)
+            Text("home.connecting_cart")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(spacing: 10) {
-                Button {
-                    Task {
-                        await viewModel.createFamilySpace(name: AppModel.defaultFamilyName)
-                    }
-                } label: {
-                    Label("home.create_cart", systemImage: "plus.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(OneCartPrimaryButtonStyle())
-
-                Button {
-                    Task { await viewModel.refreshFamilyCartFromCloud() }
-                } label: {
-                    Label("home.refresh_icloud", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(OneCartSecondaryButtonStyle())
-            }
+                .multilineTextAlignment(.center)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .padding(24)
         .background(
             OneCartPalette.surface,
             in: RoundedRectangle(cornerRadius: 20, style: .continuous)

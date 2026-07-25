@@ -103,6 +103,28 @@
         }
       }
     },
+    "home.connecting_cart" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting your cart…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключаем корзину…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підключаємо кошик…"
+          }
+        }
+      }
+    },
     "home.empty_hint" : {
       "localizations" : {
         "en" : {

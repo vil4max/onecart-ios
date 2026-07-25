@@ -285,6 +285,32 @@ final class AppSession: ObservableObject {
         }
     }
 
+    func ensureHouseholdCartIfNeeded() async {
+        guard let account, activeFamilySpace == nil else { return }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            await acceptPendingCloudKitShares()
+            try reload()
+            if familySpaces.isEmpty {
+                _ = try await repository.createFamilySpace(
+                    name: Self.defaultFamilyName,
+                    cachedForUserID: account.id,
+                    isHouseholdDefault: true
+                )
+                try reload()
+            } else {
+                _ = try await resolveFamilyCartConflicts(for: account)
+                if pendingCartMerge == nil {
+                    try reload(preferredFamilySpaceID: preferredSharedFamilyID())
+                }
+            }
+            await refreshFamilyMetadata(showErrors: false)
+        } catch {
+            show(error)
+        }
+    }
+
     func applyCartMergeChoice(_ choice: CartMergeChoice) async {
         guard let prompt = pendingCartMerge, let account else { return }
         isBusy = true
