@@ -9,11 +9,10 @@ final class ManagedObjectModelTests: XCTestCase {
         XCTAssertEqual(model.entities.count, 6)
 
         for entity in model.entities {
-            if entity.name == "FamilySpace" {
-                XCTAssertEqual(entity.uniquenessConstraints.count, 1)
-            } else {
-                XCTAssertTrue(entity.uniquenessConstraints.isEmpty)
-            }
+            XCTAssertTrue(
+                entity.uniquenessConstraints.isEmpty,
+                "CloudKit does not support unique constraints on \(entity.name ?? "Entity")"
+            )
             for relationship in entity.relationshipsByName.values {
                 XCTAssertTrue(relationship.isOptional)
                 XCTAssertNotNil(

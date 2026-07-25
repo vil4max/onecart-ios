@@ -22,15 +22,12 @@ enum PersistenceError: LocalizedError {
     }
 }
 
-/// RC11: `NSPersistentCloudKitContainer` is not Sendable; this type is `@unchecked Sendable`
-/// because callers only pass the controller reference across tasks while all Core Data work
-/// stays on `viewContext` / `perform` / `performBackgroundTask` queues.
 final class PersistenceController: @unchecked Sendable {
     static let shared = PersistenceController()
 
     static let cloudKitContainerIdentifier = "iCloud.com.vil555tim.onecart"
 
-    let container: NSPersistentCloudKitContainer
+    private(set) var container: NSPersistentCloudKitContainer
     let inMemory: Bool
 
     private(set) var privateStore: NSPersistentStore?
@@ -50,6 +47,8 @@ final class PersistenceController: @unchecked Sendable {
     private var loaded = false
     private var loading = false
     private var loadWaiters: [CheckedContinuation<Result<Void, Error>, Never>] = []
+    private let storeDirectoryURL: URL
+    private let cloudKitEnabled: Bool
 
     init(
         inMemory: Bool = false,
@@ -57,41 +56,31 @@ final class PersistenceController: @unchecked Sendable {
         cloudKitEnabled: Bool = true
     ) {
         self.inMemory = inMemory
-
-        let model = OneCartManagedObjectModel.makeModel()
-        container = NSPersistentCloudKitContainer(name: "OneCart", managedObjectModel: model)
-
-        let directory = storeDirectoryURL
+        self.cloudKitEnabled = cloudKitEnabled
+        self.storeDirectoryURL = storeDirectoryURL
             ?? (inMemory
                 ? FileManager.default.temporaryDirectory
                 : NSPersistentContainer.defaultDirectoryURL())
+
         if !inMemory {
             do {
                 try FileManager.default.createDirectory(
-                    at: directory,
+                    at: self.storeDirectoryURL,
                     withIntermediateDirectories: true
                 )
             } catch {
-                logger
-                    .error(
-                        "Unable to create persistent store directory: \(error.localizedDescription, privacy: .public)"
-                    )
+                logger.error(
+                    "Unable to create persistent store directory: \(error.localizedDescription, privacy: .public)"
+                )
             }
         }
 
-        let privateDescription = Self.makeStoreDescription(
-            scope: .private,
-            directory: directory,
+        container = Self.makeContainer()
+        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
+            directory: self.storeDirectoryURL,
             inMemory: inMemory,
             cloudKitEnabled: cloudKitEnabled
         )
-        let sharedDescription = Self.makeStoreDescription(
-            scope: .shared,
-            directory: directory,
-            inMemory: inMemory,
-            cloudKitEnabled: cloudKitEnabled
-        )
-        container.persistentStoreDescriptions = [privateDescription, sharedDescription]
     }
 
     func load() async throws {
@@ -102,18 +91,16 @@ final class PersistenceController: @unchecked Sendable {
         do {
             try await loadPersistentStoresOnce()
         } catch {
-            guard !inMemory, Self.isRecoverableStoreLoadError(error) else {
-                throw error
-            }
+            guard !inMemory else { throw error }
             logger.error(
-                "Persistent store load failed; resetting local SQLite stores: \(error.localizedDescription, privacy: .public)"
+                "Persistent store load failed; rebuilding stores: \(error.localizedDescription, privacy: .public)"
             )
-            try resetLocalStoreFiles()
+            try hardResetPersistentStores()
             try await loadPersistentStoresOnce()
         }
     }
 
-    func resetLocalStoreFiles() throws {
+    func hardResetPersistentStores() throws {
         guard !inMemory else { return }
 
         loadLock.lock()
@@ -128,13 +115,25 @@ final class PersistenceController: @unchecked Sendable {
 
         let coordinator = container.persistentStoreCoordinator
         for store in coordinator.persistentStores {
-            try coordinator.remove(store)
+            if let url = store.url {
+                try? coordinator.destroyPersistentStore(at: url, ofType: store.type, options: nil)
+            } else {
+                try? coordinator.remove(store)
+            }
         }
 
-        for description in container.persistentStoreDescriptions {
-            guard description.type == NSSQLiteStoreType, let url = description.url else { continue }
-            Self.removeSQLiteFiles(at: url)
-        }
+        Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
+
+        container = Self.makeContainer()
+        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
+            directory: storeDirectoryURL,
+            inMemory: false,
+            cloudKitEnabled: cloudKitEnabled
+        )
+    }
+
+    func resetLocalStoreFiles() throws {
+        try hardResetPersistentStores()
     }
 
     func store(for scope: PersistentStoreScope) throws -> NSPersistentStore {
@@ -184,7 +183,6 @@ final class PersistenceController: @unchecked Sendable {
         context.transactionAuthor = author
         context.automaticallyMergesChangesFromParent = true
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        // RC11: property-object-trump is documented for CloudKit multi-writer; prefer household sync UX over silent field-level loss when possible.
         return context
     }
 
@@ -300,47 +298,16 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
-        isRecoverableStoreLoadError(error)
-    }
-
-    private static func isRecoverableStoreLoadError(_ error: Error) -> Bool {
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain {
-            let recoverableCodes: Set<Int> = [
-                134060,
-                134100,
-                134110,
-                134130,
-                134140,
-                134150,
-                134160,
-                134180,
-            ]
-            if recoverableCodes.contains(nsError.code) {
-                return true
-            }
+            return true
         }
-
         let text = nsError.localizedDescription.lowercased()
         return text.contains("core data")
+            || text.contains("cloudkit")
             || text.contains("incompatible")
             || text.contains("migration")
-            || text.contains("model used to open the store")
-            || text.contains("can't find model")
-            || text.contains("cannot find model")
-    }
-
-    private static func removeSQLiteFiles(at url: URL) {
-        let fileManager = FileManager.default
-        let paths = [
-            url.path,
-            url.path + "-wal",
-            url.path + "-shm",
-            url.path + "-journal",
-        ]
-        for path in paths where fileManager.fileExists(atPath: path) {
-            try? fileManager.removeItem(atPath: path)
-        }
+            || text.contains("unique constraint")
     }
 
     private func identifyStores() throws {
@@ -368,6 +335,32 @@ final class PersistenceController: @unchecked Sendable {
         context.shouldDeleteInaccessibleFaults = true
     }
 
+    private static func makeContainer() -> NSPersistentCloudKitContainer {
+        let model = OneCartManagedObjectModel.makeModel()
+        return NSPersistentCloudKitContainer(name: "OneCart", managedObjectModel: model)
+    }
+
+    private static func makeStoreDescriptions(
+        directory: URL,
+        inMemory: Bool,
+        cloudKitEnabled: Bool
+    ) -> [NSPersistentStoreDescription] {
+        [
+            makeStoreDescription(
+                scope: .private,
+                directory: directory,
+                inMemory: inMemory,
+                cloudKitEnabled: cloudKitEnabled
+            ),
+            makeStoreDescription(
+                scope: .shared,
+                directory: directory,
+                inMemory: inMemory,
+                cloudKitEnabled: cloudKitEnabled
+            ),
+        ]
+    }
+
     private static func makeStoreDescription(
         scope: PersistentStoreScope,
         directory: URL,
@@ -387,7 +380,7 @@ final class PersistenceController: @unchecked Sendable {
                 url: directory.appendingPathComponent(fileName)
             )
             description.type = NSSQLiteStoreType
-            description.shouldAddStoreAsynchronously = true
+            description.shouldAddStoreAsynchronously = false
             description.shouldMigrateStoreAutomatically = true
             description.shouldInferMappingModelAutomatically = true
 
@@ -407,6 +400,20 @@ final class PersistenceController: @unchecked Sendable {
         )
 
         return description
+    }
+
+    private static func removeAllOneCartStoreFiles(in directory: URL) {
+        let fileManager = FileManager.default
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for url in contents {
+            let name = url.lastPathComponent.lowercased()
+            guard name.hasPrefix("onecart-") else { continue }
+            try? fileManager.removeItem(at: url)
+        }
     }
 
     private static func scope(forStoreURL url: URL?) -> PersistentStoreScope? {
