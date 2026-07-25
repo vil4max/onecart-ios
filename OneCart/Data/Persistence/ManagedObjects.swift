@@ -517,7 +517,7 @@ final class HistoryItemEntity: NSManagedObject {
 enum OneCartManagedObjectModel {
     static func makeModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
-        model.versionIdentifiers = ["OneCartCoreDataV5"]
+        model.versionIdentifiers = ["OneCartCoreDataV6"]
 
         let familySpace = entity("FamilySpace", FamilySpace.self)
         let store = entity("Store", StoreEntity.self)
@@ -582,7 +582,6 @@ enum OneCartManagedObjectModel {
             familyHistory,
             familyHistoryItems,
         ]
-        familySpace.uniquenessConstraints = [["id"]]
 
         store.properties = [
             attribute("id", .UUIDAttributeType),

@@ -351,7 +351,8 @@ final class AppSession: ObservableObject {
         welcomePhase = .connecting
         isReady = true
         do {
-            try persistence.resetLocalStoreFiles()
+            try persistence.hardResetPersistentStores()
+            objectWillChange.send()
         } catch {
             welcomePhase = .failed(userFacingMessage(for: error))
             return
@@ -782,6 +783,7 @@ final class AppSession: ObservableObject {
     private func prepareApplication(appleCredential: AppleSignInCredential) async {
         do {
             try await persistence.load()
+            objectWillChange.send()
             let legacyData = legacySnapshotProvider.loadSnapshotData()
             _ = try await migrationService.migrateIfNeeded(data: legacyData)
             try await repository.deduplicateStableIDs()
