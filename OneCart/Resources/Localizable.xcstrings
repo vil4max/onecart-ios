@@ -888,6 +888,28 @@
         }
       }
     },
+    "welcome.core_data_failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the local cart database. Tap Retry to reset local data and continue."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось открыть локальную базу корзины. Нажмите «Повторить», чтобы сбросить локальные данные и продолжить."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося відкрити локальну базу кошика. Натисніть «Повторити», щоб скинути локальні дані та продовжити."
+          }
+        }
+      }
+    },
     "welcome.subtitle" : {
       "localizations" : {
         "en" : {
@@ -938,7 +960,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try again"
+            "value" : "Retry"
           }
         },
         "ru" : {

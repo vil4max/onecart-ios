@@ -324,6 +324,12 @@ final class AppSession: ObservableObject {
         needsWelcome = true
         welcomePhase = .connecting
         isReady = true
+        do {
+            try persistence.resetLocalStoreFiles()
+        } catch {
+            welcomePhase = .failed(userFacingMessage(for: error))
+            return
+        }
         await prepareApplication(appleCredential: credential)
     }
 
@@ -342,6 +348,9 @@ final class AppSession: ObservableObject {
         do {
             let credential = try appleSignIn.makeCredential(from: authorization)
             appleSignIn.save(credential)
+            if let providedName = credential.providedDisplayName {
+                preferences.participantDisplayName = providedName
+            }
             await prepareApplication(appleCredential: credential)
         } catch {
             welcomePhase = .failed(userFacingMessage(for: error))
@@ -753,7 +762,8 @@ final class AppSession: ObservableObject {
             try await repository.migrateLegacyHouseholdDefaultsIfNeeded()
             preferences.reloadFromDefaults()
 
-            let preferredName = preferences.participantDisplayName.nilIfBlank
+            let preferredName = appleCredential.providedDisplayName
+                ?? preferences.participantDisplayName.nilIfBlank
                 ?? appleCredential.displayName
             installConnectivityMonitor()
             installCloudObservers()
@@ -763,7 +773,9 @@ final class AppSession: ObservableObject {
                 displayName: preferredName
             )
             account = restoredAccount
-            if preferences.participantDisplayName.nilIfBlank == nil {
+            if let appleName = appleCredential.providedDisplayName {
+                preferences.participantDisplayName = appleName
+            } else if preferences.participantDisplayName.nilIfBlank == nil {
                 preferences.participantDisplayName = restoredAccount.displayName
             }
             reloadProfileMedia(for: restoredAccount.id)
@@ -1186,6 +1198,9 @@ final class AppSession: ObservableObject {
         }
         if isNetworkError(error) {
             return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
+        }
+        if PersistenceController.isUserFacingCoreDataFailure(error) {
+            return String(localized: "welcome.core_data_failed")
         }
         return (error as? LocalizedError)?.errorDescription
             ?? (raw.isEmpty ? "Не удалось завершить операцию." : raw)

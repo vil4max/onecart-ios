@@ -9,11 +9,15 @@ struct AppleSignInCredential: Codable, Equatable {
     let givenName: String?
     let familyName: String?
 
-    var displayName: String {
+    var providedDisplayName: String? {
         let parts = [givenName, familyName]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }
-        if parts.isEmpty { return "Пользователь" }
+        guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " ")
+    }
+
+    var displayName: String {
+        providedDisplayName ?? "Пользователь"
     }
 
     var accountID: UUID {
