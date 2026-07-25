@@ -9,11 +9,7 @@ final class ShoppingViewModel: ObservableObject {
         self.session = session
     }
 
-    func createFamilySpace(name: String) async {
-        await session.createFamilySpace(name: name)
-    }
-
-    func refreshFamilyCartFromCloud() async {
-        await session.refreshFamilyCartFromCloud()
+    func ensureHouseholdCartIfNeeded() async {
+        await session.ensureHouseholdCartIfNeeded()
     }
 }

@@ -169,19 +169,15 @@ struct SettingsView: View {
                 settingsDivider
 
                 if model.familySpaces.isEmpty {
-                    Button {
-                        Task {
-                            await model.createFamilySpace(name: AppModel.defaultFamilyName)
-                        }
-                    } label: {
-                        SettingsActionRow(
-                            image: "plus.circle.fill",
-                            title: "Создать корзину",
-                            detail: "Общий список для семьи через iCloud",
-                            showsChevron: true
-                        )
+                    SettingsActionRow(
+                        image: "arrow.triangle.2.circlepath.icloud",
+                        title: "Подключаем корзину…",
+                        detail: "Из iCloud или новая по умолчанию",
+                        showsChevron: false
+                    )
+                    .task {
+                        await model.ensureHouseholdCartIfNeeded()
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .background(
