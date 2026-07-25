@@ -95,57 +95,46 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     func load() async throws {
-        if loaded {
+        if isLoaded {
             return
         }
 
-        let result: Result<Void, Error> = await withCheckedContinuation { continuation in
-            loadLock.lock()
-            if loaded {
-                loadLock.unlock()
-                continuation.resume(returning: .success(()))
-                return
+        do {
+            try await loadPersistentStoresOnce()
+        } catch {
+            guard !inMemory, Self.isRecoverableStoreLoadError(error) else {
+                throw error
             }
+            logger.error(
+                "Persistent store load failed; resetting local SQLite stores: \(error.localizedDescription, privacy: .public)"
+            )
+            try resetLocalStoreFiles()
+            try await loadPersistentStoresOnce()
+        }
+    }
 
-            loadWaiters.append(continuation)
-            if loading {
-                loadLock.unlock()
-                return
-            }
-            loading = true
-            loadLock.unlock()
+    func resetLocalStoreFiles() throws {
+        guard !inMemory else { return }
 
-            var callbackCount = 0
-            var firstError: Error?
-            let expectedCount = self.container.persistentStoreDescriptions.count
+        loadLock.lock()
+        loaded = false
+        loading = false
+        privateStore = nil
+        sharedStore = nil
+        let waiters = loadWaiters
+        loadWaiters.removeAll()
+        loadLock.unlock()
+        waiters.forEach { $0.resume(returning: .failure(PersistenceError.storeNotLoaded(.private))) }
 
-            self.container.loadPersistentStores { [weak self] description, error in
-                guard let self else { return }
-
-                loadLock.lock()
-                callbackCount += 1
-                if let error, firstError == nil {
-                    firstError = error
-                }
-                let isFinished = callbackCount == expectedCount
-                loadLock.unlock()
-
-                if let error {
-                    logger.error(
-                        "Failed loading \(description.url?.lastPathComponent ?? "store", privacy: .public): \(error.localizedDescription, privacy: .public)"
-                    )
-                } else {
-                    logger.info(
-                        "Loaded \(description.url?.lastPathComponent ?? "store", privacy: .public)"
-                    )
-                }
-
-                guard isFinished else { return }
-                finishLoading(firstError: firstError)
-            }
+        let coordinator = container.persistentStoreCoordinator
+        for store in coordinator.persistentStores {
+            try coordinator.remove(store)
         }
 
-        try result.get()
+        for description in container.persistentStoreDescriptions {
+            guard description.type == NSSQLiteStoreType, let url = description.url else { continue }
+            Self.removeSQLiteFiles(at: url)
+        }
     }
 
     func store(for scope: PersistentStoreScope) throws -> NSPersistentStore {
@@ -236,6 +225,56 @@ final class PersistenceController: @unchecked Sendable {
         }
     }
 
+    private func loadPersistentStoresOnce() async throws {
+        let result: Result<Void, Error> = await withCheckedContinuation { continuation in
+            loadLock.lock()
+            if loaded {
+                loadLock.unlock()
+                continuation.resume(returning: .success(()))
+                return
+            }
+
+            loadWaiters.append(continuation)
+            if loading {
+                loadLock.unlock()
+                return
+            }
+            loading = true
+            loadLock.unlock()
+
+            var callbackCount = 0
+            var firstError: Error?
+            let expectedCount = self.container.persistentStoreDescriptions.count
+
+            self.container.loadPersistentStores { [weak self] description, error in
+                guard let self else { return }
+
+                loadLock.lock()
+                callbackCount += 1
+                if let error, firstError == nil {
+                    firstError = error
+                }
+                let isFinished = callbackCount == expectedCount
+                loadLock.unlock()
+
+                if let error {
+                    logger.error(
+                        "Failed loading \(description.url?.lastPathComponent ?? "store", privacy: .public): \(error.localizedDescription, privacy: .public)"
+                    )
+                } else {
+                    logger.info(
+                        "Loaded \(description.url?.lastPathComponent ?? "store", privacy: .public)"
+                    )
+                }
+
+                guard isFinished else { return }
+                finishLoading(firstError: firstError)
+            }
+        }
+
+        try result.get()
+    }
+
     private func finishLoading(firstError: Error?) {
         loadLock.lock()
         defer { loadLock.unlock() }
@@ -258,6 +297,50 @@ final class PersistenceController: @unchecked Sendable {
         let waiters = loadWaiters
         loadWaiters.removeAll()
         waiters.forEach { $0.resume(returning: result) }
+    }
+
+    static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
+        isRecoverableStoreLoadError(error)
+    }
+
+    private static func isRecoverableStoreLoadError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSCocoaErrorDomain {
+            let recoverableCodes: Set<Int> = [
+                134060,
+                134100,
+                134110,
+                134130,
+                134140,
+                134150,
+                134160,
+                134180,
+            ]
+            if recoverableCodes.contains(nsError.code) {
+                return true
+            }
+        }
+
+        let text = nsError.localizedDescription.lowercased()
+        return text.contains("core data")
+            || text.contains("incompatible")
+            || text.contains("migration")
+            || text.contains("model used to open the store")
+            || text.contains("can't find model")
+            || text.contains("cannot find model")
+    }
+
+    private static func removeSQLiteFiles(at url: URL) {
+        let fileManager = FileManager.default
+        let paths = [
+            url.path,
+            url.path + "-wal",
+            url.path + "-shm",
+            url.path + "-journal",
+        ]
+        for path in paths where fileManager.fileExists(atPath: path) {
+            try? fileManager.removeItem(atPath: path)
+        }
     }
 
     private func identifyStores() throws {
