@@ -579,11 +579,22 @@ private struct ProductRow: View {
                     } else if let promotionEndsAt = product.promotionEndsAt,
                               product.originalPriceValue != nil
                     {
-                        CatalogPromotionCountdown(endsAt: promotionEndsAt, compact: true)
+                        Label(
+                            promotionEndsAt > Date()
+                                ? "Акция до \(promotionEndsAt.formatted(date: .abbreviated, time: .omitted))"
+                                : "Акция завершена",
+                            systemImage: promotionEndsAt > Date()
+                                ? "timer"
+                                : "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(promotionEndsAt > Date() ? .orange : .red)
                     } else if let catalogFetchedAt = product.catalogFetchedAt {
-                        Text("Проверено \(CatalogDateFormatter.string(from: catalogFetchedAt))")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "Проверено \(catalogFetchedAt.formatted(date: .abbreviated, time: .shortened))"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -863,10 +874,6 @@ struct HistoryView: View {
 private struct HistoryEntryCard: View {
     let entry: PurchaseHistoryEntity
 
-    private var storeName: String {
-        "Корзина"
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -894,6 +901,85 @@ private struct HistoryEntryCard: View {
                         OneCartPalette.primarySoft,
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                     )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Корзина")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text("\(entry.sortedItems.count) товаров · \(entry.membersDisplay)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(entry.totalValue.oneCartCurrency)
+                    .font(.headline)
+                    .monospacedDigit()
+                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct HistoryDetailView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let entry: PurchaseHistoryEntity
+    @State private var confirmingDelete = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Дата")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
+                                .font(.body.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 12)
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Итого")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            Text(entry.totalValue.oneCartCurrency)
+                                .font(.title3.bold())
+                                .monospacedDigit()
+                                .foregroundColor(OneCartPalette.primaryStrong)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Участники")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                        Text(entry.membersDisplay)
+                            .font(.body.weight(.medium))
+                    }
+                }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
@@ -949,7 +1035,7 @@ private struct HistoryEntryCard: View {
             .padding(.bottom, 28)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle(storeName)
+        .navigationTitle("Корзина")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Удалить запись?", isPresented: $confirmingDelete) {
             Button("Отмена", role: .cancel) {}
