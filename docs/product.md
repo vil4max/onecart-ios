@@ -57,7 +57,7 @@ Invite must not hard-block on `recordID` forever; share creation has timeouts an
 4. After cart create, warm-start a private `CKShare` invite URL in the background. **Invite** from the cart toolbar (`person.badge.plus`) or Settings → family sheet (system Share Sheet).
 5. Invitee: SIWA → open share link → Accept in iCloud → **active cart is replaced** by the shared family cart (empty private starter archived; private items with content auto-merged into shared, then private archived). No merge sheet.
 
-**Shell:** two tabs only — Cart + Settings. Purchase history lives under Settings.
+**Shell:** three tabs — Cart + History + Settings. Settings keeps invite/members + sign out (no theme/unit/profile).
 
 Up to four people share one list; changes sync via CloudKit.
 

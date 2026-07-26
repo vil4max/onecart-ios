@@ -9,41 +9,7 @@ import UIKit
 // Compatibility alias while Views migrate to AppSession.
 typealias AppModel = AppSession
 
-enum AppTheme: String, CaseIterable, Identifiable {
-    case light
-    case dark
-    case system
-
-    var id: String {
-        rawValue
-    }
-
-    var title: String {
-        switch self {
-        case .light: "Светлая"
-        case .dark: "Тёмная"
-        case .system: "Системная"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: .light
-        case .dark: .dark
-        case .system: nil
-        }
-    }
-}
-
 final class DevicePreferences: ObservableObject {
-    @Published var theme: AppTheme {
-        didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
-    }
-
-    @Published var defaultUnit: ProductUnit {
-        didSet { defaults.set(defaultUnit.rawValue, forKey: Keys.defaultUnit) }
-    }
-
     @Published var participantDisplayName: String {
         didSet {
             defaults.set(
@@ -57,28 +23,18 @@ final class DevicePreferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
-        defaultUnit = ProductUnit(
-            rawValue: defaults.string(forKey: Keys.defaultUnit) ?? ""
-        ) ?? .piece
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
     }
 
     func reloadFromDefaults() {
-        theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
-        defaultUnit = ProductUnit(
-            rawValue: defaults.string(forKey: Keys.defaultUnit) ?? ""
-        ) ?? .piece
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
     }
 
     private enum Keys {
-        static let theme = "onecart.theme"
-        static let defaultUnit = "onecart.default-unit"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }

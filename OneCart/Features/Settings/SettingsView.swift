@@ -5,19 +5,12 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var showingProfile = false
-    @State private var showingHistory = false
 
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    accountCard
                     familyCard
-                    historyCard
-
-                    PreferencesSettingsSection(preferences: model.preferences)
-
                     signOutCard
                 }
                 .padding(.horizontal, 20)
@@ -27,24 +20,11 @@ struct SettingsView: View {
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingProfile) {
-                if let account = model.account {
-                    ProfileEditorSheet(
-                        account: account,
-                        avatar: model.profileAvatar,
-                        banner: model.profileBanner
-                    )
-                }
-            }
-            .sheet(isPresented: $showingHistory) {
-                HistoryView()
-                    .environmentObject(model)
-            }
         }
         .navigationViewStyle(.stack)
     }
 
-    // MARK: - Account / Profile
+    // MARK: - Account
 
     private var signOutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -62,61 +42,6 @@ struct SettingsView: View {
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
             )
         }
-    }
-
-    private var accountCard: some View {
-        Button {
-            showingProfile = true
-        } label: {
-            VStack(spacing: 0) {
-                ProfileBannerView(
-                    image: model.profileBanner,
-                    remoteURL: model.account?.bannerURL,
-                    height: 88,
-                    useAppDefaultWhenEmpty: true
-                )
-
-                HStack(spacing: 14) {
-                    if let account = model.account {
-                        ProfileAvatarView(
-                            name: account.displayName,
-                            image: model.profileAvatar,
-                            remoteURL: account.avatarURL,
-                            size: 56
-                        )
-                        .overlay(
-                            Circle()
-                                .stroke(OneCartPalette.surface, lineWidth: 3)
-                        )
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(account.displayName)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text("Личный профиль")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                            Text("Открыть профиль")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(OneCartPalette.primary)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(16)
-            }
-            .background(
-                OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Открывает редактирование профиля")
     }
 
     // MARK: - Family
@@ -153,30 +78,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            .background(
-                OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-            )
-        }
-    }
-
-    private var historyCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsSectionLabel(title: "Покупки")
-
-            Button {
-                showingHistory = true
-            } label: {
-                SettingsActionRow(
-                    image: "clock.arrow.circlepath",
-                    title: "История",
-                    detail: model.history.isEmpty
-                        ? "Пока пусто"
-                        : "\(model.history.count)",
-                    showsChevron: true
-                )
-            }
-            .buttonStyle(.plain)
             .background(
                 OneCartPalette.surface,
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -839,50 +740,6 @@ private func memberCountText(_ count: Int) -> String {
     return "\(count) \(noun)"
 }
 
-private struct PreferencesSettingsSection: View {
-    @ObservedObject var preferences: DevicePreferences
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsSectionLabel(title: String(localized: "settings.appearance"))
-
-            VStack(spacing: 0) {
-                SettingsPickerRow(
-                    image: "circle.lefthalf.filled",
-                    title: String(localized: "settings.theme")
-                ) {
-                    Picker(String(localized: "settings.theme"), selection: $preferences.theme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.title).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(OneCartPalette.primaryStrong)
-                }
-
-                Divider().padding(.leading, 58)
-
-                SettingsPickerRow(
-                    image: "plus.forwardslash.minus",
-                    title: String(localized: "settings.unit")
-                ) {
-                    Picker(String(localized: "settings.unit"), selection: $preferences.defaultUnit) {
-                        ForEach(ProductUnit.allCases) { unit in
-                            Text(unit.localizedName).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(OneCartPalette.primaryStrong)
-                }
-            }
-            .background(
-                OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-            )
-        }
-    }
-}
-
 private struct SettingsSectionLabel: View {
     let title: String
 
@@ -937,42 +794,6 @@ private struct SettingsActionRow: View {
         .padding(.vertical, 12)
         .frame(minHeight: 52)
         .contentShape(Rectangle())
-    }
-}
-
-private struct SettingsPickerRow<Content: View>: View {
-    let image: String
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: image)
-                .font(.body.weight(.semibold))
-                .foregroundColor(OneCartPalette.primary)
-                .frame(width: 34, height: 34)
-                .background(OneCartPalette.primarySoft, in: Circle())
-                // Keep the icon chip from shifting when the menu value reflows.
-                .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] }
-
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .layoutPriority(1)
-
-            Spacer(minLength: 8)
-
-            content
-                .labelsHidden()
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(maxWidth: 168, alignment: .trailing)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .frame(minHeight: 56, maxHeight: 56, alignment: .center)
-        .clipped()
     }
 }
 

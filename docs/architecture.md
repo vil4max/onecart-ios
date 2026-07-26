@@ -13,7 +13,8 @@ Product policy (see [product.md](product.md)): **stabilize the household cart + 
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
 | Cart (one list, quick name add, invite) | Stores tab / store-first shopping |
-| Settings (profile, family sheet, history sheet) | Catalog browser as primary add path |
+| History tab | Theme / unit prefs / profile editor in Settings |
+| Settings (invite/members + sign out) | Catalog browser as primary add path |
 | System alert for errors | Toast / sync banner chrome |
 
 Legacy store/catalog code may still compile in the target so we avoid risky mass deletes of CloudKit-related types mid-release. New work should not wire those surfaces back into `MainTabView` or the cart FAB until two-device invite/sync is solid.
@@ -42,8 +43,8 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + iCloud connect |
-| `OneCart/Features/Settings/SettingsView.swift` | Account, history sheet, family invite sheet |
-| Main tabs | Cart + Settings only (Stores tab removed from shell) |
+| `OneCart/Features/Settings/SettingsView.swift` | Invite/members + sign out |
+| Main tabs | Cart + History + Settings |
 
 ## Stores and sync
 

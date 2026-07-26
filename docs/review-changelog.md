@@ -139,6 +139,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: unit test `testCloudKitUserFacingErrorMapsProductionSchema*`; on TF without Deploy, alert mentions CloudKit Console Deploy
 - Do not invent scope: **Deploy Schema Changes to Production** is still a Console-only owner action — code cannot create `CD_ShoppingList` in Production
 
+### RC19 — Slim Settings; History tab
+- Status: done (this train)
+- Paths: `SettingsView.swift`, `RootView.swift`, `AppSession.swift` (`DevicePreferences`), `OneCartApp.swift`
+- What changed: removed profile card, theme, default unit; History is its own tab; Settings keeps invite + sign out; build **1.2.1 (4)**
+- How to verify: tabs Home / History / Settings; Settings has no Look & Feel or profile header
+- Do not invent scope: full Settings removal / share-only-from-Home tracked separately (PR #17 / FU11)
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
