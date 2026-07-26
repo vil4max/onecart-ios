@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2.1 (1)** — new marketing version resets `CURRENT_PROJECT_VERSION` to 1; bump build again before each further upload of 1.2.1.
+Version: **1.2.1 (2)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.2.1.
 
 **Scope for this train:** stability of household cart + invite/sync. Stores tab, catalog-first add, and rich product forms are out of the main UX on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
@@ -33,20 +33,31 @@ Simulator is enough for UI + unit tests. Real family sync needs two physical dev
 4. Team in Xcode must match the project Team.
 5. Entitlements (`CKSharingSupported`, SIWA, iCloud) are already in the project — unsigned Debug builds compile without App ID setup; signed install + real sync need the steps above.
 
-## 2. CloudKit Production schema
+## 2. CloudKit Production schema (required for TestFlight)
 
-Before TestFlight / App Store:
+TestFlight / App Store talk to CloudKit **Production**. New Core Data entities are **not** created there automatically. Without a deploy you get:
 
-1. [CloudKit Console](https://icloud.developer.apple.com/) → container → Schema.
-2. Confirm Development has all record types (see [architecture.md](architecture.md)).
-3. **Deploy Schema Changes to Production**.
-4. Re-run the two-device checklist on Production.
+`Cannot create new type CD_ShoppingList in production schema`
+
+(and the app alert about mirroring / Partial Failure).
+
+**Do this before relying on any TF build:**
+
+1. Open [CloudKit Console](https://icloud.developer.apple.com/) → container `iCloud.com.vil555tim.onecart`.
+2. Environment: **Development** → Schema → confirm record types exist (at least):  
+   `CD_FamilySpace`, `CD_ShoppingList`, `CD_Product`, `CD_Store`, `CD_PurchaseHistory`, `CD_HistoryItem`  
+   (plus CloudKit system types / indexes NSPersistentCloudKitContainer created).
+3. If Development is empty or stale: run the app once from Xcode (Debug) signed into iCloud so the container initializes the Development schema.
+4. **Deploy Schema Changes to Production** (Schema → Deploy… → Production).
+5. Force-quit the TestFlight app, relaunch, retry invite/sync.
+
+Until Production matches Development, sync/share on TF will keep failing even if the binary is fine.
 
 ## 3. Two-device checklist
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug build on A and B (version 1.2.1 / build ≥ 1).
+1. Signed Debug build on A and B (version 1.2.1 / build ≥ 2). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
 4. Cart toolbar invite (or Settings → семья) → Invite → open iCloud share URL on B.
