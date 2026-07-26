@@ -278,6 +278,37 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         case .other: "Другое"
         }
     }
+
+    /// Lightweight fallback after catalog UI removal — prefer explicit category when editing.
+    static func inferred(from productName: String) -> ProductCategory {
+        let value = productName.lowercased()
+        if value.contains("молоко") || value.contains("йогурт") || value.contains("сыр")
+            || value.contains("сир") || value.contains("кефир") || value.contains("кефір")
+        {
+            return .dairy
+        }
+        if value.contains("мясо") || value.contains("мʼясо") || value.contains("курица")
+            || value.contains("курка") || value.contains("фарш")
+        {
+            return .meat
+        }
+        if value.contains("сок") || value.contains("вода") || value.contains("кола")
+            || value.contains("пиво")
+        {
+            return .drinks
+        }
+        if value.contains("мыло") || value.contains("мило") || value.contains("порошок")
+            || value.contains("шампун")
+        {
+            return .household
+        }
+        if value.contains("яблок") || value.contains("банан") || value.contains("овощ")
+            || value.contains("фрукт") || value.contains("помидор") || value.contains("огірок")
+        {
+            return .produce
+        }
+        return .other
+    }
 }
 
 @objc(ProductEntity)

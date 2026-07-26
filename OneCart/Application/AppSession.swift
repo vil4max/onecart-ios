@@ -363,11 +363,6 @@ final class AppSession: ObservableObject {
         }
     }
 
-        await performMutation(successMessage: "Магазин удалён") {
-            try await self.repository.deleteStore(id: id)
-        }
-    }
-
     func addList(title: String, store: StoreEntity?) async {
         guard let familySpaceID = activeFamilySpace?.id else { return }
         await performMutation(successMessage: "Список создан") {

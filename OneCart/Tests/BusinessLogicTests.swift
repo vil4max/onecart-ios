@@ -65,7 +65,7 @@ final class BusinessLogicTests: XCTestCase {
         let (_, _, productID) = try await seedCart(repository: repository)
         let otherFamilyID = try await repository.createFamilySpace(name: "Другая")
         let otherListID = try XCTUnwrap(
-            repository.fetchFamilySpace(id: otherFamilyID)?.activeLists.first?.id
+            try repository.fetchFamilySpace(id: otherFamilyID)?.activeLists.first?.id
         )
 
         do {
@@ -88,7 +88,7 @@ final class BusinessLogicTests: XCTestCase {
         )
         try await repository.togglePurchased(
             id: try XCTUnwrap(
-                repository.fetchFamilySpace(id: familyID)?.sortedProducts.first?.id
+                try repository.fetchFamilySpace(id: familyID)?.sortedProducts.first?.id
             ),
             participantDisplayName: "Игорь"
         )
@@ -259,7 +259,7 @@ final class BusinessLogicTests: XCTestCase {
 
         let familyID = try await repository.createFamilySpace(name: "OK")
         let listID = try XCTUnwrap(
-            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+            try repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
         )
 
         do {
@@ -285,7 +285,7 @@ final class BusinessLogicTests: XCTestCase {
         let familyID = try await repository.createFamilySpace(name: "Старое")
         try await repository.renameFamilySpace(id: familyID, name: "  Новое имя  ")
         XCTAssertEqual(
-            repository.fetchFamilySpace(id: familyID)?.displayName,
+            try repository.fetchFamilySpace(id: familyID)?.displayName,
             "Новое имя"
         )
     }
@@ -539,7 +539,7 @@ final class BusinessLogicTests: XCTestCase {
             role: FamilyAccess.owner.rawValue,
             needsRemoteCreation: true
         )
-        var space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         XCTAssertEqual(space.cachedForUserID, userID)
         XCTAssertEqual(space.serverRole, FamilyAccess.owner.rawValue)
         XCTAssertEqual(space.needsRemoteCreation?.boolValue, true)
@@ -681,7 +681,7 @@ final class BusinessLogicTests: XCTestCase {
     ) async throws -> (familyID: UUID, listID: UUID, productID: UUID) {
         let familyID = try await repository.createFamilySpace(name: name)
         let listID = try XCTUnwrap(
-            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+            try repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
         )
         let productID = try await repository.addProduct(
             to: listID,
