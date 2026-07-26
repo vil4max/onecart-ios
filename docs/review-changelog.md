@@ -132,6 +132,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: read [product.md](product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
 - Do not invent scope: restoring Stores/catalog is FU08/FU09, not required for merge
 
+### RC18 — Surface CloudKit Production schema failure as alert
+- Status: done (this train)
+- Paths: `CloudKitServices.swift`, `AppSession.swift`, `OneCartTests.swift`, `docs/release.md`
+- What changed: detect `CD_*` production-schema errors from nested userInfo; show one session alert on mirroring failure (was only `lastSyncError`); build **1.2.1 (3)**
+- How to verify: unit test `testCloudKitUserFacingErrorMapsProductionSchema*`; on TF without Deploy, alert mentions CloudKit Console Deploy
+- Do not invent scope: **Deploy Schema Changes to Production** is still a Console-only owner action — code cannot create `CD_ShoppingList` in Production
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)

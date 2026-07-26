@@ -53,6 +53,8 @@ TestFlight / App Store talk to CloudKit **Production**. New Core Data entities a
 
 Until Production matches Development, sync/share on TF will keep failing even if the binary is fine.
 
+**Agents / CI cannot perform Deploy.** There is no API to promote schema to Production (`cktool` only imports Development). The container admin must click Deploy in CloudKit Console. App builds can only detect the failure and show a clear alert.
+
 ## 3. Two-device checklist
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):

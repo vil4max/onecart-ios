@@ -29,8 +29,8 @@ enum FamilyAccess: String, Equatable {
 
     var title: String {
         switch self {
-        case .owner: "Владелец группы"
-        case .member: "Участник группы"
+        case .owner: "Владелец корзины"
+        case .member: "Участник корзины"
         }
     }
 
@@ -92,7 +92,7 @@ struct FamilyInviteLink: Identifiable, Equatable {
     }
 
     var shareMessage: String {
-        "OneCart\nПрисоединяйтесь к группе «\(familyName)»\n\n\(url.absoluteString)"
+        "OneCart\nПрисоединяйтесь к корзине «\(familyName)»\n\n\(url.absoluteString)"
     }
 
     var shareTitle: String {
@@ -163,13 +163,13 @@ enum OneCartCloudKitError: LocalizedError {
                 "Не удалось проверить iCloud на устройстве. Синхронизация требует доступный iCloud-аккаунт."
             }
         case .familyNotShared:
-            "Группа ещё не опубликована."
+            "Корзина ещё не опубликована."
         case .shareURLUnavailable:
             "Не удалось создать ссылку общего доступа. Попробуйте ещё раз."
         case .participantNotFound:
             "Участник больше не найден в общем доступе."
         case .stillSyncing:
-            "Группа ещё синхронизируется с iCloud. Подождите несколько секунд и попробуйте снова."
+            "Корзина ещё синхронизируется с iCloud. Подождите несколько секунд и попробуйте снова."
         case .shareTimedOut:
             "Не удалось создать ссылку вовремя. Проверьте сеть и синхронизацию iCloud, затем повторите."
         }
@@ -183,8 +183,18 @@ enum CloudKitUserFacingError {
 
     /// TestFlight / App Store use CloudKit Production — new Core Data types must be
     /// deployed from Development in CloudKit Console before they can sync.
+    /// This cannot be fixed in the binary alone; the container owner must Deploy Schema.
     static let productionSchemaMissing =
-        "Схема iCloud для OneCart ещё не опубликована в Production. Владельцу приложения нужно в CloudKit Console → Schema нажать Deploy Schema Changes to Production, затем перезапустить приложение."
+        "Схема iCloud для OneCart не задеплоена в Production. Владелец: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, затем Force Quit приложения и открыть снова."
+
+    static func isProductionSchemaFailure(_ error: Error) -> Bool {
+        for candidate in flattened(error) {
+            if productionSchemaMessage(in: candidate) != nil {
+                return true
+            }
+        }
+        return productionSchemaMessage(in: error) != nil
+    }
 
     static func message(for error: Error) -> String {
         // Prefer known CloudKit/Core Data reasons over opaque NSError dumps
@@ -224,14 +234,33 @@ enum CloudKitUserFacingError {
     }
 
     private static func productionSchemaMessage(in error: Error) -> String? {
-        let text = error.localizedDescription.lowercased()
+        let text = diagnosticText(for: error)
         if text.contains("production schema")
             || text.contains("cannot create new type cd_")
             || (text.contains("cannot create new type") && text.contains("schema"))
+            || (text.contains("cd_shoppinglist") && text.contains("schema"))
         {
             return productionSchemaMissing
         }
         return nil
+    }
+
+    /// Collects localized + userInfo string crumbs — CK nesting often hides the real reason.
+    private static func diagnosticText(for error: Error) -> String {
+        let nsError = error as NSError
+        var parts: [String] = [
+            nsError.localizedDescription,
+            nsError.localizedFailureReason ?? "",
+            nsError.localizedRecoverySuggestion ?? "",
+        ]
+        for value in nsError.userInfo.values {
+            if let string = value as? String {
+                parts.append(string)
+            } else if let nested = value as? Error {
+                parts.append(nested.localizedDescription)
+            }
+        }
+        return parts.joined(separator: "\n").lowercased()
     }
 
     static func isNetworkError(_ error: Error) -> Bool {
@@ -274,8 +303,10 @@ enum CloudKitUserFacingError {
         case .accountTemporarilyUnavailable:
             return "Синхронизация временно недоступна. Попробуйте ещё раз позже."
         case .permissionFailure:
-            return "Нет доступа к общей группе в iCloud. Попросите владельца пригласить вас снова."
+            return "Нет доступа к общей корзине в iCloud. Попросите владельца пригласить вас снова."
         case .serverRejectedRequest, .invalidArguments, .incompatibleVersion:
+            // Schema / argument detail may still be in userInfo — checked earlier via
+            // productionSchemaMessage. Fall back only when no specific mapping matched.
             return genericSyncFailure
         case .zoneNotFound, .userDeletedZone:
             return "Облачная зона OneCart недоступна. Перезапустите приложение и проверьте iCloud."
