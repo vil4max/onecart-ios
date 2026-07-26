@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2 (26)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
+Version: **1.2.1 (1)** — new marketing version resets `CURRENT_PROJECT_VERSION` to 1; bump build again before each further upload of 1.2.1.
 
 **Scope for this train:** stability of household cart + invite/sync. Stores tab, catalog-first add, and rich product forms are out of the main UX on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
@@ -46,7 +46,7 @@ Before TestFlight / App Store:
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug build on A and B (version 1.2 / build ≥ 25).
+1. Signed Debug build on A and B (version 1.2.1 / build ≥ 1).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
 4. Cart toolbar invite (or Settings → семья) → Invite → open iCloud share URL on B.
