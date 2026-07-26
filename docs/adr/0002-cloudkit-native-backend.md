@@ -38,4 +38,8 @@ Dual identity is intentional and must stay explicit in UX:
 
 Welcome copy and iCloud-unavailable errors must say that SIWA alone is not enough. Private Core Data carts are filtered by the SIWA-derived account id; shared-store carts follow the iCloud participant.
 
+## Clarification (2026-07-26) — stability before features
+
+CloudKit sharing and dual identity are already complex enough. Product scope for the current train prefers a **minimal shell** (one cart, name-only add, invite, Settings) over stores/catalog/multi-list surfaces that enlarge the sync graph and UI failure modes. Re-expand only after the two-device invite path is reliable — see [product.md](../product.md) § Priority.
+
 See [architecture.md](../architecture.md), [product.md](../product.md), [release.md](../release.md).

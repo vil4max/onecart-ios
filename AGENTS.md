@@ -13,6 +13,8 @@ Project facts only. Agent behavior lives in the Cursor Brain (`cursor-agent-kit`
 
 For PR review (alex / review agent), start at [docs/review-changelog.md](docs/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
 
+**Stability first:** do not restore Stores tab / catalog-first add / rich product forms unless the PR explicitly takes FU08–FU10. Core path is SIWA → one cart → quick add → invite/sync — see [docs/product.md](docs/product.md).
+
 ## Config
 
 Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
