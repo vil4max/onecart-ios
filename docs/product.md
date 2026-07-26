@@ -24,7 +24,7 @@ Legacy `onecart://invite/...` tokens and the old invite endpoint are gone.
 ## User flow
 
 1. Install → Welcome: Sign in with Apple + short onboarding copy (iCloud errors + Retry on the same screen).
-2. After sign-in → **Cart** tab with one household cart (`isHouseholdDefault`). Empty until the user adds products (+).
+2. After sign-in → **Cart** tab with one household cart (`isHouseholdDefault`). Thumb-zone **+** opens a name-only quick add (type → Add → next).
 3. If iCloud already has a cart for this account, show that cart instead of creating a duplicate empty one when possible.
 4. After cart create, warm-start a private `CKShare` invite URL in the background. **Invite** from the cart toolbar (`person.badge.plus`) or Settings → family sheet (system Share Sheet).
 5. Invitee: SIWA → open share link → Accept in iCloud → **active cart is replaced** by the shared family cart (empty private starter archived; private items with content auto-merged into shared, then private archived). No merge sheet.

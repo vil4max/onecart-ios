@@ -396,95 +396,113 @@ struct ShoppingListView: View {
     var body: some View {
         Group {
             if let list {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if !model.canEdit {
-                            ReadOnlyBanner()
-                        }
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            if !model.canEdit {
+                                ReadOnlyBanner()
+                            }
 
-                        listSummaryCard
+                            listSummaryCard
 
-                        if products.isEmpty {
-                            EmptyCard(
-                                image: "cart.badge.plus",
-                                title: String(localized: "cart.empty_title"),
-                                message: String(localized: "home.empty_hint")
-                            )
-                        } else {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("Товары")
-                                        .font(.title3.bold())
-                                    Spacer()
-                                    Text("\(products.count)")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(
-                                            Color(.tertiarySystemFill),
-                                            in: Capsule(style: .continuous)
-                                        )
-                                }
+                            if products.isEmpty {
+                                EmptyCard(
+                                    image: "cart.badge.plus",
+                                    title: String(localized: "cart.empty_title"),
+                                    message: String(localized: "home.empty_hint")
+                                )
+                            } else {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        Text("Товары")
+                                            .font(.title3.bold())
+                                        Spacer()
+                                        Text("\(products.count)")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(
+                                                Color(.tertiarySystemFill),
+                                                in: Capsule(style: .continuous)
+                                            )
+                                    }
 
-                                ForEach(products, id: \.objectID) { product in
-                                    ProductRow(
-                                        product: product,
-                                        lists: model.activeLists,
-                                        canEdit: model.canEdit,
-                                        onToggle: {
-                                            Task { await model.togglePurchased(product) }
-                                        },
-                                        onEdit: {
-                                            editingProduct = product
-                                        },
-                                        onDelete: {
-                                            pendingDelete = product
-                                        },
-                                        onMove: { destination in
-                                            Task {
-                                                await model.moveProduct(
-                                                    product,
-                                                    to: destination
-                                                )
+                                    ForEach(products, id: \.objectID) { product in
+                                        ProductRow(
+                                            product: product,
+                                            lists: model.activeLists,
+                                            canEdit: model.canEdit,
+                                            onToggle: {
+                                                Task { await model.togglePurchased(product) }
+                                            },
+                                            onEdit: {
+                                                editingProduct = product
+                                            },
+                                            onDelete: {
+                                                pendingDelete = product
+                                            },
+                                            onMove: { destination in
+                                                Task {
+                                                    await model.moveProduct(
+                                                        product,
+                                                        to: destination
+                                                    )
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
+                                }
+                            }
+
+                            if !products.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Button {
+                                        confirmingCompletion = true
+                                    } label: {
+                                        Label("Завершить покупку", systemImage: "checkmark.seal.fill")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(OneCartPrimaryButtonStyle())
+                                    .disabled(!model.canEdit)
+                                    .opacity(model.canEdit ? 1 : 0.5)
+
+                                    Text("Товары сохранятся в истории, корзина станет снова пустой.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
-
-                        if !products.isEmpty {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Button {
-                                    confirmingCompletion = true
-                                } label: {
-                                    Label("Завершить покупку", systemImage: "checkmark.seal.fill")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(OneCartPrimaryButtonStyle())
-                                .disabled(!model.canEdit)
-                                .opacity(model.canEdit ? 1 : 0.5)
-
-                                Text("Товары сохранятся в истории, корзина станет снова пустой.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, model.canEdit ? 100 : 28)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 28)
+                    .background(OneCartPalette.background.ignoresSafeArea())
+
+                    if model.canEdit {
+                        Button {
+                            showingAddProduct = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 64, height: 64)
+                                .background(OneCartPalette.primary, in: Circle())
+                                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                        .accessibilityLabel("Добавить товар")
+                    }
                 }
-                .background(OneCartPalette.background.ignoresSafeArea())
                 .navigationTitle(
                     model.activeFamilySpace?.displayName
                         ?? list.displayTitle
                 )
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
                             model.showFamilyManagement()
                         } label: {
@@ -500,24 +518,12 @@ struct ShoppingListView: View {
                             model.access?.isOwner == true ? "Пригласить семью" : "Участники"
                         )
                     }
-
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showingAddProduct = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.body.weight(.semibold))
-                                .frame(minWidth: 44, minHeight: 44)
-                        }
-                        .disabled(!model.canEdit)
-                        .accessibilityLabel("Добавить товар")
-                    }
                 }
                 .sheet(isPresented: $showingAddProduct) {
-                    ProductEditorSheet(listID: listID, product: nil)
+                    QuickAddProductSheet(listID: listID)
                 }
                 .sheet(item: $editingProduct) { product in
-                    ProductEditorSheet(listID: listID, product: product)
+                    QuickAddProductSheet(listID: listID, product: product)
                 }
                 .alert("Завершить покупку?", isPresented: $confirmingCompletion) {
                     Button("Отмена", role: .cancel) {}
@@ -856,118 +862,103 @@ private struct ProductRow: View {
     }
 }
 
-struct ProductEditorSheet: View {
+/// Minimal add/rename: product name only. Quantity/unit/category use defaults.
+struct QuickAddProductSheet: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var nameFocused: Bool
 
     let listID: UUID
-    let product: ProductEntity?
+    var product: ProductEntity?
 
     @State private var name: String
-    @State private var quantity: String
-    @State private var unit: ProductUnit
-    @State private var category: ProductCategory
-    @State private var price: String
-    @State private var note: String
+    @State private var isSaving = false
 
-    init(listID: UUID, product: ProductEntity?) {
+    init(listID: UUID, product: ProductEntity? = nil) {
         self.listID = listID
         self.product = product
         _name = State(initialValue: product?.displayName ?? "")
-        _quantity = State(
-            initialValue: product.map(\.quantityValue.oneCartQuantity) ?? "1"
-        )
-        _unit = State(initialValue: product?.unitValue ?? .piece)
-        _category = State(initialValue: product?.categoryValue ?? .other)
-        _price = State(
-            initialValue: product.map {
-                $0.estimatedPriceValue == 0 ? "" : $0.estimatedPriceValue.oneCartQuantity
-            } ?? ""
-        )
-        _note = State(initialValue: product?.noteValue ?? "")
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isEditing: Bool {
+        product != nil
     }
 
     var body: some View {
         NavigationView {
-            Form {
-                Section("Товар") {
-                    TextField("Название", text: $name)
-                    TextField("Количество", text: $quantity)
-                        .keyboardType(.decimalPad)
-                    Picker("Единица", selection: $unit) {
-                        ForEach(ProductUnit.allCases) { unit in
-                            Text(unit.localizedName).tag(unit)
+            VStack(spacing: 16) {
+                TextField("Что купить?", text: $name)
+                    .font(.title3.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(
+                        OneCartPalette.surface,
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
+                    .focused($nameFocused)
+                    .submitLabel(isEditing ? .done : .next)
+                    .onSubmit { save() }
+                    .disabled(isSaving)
+
+                Button {
+                    save()
+                } label: {
+                    HStack {
+                        if isSaving {
+                            ProgressView().tint(.white)
                         }
+                        Text(isEditing ? "Сохранить" : "Добавить")
                     }
-                    Picker("Категория", selection: $category) {
-                        ForEach(ProductCategory.allCases) { category in
-                            Text(category.localizedName).tag(category)
-                        }
-                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(OneCartPrimaryButtonStyle())
+                .disabled(trimmedName.isEmpty || isSaving)
+
+                if !isEditing {
+                    Text("После добавления можно сразу ввести следующий товар.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if let media = officialMedia {
-                    Section("Фото товара") {
-                        HStack(spacing: 12) {
-                            OfficialProductThumbnail(
-                                media: media,
-                                category: category,
-                                size: 72
-                            )
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Из каталога \(media.sourceName)")
-                                    .font(.subheadline.weight(.semibold))
-                                Text("Фото и цена сохранены в OneCart")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
-
-                Section("Дополнительно") {
-                    TextField("Ориентировочная цена, ₴", text: $price)
-                        .keyboardType(.decimalPad)
-                    TextField("Заметка", text: $note)
-                }
+                Spacer(minLength: 0)
             }
-            .navigationTitle(product == nil ? "Новый товар" : "Редактирование")
+            .padding(20)
+            .background(OneCartPalette.background.ignoresSafeArea())
+            .navigationTitle(isEditing ? "Изменить" : "Добавить")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        save()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Готово") { dismiss() }
                 }
             }
+            .task {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                nameFocused = true
+            }
         }
-    }
-
-    private var officialMedia: OfficialProductMedia? {
-        if let product {
-            return OfficialProductMedia.resolve(product: product)
-        }
-        let storeName = model.lists.first(where: { $0.id == listID })?.store?.displayName
-        return OfficialProductMedia.resolve(productName: name, storeName: storeName)
+        .navigationViewStyle(.stack)
     }
 
     private func save() {
-        guard model.canEdit else { return }
+        guard model.canEdit, !trimmedName.isEmpty, !isSaving else { return }
         guard let list = model.lists.first(where: { $0.id == listID }) else {
             dismiss()
             return
         }
+
+        isSaving = true
         let draft = ProductDraft(
-            name: name,
-            quantity: Double(quantity.replacingOccurrences(of: ",", with: ".")) ?? 1,
-            unit: unit,
-            category: category,
-            estimatedPrice: Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0,
-            note: note,
+            name: trimmedName,
+            quantity: product?.quantityValue ?? 1,
+            unit: product?.unitValue ?? .piece,
+            category: product?.categoryValue ?? ProductCategory.inferred(from: trimmedName),
+            estimatedPrice: product?.estimatedPriceValue ?? 0,
+            note: product?.noteValue ?? "",
             imageURL: product?.imageURL,
             sourceURL: product?.sourceURL,
             originalPrice: product?.originalPrice?.doubleValue,
@@ -975,7 +966,9 @@ struct ProductEditorSheet: View {
             catalogFetchedAt: product?.catalogFetchedAt,
             promotionEndsAt: product?.promotionEndsAt
         )
+
         Task {
+            defer { isSaving = false }
             if let product {
                 let productID = product.id
                 await model.updateProduct(product, draft: draft)
@@ -988,11 +981,21 @@ struct ProductEditorSheet: View {
                 let before = Set(model.products(inListID: listID).compactMap(\.id))
                 await model.addProduct(to: list, draft: draft)
                 let after = Set(model.products(inListID: listID).compactMap(\.id))
-                if !after.subtracting(before).isEmpty {
-                    dismiss()
-                }
+                guard !after.subtracting(before).isEmpty else { return }
+                name = ""
+                nameFocused = true
             }
         }
+    }
+}
+
+/// Kept for any remaining call sites; forwards to the quick name editor.
+struct ProductEditorSheet: View {
+    let listID: UUID
+    let product: ProductEntity?
+
+    var body: some View {
+        QuickAddProductSheet(listID: listID, product: product)
     }
 }
 
