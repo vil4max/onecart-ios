@@ -1119,7 +1119,7 @@ final class OneCartTests: XCTestCase {
 
         XCTAssertTrue(invite.shareMessage.contains(shareURL.absoluteString))
         XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
-        XCTAssertTrue(invite.shareMessage.contains("группе"))
+        XCTAssertTrue(invite.shareMessage.contains("корзине"))
         XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart"))
         XCTAssertEqual(invite.shareTitle, "OneCart")
         XCTAssertEqual(invite.expiresAt, .distantFuture)
@@ -1182,8 +1182,26 @@ final class OneCartTests: XCTestCase {
         )
         let message = CloudKitUserFacingError.message(for: mirroring)
         XCTAssertEqual(message, CloudKitUserFacingError.productionSchemaMissing)
+        XCTAssertTrue(CloudKitUserFacingError.isProductionSchemaFailure(mirroring))
         XCTAssertFalse(message.contains("CD_ShoppingList"))
         XCTAssertFalse(message.contains("mirroring delegate"))
+    }
+
+    func testCloudKitUserFacingErrorMapsProductionSchemaFromUserInfoCrumb() {
+        let error = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Partial Failure",
+                "CKErrorDescription":
+                    "Cannot create new type CD_ShoppingList in production schema",
+            ]
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isProductionSchemaFailure(error))
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: error),
+            CloudKitUserFacingError.productionSchemaMissing
+        )
     }
 
     private func makeInMemoryRepository() async throws

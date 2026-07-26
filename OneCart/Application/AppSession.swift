@@ -179,6 +179,8 @@ final class AppSession: ObservableObject {
     private var scheduledReloadTask: Task<Void, Never>?
     private var invitePrepareTask: Task<Void, Never>?
     private var preparedInviteFamilyID: UUID?
+    /// Production-schema sync failure is sticky until Deploy; alert once per session.
+    private var didPresentProductionSchemaAlert = false
 
     init(
         persistence: PersistenceController? = nil,
@@ -1146,7 +1148,13 @@ final class AppSession: ObservableObject {
                     self.syncState = .syncing
                 } else if let error = event.error {
                     self.syncState = self.isNetworkError(error) ? .offline : .failed
-                    self.lastSyncError = self.userFacingMessage(for: error)
+                    let message = self.userFacingMessage(for: error)
+                    self.lastSyncError = message
+                    // Mirroring failures never go through `show(_:)` — surface the
+                    // Production-schema Deploy instruction instead of failing silently.
+                    if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+                        self.presentProductionSchemaAlertIfNeeded(message)
+                    }
                 } else {
                     self.syncState = self.online ? .synchronized : .offline
                     self.lastSyncError = nil
@@ -1195,7 +1203,18 @@ final class AppSession: ObservableObject {
     }
 
     private func show(_ error: Error) {
-        presentAlert(userFacingMessage(for: error))
+        let message = userFacingMessage(for: error)
+        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+            presentProductionSchemaAlertIfNeeded(message)
+            return
+        }
+        presentAlert(message)
+    }
+
+    private func presentProductionSchemaAlertIfNeeded(_ message: String) {
+        guard !didPresentProductionSchemaAlert else { return }
+        didPresentProductionSchemaAlert = true
+        presentAlert(message)
     }
 
     private func userFacingMessage(for error: Error) -> String {
