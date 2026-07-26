@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2 (25)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
+Version: **1.2 (26)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
 
 **Scope for this train:** stability of household cart + invite/sync. Stores tab, catalog-first add, and rich product forms are out of the main UX on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
