@@ -173,10 +173,11 @@ struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        // Minimal shell: household cart + account/settings. Stores tab removed.
         TabView {
             HomeView(model: model)
                 .tabItem { Label("tab.home", systemImage: "cart.fill") }
+            HistoryView()
+                .tabItem { Label("tab.history", systemImage: "clock.fill") }
             SettingsView()
                 .tabItem { Label("tab.settings", systemImage: "gearshape.fill") }
         }
