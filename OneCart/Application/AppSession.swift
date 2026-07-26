@@ -149,6 +149,8 @@ final class AppSession: ObservableObject {
     @Published private(set) var isFamilyMetadataLoading = false
     @Published var familyManagementPresented = false
     @Published var alertMessage: String?
+    /// Pre-warmed CKShare invite for the active owner cart (filled after cart create).
+    @Published private(set) var preparedInviteLink: FamilyInviteLink?
     @Published private(set) var profileAvatar: UIImage?
     @Published private(set) var profileBanner: UIImage?
 
@@ -175,6 +177,8 @@ final class AppSession: ObservableObject {
     private var remoteChangeObserver: NSObjectProtocol?
     private var cloudEventObserver: NSObjectProtocol?
     private var scheduledReloadTask: Task<Void, Never>?
+    private var invitePrepareTask: Task<Void, Never>?
+    private var preparedInviteFamilyID: UUID?
 
     init(
         persistence: PersistenceController? = nil,
@@ -270,6 +274,7 @@ final class AppSession: ObservableObject {
                 try await adoptSharedFamilyCartIfNeeded(for: account)
             }
             await refreshFamilyMetadata(showErrors: false)
+            scheduleInviteLinkPreparation()
         } catch {
             show(error)
         }
@@ -550,14 +555,69 @@ final class AppSession: ObservableObject {
 
     /// Creates a CloudKit invite URL. Does not toggle `isBusy` — callers show local progress
     /// so the invite UI stays responsive instead of looking frozen.
+    /// Prefers a link prepared in the background right after household cart creation.
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
-        guard let family = activeFamilySpace, access?.isOwner == true else {
+        guard let family = activeFamilySpace,
+              let familyID = family.id,
+              access?.isOwner == true
+        else {
             throw InviteLinkError.notOwner
         }
         guard online else {
             throw InviteLinkError.offline
         }
 
+        if let preparedInviteLink,
+           preparedInviteFamilyID == familyID,
+           preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
+        {
+            return preparedInviteLink
+        }
+
+        let link = try await fetchFamilyInviteLink(for: family)
+        preparedInviteLink = link
+        preparedInviteFamilyID = familyID
+        return link
+    }
+
+    /// Background CKShare warm-up after cart creation. Failures are silent — Invite retries.
+    private func scheduleInviteLinkPreparation(delayNanoseconds: UInt64 = 1_500_000_000) {
+        invitePrepareTask?.cancel()
+        invitePrepareTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            guard !Task.isCancelled else { return }
+            await prepareInviteLinkInBackground()
+        }
+    }
+
+    private func prepareInviteLinkInBackground() async {
+        guard online else { return }
+        guard let family = activeFamilySpace,
+              let familyID = family.id,
+              access?.isOwner == true,
+              persistence.scope(for: family) == .private
+        else {
+            return
+        }
+        if let preparedInviteLink,
+           preparedInviteFamilyID == familyID,
+           preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
+        {
+            return
+        }
+
+        do {
+            let link = try await fetchFamilyInviteLink(for: family)
+            guard !Task.isCancelled else { return }
+            guard activeFamilySpace?.id == familyID else { return }
+            preparedInviteLink = link
+            preparedInviteFamilyID = familyID
+        } catch {
+            // Keep Invite button as the explicit retry path.
+        }
+    }
+
+    private func fetchFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
         // Capture Core Data identifiers on MainActor, then leave it so ProgressView
         // keeps animating and a UI watchdog can cancel a stuck CloudKit call.
         let objectID = family.objectID
@@ -573,6 +633,13 @@ final class AppSession: ObservableObject {
                 displayName: displayName
             )
         }.value
+    }
+
+    private func clearPreparedInviteLink() {
+        invitePrepareTask?.cancel()
+        invitePrepareTask = nil
+        preparedInviteLink = nil
+        preparedInviteFamilyID = nil
     }
 
     func acceptPendingCloudKitShares() async {
@@ -773,6 +840,8 @@ final class AppSession: ObservableObject {
             await refreshFamilyMetadata(showErrors: false)
             needsWelcome = false
             isReady = true
+            // Start CKShare early so Settings → Пригласить is usually instant.
+            scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
         } catch {
             needsWelcome = true
             welcomePhase = .failed(userFacingMessage(for: error))
@@ -831,6 +900,7 @@ final class AppSession: ObservableObject {
     }
 
     private func clearAccountData() {
+        clearPreparedInviteLink()
         familySpaces = []
         activeFamilySpace = nil
         stores = []
@@ -906,6 +976,16 @@ final class AppSession: ObservableObject {
             if previousID != selectedID {
                 familyMembers = []
             }
+            // Invalidate only a finished cache for the wrong cart / non-owner.
+            // Do not cancel an in-flight warm-up when `preparedInviteFamilyID` is still nil.
+            if let preparedInviteFamilyID, preparedInviteFamilyID != selectedID {
+                clearPreparedInviteLink()
+            } else if preparedInviteLink != nil,
+                      (access?.isOwner != true
+                          || selected.map { persistence.scope(for: $0) } != .private)
+            {
+                clearPreparedInviteLink()
+            }
         } else {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
             stores = []
@@ -914,6 +994,7 @@ final class AppSession: ObservableObject {
             history = []
             familyMembers = []
             access = nil
+            clearPreparedInviteLink()
         }
         rebuildDerivedCollections()
     }

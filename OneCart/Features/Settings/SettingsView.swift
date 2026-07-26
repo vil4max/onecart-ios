@@ -257,10 +257,20 @@ struct FamilyManagementSheet: View {
             } message: {
                 Text(alertMessage ?? "")
             }
-            .onAppear { updateFamilyName() }
-            .onChange(of: model.activeFamilySpace?.id) { _ in
-                inviteLink = nil
+            .onAppear {
                 updateFamilyName()
+                if inviteLink == nil {
+                    inviteLink = model.preparedInviteLink
+                }
+            }
+            .onChange(of: model.activeFamilySpace?.id) { _ in
+                inviteLink = model.preparedInviteLink
+                updateFamilyName()
+            }
+            .onChange(of: model.preparedInviteLink?.id) { _ in
+                if let prepared = model.preparedInviteLink {
+                    inviteLink = prepared
+                }
             }
             .sheet(item: $sharePayload) { payload in
                 ActivityViewController(
