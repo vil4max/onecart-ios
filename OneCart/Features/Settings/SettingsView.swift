@@ -520,6 +520,7 @@ struct FamilyManagementSheet: View {
                 return
             }
 
+            // Clear spinner before share sheet / copy checkmark so the loader cannot stick.
             preparingInviteAction = nil
 
             switch action {
