@@ -503,18 +503,27 @@ struct FamilyManagementSheet: View {
     private func prepareInviteLink(action: InviteLinkAction) {
         guard preparingInviteAction == nil else { return }
         preparingInviteAction = action
-        Task { @MainActor in
+
+        let inviteTask = Task { @MainActor in
+            defer {
+                if preparingInviteAction == action {
+                    preparingInviteAction = nil
+                }
+            }
+
             let link: FamilyInviteLink
             do {
                 if let cached = inviteLink, cached.expiresAt > Date().addingTimeInterval(30) {
                     link = cached
                 } else {
                     let created = try await viewModel.createFamilyInviteLink()
+                    guard !Task.isCancelled else { return }
                     inviteLink = created
                     link = created
                 }
+            } catch is CancellationError {
+                return
             } catch {
-                preparingInviteAction = nil
                 alertMessage = (error as? LocalizedError)?.errorDescription
                     ?? error.localizedDescription
                 return
@@ -522,6 +531,7 @@ struct FamilyManagementSheet: View {
 
             // Clear spinner before share sheet / copy checkmark so the loader cannot stick.
             preparingInviteAction = nil
+            guard !Task.isCancelled else { return }
 
             switch action {
             case .share:
@@ -543,6 +553,16 @@ struct FamilyManagementSheet: View {
                     didCopyLink = false
                 }
             }
+        }
+
+        // Hard UI ceiling: even if CloudKit never resumes a continuation, stop the spinner.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 24_000_000_000)
+            guard !inviteTask.isCancelled else { return }
+            guard preparingInviteAction == action else { return }
+            inviteTask.cancel()
+            preparingInviteAction = nil
+            alertMessage = OneCartCloudKitError.shareTimedOut.errorDescription
         }
     }
 

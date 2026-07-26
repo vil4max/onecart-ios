@@ -558,7 +558,21 @@ final class AppSession: ObservableObject {
             throw InviteLinkError.offline
         }
 
-        return try await backend.createFamilyInviteLink(for: family)
+        // Capture Core Data identifiers on MainActor, then leave it so ProgressView
+        // keeps animating and a UI watchdog can cancel a stuck CloudKit call.
+        let objectID = family.objectID
+        let displayName = family.displayName
+        let viewContext = persistence.container.viewContext
+        if viewContext.hasChanges {
+            try viewContext.save()
+        }
+        let backend = backend
+        return try await Task.detached(priority: .userInitiated) {
+            try await backend.createFamilyInviteLink(
+                objectID: objectID,
+                displayName: displayName
+            )
+        }.value
     }
 
     func acceptPendingCloudKitShares() async {

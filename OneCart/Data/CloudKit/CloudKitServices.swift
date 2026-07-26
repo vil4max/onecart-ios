@@ -371,9 +371,18 @@ final class CloudKitBackendService {
     }
 
     func createFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
-        let objectID = family.objectID
-        let displayName = family.displayName
+        try await createFamilyInviteLink(
+            objectID: family.objectID,
+            displayName: family.displayName
+        )
+    }
 
+    /// Prefer calling this after flushing the view context and reading `objectID` / name
+    /// on the MainActor so CloudKit work does not hold the UI actor.
+    func createFamilyInviteLink(
+        objectID: NSManagedObjectID,
+        displayName: String
+    ) async throws -> FamilyInviteLink {
         if persistence.inMemory {
             return FamilyInviteLink(
                 id: UUID(),
@@ -382,31 +391,29 @@ final class CloudKitBackendService {
             )
         }
 
-        // Flush local edits on the view context (caller is typically MainActor).
-        let viewContext = persistence.container.viewContext
-        if viewContext.hasChanges {
-            try viewContext.save()
-        }
-
         let persistence = persistence
-        // Detached + nonisolated builder: share/persist must not run on MainActor or the UI freezes.
+        // Builder is nonisolated; keep a hard ceiling so Invite UI cannot spin forever
+        // if `share` / `persistUpdatedShare` never calls back.
         return try await withThrowingTaskGroup(of: FamilyInviteLink.self) { group in
             group.addTask {
-                try await Task.detached(priority: .userInitiated) {
-                    try await FamilyInviteLinkBuilder.makeInviteLink(
-                        persistence: persistence,
-                        objectID: objectID,
-                        displayName: displayName
-                    )
-                }.value
+                try await FamilyInviteLinkBuilder.makeInviteLink(
+                    persistence: persistence,
+                    objectID: objectID,
+                    displayName: displayName
+                )
             }
             group.addTask {
-                try await Task.sleep(nanoseconds: 35_000_000_000)
+                try await Task.sleep(nanoseconds: 22_000_000_000)
                 throw OneCartCloudKitError.shareTimedOut
             }
-            let link = try await group.next()!
-            group.cancelAll()
-            return link
+            do {
+                let link = try await group.next()!
+                group.cancelAll()
+                return link
+            } catch {
+                group.cancelAll()
+                throw error
+            }
         }
     }
 
@@ -699,7 +706,43 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
+        try await withThrowingTaskGroup(of: CKShare.self) { group in
+            group.addTask {
+                try await createShareUnscoped(
+                    persistence: persistence,
+                    objectID: objectID
+                )
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 12_000_000_000)
+                throw OneCartCloudKitError.stillSyncing
+            }
+            do {
+                let share = try await group.next()!
+                group.cancelAll()
+                return share
+            } catch {
+                group.cancelAll()
+                throw error
+            }
+        }
+    }
+
+    private static func createShareUnscoped(
+        persistence: PersistenceController,
+        objectID: NSManagedObjectID
+    ) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
+            let lock = NSLock()
+            var resumed = false
+            func resume(_ result: Result<CKShare, Error>) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(with: result)
+            }
+
             let context = persistence.newBackgroundContext(author: "OneCartShareCreate")
             context.perform {
                 do {
@@ -710,15 +753,15 @@ private enum FamilyInviteLinkBuilder {
                     }
                     persistence.container.share([object], to: nil) { _, share, _, error in
                         if let error {
-                            continuation.resume(throwing: error)
+                            resume(.failure(error))
                         } else if let share {
-                            continuation.resume(returning: share)
+                            resume(.success(share))
                         } else {
-                            continuation.resume(throwing: OneCartCloudKitError.shareURLUnavailable)
+                            resume(.failure(OneCartCloudKitError.shareURLUnavailable))
                         }
                     }
                 } catch {
-                    continuation.resume(throwing: error)
+                    resume(.failure(error))
                 }
             }
         }
@@ -732,8 +775,23 @@ private enum FamilyInviteLinkBuilder {
         // RC10: private invites only — no public join-via-URL ACL (Apple Family is UX positioning, not Family Sharing APIs).
         share.publicPermission = .none
         OneCartShareBranding.apply(to: share)
-        let saved = try await persistShare(share, persistence: persistence)
 
+        // `persistUpdatedShare` is known to stall; if CloudKit already minted a URL,
+        // return it immediately and persist branding/permissions in the background.
+        if let url = share.url {
+            let shareToPersist = share
+            let persistence = persistence
+            Task.detached(priority: .utility) {
+                _ = try? await persistShare(shareToPersist, persistence: persistence)
+            }
+            return FamilyInviteLink(
+                id: stableUUID(for: share.recordID.recordName),
+                familyName: displayName,
+                url: url
+            )
+        }
+
+        let saved = try await persistShare(share, persistence: persistence)
         guard let url = saved.url ?? share.url else {
             throw OneCartCloudKitError.shareURLUnavailable
         }
