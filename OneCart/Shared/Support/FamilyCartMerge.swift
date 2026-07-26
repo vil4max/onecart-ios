@@ -4,6 +4,9 @@ enum FamilyCartMerge {
     static let legacyStarterFamilyNames: Set<String> = [
         "Наша семья",
         "Наша группа",
+        "Наши покупки",
+        "Our shopping",
+        "Наші покупки",
         AppSession.defaultFamilyName,
     ]
 

@@ -9,6 +9,6 @@
 | [review-changelog.md](review-changelog.md) | PR reviewer | Scoped `RCxx` / `NCxx` / `FUxx` checklist |
 | [adr/0002-cloudkit-native-backend.md](adr/0002-cloudkit-native-backend.md) | archive | Why CloudKit (accepted decision) |
 
-**Working agreement:** ship a reliable SIWA → one cart → add items → invite/sync loop before restoring Stores/catalog/rich editor UX. Details in [product.md](product.md) § Priority.
+**Working agreement:** ship a reliable SIWA → one cart → add items → invite/sync loop before restoring Stores/catalog/Settings prefs UX. Details in [product.md](product.md) § Priority.
 
 Engineering Runtime (just / Brewfile / host adapters): [`Tooling/README.md`](../Tooling/README.md).

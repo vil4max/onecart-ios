@@ -21,7 +21,7 @@ OneCart используется как личное iOS-приложение и
 - Полноценный sharing flow проверяется на физических устройствах с разными iCloud-аккаунтами.
 - Старый локальный Core Data кэш может быть экспортирован в iCloud без смены SQLite-путей.
 - Supabase Auth users нельзя преобразовать в iCloud users. Серверные данные переносятся отдельно, а участников приглашают заново через `CKShare`.
-- Серверная catalog Edge Function отсутствует; остаётся on-device проверка страницы магазина.
+- Серверная catalog Edge Function отсутствует; store/catalog UI снят с текущего shell (данные `Store` в Core Data остаются для sync graph).
 
 ## Clarification (2026-07-25)
 
@@ -40,6 +40,6 @@ Welcome copy and iCloud-unavailable errors must say that SIWA alone is not enoug
 
 ## Clarification (2026-07-26) — stability before features
 
-CloudKit sharing and dual identity are already complex enough. Product scope for the current train prefers a **minimal shell** (one cart, name-only add, invite, Settings) over stores/catalog/multi-list surfaces that enlarge the sync graph and UI failure modes. Re-expand only after the two-device invite path is reliable — see [product.md](../product.md) § Priority.
+CloudKit sharing and dual identity are already complex enough. Product scope for the current train prefers a **cart-only shell** (one cart, name-only add, share from home) over Settings prefs / stores / catalog / multi-list surfaces that enlarge the sync graph and UI failure modes. Re-expand only after the two-device invite path is reliable — see [product.md](../product.md) § Priority.
 
 See [architecture.md](../architecture.md), [product.md](../product.md), [release.md](../release.md).

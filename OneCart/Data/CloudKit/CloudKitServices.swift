@@ -29,8 +29,8 @@ enum FamilyAccess: String, Equatable {
 
     var title: String {
         switch self {
-        case .owner: "Владелец группы"
-        case .member: "Участник группы"
+        case .owner: "Владелец корзины"
+        case .member: "Участник корзины"
         }
     }
 
@@ -92,7 +92,7 @@ struct FamilyInviteLink: Identifiable, Equatable {
     }
 
     var shareMessage: String {
-        "OneCart\nПрисоединяйтесь к группе «\(familyName)»\n\n\(url.absoluteString)"
+        "OneCart\nПрисоединяйтесь к корзине «\(familyName)»\n\n\(url.absoluteString)"
     }
 
     var shareTitle: String {
@@ -274,7 +274,7 @@ enum CloudKitUserFacingError {
         case .accountTemporarilyUnavailable:
             return "Синхронизация временно недоступна. Попробуйте ещё раз позже."
         case .permissionFailure:
-            return "Нет доступа к общей группе в iCloud. Попросите владельца пригласить вас снова."
+            return "Нет доступа к общей корзине в iCloud. Попросите владельца пригласить вас снова."
         case .serverRejectedRequest, .invalidArguments, .incompatibleVersion:
             return genericSyncFailure
         case .zoneNotFound, .userDeletedZone:

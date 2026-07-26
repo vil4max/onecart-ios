@@ -36,9 +36,9 @@ enum RepositoryError: LocalizedError, Equatable {
         case .storeNotFound:
             "Магазин не найден."
         case .permissionDenied:
-            "У вас нет права изменять эту группу."
+            "У вас нет права изменять эту корзину."
         case .crossShareRelationship:
-            "Нельзя связывать данные из разных групп."
+            "Нельзя связывать данные из разных корзин."
         case .invalidName:
             "Введите название."
         }

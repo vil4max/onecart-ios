@@ -17,10 +17,11 @@ OneCart ships a **narrow, reliable core** before optional surface area.
 
 | Cut from main UX | Why (stability) | Status |
 |------------------|-----------------|--------|
-| **Stores tab** | Second navigation root + store-bound lists multiplied empty states, catalog entry points, and CK relationship surface without helping “one shared cart”. | Removed from shell. Data model / `StoresView` may remain in tree; not in tabs. |
-| **Official store catalogs in cart** | WebKit scrapers + price refresh are high-churn and block the simple “type a name” path. | Not linked from cart; quick add is name-only. |
+| **Settings tab** | Theme/unit prefs and a second root competed with the cart; invite and members belong on the cart itself. | Removed. Profile / history / members are sheets from the cart menu. |
+| **Theme & default unit prefs** | System appearance is enough; quick add always uses piece defaults. | Removed from prefs (`DevicePreferences` keeps display name only). |
+| **Stores / official catalogs UI** | WebKit scrapers + store locator enlarged CK surface and blocked the simple “type a name” path. | Deleted from the app target (Core Data `Store` remains for sync graph). |
 | **Rich product editor** (qty / unit / category / price / notes on add) | More fields → more abandon / keyboard friction; defaults are enough for a working list. | `QuickAddProductSheet`: name → Add → next. |
-| **History as a main tab** | Third tab competed with cart focus. | Sheet under Settings. |
+| **History as a main tab** | Competed with cart focus. | Sheet from cart menu. |
 | **Audience / merge sheets / multi-cart switcher** | Parallel onboarding paths made accept-share and “which cart is active?” unreliable. | One household cart; invite replaces/merges private starter. |
 | **Toast / sync banner chrome** | Flashing top errors felt broken and raced with CloudKit events. | System alert (`OK`) only. |
 
@@ -42,7 +43,7 @@ Apple Family does **not** merge carts by itself — participants need an in-app 
 
 ```text
 Create household cart → warm-start CKShare (background, publicPermission = .none)
-  → Cart toolbar / Settings → system Share Sheet → Accept
+  → Cart bottom bar «Поделиться» → system Share Sheet → Accept
 ```
 
 Legacy `onecart://invite/...` tokens and the old invite endpoint are gone.
@@ -52,12 +53,12 @@ Invite must not hard-block on `recordID` forever; share creation has timeouts an
 ## User flow
 
 1. Install → Welcome: Sign in with Apple + short onboarding copy (iCloud errors + Retry on the same screen).
-2. After sign-in → **Cart** tab with one household cart (`isHouseholdDefault`). Thumb-zone **+** opens a name-only quick add (type → Add → next).
+2. After sign-in → **one cart screen** (`isHouseholdDefault`). Thumb-zone **+** opens a name-only quick add (type → Add → next).
 3. If iCloud already has a cart for this account, show that cart instead of creating a duplicate empty one when possible.
-4. After cart create, warm-start a private `CKShare` invite URL in the background. **Invite** from the cart toolbar (`person.badge.plus`) or Settings → family sheet (system Share Sheet).
+4. After cart create, warm-start a private `CKShare` invite URL in the background. **Share** from the cart bottom bar (system Share Sheet). Members / history / profile live in the cart overflow menu.
 5. Invitee: SIWA → open share link → Accept in iCloud → **active cart is replaced** by the shared family cart (empty private starter archived; private items with content auto-merged into shared, then private archived). No merge sheet.
 
-**Shell:** two tabs only — Cart + Settings. Purchase history lives under Settings.
+**Shell:** cart-only (no Settings / Stores tabs). Copy calls the shared space a **корзина** (cart), not a group.
 
 Up to four people share one list; changes sync via CloudKit.
 
@@ -76,6 +77,6 @@ Up to four people share one list; changes sync via CloudKit.
 
 ## Default cart identity
 
-- Display: localized `cart.default_title` («Наши покупки» / «Наші покупки» / Our shopping)
+- Display: localized `cart.default_title` («Список покупок» / Shopping list)
 - Identity: `isHouseholdDefault`
-- Legacy names `"Наша семья"` / `"Наша группа"` migrated once to the flag
+- Legacy names `"Наша семья"` / `"Наша группа"` / `"Наши покупки"` / `"Our shopping"` / `"Наші покупки"` migrated once to the flag

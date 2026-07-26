@@ -9,41 +9,7 @@ import UIKit
 // Compatibility alias while Views migrate to AppSession.
 typealias AppModel = AppSession
 
-enum AppTheme: String, CaseIterable, Identifiable {
-    case light
-    case dark
-    case system
-
-    var id: String {
-        rawValue
-    }
-
-    var title: String {
-        switch self {
-        case .light: "Светлая"
-        case .dark: "Тёмная"
-        case .system: "Системная"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: .light
-        case .dark: .dark
-        case .system: nil
-        }
-    }
-}
-
 final class DevicePreferences: ObservableObject {
-    @Published var theme: AppTheme {
-        didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
-    }
-
-    @Published var defaultUnit: ProductUnit {
-        didSet { defaults.set(defaultUnit.rawValue, forKey: Keys.defaultUnit) }
-    }
-
     @Published var participantDisplayName: String {
         didSet {
             defaults.set(
@@ -57,28 +23,18 @@ final class DevicePreferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
-        defaultUnit = ProductUnit(
-            rawValue: defaults.string(forKey: Keys.defaultUnit) ?? ""
-        ) ?? .piece
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
     }
 
     func reloadFromDefaults() {
-        theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
-        defaultUnit = ProductUnit(
-            rawValue: defaults.string(forKey: Keys.defaultUnit) ?? ""
-        ) ?? .piece
         participantDisplayName = defaults.string(
             forKey: Keys.participantDisplayName
         ) ?? ""
     }
 
     private enum Keys {
-        static let theme = "onecart.theme"
-        static let defaultUnit = "onecart.default-unit"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }
@@ -105,7 +61,7 @@ enum InviteLinkError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notOwner:
-            "Приглашать участников может только владелец группы."
+            "Приглашать участников может только владелец корзины."
         case .offline:
             "Для создания ссылки подключитесь к интернету."
         }
@@ -124,7 +80,7 @@ final class AppSession: ObservableObject {
 
     nonisolated static let defaultFamilyName = String(
         localized: "cart.default_title",
-        defaultValue: "Наши покупки"
+        defaultValue: "Список покупок"
     )
 
     @Published private(set) var isReady = false
@@ -136,7 +92,6 @@ final class AppSession: ObservableObject {
     @Published private(set) var lastSyncError: String?
     @Published private(set) var familySpaces: [FamilySpace] = []
     @Published private(set) var activeFamilySpace: FamilySpace?
-    @Published private(set) var stores: [StoreEntity] = []
     @Published private(set) var lists: [ShoppingListEntity] = []
     @Published private(set) var activeLists: [ShoppingListEntity] = []
     @Published private(set) var products: [ProductEntity] = []
@@ -398,7 +353,7 @@ final class AppSession: ObservableObject {
 
     func renameFamilySpace(name: String) async {
         guard access?.isOwner == true, let id = activeFamilySpace?.id else {
-            presentAlert("Название может менять только владелец группы.")
+            presentAlert("Название может менять только владелец корзины.")
             return
         }
         await performMutation(successMessage: "Название обновлено") {
@@ -406,22 +361,6 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func addStore(_ draft: StoreDraft) async {
-        guard let familySpaceID = activeFamilySpace?.id else { return }
-        await performMutation(successMessage: "Магазин добавлен") {
-            try await self.repository.addStore(to: familySpaceID, draft: draft)
-        }
-    }
-
-    func updateStore(_ store: StoreEntity, draft: StoreDraft) async {
-        guard let id = store.id else { return }
-        await performMutation(successMessage: "Магазин обновлён") {
-            try await self.repository.updateStore(id: id, draft: draft)
-        }
-    }
-
-    func deleteStore(_ store: StoreEntity) async {
-        guard let id = store.id else { return }
         await performMutation(successMessage: "Магазин удалён") {
             try await self.repository.deleteStore(id: id)
         }
@@ -464,33 +403,7 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func refreshCatalogPrices(
-        in listID: UUID,
-        snapshots: [CatalogPriceSnapshot]
-    ) async {
-        guard canEdit, !snapshots.isEmpty else { return }
-        do {
-            let updated = try await repository.refreshCatalogPrices(
-                in: listID,
-                snapshots: snapshots
-            )
-            guard updated > 0 else { return }
-            try refreshProductsAndSummaries()
-        } catch {
-            show(error)
-        }
-    }
 
-    func verifyOfficialCatalogProduct(
-        _ product: OfficialCatalogProduct,
-        brand: StoreBrand
-    ) async -> OfficialCatalogProduct? {
-        _ = product
-        _ = brand
-        // CloudKit stores app data but does not execute HTTP functions. The catalog
-        // detail screen keeps its on-device WKWebView verification fallback.
-        return nil
-    }
 
     func togglePurchased(_ product: ProductEntity) async {
         guard let id = product.id else { return }
@@ -670,7 +583,7 @@ final class AppSession: ObservableObject {
               access?.isOwner == true,
               !member.isCurrentUser else { return }
         guard online else {
-            presentAlert("Для изменения состава группы подключитесь к интернету.")
+            presentAlert("Для изменения состава корзины подключитесь к интернету.")
             return
         }
 
@@ -689,7 +602,7 @@ final class AppSession: ObservableObject {
               let family = activeFamilySpace,
               access?.isParticipant == true else { return }
         guard online else {
-            presentAlert("Чтобы покинуть группу, подключитесь к интернету.")
+            presentAlert("Чтобы покинуть корзину, подключитесь к интернету.")
             return
         }
 
@@ -903,7 +816,6 @@ final class AppSession: ObservableObject {
         clearPreparedInviteLink()
         familySpaces = []
         activeFamilySpace = nil
-        stores = []
         lists = []
         activeLists = []
         products = []
@@ -964,7 +876,6 @@ final class AppSession: ObservableObject {
                 selectedID.uuidString,
                 forKey: activeFamilyKey(accountID: account.id)
             )
-            stores = try fetchStores(familySpaceID: selectedID, in: context)
             lists = try fetchLists(familySpaceID: selectedID, in: context)
             products = try fetchProducts(familySpaceID: selectedID, in: context)
             history = try fetchHistory(familySpaceID: selectedID, in: context)
@@ -988,7 +899,6 @@ final class AppSession: ObservableObject {
             }
         } else {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
-            stores = []
             lists = []
             products = []
             history = []
@@ -1040,26 +950,6 @@ final class AppSession: ObservableObject {
             totalCount: products.count,
             estimatedTotal: estimatedTotal
         )
-    }
-
-    private func fetchStores(
-        familySpaceID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [StoreEntity] {
-        let request = StoreEntity.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "isPinned", ascending: false),
-            NSSortDescriptor(
-                key: "name",
-                ascending: true,
-                selector: #selector(NSString.localizedCaseInsensitiveCompare(_:))
-            ),
-        ]
-        return try context.fetch(request)
     }
 
     private func fetchLists(

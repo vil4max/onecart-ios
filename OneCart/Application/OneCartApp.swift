@@ -18,17 +18,11 @@ struct OneCartApp: App {
 
 private struct OneCartScene: View {
     @ObservedObject var model: AppModel
-    @ObservedObject var preferences: DevicePreferences
-
-    init(model: AppModel) {
-        self.model = model
-        preferences = model.preferences
-    }
 
     var body: some View {
         RootView()
             .environmentObject(model)
-            .preferredColorScheme(preferences.theme.colorScheme)
+            .preferredColorScheme(nil)
             .task {
                 guard !Self.isRunningUnitTests else { return }
                 await model.start()
