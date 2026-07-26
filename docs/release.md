@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2 (23)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
+Version: **1.2 (24)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
 
 On a Mac with Xcode:
 
@@ -44,10 +44,10 @@ Before TestFlight / App Store:
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug build on A and B (version 1.2 / build ≥ 23).
+1. Signed Debug build on A and B (version 1.2 / build ≥ 24).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
-4. Settings → Пригласить семью → Invite → open iCloud share URL on B.
+4. Cart toolbar invite (or Settings → семья) → Invite → open iCloud share URL on B.
 5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways.
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Remove member on A → B loses access.
@@ -111,7 +111,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 
 - Privacy Nutrition Labels: name, user ID, user content (lists), store geolocation — “App Functionality”, no tracking (`PrivacyInfo.xcprivacy` already in project).
 - Screenshots: iPhone 6.7" / 6.5".
-- Review notes: “Sign in with Apple required; family sharing via iCloud CKShare invite link in Settings”.
+- Review notes: “Sign in with Apple required; family sharing via iCloud CKShare invite from the cart toolbar / Settings”.
 
 ## 6. Not needed for this pet project
 

@@ -30,7 +30,8 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + iCloud connect |
-| `OneCart/Features/Settings/SettingsView.swift` | Members, system share link, family management |
+| `OneCart/Features/Settings/SettingsView.swift` | Account, history sheet, family invite sheet |
+| Main tabs | Cart + Settings only (Stores tab removed from shell) |
 
 ## Stores and sync
 

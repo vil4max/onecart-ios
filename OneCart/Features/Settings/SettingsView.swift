@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @State private var showingProfile = false
+    @State private var showingHistory = false
 
     var body: some View {
         NavigationView {
@@ -13,6 +14,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     accountCard
                     familyCard
+                    historyCard
 
                     PreferencesSettingsSection(preferences: model.preferences)
 
@@ -33,6 +35,10 @@ struct SettingsView: View {
                         banner: model.profileBanner
                     )
                 }
+            }
+            .sheet(isPresented: $showingHistory) {
+                HistoryView()
+                    .environmentObject(model)
             }
         }
         .navigationViewStyle(.stack)
@@ -117,24 +123,16 @@ struct SettingsView: View {
 
     private var familyCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsSectionLabel(title: "Семейная корзина")
+            SettingsSectionLabel(title: "Семья")
 
             VStack(spacing: 0) {
-                if let active = model.activeFamilySpace {
-                    SettingsActionRow(
-                        image: "person.3.fill",
-                        title: active.displayName,
-                        detail: model.access?.title ?? "Групповое пространство",
-                        showsChevron: false
-                    )
-                    settingsDivider
-                }
-
                 Button {
                     model.showFamilyManagement()
                 } label: {
                     SettingsActionRow(
-                        image: "person.2.fill",
+                        image: model.access?.isOwner == true
+                            ? "person.badge.plus"
+                            : "person.2.fill",
                         title: model.access?.isOwner == true ? "Пригласить семью" : "Участники",
                         detail: familyMembersDetail,
                         showsChevron: true
@@ -142,13 +140,12 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                settingsDivider
-
                 if model.familySpaces.isEmpty {
+                    settingsDivider
                     SettingsActionRow(
                         image: "arrow.triangle.2.circlepath.icloud",
                         title: "Подключаем корзину…",
-                        detail: "Из iCloud или новая по умолчанию",
+                        detail: "Подождите немного",
                         showsChevron: false
                     )
                     .task {
@@ -156,6 +153,30 @@ struct SettingsView: View {
                     }
                 }
             }
+            .background(
+                OneCartPalette.surface,
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+        }
+    }
+
+    private var historyCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SettingsSectionLabel(title: "Покупки")
+
+            Button {
+                showingHistory = true
+            } label: {
+                SettingsActionRow(
+                    image: "clock.arrow.circlepath",
+                    title: "История",
+                    detail: model.history.isEmpty
+                        ? "Пока пусто"
+                        : "\(model.history.count)",
+                    showsChevron: true
+                )
+            }
+            .buttonStyle(.plain)
             .background(
                 OneCartPalette.surface,
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)

@@ -53,6 +53,7 @@ struct HomeView: View {
                             ?? String(localized: "tab.home")
                     )
                     .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { familyToolbarItem }
                     .task {
                         await viewModel.ensureHouseholdCartIfNeeded()
                     }
@@ -60,6 +61,26 @@ struct HomeView: View {
             }
         }
         .navigationViewStyle(.stack)
+    }
+
+    @ToolbarContentBuilder
+    private var familyToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                model.showFamilyManagement()
+            } label: {
+                Image(
+                    systemName: model.access?.isOwner == true
+                        ? "person.badge.plus"
+                        : "person.2"
+                )
+                .font(.body.weight(.semibold))
+                .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibilityLabel(
+                model.access?.isOwner == true ? "Пригласить семью" : "Участники"
+            )
+        }
     }
 }
 
@@ -345,14 +366,11 @@ private struct StorePickerCardView: View {
 
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
     let listID: UUID
 
     @State private var showingAddProduct = false
-    @State private var showingOfficialCatalog = false
     @State private var editingProduct: ProductEntity?
     @State private var confirmingCompletion = false
-    @State private var confirmingDeleteList = false
     @State private var pendingDelete: ProductEntity?
 
     private var list: ShoppingListEntity? {
@@ -375,11 +393,6 @@ struct ShoppingListView: View {
         products.reduce(0) { $0 + $1.estimatedPriceValue }
     }
 
-    private var catalogBrand: StoreBrand? {
-        guard let storeName = list?.store?.displayName else { return nil }
-        return StoreBrand.matching(storeName)
-    }
-
     var body: some View {
         Group {
             if let list {
@@ -395,9 +408,7 @@ struct ShoppingListView: View {
                             EmptyCard(
                                 image: "cart.badge.plus",
                                 title: String(localized: "cart.empty_title"),
-                                message: catalogBrand == nil
-                                    ? String(localized: "home.empty_hint")
-                                    : "Откройте официальный каталог и добавьте товар вместе с фото и ценой."
+                                message: String(localized: "home.empty_hint")
                             )
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
@@ -455,7 +466,7 @@ struct ShoppingListView: View {
                                 .disabled(!model.canEdit)
                                 .opacity(model.canEdit ? 1 : 0.5)
 
-                                Text("Товары сохранятся в истории, а для магазина появится новый пустой список.")
+                                Text("Товары сохранятся в истории, корзина станет снова пустой.")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -468,72 +479,42 @@ struct ShoppingListView: View {
                 }
                 .background(OneCartPalette.background.ignoresSafeArea())
                 .navigationTitle(
-                    list.store?.displayName
-                        ?? model.activeFamilySpace?.displayName
+                    model.activeFamilySpace?.displayName
                         ?? list.displayTitle
                 )
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack(spacing: 8) {
-                            Button {
-                                if catalogBrand == nil {
-                                    showingAddProduct = true
-                                } else {
-                                    showingOfficialCatalog = true
-                                }
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.body.weight(.semibold))
-                                    .frame(minWidth: 44, minHeight: 44)
-                            }
-                            .disabled(!model.canEdit)
-                            .accessibilityLabel(
-                                catalogBrand == nil ? "Добавить товар" : "Каталог товаров"
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            model.showFamilyManagement()
+                        } label: {
+                            Image(
+                                systemName: model.access?.isOwner == true
+                                    ? "person.badge.plus"
+                                    : "person.2"
                             )
-
-                            Menu {
-                                Button {
-                                    showingAddProduct = true
-                                } label: {
-                                    Label("Добавить вручную", systemImage: "square.and.pencil")
-                                }
-                                .disabled(!model.canEdit)
-
-                                if catalogBrand != nil {
-                                    Button {
-                                        showingOfficialCatalog = true
-                                    } label: {
-                                        Label("Каталог товаров", systemImage: "storefront")
-                                    }
-                                    .disabled(!model.canEdit)
-                                }
-
-                                if model.activeLists.count > 1 {
-                                    Divider()
-
-                                    Button(role: .destructive) {
-                                        confirmingDeleteList = true
-                                    } label: {
-                                        Label("Удалить список", systemImage: "trash")
-                                    }
-                                    .disabled(!model.canEdit)
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.body.weight(.semibold))
-                                    .frame(minWidth: 44, minHeight: 44)
-                            }
+                            .font(.body.weight(.semibold))
+                            .frame(minWidth: 44, minHeight: 44)
                         }
+                        .accessibilityLabel(
+                            model.access?.isOwner == true ? "Пригласить семью" : "Участники"
+                        )
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingAddProduct = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 44, minHeight: 44)
+                        }
+                        .disabled(!model.canEdit)
+                        .accessibilityLabel("Добавить товар")
                     }
                 }
                 .sheet(isPresented: $showingAddProduct) {
                     ProductEditorSheet(listID: listID, product: nil)
-                }
-                .sheet(isPresented: $showingOfficialCatalog) {
-                    if let catalogBrand {
-                        OfficialCatalogSheet(listID: listID, brand: catalogBrand)
-                    }
                 }
                 .sheet(item: $editingProduct) { product in
                     ProductEditorSheet(listID: listID, product: product)
@@ -545,17 +526,6 @@ struct ShoppingListView: View {
                     }
                 } message: {
                     Text("Текущие товары перейдут в историю покупок.")
-                }
-                .alert("Удалить этот список?", isPresented: $confirmingDeleteList) {
-                    Button("Отмена", role: .cancel) {}
-                    Button("Удалить", role: .destructive) {
-                        Task {
-                            await model.deleteList(list)
-                            dismiss()
-                        }
-                    }
-                } message: {
-                    Text("Список со всеми его товарами будет безвозвратно удалён.")
                 }
                 .alert(
                     "Удалить товар?",
