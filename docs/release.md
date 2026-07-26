@@ -70,7 +70,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Complete list → history + replacement list | `testCompleteListArchivesProductsCreatesHistoryAndReplacementList` |
 | Toggle / move / update / catalog price refresh | `BusinessLogicTests` cart lifecycle cases |
 | Deduplicate stable IDs / Core Data vs CK errors | `testDeduplicateStableIDsKeepsNewerProduct`, `testIsUserFacingCoreDataFailureIgnoresCloudKit` |
-| Invite waits for CloudKit mirror / timeout | `CloudKitServices` `waitUntilMirrored` / `shareTimedOut` |
+| Invite does not block forever on mirror | `FamilyInviteLinkBuilder`: brief wait + `share()` retry; outer `shareTimedOut` |
 
 ## 4. TestFlight
 
