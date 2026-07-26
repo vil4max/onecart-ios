@@ -46,7 +46,7 @@ Before TestFlight / App Store:
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug build on A and B (version 1.2 / build ≥ 25).
+1. Signed Debug build on A and B (version 1.2 / build ≥ 26).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
 4. Cart toolbar invite (or Settings → семья) → Invite → open iCloud share URL on B.
