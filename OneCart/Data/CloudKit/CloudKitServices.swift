@@ -371,9 +371,18 @@ final class CloudKitBackendService {
     }
 
     func createFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
-        let objectID = family.objectID
-        let displayName = family.displayName
+        try await createFamilyInviteLink(
+            objectID: family.objectID,
+            displayName: family.displayName
+        )
+    }
 
+    /// Prefer calling this after flushing the view context and reading `objectID` / name
+    /// on the MainActor so CloudKit work does not hold the UI actor.
+    func createFamilyInviteLink(
+        objectID: NSManagedObjectID,
+        displayName: String
+    ) async throws -> FamilyInviteLink {
         if persistence.inMemory {
             return FamilyInviteLink(
                 id: UUID(),
@@ -382,31 +391,29 @@ final class CloudKitBackendService {
             )
         }
 
-        // Flush local edits on the view context (caller is typically MainActor).
-        let viewContext = persistence.container.viewContext
-        if viewContext.hasChanges {
-            try viewContext.save()
-        }
-
         let persistence = persistence
-        // Detached + nonisolated builder: share/persist must not run on MainActor or the UI freezes.
+        // Builder is nonisolated; keep a hard ceiling so Invite UI cannot spin forever
+        // if `share` / `persistUpdatedShare` never calls back.
         return try await withThrowingTaskGroup(of: FamilyInviteLink.self) { group in
             group.addTask {
-                try await Task.detached(priority: .userInitiated) {
-                    try await FamilyInviteLinkBuilder.makeInviteLink(
-                        persistence: persistence,
-                        objectID: objectID,
-                        displayName: displayName
-                    )
-                }.value
+                try await FamilyInviteLinkBuilder.makeInviteLink(
+                    persistence: persistence,
+                    objectID: objectID,
+                    displayName: displayName
+                )
             }
             group.addTask {
-                try await Task.sleep(nanoseconds: 35_000_000_000)
+                try await Task.sleep(nanoseconds: 22_000_000_000)
                 throw OneCartCloudKitError.shareTimedOut
             }
-            let link = try await group.next()!
-            group.cancelAll()
-            return link
+            do {
+                let link = try await group.next()!
+                group.cancelAll()
+                return link
+            } catch {
+                group.cancelAll()
+                throw error
+            }
         }
     }
 
@@ -552,7 +559,14 @@ private enum FamilyInviteLinkBuilder {
             )
         }
 
-        try await waitUntilMirrored(persistence: persistence, objectID: objectID)
+        // Nudge + brief wait help, but must not block invite forever when recordID
+        // stays nil (common right after first household cart creation).
+        try await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
+        await waitUntilMirroredIfPossible(
+            persistence: persistence,
+            objectID: objectID,
+            timeoutSeconds: 8
+        )
 
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
@@ -573,7 +587,12 @@ private enum FamilyInviteLinkBuilder {
             )
         }
 
-        let created = try await createShare(persistence: persistence, objectID: objectID)
+        // `share()` itself often finishes the first CloudKit export — do not require
+        // recordID beforehand (that gate caused a stuck Invite spinner loop).
+        let created = try await createShareWithRetry(
+            persistence: persistence,
+            objectID: objectID
+        )
         return try await finalizeShare(
             created,
             persistence: persistence,
@@ -581,21 +600,88 @@ private enum FamilyInviteLinkBuilder {
         )
     }
 
-    /// CloudKit must own a CKRecord for the family root before `share` can succeed.
-    private static func waitUntilMirrored(
+    /// Touches the family root so NSPersistentCloudKitContainer schedules an export.
+    private static func nudgeCloudKitExport(
+        persistence: PersistenceController,
+        objectID: NSManagedObjectID
+    ) async throws {
+        try await persistence.performBackgroundTask(author: "OneCartShareNudge") { context in
+            let object = try context.existingObject(with: objectID)
+            if object.objectID.isTemporaryID {
+                try context.obtainPermanentIDs(for: [object])
+            }
+            if let space = object as? FamilySpace {
+                space.updatedAt = Date()
+            }
+        }
+    }
+
+    /// Best-effort wait for a mirrored CKRecord. Returns even if still syncing so
+    /// callers can attempt `share()` instead of looping on stillSyncing alerts.
+    private static func waitUntilMirroredIfPossible(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,
-        timeoutSeconds: TimeInterval = 20
-    ) async throws {
+        timeoutSeconds: TimeInterval
+    ) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while Date() < deadline {
-            try Task.checkCancellation()
+            if Task.isCancelled { return }
             if persistence.container.recordID(for: objectID) != nil {
                 return
             }
-            try await Task.sleep(nanoseconds: 400_000_000)
+            try? await Task.sleep(nanoseconds: 350_000_000)
         }
-        throw OneCartCloudKitError.stillSyncing
+    }
+
+    private static func createShareWithRetry(
+        persistence: PersistenceController,
+        objectID: NSManagedObjectID,
+        attempts: Int = 3
+    ) async throws -> CKShare {
+        var lastError: Error = OneCartCloudKitError.stillSyncing
+        for attempt in 0..<attempts {
+            try Task.checkCancellation()
+            if attempt > 0 {
+                try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
+                try await Task.sleep(nanoseconds: UInt64(800_000_000 * attempt))
+            }
+            do {
+                return try await createShare(persistence: persistence, objectID: objectID)
+            } catch {
+                lastError = error
+                guard isRetryableShareFailure(error), attempt + 1 < attempts else {
+                    throw mapShareFailure(error)
+                }
+            }
+        }
+        throw mapShareFailure(lastError)
+    }
+
+    private static func isRetryableShareFailure(_ error: Error) -> Bool {
+        if error is OneCartCloudKitError { return false }
+        if let ckError = error as? CKError {
+            switch ckError.code {
+            case .zoneBusy, .serviceUnavailable, .requestRateLimited, .serverResponseLost,
+                 .networkUnavailable, .networkFailure, .notAuthenticated,
+                 .accountTemporarilyUnavailable, .partialFailure:
+                return true
+            default:
+                break
+            }
+        }
+        let text = (error as NSError).localizedDescription.lowercased()
+        return text.contains("try again")
+            || text.contains("not available")
+            || text.contains("sync")
+            || text.contains("busy")
+    }
+
+    private static func mapShareFailure(_ error: Error) -> Error {
+        if error is OneCartCloudKitError { return error }
+        if isRetryableShareFailure(error) {
+            return OneCartCloudKitError.stillSyncing
+        }
+        return error
     }
 
     private static func fetchShare(
@@ -620,7 +706,43 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
+        try await withThrowingTaskGroup(of: CKShare.self) { group in
+            group.addTask {
+                try await createShareUnscoped(
+                    persistence: persistence,
+                    objectID: objectID
+                )
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 12_000_000_000)
+                throw OneCartCloudKitError.stillSyncing
+            }
+            do {
+                let share = try await group.next()!
+                group.cancelAll()
+                return share
+            } catch {
+                group.cancelAll()
+                throw error
+            }
+        }
+    }
+
+    private static func createShareUnscoped(
+        persistence: PersistenceController,
+        objectID: NSManagedObjectID
+    ) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
+            let lock = NSLock()
+            var resumed = false
+            func resume(_ result: Result<CKShare, Error>) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(with: result)
+            }
+
             let context = persistence.newBackgroundContext(author: "OneCartShareCreate")
             context.perform {
                 do {
@@ -631,15 +753,15 @@ private enum FamilyInviteLinkBuilder {
                     }
                     persistence.container.share([object], to: nil) { _, share, _, error in
                         if let error {
-                            continuation.resume(throwing: error)
+                            resume(.failure(error))
                         } else if let share {
-                            continuation.resume(returning: share)
+                            resume(.success(share))
                         } else {
-                            continuation.resume(throwing: OneCartCloudKitError.shareURLUnavailable)
+                            resume(.failure(OneCartCloudKitError.shareURLUnavailable))
                         }
                     }
                 } catch {
-                    continuation.resume(throwing: error)
+                    resume(.failure(error))
                 }
             }
         }
@@ -653,8 +775,23 @@ private enum FamilyInviteLinkBuilder {
         // RC10: private invites only — no public join-via-URL ACL (Apple Family is UX positioning, not Family Sharing APIs).
         share.publicPermission = .none
         OneCartShareBranding.apply(to: share)
-        let saved = try await persistShare(share, persistence: persistence)
 
+        // `persistUpdatedShare` is known to stall; if CloudKit already minted a URL,
+        // return it immediately and persist branding/permissions in the background.
+        if let url = share.url {
+            let shareToPersist = share
+            let persistence = persistence
+            Task.detached(priority: .utility) {
+                _ = try? await persistShare(shareToPersist, persistence: persistence)
+            }
+            return FamilyInviteLink(
+                id: stableUUID(for: share.recordID.recordName),
+                familyName: displayName,
+                url: url
+            )
+        }
+
+        let saved = try await persistShare(share, persistence: persistence)
         guard let url = saved.url ?? share.url else {
             throw OneCartCloudKitError.shareURLUnavailable
         }

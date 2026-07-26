@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2 (21)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
+Version: **1.2 (22)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
 
 On a Mac with Xcode:
 
@@ -44,7 +44,7 @@ Before TestFlight / App Store:
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug build on A and B (version 1.2 / build ≥ 21).
+1. Signed Debug build on A and B (version 1.2 / build ≥ 22).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
 4. Settings → Пригласить семью → Invite → open iCloud share URL on B.
@@ -70,7 +70,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Complete list → history + replacement list | `testCompleteListArchivesProductsCreatesHistoryAndReplacementList` |
 | Toggle / move / update / catalog price refresh | `BusinessLogicTests` cart lifecycle cases |
 | Deduplicate stable IDs / Core Data vs CK errors | `testDeduplicateStableIDsKeepsNewerProduct`, `testIsUserFacingCoreDataFailureIgnoresCloudKit` |
-| Invite waits for CloudKit mirror / timeout | `CloudKitServices` `waitUntilMirrored` / `shareTimedOut` |
+| Invite does not block forever on mirror | `FamilyInviteLinkBuilder`: brief wait + `share()` retry; outer `shareTimedOut` |
 
 ## 4. TestFlight
 
