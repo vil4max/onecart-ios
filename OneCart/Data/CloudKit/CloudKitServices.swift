@@ -181,21 +181,36 @@ enum CloudKitUserFacingError {
     static let genericSyncFailure =
         "Не удалось синхронизировать с iCloud. Проверьте сеть и место в iCloud, затем повторите."
 
-    static func message(for error: Error) -> String {
-        if let localized = error as? LocalizedError,
-           let description = localized.errorDescription?.nilIfBlank,
-           !(error is CKError)
-        {
-            return description
-        }
+    /// TestFlight / App Store use CloudKit Production — new Core Data types must be
+    /// deployed from Development in CloudKit Console before they can sync.
+    static let productionSchemaMissing =
+        "Схема iCloud для OneCart ещё не опубликована в Production. Владельцу приложения нужно в CloudKit Console → Schema нажать Deploy Schema Changes to Production, затем перезапустить приложение."
 
+    static func message(for error: Error) -> String {
+        // Prefer known CloudKit/Core Data reasons over opaque NSError dumps
+        // (mirroring delegate aborts often surface as LocalizedError with English CK text).
         for candidate in flattened(error) {
+            if let schema = productionSchemaMessage(in: candidate) {
+                return schema
+            }
             if let message = message(forCKError: candidate) {
                 return message
             }
             if let message = message(forCocoaError: candidate) {
                 return message
             }
+        }
+
+        if let schema = productionSchemaMessage(in: error) {
+            return schema
+        }
+
+        if let localized = error as? LocalizedError,
+           let description = localized.errorDescription?.nilIfBlank,
+           !(error is CKError),
+           !looksLikeOpaqueCloudKitCode(description)
+        {
+            return description
         }
 
         let raw = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -206,6 +221,17 @@ enum CloudKitUserFacingError {
             return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
         }
         return raw
+    }
+
+    private static func productionSchemaMessage(in error: Error) -> String? {
+        let text = error.localizedDescription.lowercased()
+        if text.contains("production schema")
+            || text.contains("cannot create new type cd_")
+            || (text.contains("cannot create new type") && text.contains("schema"))
+        {
+            return productionSchemaMissing
+        }
+        return nil
     }
 
     static func isNetworkError(_ error: Error) -> Bool {
@@ -306,6 +332,9 @@ enum CloudKitUserFacingError {
         let normalized = raw.lowercased()
         return normalized.contains("ckerrordomain")
             || normalized.contains("ckerror")
+            || normalized.contains("mirroring delegate")
+            || normalized.contains("partial failure")
+            || normalized.contains("failed to modify some records")
             || (normalized.contains("couldn't be completed") && normalized.contains("error"))
             || (normalized.contains("could not be completed") && normalized.contains("error"))
     }

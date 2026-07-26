@@ -1162,6 +1162,30 @@ final class OneCartTests: XCTestCase {
         XCTAssertTrue(CloudKitUserFacingError.isNetworkError(network))
     }
 
+    func testCloudKitUserFacingErrorMapsProductionSchemaFailure() {
+        let nested = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.invalidArguments.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Cannot create new type CD_ShoppingList in production schema",
+            ]
+        )
+        let mirroring = NSError(
+            domain: NSCocoaErrorDomain,
+            code: 134_400,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "The operation couldn’t be completed. Request was aborted because the mirroring delegate never successfully initialized due to error: Partial Failure",
+                NSUnderlyingErrorKey: nested,
+            ]
+        )
+        let message = CloudKitUserFacingError.message(for: mirroring)
+        XCTAssertEqual(message, CloudKitUserFacingError.productionSchemaMissing)
+        XCTAssertFalse(message.contains("CD_ShoppingList"))
+        XCTAssertFalse(message.contains("mirroring delegate"))
+    }
+
     private func makeInMemoryRepository() async throws
         -> (PersistenceController, FamilySpaceRepository)
     {
