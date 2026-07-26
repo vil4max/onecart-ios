@@ -1119,7 +1119,7 @@ final class OneCartTests: XCTestCase {
 
         XCTAssertTrue(invite.shareMessage.contains(shareURL.absoluteString))
         XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
-        XCTAssertTrue(invite.shareMessage.contains("группе"))
+        XCTAssertTrue(invite.shareMessage.contains("корзине"))
         XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart"))
         XCTAssertEqual(invite.shareTitle, "OneCart")
         XCTAssertEqual(invite.expiresAt, .distantFuture)
