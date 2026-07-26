@@ -6,6 +6,8 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 Version: **1.2 (25)** — bump `CURRENT_PROJECT_VERSION` again before each new upload to ASC for the same marketing version.
 
+**Scope for this train:** stability of household cart + invite/sync. Stores tab, catalog-first add, and rich product forms are out of the main UX on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
+
 On a Mac with Xcode:
 
 ```bash
@@ -71,6 +73,8 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Toggle / move / update / catalog price refresh | `BusinessLogicTests` cart lifecycle cases |
 | Deduplicate stable IDs / Core Data vs CK errors | `testDeduplicateStableIDsKeepsNewerProduct`, `testIsUserFacingCoreDataFailureIgnoresCloudKit` |
 | Invite does not block forever on mirror | `FamilyInviteLinkBuilder`: brief wait + `share()` retry; outer `shareTimedOut` |
+| Invite link warm-up after cart create | `AppSession.scheduleInviteLinkPreparation` / `preparedInviteLink` |
+| Quick add is name-only | `QuickAddProductSheet` |
 
 ## 4. TestFlight
 

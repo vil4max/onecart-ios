@@ -121,12 +121,22 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - FU05 Further split Catalog/Shopping UI monoliths
 - FU06 Replace PersistenceController @unchecked Sendable with stricter isolation
 - FU07 Scraper HTML fixtures / Keychain PII / profile file protection
+- FU08 Re-enable Stores tab / store-bound lists **only after** two-device invite+sync is solid
+- FU09 Catalog-first add / WebKit price refresh as optional path (not blocking quick name add)
+- FU10 Rich product editor fields (qty/unit/price/notes) behind a secondary “details” action
+
+### RC16 — Stability-first minimal shell (docs + UX)
+- Status: done (this train)
+- Paths: `RootView` tabs, `QuickAddProductSheet`, `docs/product.md`, `docs/architecture.md`, `docs/release.md`
+- What changed: Cart+Settings only; thumb FAB + name-only add; invite on cart; history in Settings; documented cuts toward stability
+- How to verify: read [product.md](product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
+- Do not invent scope: restoring Stores/catalog is FU08/FU09, not required for merge
 
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
 - `just build`
 - `xcodebuild test -project OneCart/OneCart.xcodeproj -scheme OneCart -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:OneCartTests`
-- Manual: Welcome → Sign in with Apple → Home (empty household cart)
-- Manual (device): Settings → Пригласить семью → accept on second device → shared cart replaces/merges private starter (no merge sheet); errors via system alert
+- Manual: Welcome → Sign in with Apple → Cart (empty household cart) → thumb + → name → Add
+- Manual (device): Cart invite → accept on second device → shared cart replaces/merges private starter; errors via system alert
 - See also [release.md](release.md) § Preflight + §3
