@@ -3,7 +3,7 @@
 ## Ladder decision
 
 - **Level 1 — MVVM + POP services**
-- **No Coordinator** — Welcome → tabs + sheets; share URL handled at app root
+- **No Coordinator** — Welcome → cart + sheets; share URL handled at app root
 - **No Clean Domain / UseCase modules** — repositories and CloudKit/Auth services are enough
 
 ## Stability-first shell
@@ -12,12 +12,11 @@ Product policy (see [product.md](product.md)): **stabilize the household cart + 
 
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
-| Cart (one list, quick name add, invite) | Stores tab / store-first shopping |
-| History tab | Theme / unit prefs / profile editor in Settings |
-| Settings (invite/members + sign out) | Catalog browser as primary add path |
+| Cart (one list, quick name add, share from home) | Settings tab / theme-unit prefs |
+| Members / history / profile as sheets | Stores / catalog browser UI |
 | System alert for errors | Toast / sync banner chrome |
 
-Legacy store/catalog code may still compile in the target so we avoid risky mass deletes of CloudKit-related types mid-release. New work should not wire those surfaces back into `MainTabView` or the cart FAB until two-device invite/sync is solid.
+Store/catalog **UI modules are removed from the target**. Core Data still models `Store` for the CloudKit sync graph and legacy data. Do not re-wire catalog/store screens into the cart until two-device invite/sync is solid.
 
 ## Composition root
 
@@ -37,14 +36,15 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 |------|------|
 | `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events, `alertMessage` |
 | `OneCart/Application/AppDelegate.swift` | System CloudKit share invitation handoff |
-| `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert for errors |
+| `OneCart/Application/RootView.swift` | Launch → welcome or cart; members sheet; system alert |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD + shared-record permission checks |
 | `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + iCloud connect |
-| `OneCart/Features/Settings/SettingsView.swift` | Invite/members + sign out |
-| Main tabs | Cart + History + Settings |
+| `OneCart/Features/Shopping/ShoppingViews.swift` | Cart UI, share, history sheet, quick add |
+| `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart |
+| Main UI | Cart-only (no tab bar) |
 
 ## Stores and sync
 
@@ -68,7 +68,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `
 ├── OneCart/          # Xcode product (Application, Features, Data, Shared, Resources, Tests)
 ├── docs/             # this set
 ├── assets/           # brand / store masters (not in app bundle)
-├── Tooling/          # Engineering Runtime — see Tooling/README.md
+├── Tooling/          # Engineering Runtime — see Tooling/justfile
 └── justfile          # import Tooling/justfile
 ```
 

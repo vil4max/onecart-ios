@@ -30,10 +30,7 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(OneCartPalette.background.ignoresSafeArea())
-                        .navigationTitle(
-                            model.activeFamilySpace?.displayName
-                                ?? String(localized: "tab.home")
-                        )
+                        .navigationTitle(String(localized: "cart.default_title"))
                         .navigationBarTitleDisplayMode(.inline)
                         .task {
                             await viewModel.ensureHouseholdCartIfNeeded()
@@ -50,10 +47,9 @@ struct HomeView: View {
                     .background(OneCartPalette.background.ignoresSafeArea())
                     .navigationTitle(
                         model.activeFamilySpace?.displayName
-                            ?? String(localized: "tab.home")
+                            ?? String(localized: "cart.default_title")
                     )
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar { familyToolbarItem }
                     .task {
                         await viewModel.ensureHouseholdCartIfNeeded()
                     }
@@ -61,26 +57,6 @@ struct HomeView: View {
             }
         }
         .navigationViewStyle(.stack)
-    }
-
-    @ToolbarContentBuilder
-    private var familyToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                model.showFamilyManagement()
-            } label: {
-                Image(
-                    systemName: model.access?.isOwner == true
-                        ? "person.badge.plus"
-                        : "person.2"
-                )
-                .font(.body.weight(.semibold))
-                .frame(minWidth: 44, minHeight: 44)
-            }
-            .accessibilityLabel(
-                model.access?.isOwner == true ? "Пригласить семью" : "Участники"
-            )
-        }
     }
 }
 
@@ -133,245 +109,25 @@ private struct HomePressButtonStyle: ButtonStyle {
     }
 }
 
-struct AddListSheet: View {
-    @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    @State private var title = "Список покупок"
-    @State private var selectedStoreID: UUID?
-
-    private let titlePresets = ["Продукты", "Еженедельный", "Хозтовары", "Аптека", "Дача", "Праздник"]
-
-    private let storeColumns = [
-        GridItem(.adaptive(minimum: 135), spacing: 10),
-    ]
-
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Field 1: List Title
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("НАЗВАНИЕ СПИСКА")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 4)
-
-                        HStack(spacing: 12) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(OneCartPalette.primarySoft)
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "cart.fill")
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(OneCartPalette.primaryStrong)
-                            }
-
-                            TextField("Название списка", text: $title)
-                                .font(.system(size: 16, weight: .semibold))
-
-                            if !title.isEmpty {
-                                Button {
-                                    title = ""
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .padding(12)
-                        .background(OneCartPalette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
-                        )
-
-                        // Presets
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(titlePresets, id: \.self) { preset in
-                                    Button {
-                                        title = preset
-                                    } label: {
-                                        Text(preset)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 7)
-                                            .background(
-                                                title == preset ? OneCartPalette.primarySoft : OneCartPalette.surface,
-                                                in: Capsule()
-                                            )
-                                            .foregroundColor(title == preset ? OneCartPalette.primaryStrong : .primary)
-                                            .overlay(
-                                                Capsule()
-                                                    .stroke(
-                                                        title == preset ? OneCartPalette.primary : Color(.separator)
-                                                            .opacity(0.5),
-                                                        lineWidth: 1
-                                                    )
-                                            )
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 2)
-                            .padding(.vertical, 2)
-                        }
-                    }
-
-                    // Field 2: Store Picker
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("МАГАЗИН")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 4)
-
-                        LazyVGrid(columns: storeColumns, spacing: 10) {
-                            // General option
-                            StorePickerCardView(
-                                isSelected: selectedStoreID == nil,
-                                title: "Без магазина",
-                                subtitle: "Общий список",
-                                iconName: "bag.fill"
-                            ) {
-                                selectedStoreID = nil
-                            }
-
-                            // Store options
-                            ForEach(model.stores, id: \.objectID) { store in
-                                let isSelected = selectedStoreID == store.id
-                                StorePickerCardView(
-                                    isSelected: isSelected,
-                                    title: store.displayName,
-                                    subtitle: store.address,
-                                    storeName: store.displayName,
-                                    fallbackIcon: store.icon ?? "storefront",
-                                    fallbackColorHex: store.colorHex ?? "#34785B"
-                                ) {
-                                    selectedStoreID = store.id
-                                    title = "Покупки в \(store.displayName)"
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(20)
-            }
-            .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("Новый список")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
-                        .font(.system(size: 16, weight: .regular))
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        let store = model.stores.first { $0.id == selectedStoreID }
-                        Task {
-                            await model.addList(title: title, store: store)
-                            dismiss()
-                        }
-                    } label: {
-                        Text("Создать")
-                            .font(.system(size: 14, weight: .bold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(
-                                title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                    ? OneCartPalette.primary.opacity(0.4)
-                                    : OneCartPalette.primary,
-                                in: Capsule()
-                            )
-                            .foregroundColor(.white)
-                    }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-    }
-}
-
-private struct StorePickerCardView: View {
-    let isSelected: Bool
-    let title: String
-    let subtitle: String?
-    var iconName: String?
-    var storeName: String?
-    var fallbackIcon: String = "storefront"
-    var fallbackColorHex: String = "#34785B"
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack(alignment: .topTrailing) {
-                    if let storeName {
-                        StoreBrandMark(
-                            storeName: storeName,
-                            fallbackIcon: fallbackIcon,
-                            fallbackColorHex: fallbackColorHex,
-                            size: 42
-                        )
-                    } else if let iconName {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(OneCartPalette.primarySoft)
-                                .frame(width: 42, height: 42)
-                            Image(systemName: iconName)
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(OneCartPalette.primaryStrong)
-                        }
-                    }
-
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(OneCartPalette.primary)
-                            .background(Circle().fill(Color.white).padding(2))
-                            .offset(x: 6, y: -4)
-                    }
-                }
-
-                VStack(spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 8)
-            .background(
-                isSelected ? OneCartPalette.primarySoft.opacity(0.6) : OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(
-                        isSelected ? OneCartPalette.primary : Color(.separator).opacity(0.4),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-        }
-        .buttonStyle(HomePressButtonStyle())
-    }
-}
 
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
     let listID: UUID
 
+    // Share uses AppSession directly; ViewModel kept for members sheet only.
     @State private var showingAddProduct = false
     @State private var editingProduct: ProductEntity?
     @State private var confirmingCompletion = false
     @State private var pendingDelete: ProductEntity?
+    @State private var sharePayload: CartSharePayload?
+    @State private var isSharing = false
+    @State private var shareAlert: String?
+    @State private var showingProfile = false
+    @State private var showingHistory = false
+
+    init(listID: UUID) {
+        self.listID = listID
+    }
 
     private var list: ShoppingListEntity? {
         model.lists.first { $0.id == listID }
@@ -396,7 +152,7 @@ struct ShoppingListView: View {
     var body: some View {
         Group {
             if let list {
-                ZStack(alignment: .bottomTrailing) {
+                ZStack(alignment: .bottom) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             if !model.canEdit {
@@ -413,21 +169,6 @@ struct ShoppingListView: View {
                                 )
                             } else {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    HStack {
-                                        Text("Товары")
-                                            .font(.title3.bold())
-                                        Spacer()
-                                        Text("\(products.count)")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 3)
-                                            .background(
-                                                Color(.tertiarySystemFill),
-                                                in: Capsule(style: .continuous)
-                                            )
-                                    }
-
                                     ForEach(products, id: \.objectID) { product in
                                         ProductRow(
                                             product: product,
@@ -456,67 +197,60 @@ struct ShoppingListView: View {
                             }
 
                             if !products.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Button {
-                                        confirmingCompletion = true
-                                    } label: {
-                                        Label("Завершить покупку", systemImage: "checkmark.seal.fill")
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(OneCartPrimaryButtonStyle())
-                                    .disabled(!model.canEdit)
-                                    .opacity(model.canEdit ? 1 : 0.5)
-
-                                    Text("Товары сохранятся в истории, корзина станет снова пустой.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                Button {
+                                    confirmingCompletion = true
+                                } label: {
+                                    Label("Завершить", systemImage: "checkmark.seal.fill")
+                                        .frame(maxWidth: .infinity)
                                 }
+                                .buttonStyle(OneCartPrimaryButtonStyle())
+                                .disabled(!model.canEdit)
+                                .opacity(model.canEdit ? 1 : 0.5)
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
-                        .padding(.bottom, model.canEdit ? 100 : 28)
+                        .padding(.bottom, model.canEdit ? 120 : 28)
                     }
                     .background(OneCartPalette.background.ignoresSafeArea())
 
-                    if model.canEdit {
-                        Button {
-                            showingAddProduct = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 64, height: 64)
-                                .background(OneCartPalette.primary, in: Circle())
-                                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
-                        }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
-                        .accessibilityLabel("Добавить товар")
-                    }
+                    bottomBar
                 }
                 .navigationTitle(
                     model.activeFamilySpace?.displayName
-                        ?? list.displayTitle
+                        ?? String(localized: "cart.default_title")
                 )
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            model.showFamilyManagement()
+                        Menu {
+                            Button {
+                                model.showFamilyManagement()
+                            } label: {
+                                Label("Участники", systemImage: "person.2")
+                            }
+                            Button {
+                                showingHistory = true
+                            } label: {
+                                Label("История", systemImage: "clock")
+                            }
+                            Button {
+                                showingProfile = true
+                            } label: {
+                                Label("Профиль", systemImage: "person.crop.circle")
+                            }
+                            Divider()
+                            Button(role: .destructive) {
+                                model.signOut()
+                            } label: {
+                                Label("Выйти", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
                         } label: {
-                            Image(
-                                systemName: model.access?.isOwner == true
-                                    ? "person.badge.plus"
-                                    : "person.2"
-                            )
-                            .font(.body.weight(.semibold))
-                            .frame(minWidth: 44, minHeight: 44)
+                            Image(systemName: "ellipsis.circle")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 44, minHeight: 44)
                         }
-                        .accessibilityLabel(
-                            model.access?.isOwner == true ? "Пригласить семью" : "Участники"
-                        )
+                        .accessibilityLabel("Ещё")
                     }
                 }
                 .sheet(isPresented: $showingAddProduct) {
@@ -525,13 +259,42 @@ struct ShoppingListView: View {
                 .sheet(item: $editingProduct) { product in
                     QuickAddProductSheet(listID: listID, product: product)
                 }
+                .sheet(item: $sharePayload) { payload in
+                    CartActivityViewController(
+                        activityItems: [CartInviteActivityItem(link: payload.link)]
+                    )
+                }
+                .sheet(isPresented: $showingHistory) {
+                    HistoryView()
+                        .environmentObject(model)
+                }
+                .sheet(isPresented: $showingProfile) {
+                    if let account = model.account {
+                        ProfileEditorSheet(
+                            account: account,
+                            avatar: model.profileAvatar,
+                            banner: model.profileBanner
+                        )
+                    }
+                }
+                .alert(
+                    "OneCart",
+                    isPresented: Binding(
+                        get: { shareAlert != nil },
+                        set: { if !$0 { shareAlert = nil } }
+                    )
+                ) {
+                    Button("OK", role: .cancel) { shareAlert = nil }
+                } message: {
+                    Text(shareAlert ?? "")
+                }
                 .alert("Завершить покупку?", isPresented: $confirmingCompletion) {
                     Button("Отмена", role: .cancel) {}
                     Button("Завершить") {
                         Task { await model.completeList(list) }
                     }
                 } message: {
-                    Text("Текущие товары перейдут в историю покупок.")
+                    Text("Товары перейдут в историю, корзина станет пустой.")
                 }
                 .alert(
                     "Удалить товар?",
@@ -548,14 +311,98 @@ struct ShoppingListView: View {
                         pendingDelete = nil
                     }
                 } message: {
-                    Text(pendingDelete?.displayName ?? "Товар будет удалён из списка.")
+                    Text(pendingDelete?.displayName ?? "Товар будет удалён.")
                 }
+
             } else {
                 ContentUnavailableViewCompat(
                     image: "questionmark.folder",
                     title: "Список недоступен",
-                    message: "Он мог быть удалён или перемещён владельцем."
+                    message: "Он мог быть удалён или перемещён."
                 )
+            }
+        }
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 12) {
+            if model.access?.isOwner == true {
+                Button {
+                    shareCart()
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSharing {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Text("Поделиться")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .foregroundColor(.white)
+                    .background(
+                        OneCartPalette.primary,
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                }
+                .disabled(isSharing || !model.isOnline)
+                .opacity(model.isOnline ? 1 : 0.55)
+            }
+
+            if model.canEdit {
+                Button {
+                    showingAddProduct = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(model.access?.isOwner == true ? OneCartPalette.primaryStrong : .white)
+                        .frame(width: 56, height: 56)
+                        .background(
+                            model.access?.isOwner == true
+                                ? OneCartPalette.primarySoft
+                                : OneCartPalette.primary,
+                            in: Circle()
+                        )
+                }
+                .accessibilityLabel("Добавить товар")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+
+    private func shareCart() {
+        guard !isSharing else { return }
+        isSharing = true
+        let work = Task { @MainActor in
+            defer { isSharing = false }
+            do {
+                let link: FamilyInviteLink
+                if let cached = model.preparedInviteLink,
+                   cached.expiresAt > Date().addingTimeInterval(30)
+                {
+                    link = cached
+                } else {
+                    link = try await model.createFamilyInviteLink()
+                }
+                guard !Task.isCancelled else { return }
+                sharePayload = CartSharePayload(link: link)
+            } catch is CancellationError {
+                return
+            } catch {
+                shareAlert = (error as? LocalizedError)?.errorDescription
+                    ?? error.localizedDescription
+            }
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 24_000_000_000)
+            guard !work.isCancelled else { return }
+            if isSharing {
+                work.cancel()
+                isSharing = false
+                shareAlert = OneCartCloudKitError.shareTimedOut.errorDescription
             }
         }
     }
@@ -563,7 +410,7 @@ struct ShoppingListView: View {
     private var listSummaryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("В списке")
+                Text("В корзине")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
                 if products.isEmpty {
@@ -571,7 +418,7 @@ struct ShoppingListView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(purchasedCount) из \(products.count) куплено")
+                    Text("\(purchasedCount) из \(products.count)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -588,59 +435,24 @@ struct ShoppingListView: View {
                             .frame(width: max(10, geo.size.width * progress))
                     }
                 }
-                .frame(height: 9)
-            }
+                .frame(height: 8)
 
-            HStack(spacing: 8) {
-                summaryPill(
-                    value: "\(remainingCount)",
-                    label: "ещё взять",
-                    systemImage: "basket"
-                )
                 if estimatedTotal > 0 {
-                    summaryPill(
-                        value: estimatedTotal.oneCartCurrency,
-                        label: "примерно",
-                        systemImage: "banknote"
-                    )
+                    Text(estimatedTotal.oneCartCurrency)
+                        .font(.title3.bold())
+                        .monospacedDigit()
                 }
+            } else if model.access?.isOwner == true {
+                Text("Нажмите «Поделиться», чтобы пригласить семью в эту корзину.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             OneCartPalette.surface,
             in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
-    }
-
-    private func summaryPill(value: String, label: String, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: systemImage)
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(OneCartPalette.primary)
-                Text(value)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
-        .background(
-            OneCartPalette.primarySoft.opacity(0.55),
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
     }
 }
@@ -854,15 +666,12 @@ private struct ProductRow: View {
     }
 
     private var productSubtitle: String {
-        [
-            "\(product.quantityValue.oneCartQuantity) \(product.unitValue.localizedName)",
-            product.categoryValue.localizedName,
-        ]
-        .joined(separator: " · ")
+        product.isPurchasedValue ? "Куплено" : ""
     }
 }
 
 /// Minimal add/rename: product name only. Quantity/unit/category use defaults.
+
 struct QuickAddProductSheet: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -990,372 +799,6 @@ struct QuickAddProductSheet: View {
 }
 
 /// Kept for any remaining call sites; forwards to the quick name editor.
-struct ProductEditorSheet: View {
-    let listID: UUID
-    let product: ProductEntity?
-
-    var body: some View {
-        QuickAddProductSheet(listID: listID, product: product)
-    }
-}
-
-struct StoresView: View {
-    @EnvironmentObject private var model: AppModel
-    @State private var showingNewStore = false
-    @State private var showingCatalog = false
-    @State private var selectedBrand: StoreBrand?
-    @State private var editingStore: StoreEntity?
-    @State private var pendingDelete: StoreEntity?
-
-    var body: some View {
-        NavigationView {
-            List {
-                if !model.canEdit {
-                    Section {
-                        ReadOnlyBanner()
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                    }
-                }
-
-                Section("Мои магазины") {
-                    if model.stores.isEmpty {
-                        EmptyCard(
-                            image: "storefront",
-                            title: "Нет магазинов",
-                            message: "Выберите сеть ниже и добавьте ближайшую точку с карты."
-                        )
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                    } else {
-                        ForEach(model.stores, id: \.objectID) { store in
-                            Group {
-                                if let listID = store.activeList?.id {
-                                    NavigationLink {
-                                        ShoppingListView(listID: listID)
-                                    } label: {
-                                        StoreRow(store: store)
-                                    }
-                                } else {
-                                    StoreRow(store: store)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            editingStore = store
-                                        }
-                                }
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    pendingDelete = store
-                                } label: {
-                                    Label("Удалить", systemImage: "trash")
-                                }
-                                .disabled(!model.canEdit)
-
-                                Button {
-                                    editingStore = store
-                                } label: {
-                                    Label("Изменить", systemImage: "pencil")
-                                }
-                                .tint(OneCartPalette.primary)
-                                .disabled(!model.canEdit)
-                            }
-                        }
-                    }
-                }
-
-                Section("Популярные сети") {
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: 10),
-                            GridItem(.flexible(), spacing: 10),
-                        ],
-                        spacing: 10
-                    ) {
-                        ForEach(StoreBrand.popular) { brand in
-                            Button {
-                                selectedBrand = brand
-                            } label: {
-                                StoreBrandCatalogButton(brand: brand)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!model.canEdit)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .listRowSeparator(.hidden)
-                }
-            }
-            .navigationTitle("Магазины")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            showingCatalog = true
-                        } label: {
-                            Label("Найти сеть рядом", systemImage: "map")
-                        }
-                        Button {
-                            showingNewStore = true
-                        } label: {
-                            Label("Добавить вручную", systemImage: "square.and.pencil")
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .disabled(!model.canEdit)
-                }
-            }
-            .sheet(isPresented: $showingNewStore) {
-                StoreEditorSheet(store: nil)
-            }
-            .sheet(isPresented: $showingCatalog) {
-                StoreCatalogSheet()
-            }
-            .sheet(item: $selectedBrand) { brand in
-                NavigationView {
-                    StoreLocatorView(brand: brand) {
-                        selectedBrand = nil
-                    }
-                }
-            }
-            .sheet(item: $editingStore) { store in
-                StoreEditorSheet(store: store)
-            }
-            .alert(
-                "Удалить магазин?",
-                isPresented: Binding(
-                    get: { pendingDelete != nil },
-                    set: { if !$0 { pendingDelete = nil } }
-                )
-            ) {
-                Button("Отмена", role: .cancel) {
-                    pendingDelete = nil
-                }
-                Button("Удалить", role: .destructive) {
-                    if let pendingDelete {
-                        Task { await model.deleteStore(pendingDelete) }
-                    }
-                    pendingDelete = nil
-                }
-            } message: {
-                Text("Товары останутся в группе без привязки к магазину.")
-            }
-        }
-        .navigationViewStyle(.stack)
-    }
-}
-
-private struct StoreBrandCatalogButton: View {
-    let brand: StoreBrand
-
-    var body: some View {
-        HStack(spacing: 9) {
-            StoreBrandMark(
-                storeName: brand.name,
-                fallbackIcon: brand.shortMark,
-                fallbackColorHex: brand.colorHex,
-                size: 38
-            )
-            Text(brand.name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-            Spacer(minLength: 2)
-            Image(systemName: "location.fill")
-                .font(.caption)
-                .foregroundColor(OneCartPalette.primary)
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(OneCartPalette.surface)
-        )
-    }
-}
-
-private struct StoreRow: View {
-    let store: StoreEntity
-
-    var body: some View {
-        HStack(spacing: 13) {
-            StoreBrandMark(
-                storeName: store.displayName,
-                fallbackIcon: store.displayIcon,
-                fallbackColorHex: store.displayColorHex,
-                size: 48
-            )
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 5) {
-                    Text(store.displayName)
-                        .font(.headline)
-                    if store.isPinnedValue {
-                        Image(systemName: "pin.fill")
-                            .font(.caption)
-                            .foregroundColor(OneCartPalette.primary)
-                    }
-                }
-                if let address = store.address, !address.isEmpty {
-                    Text(address)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Text(store.activeList.map {
-                    "\($0.sortedProducts.count) товаров"
-                } ?? "Нет активного списка")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption.bold())
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-struct StoreEditorSheet: View {
-    @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    let store: StoreEntity?
-
-    @State private var name: String
-    @State private var icon: String
-    @State private var colorHex: String
-    @State private var address: String
-    @State private var externalURL: String
-    @State private var isPinned: Bool
-    @State private var confirmingDeleteStore = false
-    private let latitude: Double?
-    private let longitude: Double?
-
-    private let colors = [
-        "#34785B", "#4F6D8A", "#9A6547", "#8B5D75", "#6D628A", "#C94747",
-    ]
-
-    init(store: StoreEntity?) {
-        self.store = store
-        _name = State(initialValue: store?.displayName ?? "")
-        _icon = State(initialValue: store?.displayIcon ?? "")
-        _colorHex = State(initialValue: store?.displayColorHex ?? "#34785B")
-        _address = State(initialValue: store?.address ?? "")
-        _externalURL = State(initialValue: store?.externalAppURL ?? "")
-        _isPinned = State(initialValue: store?.isPinnedValue ?? false)
-        latitude = store?.latitudeValue
-        longitude = store?.longitudeValue
-    }
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section("Магазин") {
-                    TextField("Название", text: $name)
-                    TextField("Короткая иконка", text: $icon)
-                    TextField("Адрес", text: $address)
-                    TextField("Ссылка на сайт", text: $externalURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                    if latitude != nil, longitude != nil {
-                        Label("Точка на карте сохранена", systemImage: "mappin.and.ellipse")
-                            .font(.subheadline)
-                            .foregroundColor(OneCartPalette.primary)
-                    }
-                    Toggle("Закрепить", isOn: $isPinned)
-                }
-
-                Section("Цвет") {
-                    HStack {
-                        ForEach(colors, id: \.self) { color in
-                            Button {
-                                colorHex = color
-                            } label: {
-                                Circle()
-                                    .fill(Color(hex: color))
-                                    .frame(width: 34, height: 34)
-                                    .overlay {
-                                        if colorHex == color {
-                                            Image(systemName: "checkmark")
-                                                .font(.caption.bold())
-                                                .foregroundColor(.white)
-                                        }
-                                    }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                if store != nil {
-                    Section {
-                        Button(role: .destructive) {
-                            confirmingDeleteStore = true
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label("Удалить магазин", systemImage: "trash")
-                                    .foregroundColor(OneCartPalette.danger)
-                                Spacer()
-                            }
-                        }
-                        .disabled(!model.canEdit)
-                    }
-                }
-            }
-            .navigationTitle(store == nil ? "Новый магазин" : "Магазин")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        save()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            .alert("Удалить магазин?", isPresented: $confirmingDeleteStore) {
-                Button("Отмена", role: .cancel) {}
-                Button("Удалить", role: .destructive) {
-                    if let store {
-                        Task {
-                            await model.deleteStore(store)
-                            dismiss()
-                        }
-                    }
-                }
-            } message: {
-                Text("Магазин будет удалён, а его товары останутся в общем списке.")
-            }
-        }
-    }
-
-    private func save() {
-        let normalizedIcon = icon.trimmingCharacters(in: .whitespacesAndNewlines)
-        let draft = StoreDraft(
-            name: name,
-            icon: normalizedIcon.isEmpty
-                ? String(name.prefix(2)).uppercased()
-                : normalizedIcon,
-            colorHex: colorHex,
-            address: address,
-            latitude: latitude,
-            longitude: longitude,
-            externalAppURL: externalURL,
-            isPinned: isPinned
-        )
-        Task {
-            if let store {
-                await model.updateStore(store, draft: draft)
-            } else {
-                await model.addStore(draft)
-            }
-            dismiss()
-        }
-    }
-}
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel
@@ -1421,7 +864,7 @@ private struct HistoryEntryCard: View {
     let entry: PurchaseHistoryEntity
 
     private var storeName: String {
-        entry.store?.displayName ?? "Общий список"
+        "Корзина"
     }
 
     var body: some View {
@@ -1443,107 +886,14 @@ private struct HistoryEntryCard: View {
             }
 
             HStack(spacing: 12) {
-                if let store = entry.store {
-                    StoreBrandMark(
-                        storeName: store.displayName,
-                        fallbackIcon: store.displayIcon,
-                        fallbackColorHex: store.displayColorHex,
-                        size: 48
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                } else {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(OneCartPalette.primaryStrong)
-                        .frame(width: 48, height: 48)
-                        .background(
-                            OneCartPalette.primarySoft,
-                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        )
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(storeName)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Text("\(entry.sortedItems.count) товаров · \(entry.membersDisplay)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 8)
-
-                Text(entry.totalValue.oneCartCurrency)
-                    .font(.headline)
-                    .monospacedDigit()
+                Image(systemName: "cart.fill")
+                    .font(.body.weight(.semibold))
                     .foregroundColor(OneCartPalette.primaryStrong)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct HistoryDetailView: View {
-    @EnvironmentObject private var model: AppModel
-    @Environment(\.dismiss) private var dismiss
-    let entry: PurchaseHistoryEntity
-    @State private var confirmingDelete = false
-
-    private var storeName: String {
-        entry.store?.displayName ?? "Покупка"
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Дата")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .textCase(.uppercase)
-                            Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
-                                .font(.body.weight(.semibold))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 12)
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Итого")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .textCase(.uppercase)
-                            Text(entry.totalValue.oneCartCurrency)
-                                .font(.title3.bold())
-                                .monospacedDigit()
-                                .foregroundColor(OneCartPalette.primaryStrong)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Участники")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                        Text(entry.membersDisplay)
-                            .font(.body.weight(.medium))
-                    }
-                }
+                    .frame(width: 48, height: 48)
+                    .background(
+                        OneCartPalette.primarySoft,
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(

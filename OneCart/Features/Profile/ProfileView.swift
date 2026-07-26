@@ -146,7 +146,7 @@ struct ProfileEditorSheet: View {
                             .foregroundColor(OneCartPalette.danger)
                     }
                     Text(
-                        "Имя, аватар и баннер хранятся только на этом устройстве и не синхронизируются с группой через iCloud."
+                        "Имя, аватар и баннер хранятся только на этом устройстве и не синхронизируются с корзиной через iCloud."
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -302,7 +302,7 @@ struct ProfileEditorSheet: View {
                 .foregroundColor(OneCartPalette.primary)
                 .textCase(.uppercase)
 
-            TextField("Как вас видят в группе", text: $displayName)
+            TextField("Как вас видят в корзине", text: $displayName)
                 .textInputAutocapitalization(.words)
                 .disableAutocorrection(true)
                 .padding(14)

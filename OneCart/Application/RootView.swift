@@ -70,7 +70,8 @@ struct RootView: View {
             Text(model.alertMessage ?? "")
         }
         .sheet(isPresented: $model.familyManagementPresented) {
-            FamilyManagementSheet(model: model)
+            CartManagementSheet(model: model)
+                .environmentObject(model)
         }
     }
 
@@ -82,7 +83,7 @@ struct RootView: View {
         case .welcome:
             WelcomeView(model: model)
         case .main:
-            MainTabView()
+            HomeView(model: model)
         }
     }
 }
@@ -166,23 +167,6 @@ private struct LaunchCartRideView: View {
             if ready { return true }
         }
         return false
-    }
-}
-
-struct MainTabView: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        TabView {
-            HomeView(model: model)
-                .tabItem { Label("tab.home", systemImage: "cart.fill") }
-            HistoryView()
-                .tabItem { Label("tab.history", systemImage: "clock.fill") }
-            SettingsView()
-                .tabItem { Label("tab.settings", systemImage: "gearshape.fill") }
-        }
-        .tint(OneCartPalette.primary)
-        .background(OneCartPalette.background)
     }
 }
 

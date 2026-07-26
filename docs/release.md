@@ -6,7 +6,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 Version: **1.2.1 (2)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.2.1.
 
-**Scope for this train:** stability of household cart + invite/sync. Stores tab, catalog-first add, and rich product forms are out of the main UX on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
+**Scope for this train:** stability of household cart + invite/sync. Cart-only shell (share from home); Settings/Stores/catalog UI and theme-unit prefs are out on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
 On a Mac with Xcode:
 
@@ -62,7 +62,7 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 1. Signed Debug build on A and B (version 1.2.1 / build ≥ 2). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
-4. Cart toolbar invite (or Settings → семья) → Invite → open iCloud share URL on B.
+4. Cart bottom bar «Поделиться» → Invite → open iCloud share URL on B.
 5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways.
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Remove member on A → B loses access.
@@ -128,7 +128,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 
 - Privacy Nutrition Labels: name, user ID, user content (lists), store geolocation — “App Functionality”, no tracking (`PrivacyInfo.xcprivacy` already in project).
 - Screenshots: iPhone 6.7" / 6.5".
-- Review notes: “Sign in with Apple required; family sharing via iCloud CKShare invite from the cart toolbar / Settings”.
+- Review notes: “Sign in with Apple required; family sharing via iCloud CKShare invite from the cart screen”.
 
 ## 6. Not needed for this pet project
 

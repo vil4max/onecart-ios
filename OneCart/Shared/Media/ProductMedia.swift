@@ -148,8 +148,7 @@ struct OfficialProductThumbnail: View {
     var size: CGFloat = 42
 
     private var displayURL: URL? {
-        guard let media else { return nil }
-        return OfficialCatalogProductQuality.upgradedImageURL(media.imageURL) ?? media.imageURL
+        media?.imageURL
     }
 
     var body: some View {

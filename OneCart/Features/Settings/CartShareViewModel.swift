@@ -1,8 +1,7 @@
 import Combine
 
-// RC05: Keeps family-management actions at the feature boundary.
 @MainActor
-final class SettingsViewModel: ObservableObject {
+final class CartShareViewModel: ObservableObject {
     private let session: AppSession
 
     init(session: AppSession) {

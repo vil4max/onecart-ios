@@ -124,6 +124,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - FU08 Re-enable Stores tab / store-bound lists **only after** two-device invite+sync is solid
 - FU09 Catalog-first add / WebKit price refresh as optional path (not blocking quick name add)
 - FU10 Rich product editor fields (qty/unit/price/notes) behind a secondary “details” action
+- FU11 Optional Settings surface (appearance) only if system appearance proves insufficient
 
 ### RC16 — Stability-first minimal shell (docs + UX)
 - Status: done (this train)
@@ -132,6 +133,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: read [product.md](product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
 - Do not invent scope: restoring Stores/catalog is FU08/FU09, not required for merge
 
+### RC17 — Cart-only shell (no Settings prefs)
+- Status: done (this train)
+- Paths: `RootView`, `ShoppingViews`, `CartManagementSheet`, `DevicePreferences`, Catalog/Stores/Settings UI removed, `Localizable.xcstrings`, docs
+- What changed: no Settings tab; share from cart home; copy uses «корзина»; default title «Список покупок»; theme/unit prefs removed; dead Stores/Catalog UI deleted
+- How to verify: after Welcome only cart UI; «Поделиться» on cart; overflow → participants/history/profile; no theme/unit screens
+- Do not invent scope: restoring Stores/catalog/Settings is FU08/FU09/FU11, not required for merge
+
 ### RC18 — Surface CloudKit Production schema failure as alert
 - Status: done (this train)
 - Paths: `CloudKitServices.swift`, `AppSession.swift`, `OneCartTests.swift`, `docs/release.md`
@@ -139,12 +147,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: unit test `testCloudKitUserFacingErrorMapsProductionSchema*`; on TF without Deploy, alert mentions CloudKit Console Deploy
 - Do not invent scope: **Deploy Schema Changes to Production** is still a Console-only owner action — code cannot create `CD_ShoppingList` in Production
 
-### RC19 — Slim Settings; History tab
-- Status: done (this train)
-- Paths: `SettingsView.swift`, `RootView.swift`, `AppSession.swift` (`DevicePreferences`), `OneCartApp.swift`
-- What changed: removed profile card, theme, default unit; History is its own tab; Settings keeps invite + sign out; build **1.2.1 (4)**
-- How to verify: tabs Home / History / Settings; Settings has no Look & Feel or profile header
-- Do not invent scope: full Settings removal / share-only-from-Home tracked separately (PR #17 / FU11)
+### RC19 — Slim Settings; History tab (superseded by RC17 merge)
+- Status: superseded
+- What changed: briefly landed History tab + slim Settings on main; then PR #17 merged cart-only shell (History as sheet from cart menu)
+- Build after merge: **1.2.1 (5)**
 
 ## Verification
 - `just doctor`
