@@ -4,7 +4,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.2.1 (2)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.2.1.
+Version: **1.2.1 (5)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.2.1.
 
 **Scope for this train:** stability of household cart + invite/sync. Cart-only shell (share from home); Settings/Stores/catalog UI and theme-unit prefs are out on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
