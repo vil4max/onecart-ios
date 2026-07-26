@@ -298,13 +298,20 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
+        // CloudKit / network failures must not be treated as corrupt local stores
+        // (Welcome Retry only hard-resets on true Core Data failures).
+        if error is CKError {
+            return false
+        }
         let nsError = error as NSError
+        if nsError.domain == CKError.errorDomain {
+            return false
+        }
         if nsError.domain == NSCocoaErrorDomain {
             return true
         }
         let text = nsError.localizedDescription.lowercased()
         return text.contains("core data")
-            || text.contains("cloudkit")
             || text.contains("incompatible")
             || text.contains("migration")
             || text.contains("unique constraint")

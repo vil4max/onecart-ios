@@ -55,21 +55,22 @@ struct RootView: View {
                 .transition(.opacity)
                 .zIndex(4)
             }
-
-            if let toast = model.toast {
-                ToastBanner(message: toast)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 22)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(5)
-            }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.86), value: model.toast)
+        .alert(
+            "OneCart",
+            isPresented: Binding(
+                get: { model.alertMessage != nil },
+                set: { if !$0 { model.dismissAlert() } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                model.dismissAlert()
+            }
+        } message: {
+            Text(model.alertMessage ?? "")
+        }
         .sheet(isPresented: $model.familyManagementPresented) {
             FamilyManagementSheet(model: model)
-        }
-        .sheet(item: $model.pendingCartMerge) { prompt in
-            CartMergeSheet(prompt: prompt)
         }
     }
 
@@ -172,68 +173,18 @@ struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            SyncStatusBanner()
-            TabView {
-                HomeView(model: model)
-                    .tabItem { Label("tab.home", systemImage: "cart.fill") }
-                StoresView()
-                    .tabItem { Label("tab.stores", systemImage: "storefront.fill") }
-                HistoryView()
-                    .tabItem { Label("tab.history", systemImage: "clock.arrow.circlepath") }
-                SettingsView()
-                    .tabItem { Label("tab.settings", systemImage: "gearshape.fill") }
-            }
-            .tint(OneCartPalette.primary)
+        TabView {
+            HomeView(model: model)
+                .tabItem { Label("tab.home", systemImage: "cart.fill") }
+            StoresView()
+                .tabItem { Label("tab.stores", systemImage: "storefront.fill") }
+            HistoryView()
+                .tabItem { Label("tab.history", systemImage: "clock.arrow.circlepath") }
+            SettingsView()
+                .tabItem { Label("tab.settings", systemImage: "gearshape.fill") }
         }
+        .tint(OneCartPalette.primary)
         .background(OneCartPalette.background)
-    }
-}
-
-private struct SyncStatusBanner: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        let state = model.syncState
-        if state != .synchronized {
-            HStack(spacing: 8) {
-                Image(systemName: state.systemImage)
-                Text(statusText(for: state))
-                    .font(.footnote.weight(.medium))
-                Spacer(minLength: 0)
-            }
-            .foregroundStyle(foreground(for: state))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(background(for: state))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(statusText(for: state))
-        }
-    }
-
-    private func statusText(for state: OneCartSyncState) -> String {
-        if state == .failed {
-            let detail = model.lastSyncError?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if !detail.isEmpty { return detail }
-        }
-        return state.title
-    }
-
-    private func foreground(for state: OneCartSyncState) -> Color {
-        switch state {
-        case .failed: OneCartPalette.danger
-        case .offline: Color.orange
-        default: OneCartPalette.primaryStrong
-        }
-    }
-
-    private func background(for state: OneCartSyncState) -> Color {
-        switch state {
-        case .failed: OneCartPalette.danger.opacity(0.12)
-        case .offline: Color.orange.opacity(0.12)
-        default: OneCartPalette.primarySoft
-        }
     }
 }
 
@@ -256,37 +207,6 @@ struct OneCartMark: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("OneCart")
-    }
-}
-
-struct ToastBanner: View {
-    let message: ToastMessage
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: message.style.systemImage)
-                .foregroundColor(accentColor)
-            Text(message.text)
-                .font(.subheadline.weight(.semibold))
-                .fixedSize(horizontal: false, vertical: true)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 420, alignment: .leading)
-        .background(
-            .regularMaterial,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .shadow(color: .black.opacity(0.12), radius: 16, y: 6)
-    }
-
-    private var accentColor: Color {
-        switch message.style {
-        case .success: OneCartPalette.primary
-        case .info: .blue
-        case .error: OneCartPalette.danger
-        }
     }
 }
 

@@ -168,6 +168,35 @@ final class OneCartTests: XCTestCase {
         XCTAssertTrue(try repository.fetchFamilySpaces(for: secondUser).isEmpty)
     }
 
+    func testSharedCartVisibleAlongsideOwnPrivateCart() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let ownerID = UUID()
+        let memberID = UUID()
+
+        let privateID = try await repository.createFamilySpace(
+            name: "Моя",
+            cachedForUserID: memberID,
+            isHouseholdDefault: true
+        )
+        let sharedID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let space = FamilySpace(context: context)
+            try persistence.assign(space, to: .shared, in: context)
+            space.id = sharedID
+            space.name = "Семейная"
+            space.createdAt = Date()
+            space.updatedAt = Date()
+            space.isHouseholdDefault = NSNumber(value: true)
+        }
+
+        let visibleToMember = try repository.fetchFamilySpaces(for: memberID)
+        XCTAssertEqual(Set(visibleToMember.compactMap(\.id)), [privateID, sharedID])
+
+        let visibleToOwner = try repository.fetchFamilySpaces(for: ownerID)
+        XCTAssertEqual(visibleToOwner.compactMap(\.id), [sharedID])
+        XCTAssertFalse(visibleToOwner.contains { $0.id == privateID })
+    }
+
     func testFamilyAccessAllowsSharedListEditing() {
         XCTAssertTrue(FamilyAccess.owner.canEdit)
         XCTAssertTrue(FamilyAccess.member.canEdit)
@@ -248,6 +277,114 @@ final class OneCartTests: XCTestCase {
         let stored = try XCTUnwrap(persistence.container.viewContext.fetch(request).first)
         XCTAssertNotNil(stored.deletedAt)
         XCTAssertTrue(try XCTUnwrap(repository.fetchFamilySpace(id: familyID)).sortedProducts.isEmpty)
+    }
+
+    func testSameNamedProductsStayAsSeparateCartLines() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Семья")
+        let listID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+        )
+        let draft = ProductDraft(
+            name: "Молоко",
+            quantity: 1,
+            unit: .piece,
+            category: .dairy,
+            estimatedPrice: 40,
+            note: "",
+            sourceURL: "https://shop.example.com/milk"
+        )
+
+        let firstID = try await repository.addProduct(
+            to: listID,
+            draft: draft,
+            purchasedByName: "Анна"
+        )
+        let secondID = try await repository.addProduct(
+            to: listID,
+            draft: draft,
+            purchasedByName: "Игорь"
+        )
+
+        XCTAssertNotEqual(firstID, secondID)
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let milk = space.sortedProducts.filter { $0.displayName == "Молоко" }
+        XCTAssertEqual(milk.count, 2, "Identical names must not be summed into one line")
+        XCTAssertEqual(
+            milk.map(\.quantityValue).reduce(0, +),
+            2,
+            "Each line keeps its own quantity"
+        )
+    }
+
+    func testAddProductLandsInSameStoreAsFamilyForCloudKitSync() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(
+            name: AppModel.defaultFamilyName,
+            isHouseholdDefault: true
+        )
+        let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let list = try XCTUnwrap(family.activeLists.first)
+        let listID = try XCTUnwrap(list.id)
+
+        let productID = try await repository.addProduct(
+            to: listID,
+            draft: ProductDraft(
+                name: "Молоко",
+                quantity: 2,
+                unit: .piece,
+                category: .dairy,
+                estimatedPrice: 42,
+                note: "2.5%"
+            )
+        )
+
+        let request = ProductEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)
+        let product = try XCTUnwrap(persistence.container.viewContext.fetch(request).first)
+
+        XCTAssertEqual(product.displayName, "Молоко")
+        XCTAssertEqual(product.list?.id, listID)
+        XCTAssertEqual(product.familySpace?.id, familyID)
+        XCTAssertEqual(product.isPurchasedValue, false)
+        XCTAssertEqual(
+            product.objectID.persistentStore?.url,
+            family.objectID.persistentStore?.url,
+            "Product must share the FamilySpace store or CloudKit will not sync the share graph"
+        )
+        XCTAssertEqual(persistence.scope(for: product), .private)
+
+        let reloaded = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(reloaded.sortedProducts.count, 1)
+        XCTAssertEqual(reloaded.sortedProducts.first?.id, productID)
+    }
+
+    func testAddProductVisibleAfterViewContextMerge() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Sync")
+        let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let listID = try XCTUnwrap(family.activeLists.first?.id)
+
+        _ = try await repository.addProduct(
+            to: listID,
+            draft: ProductDraft(
+                name: "Яйца",
+                quantity: 10,
+                unit: .piece,
+                category: .dairy,
+                estimatedPrice: 65,
+                note: ""
+            )
+        )
+
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+
+        let products = try persistence.container.viewContext.fetch(ProductEntity.fetchRequest())
+            .filter { $0.familySpace?.id == familyID && $0.deletedAt == nil }
+        XCTAssertEqual(products.count, 1)
+        XCTAssertEqual(products.first?.displayName, "Яйца")
     }
 
     func testOfflineRepositorySaveSurvivesContextReset() async throws {

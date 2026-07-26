@@ -67,10 +67,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: change device/simulator language; Welcome and tabs follow system
 
 ### RC08 — v1.1 Who is OneCart for + Household flow
-- Status: done
+- Status: done (superseded for verify path)
 - Paths: OneCart/Features/Onboarding/WelcomeView.swift, OneCart/Application/AppSession.swift
-- What changed: audience picker Just me / My partner / My Apple Family; auto-create Household cart
-- How to verify: fresh install → Sign in → audience → Home
+- What changed: originally audience picker + auto-create Household cart
+- How to verify now: fresh install → Sign in with Apple → Home (one household cart). Audience picker removed in later simplify-onboarding work.
 
 ### RC09 — Default cart title «Наши покупки» + household-default identity
 - Status: done
@@ -85,10 +85,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: grep publicPermission; read product doc
 
 ### RC11 — Merge policy / uniqueness / concurrency hardening
-- Status: done
-- Paths: ManagedObjects uniqueness on FamilySpace.id; PersistenceController RC11 Sendable documentation + logger subsystem fix
-- What changed: uniqueness constraint; documented object-trump + Sendable boundary; full actor rewrite still FU06
-- How to verify: model test expects FamilySpace uniqueness
+- Status: done (uniqueness claim superseded)
+- Paths: PersistenceController Sendable documentation + logger subsystem fix; later PR removed CloudKit-incompatible unique constraints
+- What changed: object-trump merge policy; Sendable boundary notes; uniqueness constraints must stay empty for CloudKit
+- How to verify: `ManagedObjectModelTests` asserts `uniquenessConstraints` empty on all entities
 
 ### RC12 — Tests split + ViewModel coverage
 - Status: done
@@ -127,5 +127,6 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - `just lint` (0 serious)
 - `just build`
 - `xcodebuild test -project OneCart/OneCart.xcodeproj -scheme OneCart -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:OneCartTests`
-- Manual: Welcome → Sign in → Who is OneCart for → Home
-- Manual (device): private CKShare invite accept + merge sheet if two carts
+- Manual: Welcome → Sign in with Apple → Home (empty household cart)
+- Manual (device): Settings → Пригласить семью → accept on second device → shared cart replaces/merges private starter (no merge sheet); errors via system alert
+- See also [release.md](release.md) § Preflight + §3

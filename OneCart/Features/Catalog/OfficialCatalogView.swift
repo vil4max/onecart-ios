@@ -1576,7 +1576,7 @@ struct OfficialCatalogSheet: View {
             OfficialCatalogProductDetailSheet(
                 product: product,
                 brand: brand,
-                canAdd: model.canEdit && !addedProductIDs.contains(product.id),
+                canAdd: model.canEdit,
                 onVerified: { verifiedProduct in
                     browser.merge([verifiedProduct])
                 },
@@ -1931,11 +1931,8 @@ struct OfficialCatalogSheet: View {
             .buttonStyle(.plain)
             .foregroundColor(.white)
             .background(OneCartPalette.primary, in: Circle())
-            .disabled(
-                addingProductIDs.contains(product.id)
-                    || addedProductIDs.contains(product.id)
-                    || !model.canEdit
-            )
+            // Same catalog product may be added again as another unique cart line.
+            .disabled(addingProductIDs.contains(product.id) || !model.canEdit)
             .accessibilityLabel("Проверить цену и добавить \(product.name)")
         }
         .padding(10)
@@ -1971,13 +1968,22 @@ struct OfficialCatalogSheet: View {
     }
 
     private func add(_ product: OfficialCatalogProduct) {
+        guard model.canEdit else { return }
         guard let list = model.lists.first(where: { $0.id == listID }) else { return }
         addingProductIDs.insert(product.id)
         Task {
+            let before = Set(model.products(inListID: listID).compactMap(\.id))
             await model.addProduct(to: list, draft: product.draft)
             addingProductIDs.remove(product.id)
+            let after = Set(model.products(inListID: listID).compactMap(\.id))
+            guard !after.subtracting(before).isEmpty else { return }
             withAnimation(.easeInOut(duration: 0.2)) {
                 addedProductIDs = addedProductIDs.union([product.id])
+            }
+            // Brief checkmark feedback, then allow another unique line for the same item.
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                _ = addedProductIDs.remove(product.id)
             }
         }
     }

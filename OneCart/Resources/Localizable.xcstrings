@@ -103,6 +103,28 @@
         }
       }
     },
+    "cart.empty_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cart is empty"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Корзина пуста"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кошик порожній"
+          }
+        }
+      }
+    },
     "home.connecting_cart" : {
       "localizations" : {
         "en" : {
@@ -130,19 +152,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add items to a store list — everyone in the share can see them."
+            "value" : "Your cart is empty. Add the first item."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Добавьте товары в список магазина — их увидят все, с кем вы поделились."
+            "value" : "Корзина пуста. Добавьте первый товар."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Додайте товари до списку магазину — їх побачать усі, з ким ви поділилися."
+            "value" : "Кошик порожній. Додайте перший товар."
           }
         }
       }
@@ -826,19 +848,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connecting to iCloud…"
+            "value" : "Checking iCloud and opening your cart…"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подключаем iCloud…"
+            "value" : "Проверяем iCloud и открываем корзину…"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Підключаємо iCloud…"
+            "value" : "Перевіряємо iCloud і відкриваємо кошик…"
           }
         }
       }
@@ -848,19 +870,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in with Apple. The list is shared privately through iCloud."
+            "value" : "Apple Sign In is your session. Shopping lists sync through the device iCloud account."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вход через Apple. Список делится через iCloud — только с теми, кого вы пригласите."
+            "value" : "Вход через Apple — это сессия. Списки синхронизируются через iCloud-аккаунт устройства."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вхід через Apple. Список ділиться через iCloud — лише з тими, кого ви запросите."
+            "value" : "Вхід через Apple — це сесія. Списки синхронізуються через iCloud-акаунт пристрою."
           }
         }
       }
@@ -937,19 +959,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One shopping list for everyone at home."
+            "value" : "Sign in with Apple to open your cart. Sync and family sharing need iCloud on this iPhone."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один список покупок на всю семью."
+            "value" : "Войдите через Apple, чтобы открыть корзину. Синхронизация и шаринг семье требуют iCloud на этом iPhone."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один список покупок на всю сім'ю."
+            "value" : "Увійдіть через Apple, щоб відкрити кошик. Синхронізація і шаринг для сімʼї потребують iCloud на цьому iPhone."
           }
         }
       }
@@ -959,19 +981,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Shop together"
+            "value" : "OneCart"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Покупки вместе"
+            "value" : "OneCart"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Покупки разом"
+            "value" : "OneCart"
           }
         }
       }

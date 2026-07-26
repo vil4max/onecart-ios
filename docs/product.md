@@ -5,7 +5,6 @@
 | Allowed | Forbidden |
 |---------|-----------|
 | Soft line “Made for families on Apple” / “Для семьи на Apple” | Claiming Family Sharing membership APIs |
-| Audience: Just me / With partner / With family | Fake “we found your Family members” |
 | CloudKit + `CKShare` + system Share Sheet | Public join ACL (`publicPermission` permissive) |
 | Private invite via Messages / AirDrop / Mail | “Share with entire Apple Family in one API call” |
 
@@ -24,21 +23,26 @@ Legacy `onecart://invite/...` tokens and the old invite endpoint are gone.
 
 ## User flow
 
-1. Install → Welcome (Sign in with Apple) → iCloud connect (errors + Retry on the same screen).
-2. **Who will use OneCart?** — Just me / With partner / With family.
-3. Ensure one default cart titled **«Наши покупки»** / localized (`isHouseholdDefault`).
-4. Partner / family choices open share / invite (Settings → Members → Invite).
-5. Invitee: “I was invited” → SIWA → open link → Accept in iCloud.
-6. If private + shared carts conflict → merge sheet (move items / use shared only / keep private).
-7. Empty household-default private starters may auto-drop (flag-based, not by display name).
+1. Install → Welcome: Sign in with Apple + short onboarding copy (iCloud errors + Retry on the same screen).
+2. After sign-in → main screen with one household cart (`isHouseholdDefault`, «Наши покупки» / localized). Empty until the user adds products.
+3. If iCloud already has a cart for this account, show that cart instead of creating a duplicate empty one when possible.
+4. Invite from Settings → **Пригласить семью** / Members → Invite (system Share Sheet).
+5. Invitee: SIWA → open share link → Accept in iCloud → **active cart is replaced** by the shared family cart (empty private starter archived; private items with content auto-merged into shared, then private archived). No merge sheet.
 
 Up to four people share one list; changes sync via CloudKit.
 
+**Cart line items are unique.** If several members add the same product (same name or catalog URL), the cart shows a separate row for each add — quantities are never merged/summed into one position.
+
 ## Account and profile
 
-- Session: Sign in with Apple credentials in Keychain.
-- Sync: requires iCloud on device (`CKContainer.accountStatus`). No email/password forms.
+- **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
+- **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
+- No email/password forms.
 - Display name, avatar, banner: **device-local** — not in CloudKit, not in migration.
+- Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
+- Welcome **Retry** soft-retries by default; local SQLite wipe only when Core Data itself failed.
+- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
+- Post-welcome failures use a system alert (`OK`), not toast/banner chrome.
 
 ## Default cart identity
 

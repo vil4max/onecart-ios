@@ -14,10 +14,6 @@ final class WelcomeViewModel: ObservableObject {
         await session.completeAppleSignIn(authorization: authorization)
     }
 
-    func completeHouseholdAudience(_ audience: HouseholdAudience) async {
-        await session.completeHouseholdAudience(audience)
-    }
-
     func retryWelcome() async {
         await session.retryWelcome()
     }

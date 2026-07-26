@@ -22,9 +22,9 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events |
+| `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events, `alertMessage` |
 | `OneCart/Application/AppDelegate.swift` | System CloudKit share invitation handoff |
-| `OneCart/Application/RootView.swift` | Launch → welcome or main tabs |
+| `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert for errors |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD + shared-record permission checks |
 | `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |
@@ -41,11 +41,11 @@ Same SQLite filenames as older installs (no rename):
 | `OneCart-private.sqlite` | private database |
 | `OneCart-shared.sqlite` | shared database |
 
-New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online.
+New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online. `AppSession.syncState` tracks sync internally; user-facing failures use a system alert (no sync banner/toast).
 
 `CKShare` uses `publicPermission = .none`. See [product.md](product.md) for Household vs Apple Family positioning.
 
-Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV4`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`.
+Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 
 ## Folder layout
 

@@ -72,6 +72,54 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertFalse(AppModel.defaultFamilyName.isEmpty)
     }
 
+    func testSharedOrNonDefaultCartIsNotDeletableStarter() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let privateNonDefault = try await repository.createFamilySpace(
+            name: AppModel.defaultFamilyName,
+            isHouseholdDefault: false
+        )
+        let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateNonDefault))
+        XCTAssertFalse(
+            FamilyCartMerge.isDeletableStarter(
+                privateSpace,
+                scope: try XCTUnwrap(persistence.scope(for: privateSpace))
+            )
+        )
+
+        let sharedID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let space = FamilySpace(context: context)
+            try persistence.assign(space, to: .shared, in: context)
+            space.id = sharedID
+            space.name = AppModel.defaultFamilyName
+            space.createdAt = Date()
+            space.updatedAt = Date()
+            space.isHouseholdDefault = NSNumber(value: true)
+        }
+        let shared = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
+        XCTAssertFalse(
+            FamilyCartMerge.isDeletableStarter(
+                shared,
+                scope: try XCTUnwrap(persistence.scope(for: shared))
+            )
+        )
+    }
+
+    func testContentSummaryAndLegacyNameMigrationRules() {
+        XCTAssertTrue(
+            FamilySpaceContentSummary(productCount: 0, storeCount: 0, historyCount: 0).isEmpty
+        )
+        XCTAssertFalse(
+            FamilySpaceContentSummary(productCount: 1, storeCount: 0, historyCount: 0).isEmpty
+        )
+        XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Наша семья"))
+        XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Наша группа"))
+        XCTAssertTrue(
+            FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault(AppSession.defaultFamilyName)
+        )
+        XCTAssertFalse(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Дача"))
+    }
+
     private func makeInMemoryRepository() async throws
         -> (PersistenceController, FamilySpaceRepository)
     {

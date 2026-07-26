@@ -38,18 +38,3 @@ struct FamilySpaceContentSummary: Equatable {
         productCount == 0 && storeCount == 0 && historyCount == 0
     }
 }
-
-struct CartMergePrompt: Identifiable, Equatable {
-    let id = UUID()
-    let privateFamilyID: UUID
-    let sharedFamilyID: UUID
-    let privateFamilyName: String
-    let sharedFamilyName: String
-    let summary: FamilySpaceContentSummary
-}
-
-enum CartMergeChoice: Equatable {
-    case useSharedOnly
-    case mergeIntoShared
-    case keepPrivate
-}
