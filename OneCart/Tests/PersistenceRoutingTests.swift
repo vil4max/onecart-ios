@@ -24,10 +24,16 @@ final class PersistenceRoutingTests: XCTestCase {
             space.updatedAt = Date()
         }
 
-        let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateID))
-        let sharedSpace = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
-        XCTAssertEqual(persistence.scope(for: privateSpace), .private)
-        XCTAssertEqual(persistence.scope(for: sharedSpace), .shared)
+        persistence.container.viewContext.processPendingChanges()
+
+        let privateScope = try XCTUnwrap(
+            persistence.scope(for: try XCTUnwrap(repository.fetchFamilySpace(id: privateID)))
+        )
+        let sharedScope = try XCTUnwrap(
+            persistence.scope(for: try XCTUnwrap(repository.fetchFamilySpace(id: sharedID)))
+        )
+        XCTAssertEqual(privateScope, .private)
+        XCTAssertEqual(sharedScope, .shared)
     }
 
     func testCreatingFamilySpaceAlsoCreatesGeneralList() async throws {

@@ -33,12 +33,14 @@ final class CartAccessTests: XCTestCase {
             space.isHouseholdDefault = NSNumber(value: true)
         }
 
-        let visibleToMember = try repository.fetchFamilySpaces(for: memberID)
-        XCTAssertEqual(Set(visibleToMember.compactMap(\.id)), [privateID, sharedID])
+        persistence.container.viewContext.processPendingChanges()
 
-        let visibleToOwner = try repository.fetchFamilySpaces(for: ownerID)
-        XCTAssertEqual(visibleToOwner.compactMap(\.id), [sharedID])
-        XCTAssertFalse(visibleToOwner.contains { $0.id == privateID })
+        let memberIDs = Set(try repository.fetchFamilySpaces(for: memberID).compactMap(\.id))
+        XCTAssertEqual(memberIDs, [privateID, sharedID])
+
+        let ownerIDs = try repository.fetchFamilySpaces(for: ownerID).compactMap(\.id)
+        XCTAssertEqual(ownerIDs, [sharedID])
+        XCTAssertFalse(ownerIDs.contains(privateID))
     }
 
     func testFamilyCacheIsScopedToAuthenticatedUser() async throws {

@@ -62,19 +62,18 @@ final class PersistenceController: @unchecked Sendable {
         self.storeDirectoryURL = storeDirectoryURL
             ?? (inMemory
                 ? FileManager.default.temporaryDirectory
+                    .appendingPathComponent("OneCartInMemory-\(UUID().uuidString)", isDirectory: true)
                 : NSPersistentContainer.defaultDirectoryURL())
 
-        if !inMemory {
-            do {
-                try FileManager.default.createDirectory(
-                    at: self.storeDirectoryURL,
-                    withIntermediateDirectories: true
-                )
-            } catch {
-                logger.error(
-                    "Unable to create persistent store directory: \(error.localizedDescription, privacy: .public)"
-                )
-            }
+        do {
+            try FileManager.default.createDirectory(
+                at: self.storeDirectoryURL,
+                withIntermediateDirectories: true
+            )
+        } catch {
+            logger.error(
+                "Unable to create persistent store directory: \(error.localizedDescription, privacy: .public)"
+            )
         }
 
         container = Self.makeContainer()
@@ -153,7 +152,7 @@ final class PersistenceController: @unchecked Sendable {
         guard let store = objectID.persistentStore else { return nil }
         if store == privateStore { return .private }
         if store == sharedStore { return .shared }
-        return nil
+        return Self.scope(forStoreURL: store.url)
     }
 
     func scope(for object: NSManagedObject) -> PersistentStoreScope? {
@@ -380,10 +379,13 @@ final class PersistenceController: @unchecked Sendable {
         let description: NSPersistentStoreDescription
 
         if inMemory {
-            description = NSPersistentStoreDescription()
-            description.type = NSInMemoryStoreType
-            description.url = URL(fileURLWithPath: "/dev/null/\(fileName)")
+            description = NSPersistentStoreDescription(
+                url: directory.appendingPathComponent(fileName)
+            )
+            description.type = NSSQLiteStoreType
             description.shouldAddStoreAsynchronously = false
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
         } else {
             description = NSPersistentStoreDescription(
                 url: directory.appendingPathComponent(fileName)
@@ -400,13 +402,13 @@ final class PersistenceController: @unchecked Sendable {
                 cloudKitOptions.databaseScope = scope == .private ? .private : .shared
                 description.cloudKitContainerOptions = cloudKitOptions
             }
-        }
 
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(
-            true as NSNumber,
-            forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey
-        )
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(
+                true as NSNumber,
+                forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey
+            )
+        }
 
         return description
     }
