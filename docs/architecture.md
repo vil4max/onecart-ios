@@ -36,7 +36,8 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | Path | Role |
 |------|------|
 | `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events, `alertMessage`, `cartTitle` |
-| `OneCart/Application/AppDelegate.swift` | System CloudKit share invitation handoff |
+| `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
+| `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
 | `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; members sheet; system alert |
 | `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes |

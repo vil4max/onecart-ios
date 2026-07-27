@@ -174,6 +174,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: owner Share again from Account; same or updated link opens for a second Apple ID that is not a private invitee
 - Do not invent scope: no new share UX, no deleting old CKShares
 
+### RC24 — Scene-based CKShare accept delivery
+- Status: done (this train)
+- Paths: `SceneDelegate.swift`, `AppDelegate.swift`, `OneCart.xcodeproj`, `docs/review-changelog.md`
+- What changed: SwiftUI scene apps receive share metadata via `windowScene(_:userDidAcceptCloudKitShareWith:)` and cold-start `connectionOptions.cloudKitShareMetadata`; AppDelegate path kept as fallback; existing `acceptPendingCloudKitShares` → `adoptSharedFamilyCartIfNeeded` unchanged (one living cart)
+- How to verify: invitee taps `icloud.com/share/...` (cold or warm) → Accept → shared cart replaces private starter; items from owner visible
+- Do not invent scope: no cart merge UX changes, no Universal Links
+
 ### RC22 — Deployment target iOS 26
 - Status: done (this train)
 - Paths: `OneCart.xcodeproj/project.pbxproj`, `ShoppingViews.swift`, `ProfileView.swift`, `README.md`, `docs/review-changelog.md`

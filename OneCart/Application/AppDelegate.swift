@@ -22,10 +22,32 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(
         _: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options _: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(
+            name: nil,
+            sessionRole: connectingSceneSession.role
+        )
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+
+    func application(
+        _: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        Self.enqueue(cloudKitShareMetadata)
+        Self.receiveCloudKitShare(cloudKitShareMetadata)
+    }
+
+    static func receiveCloudKitShare(_ metadata: CKShare.Metadata) {
+        enqueue(metadata)
         NotificationCenter.default.post(name: .oneCartDidReceiveCloudKitShare, object: nil)
+    }
+
+    static func enqueuePendingShare(from options: UIScene.ConnectionOptions) {
+        guard let metadata = options.cloudKitShareMetadata else { return }
+        enqueue(metadata)
     }
 
     static func enqueue(_ metadata: CKShare.Metadata) {

@@ -46,6 +46,7 @@
 		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
 		F20000000000000000000003 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* MoreView.swift */; };
 		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
+		F20000000000000000000005 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,6 +105,7 @@
 		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		F10000000000000000000003 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
+		F10000000000000000000005 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -169,6 +171,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				F10000000000000000000005 /* SceneDelegate.swift */,
 				A10000000000000000000002 /* OneCartApp.swift */,
 				A10000000000000000000008 /* AppSession.swift */,
 				A10000000000000000000009 /* RootView.swift */,
@@ -436,6 +439,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				F20000000000000000000005 /* SceneDelegate.swift in Sources */,
 				A20000000000000000000002 /* OneCartApp.swift in Sources */,
 				A20000000000000000000003 /* ManagedObjects.swift in Sources */,
 				A20000000000000000000004 /* PersistenceController.swift in Sources */,
