@@ -59,24 +59,29 @@ final class PersistenceRoutingTests: XCTestCase {
             at: directory,
             withIntermediateDirectories: true
         )
-        defer { try? FileManager.default.removeItem(at: directory) }
 
         let persistence = PersistenceController(
             inMemory: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
+        defer {
+            try? persistence.hardResetPersistentStores()
+            try? FileManager.default.removeItem(at: directory)
+        }
+
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
         )
         let familyID = try await repository.createFamilySpace(name: "Offline")
-        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        let list = try XCTUnwrap(space.activeLists.first)
+        let listID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+        )
 
         _ = try await repository.addProduct(
-            to: XCTUnwrap(list.id),
+            to: listID,
             draft: ProductDraft(
                 name: "Хлеб",
                 quantity: 1,

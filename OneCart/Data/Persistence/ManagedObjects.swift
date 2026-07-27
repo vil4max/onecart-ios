@@ -546,7 +546,21 @@ final class HistoryItemEntity: NSManagedObject {
 }
 
 enum OneCartManagedObjectModel {
+    private static let lock = NSLock()
+    private static var cachedModel: NSManagedObjectModel?
+
     static func makeModel() -> NSManagedObjectModel {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cachedModel {
+            return cachedModel
+        }
+        let model = buildModel()
+        cachedModel = model
+        return model
+    }
+
+    private static func buildModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         model.versionIdentifiers = ["OneCartCoreDataV6"]
 
