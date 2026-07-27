@@ -43,8 +43,8 @@
 		E20000000000000000000007 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000007 /* Localizable.xcstrings */; };
 		F20000000000000000000001 /* FamilyCartMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* FamilyCartMerge.swift */; };
 		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
-		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
 		F20000000000000000000003 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* MoreView.swift */; };
+		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,8 +100,8 @@
 		E10000000000000000000007 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F10000000000000000000001 /* FamilyCartMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartMerge.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
 		F10000000000000000000003 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
+		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -612,16 +612,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/OneCartDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -638,16 +639,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/OneCartRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
