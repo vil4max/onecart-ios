@@ -81,7 +81,7 @@
 		A10000000000000000000019 /* ManagedObjectModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjectModelTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001B /* CartManagementSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartManagementSheet.swift; sourceTree = "<group>"; };
 		A1000000000000000000001C /* CartShareViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareViewModel.swift; sourceTree = "<group>"; };
-		A1000000000000000000001D /* CartTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Support/CartTestSupport.swift; sourceTree = "<group>"; };
+		A1000000000000000000001D /* CartTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartTestSupport.swift; sourceTree = "<group>"; };
 		A1000000000000000000001E /* CartItemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartItemsTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001F /* PurchaseSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseSessionTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000020 /* FamilyCartLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartLifecycleTests.swift; sourceTree = "<group>"; };
