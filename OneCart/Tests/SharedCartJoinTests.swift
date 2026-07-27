@@ -5,20 +5,23 @@ import XCTest
 
 @MainActor
 final class SharedCartJoinTests: XCTestCase {
-    func testOfferPromptsWhenSharedExistsAlongsidePrivate() async throws {
+    func testEmptyPrivateAutoAdoptsShared() async throws {
         let (session, _, privateID, sharedID) = try await makeJoinFixture(
             privateName: "Моя",
-            sharedName: "Семейная"
+            sharedName: "Семейная",
+            sharedProduct: "Test 1"
         )
 
         try await session.offerSharedCartJoinIfNeededForTesting()
 
-        XCTAssertEqual(session.pendingSharedCartJoin?.id, sharedID)
-        XCTAssertEqual(session.pendingSharedCartJoin?.cartName, "Семейная")
-        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
+        XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
+        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+            familySpaceRequest(id: privateID)
+        ).first)
+        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
-    func testConfirmReplacesPrivateWithSharedAndMergesProducts() async throws {
+    func testPrivateContentMergesIntoSharedOnAdopt() async throws {
         let (session, _, privateID, sharedID) = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
@@ -27,9 +30,7 @@ final class SharedCartJoinTests: XCTestCase {
         )
 
         try await session.offerSharedCartJoinIfNeededForTesting()
-        await session.confirmSharedCartJoin()
 
-        XCTAssertNil(session.pendingSharedCartJoin)
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: privateID)
@@ -37,25 +38,7 @@ final class SharedCartJoinTests: XCTestCase {
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Мой хлеб", "Test 1"])
     }
 
-    func testDeclineKeepsPrivateCartAndSuppressesReprompt() async throws {
-        let (session, _, privateID, sharedID) = try await makeJoinFixture(
-            privateName: "Моя",
-            sharedName: "Семейная"
-        )
-
-        try await session.offerSharedCartJoinIfNeededForTesting()
-        XCTAssertEqual(session.pendingSharedCartJoin?.id, sharedID)
-        session.declineSharedCartJoin()
-
-        XCTAssertNil(session.pendingSharedCartJoin)
-        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
-
-        try await session.offerSharedCartJoinIfNeededForTesting()
-        XCTAssertNil(session.pendingSharedCartJoin)
-        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
-    }
-
-    func testAlreadyOnSharedDoesNotPrompt() async throws {
+    func testAlreadyOnSharedStaysShared() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -75,8 +58,8 @@ final class SharedCartJoinTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         try await session.offerSharedCartJoinIfNeededForTesting()
 
-        XCTAssertNil(session.pendingSharedCartJoin)
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
+        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
     private func makeJoinFixture(

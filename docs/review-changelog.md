@@ -182,11 +182,17 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Do not invent scope: no Universal Links
 
 ### RC25 — Confirm before replacing cart on share join
+- Status: superseded by RC27 (join alert removed)
+
+### RC26 — Auto-adopt empty starter; alert dismiss is not Cancel
+- Status: superseded by RC27 (join alert removed)
+
+### RC27 — Remove share-join confirm alert
 - Status: done (this train)
-- Paths: `AppSession.swift`, `RootView.swift`, `Localizable.xcstrings`, `docs/product.md`, `docs/review-changelog.md`
-- What changed: after CloudKit Accept, show Join/Cancel alert before `adoptSharedFamilyCartIfNeeded`; Join replaces personal cart with shared (merge then archive); Cancel keeps personal cart and does not Leave
-- How to verify: invitee Accept → alert → Join shows owner items; Cancel leaves empty My cart; `SharedCartJoinTests` + `ShareLinkJoinACLTests`
-- Do not invent scope: no Leave-on-Cancel, no merge sheet UI
+- Paths: `AppSession.swift`, `RootView.swift`, `SharedCartJoinTests.swift`, `docs/product.md`, `docs/review-changelog.md`
+- What changed: after shared cart is available locally, always `adoptSharedFamilyCartIfNeeded` (merge/archive private); no Join/Cancel UI
+- How to verify: invitee Accept → shared items without alert; `SharedCartJoinTests` cover empty adopt + content merge
+- Do not invent scope: no new Account CTA
 
 ### RC22 — Deployment target iOS 26
 - Status: done (this train)

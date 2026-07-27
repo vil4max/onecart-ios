@@ -90,24 +90,6 @@ struct RootView: View {
         } message: {
             Text(model.alertMessage ?? "")
         }
-        .alert(
-            "cart.join_shared_title",
-            isPresented: Binding(
-                get: { model.pendingSharedCartJoin != nil },
-                set: { if !$0 { model.declineSharedCartJoin() } }
-            )
-        ) {
-            Button("common.cancel", role: .cancel) {
-                model.declineSharedCartJoin()
-            }
-            Button("cart.join_shared_action") {
-                Task { await model.confirmSharedCartJoin() }
-            }
-        } message: {
-            Text(
-                "cart.join_shared_message \(model.pendingSharedCartJoin?.cartName ?? "")"
-            )
-        }
     }
 
     @ViewBuilder
