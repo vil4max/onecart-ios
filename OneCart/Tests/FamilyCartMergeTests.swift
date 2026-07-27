@@ -122,4 +122,94 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertFalse(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Дача"))
     }
 
+    func testMergeFamilyContentRemapsStoresOntoDestination() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let sourceID = try await repository.createFamilySpace(name: "Моя")
+        let destinationID = try await repository.createFamilySpace(name: "Семейная")
+        let storeID = try await repository.addStore(
+            to: sourceID,
+            draft: StoreDraft(
+                name: "Сільпо",
+                icon: "С",
+                colorHex: "#34785B",
+                address: "Київ",
+                latitude: 50.45,
+                longitude: 30.52,
+                externalAppURL: nil,
+                isPinned: true
+            )
+        )
+        let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
+        let listID = try XCTUnwrap(source.activeLists.first?.id)
+        let productID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Йогурт", price: 28)
+        )
+        try await assignStore(
+            persistence: persistence,
+            productID: productID,
+            storeID: storeID
+        )
+
+        try await repository.mergeFamilyContent(from: sourceID, into: destinationID)
+
+        let destination = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
+        XCTAssertEqual(destination.sortedProducts.count, 1)
+        XCTAssertEqual(destination.sortedProducts.first?.displayName, "Йогурт")
+        XCTAssertEqual(destination.sortedProducts.first?.store?.displayName, "Сільпо")
+        XCTAssertNotEqual(destination.sortedProducts.first?.store?.id, storeID)
+        XCTAssertEqual(destination.sortedStores.filter { $0.displayName == "Сільпо" }.count, 1)
+        XCTAssertNil(try repository.fetchFamilySpace(id: sourceID))
+    }
+
+    func testMergeFamilyContentRejectsSharedSource() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let destinationID = try await repository.createFamilySpace(name: "Семейная")
+        let sharedID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let space = FamilySpace(context: context)
+            try persistence.assign(space, to: .shared, in: context)
+            space.id = sharedID
+            space.name = "Чужая"
+            space.createdAt = Date()
+            space.updatedAt = Date()
+            let list = ShoppingListEntity(context: context)
+            try persistence.assign(list, toSameStoreAs: space, in: context)
+            list.id = UUID()
+            list.title = "Общий список"
+            list.status = ShoppingListStatus.active.rawValue
+            list.createdAt = Date()
+            list.updatedAt = Date()
+            list.familySpace = space
+        }
+
+        do {
+            try await repository.mergeFamilyContent(from: sharedID, into: destinationID)
+            XCTFail("Expected crossShareRelationship")
+        } catch let error as RepositoryError {
+            XCTAssertEqual(error, .crossShareRelationship)
+        }
+    }
+
+    func testMergeFamilyContentRequiresDestinationPermission() async throws {
+        let persistence = PersistenceController(inMemory: true)
+        try await persistence.load()
+        let owner = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let sourceID = try await owner.createFamilySpace(name: "Моя")
+        let destinationID = try await owner.createFamilySpace(name: "Семейная")
+        let denied = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: DenyAllPermissionAuthorizer()
+        )
+
+        do {
+            try await denied.mergeFamilyContent(from: sourceID, into: destinationID)
+            XCTFail("Expected permissionDenied")
+        } catch let error as RepositoryError {
+            XCTAssertEqual(error, .permissionDenied)
+        }
+    }
 }
