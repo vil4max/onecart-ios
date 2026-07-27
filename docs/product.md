@@ -12,7 +12,7 @@ Four entities, one loop:
 
 | Entity | Role |
 |--------|------|
-| **Family** (`FamilySpace`) | Up to four people via private `CKShare`; everyone can add and check items |
+| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items |
 | **Cart** | One per family; lives forever; never “closes” |
 | **Item** | A name plus trolley state: still needed, or already in the physical cart |
 | **Session** | Snapshot of what was paid for in one trip: when, who, how many items |
@@ -75,11 +75,11 @@ Up to four people share one cart; changes sync via CloudKit.
 ## Technical invite path
 
 ```text
-Create household cart → warm-start CKShare (publicPermission = .none)
+Create household cart → warm-start CKShare (publicPermission = .readWrite)
   → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
 ```
 
-Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a UI watchdog so the loader cannot stick.
+Anyone with the share URL can join (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a UI watchdog so the loader cannot stick.
 
 ## Account and profile
 
@@ -102,8 +102,8 @@ Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a
 | Allowed | Forbidden |
 |---------|-----------|
 | Soft line “Made for families on Apple” / “Для семьи на Apple” | Claiming Family Sharing membership APIs |
-| CloudKit + `CKShare` + system Share Sheet | Public join ACL (`publicPermission` permissive) |
-| Private invite via Messages / AirDrop / Mail | “Share with entire Apple Family in one API call” |
+| CloudKit + `CKShare` + system Share Sheet | “Share with entire Apple Family in one API call” |
+| Link-join invite (`publicPermission = .readWrite`) via Messages / Telegram / Mail / AirDrop | Listing Family members or verifying Family membership via missing Apple APIs |
 
 **Missing Apple APIs (do not invent):** list Family members, verify two users share a Family, push share to whole Family.
 

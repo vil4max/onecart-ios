@@ -7,7 +7,7 @@ One shared family cart on iOS: add what you need, mark what is already in the tr
 - SwiftUI, iOS 15+
 - Core Data via `NSPersistentCloudKitContainer`
 - CloudKit private / shared databases
-- Private `CKShare` invites (`publicPermission = .none`)
+- `CKShare` link-join invites (`publicPermission = .readWrite`)
 - Offline-first local SQLite stores
 
 Bundle ID: `com.vil555tim.onecart`  

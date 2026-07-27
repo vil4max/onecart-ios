@@ -63,7 +63,7 @@ Same SQLite filenames as older installs (no rename):
 
 New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online. User-facing failures use a system alert (no sync banner/toast).
 
-`CKShare` uses `publicPermission = .none`. See [product.md](product.md) for Household vs Apple Family positioning.
+`CKShare` uses `publicPermission = .readWrite` so anyone with the share URL can join. See [product.md](product.md) for Household vs Apple Family positioning.
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 

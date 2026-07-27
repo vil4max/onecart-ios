@@ -79,7 +79,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: unit tests `testDeletableStarterFamilyDetection`, model attribute present
 
 ### RC10 — CKShare publicPermission .none + Apple Family positioning docs
-- Status: done
+- Status: superseded by RC21
 - Paths: OneCart/Data/CloudKit/CloudKitServices.swift, docs/product.md
 - What changed: `publicPermission = .none`; docs state positioning vs missing Family APIs
 - How to verify: grep publicPermission; read product doc
@@ -159,6 +159,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: `just build`; tests 44 pass; check an item → progress counts it → «Завершить покупки» → only checked items appear in История, unchecked stay in the cart; no money or «шт.» anywhere in the UI
 - Do not invent scope: price input, units and rich product fields stay FU10; Stores/catalog stay FU08/FU09
 - Core Data model unchanged (CloudKit schema compatibility)
+
+### RC21 — CKShare link-join for forwarded invites
+- Status: done (this train)
+- Paths: `CloudKitServices.swift`, `docs/product.md`, `docs/architecture.md`, `docs/adr/0002-cloudkit-native-backend.md`, `README.md`, `docs/review-changelog.md`
+- What changed: `publicPermission = .readWrite` so anyone with the share URL can Accept (Telegram/Messages forwards); supersedes RC10 `.none` ACL; Apple Family positioning still forbids Family Sharing membership APIs
+- How to verify: `grep publicPermission` shows `.readWrite` only; owner re-shares once to persist ACL; invitee taps forwarded `icloud.com/share/...` → Accept → shared cart
+- Do not invent scope: no Universal Links, custom schemes, or `UICloudSharingController`
 
 ## Verification
 - `just doctor`

@@ -832,8 +832,7 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        // RC10: private invites only — no public join-via-URL ACL (Apple Family is UX positioning, not Family Sharing APIs).
-        share.publicPermission = .none
+        share.publicPermission = .readWrite
         OneCartShareBranding.apply(to: share)
 
         // `persistUpdatedShare` is known to stall; if CloudKit already minted a URL,
