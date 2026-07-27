@@ -155,7 +155,9 @@ struct ShoppingListView: View {
                                 ReadOnlyBanner()
                             }
 
-                            listSummaryCard
+                            if !products.isEmpty {
+                                listSummaryCard
+                            }
 
                             if products.isEmpty {
                                 EmptyCard(
@@ -184,15 +186,25 @@ struct ShoppingListView: View {
                             }
 
                             if !products.isEmpty {
-                                Button {
-                                    confirmingCompletion = true
-                                } label: {
-                                    Label("Завершить", systemImage: "checkmark.seal.fill")
-                                        .frame(maxWidth: .infinity)
+                                VStack(spacing: 8) {
+                                    Button {
+                                        confirmingCompletion = true
+                                    } label: {
+                                        Text("Завершить покупки ✅")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(OneCartPrimaryButtonStyle())
+                                    .disabled(purchasedCount == 0 || !model.canEdit)
+                                    .opacity(purchasedCount > 0 && model.canEdit ? 1 : 0.5)
+
+                                    Text(
+                                        "Отмеченное уедет в историю как купленное, остальное останется в корзине"
+                                    )
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .buttonStyle(OneCartPrimaryButtonStyle())
-                                .disabled(!model.canEdit)
-                                .opacity(model.canEdit ? 1 : 0.5)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -275,13 +287,15 @@ struct ShoppingListView: View {
                 } message: {
                     Text(shareAlert ?? "")
                 }
-                .alert("Завершить покупку?", isPresented: $confirmingCompletion) {
+                .alert("Всё оплачено?", isPresented: $confirmingCompletion) {
                     Button("Отмена", role: .cancel) {}
-                    Button("Завершить") {
+                    Button("Завершить покупки ✅") {
                         Task { await model.completePurchasedItems(list) }
                     }
                 } message: {
-                    Text("Отмеченные товары перейдут в историю.")
+                    Text(
+                        "\(purchasedCount) товаров из тележки уедут в историю. Остальное останется в корзине."
+                    )
                 }
                 .alert(
                     "Удалить товар?",
@@ -396,32 +410,37 @@ struct ShoppingListView: View {
 
     private var listSummaryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("В корзине")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                if products.isEmpty {
-                    Text("Пока пусто")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("\(purchasedCount) из \(products.count)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text("🛒 Покупки")
+                .font(.headline)
 
-            if !products.isEmpty {
-                ProgressView(
-                    value: Double(purchasedCount),
-                    total: Double(products.count)
-                )
-                .tint(OneCartPalette.primary)
-            } else if model.access?.isOwner == true {
-                Text("Нажмите «Поделиться», чтобы пригласить семью в эту корзину.")
+            Text(
+                "В тележке \(purchasedCount) из \(products.count) · осталось \(remainingCount)"
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+
+            ProgressView(
+                value: Double(purchasedCount),
+                total: Double(products.count)
+            )
+            .tint(OneCartPalette.primary)
+
+            if purchasedCount == 0 {
+                Text("Отмечай галочкой то, что кладёшь в тележку 🛒")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if model.familyMembers.count >= 2 {
+                Button {
+                    model.showFamilyManagement()
+                } label: {
+                    Text("👥 \(model.familyMembers.count) вместе")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(OneCartPalette.primaryStrong)
             }
         }
         .padding(16)
@@ -461,12 +480,15 @@ private struct ProductPurchaseToggle: View {
         }
         .buttonStyle(HomePressButtonStyle())
         .disabled(!canEdit)
-        .accessibilityLabel(isPurchased ? "Отметить как не купленное" : "Отметить как купленное")
+        .accessibilityLabel(
+            isPurchased ? "Убрать из тележки" : "Отметить как в тележке"
+        )
         .accessibilityAddTraits(isPurchased ? [.isSelected] : [])
     }
 }
 
 private struct ProductRow: View {
+    @EnvironmentObject private var model: AppModel
     let product: ProductEntity
     let canEdit: Bool
     let onToggle: () -> Void
@@ -556,7 +578,14 @@ private struct ProductRow: View {
     }
 
     private var productSubtitle: String {
-        product.isPurchasedValue ? "Куплено" : ""
+        guard product.isPurchasedValue else { return "" }
+        if model.familyMembers.count >= 2,
+           let purchasedByName = product.purchasedByName,
+           !purchasedByName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            return "В тележке 🛒 · \(purchasedByName)"
+        }
+        return "В тележке 🛒"
     }
 }
 

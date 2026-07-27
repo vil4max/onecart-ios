@@ -51,16 +51,24 @@ struct WelcomeView: View {
     }
 
     private var signInContent: some View {
-        AppleSignInAuthorizationButton(
-            onRequest: { request in
-                request.requestedScopes = [.fullName, .email]
-            },
-            onCompletion: { result in
-                handleSignInResult(result)
+        VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
+                OnboardingStepRow(systemImage: "list.bullet", textKey: "onboarding.step.list")
+                OnboardingStepRow(systemImage: "cart.fill", textKey: "onboarding.step.trolley")
+                OnboardingStepRow(systemImage: "checkmark.seal.fill", textKey: "onboarding.step.paid")
             }
-        )
-        .frame(maxWidth: .infinity)
-        .frame(height: 50)
+
+            AppleSignInAuthorizationButton(
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email]
+                },
+                onCompletion: { result in
+                    handleSignInResult(result)
+                }
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+        }
     }
 
     private var connectingContent: some View {
@@ -102,6 +110,24 @@ struct WelcomeView: View {
                     ?? String(localized: "welcome.sign_in_failed")
             )
         }
+    }
+}
+
+private struct OnboardingStepRow: View {
+    let systemImage: String
+    let textKey: LocalizedStringKey
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryStrong)
+                .frame(width: 24)
+            Text(textKey)
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
