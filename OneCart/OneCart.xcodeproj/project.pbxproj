@@ -42,6 +42,8 @@
 		E20000000000000000000005 /* ShoppingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000005 /* ShoppingViewModel.swift */; };
 		E20000000000000000000007 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000007 /* Localizable.xcstrings */; };
 		F20000000000000000000001 /* FamilyCartMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* FamilyCartMerge.swift */; };
+		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
+		F20000000000000000000003 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* MoreView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +98,8 @@
 		E10000000000000000000005 /* ShoppingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingViewModel.swift; sourceTree = "<group>"; };
 		E10000000000000000000007 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F10000000000000000000001 /* FamilyCartMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartMerge.swift; sourceTree = "<group>"; };
+		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		F10000000000000000000003 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +168,7 @@
 				A10000000000000000000002 /* OneCartApp.swift */,
 				A10000000000000000000008 /* AppSession.swift */,
 				A10000000000000000000009 /* RootView.swift */,
+				F10000000000000000000002 /* MainTabView.swift */,
 			);
 			path = Application;
 			sourceTree = "<group>";
@@ -236,6 +241,7 @@
 			children = (
 				A1000000000000000000001B /* CartManagementSheet.swift */,
 				A1000000000000000000001C /* CartShareViewModel.swift */,
+				F10000000000000000000003 /* MoreView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -441,6 +447,8 @@
 				A20000000000000000000017 /* CartShareViewModel.swift in Sources */,
 				A2000000000000000000000E /* ProductMedia.swift in Sources */,
 				A20000000000000000000010 /* ProfileView.swift in Sources */,
+				F20000000000000000000002 /* MainTabView.swift in Sources */,
+				F20000000000000000000003 /* MoreView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

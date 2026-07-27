@@ -83,7 +83,7 @@ struct RootView: View {
         case .welcome:
             WelcomeView(model: model)
         case .main:
-            HomeView(model: model)
+            MainTabView()
         }
     }
 }

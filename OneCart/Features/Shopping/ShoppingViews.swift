@@ -122,8 +122,6 @@ struct ShoppingListView: View {
     @State private var sharePayload: CartSharePayload?
     @State private var isSharing = false
     @State private var shareAlert: String?
-    @State private var showingProfile = false
-    @State private var showingHistory = false
 
     init(listID: UUID) {
         self.listID = listID
@@ -227,38 +225,6 @@ struct ShoppingListView: View {
                         ?? String(localized: "cart.default_title")
                 )
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Menu {
-                            Button {
-                                model.showFamilyManagement()
-                            } label: {
-                                Label("Участники", systemImage: "person.2")
-                            }
-                            Button {
-                                showingHistory = true
-                            } label: {
-                                Label("История", systemImage: "clock")
-                            }
-                            Button {
-                                showingProfile = true
-                            } label: {
-                                Label("Профиль", systemImage: "person.crop.circle")
-                            }
-                            Divider()
-                            Button(role: .destructive) {
-                                model.signOut()
-                            } label: {
-                                Label("Выйти", systemImage: "rectangle.portrait.and.arrow.right")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.body.weight(.semibold))
-                                .frame(minWidth: 44, minHeight: 44)
-                        }
-                        .accessibilityLabel("Ещё")
-                    }
-                }
                 .sheet(isPresented: $showingAddProduct) {
                     QuickAddProductSheet(listID: listID)
                 }
@@ -269,19 +235,6 @@ struct ShoppingListView: View {
                     CartActivityViewController(
                         activityItems: [CartInviteActivityItem(link: payload.link)]
                     )
-                }
-                .sheet(isPresented: $showingHistory) {
-                    HistoryView()
-                        .environmentObject(model)
-                }
-                .sheet(isPresented: $showingProfile) {
-                    if let account = model.account {
-                        ProfileEditorSheet(
-                            account: account,
-                            avatar: model.profileAvatar,
-                            banner: model.profileBanner
-                        )
-                    }
                 }
                 .alert(
                     "OneCart",
