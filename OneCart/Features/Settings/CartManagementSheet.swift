@@ -334,15 +334,14 @@ private struct CartMemberProfileView: View {
 func memberCountText(_ count: Int) -> String {
     let remainder100 = count % 100
     let remainder10 = count % 10
-    let noun: String
-    if remainder100 >= 11, remainder100 <= 14 {
-        noun = "участников"
+    let noun = if remainder100 >= 11, remainder100 <= 14 {
+        "участников"
     } else if remainder10 == 1 {
-        noun = "участник"
+        "участник"
     } else if remainder10 >= 2, remainder10 <= 4 {
-        noun = "участника"
+        "участника"
     } else {
-        noun = "участников"
+        "участников"
     }
     return "\(count) \(noun)"
 }

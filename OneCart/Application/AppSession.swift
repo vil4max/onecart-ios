@@ -6,7 +6,7 @@ import Network
 import SwiftUI
 import UIKit
 
-// Compatibility alias while Views migrate to AppSession.
+/// Compatibility alias while Views migrate to AppSession.
 typealias AppModel = AppSession
 
 final class DevicePreferences: ObservableObject {
@@ -959,13 +959,13 @@ final class AppSession: ObservableObject {
         scheduledReloadTask?.cancel()
         scheduledReloadTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled, let self, let account = self.account else { return }
+            guard !Task.isCancelled, let self, let account else { return }
             do {
                 try await adoptSharedFamilyCartIfNeeded(for: account)
                 await refreshFamilyMetadata(showErrors: false)
             } catch {
-                self.syncState = .failed
-                self.lastSyncError = userFacingMessage(for: error)
+                syncState = .failed
+                lastSyncError = userFacingMessage(for: error)
             }
         }
     }

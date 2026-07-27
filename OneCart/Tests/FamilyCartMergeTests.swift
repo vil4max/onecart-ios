@@ -1,6 +1,6 @@
-@testable import OneCart
 import CoreData
 import CoreLocation
+@testable import OneCart
 import XCTest
 
 final class FamilyCartMergeTests: XCTestCase {
@@ -80,9 +80,9 @@ final class FamilyCartMergeTests: XCTestCase {
         )
         let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateNonDefault))
         XCTAssertFalse(
-            FamilyCartMerge.isDeletableStarter(
+            try FamilyCartMerge.isDeletableStarter(
                 privateSpace,
-                scope: try XCTUnwrap(persistence.scope(for: privateSpace))
+                scope: XCTUnwrap(persistence.scope(for: privateSpace))
             )
         )
 
@@ -98,9 +98,9 @@ final class FamilyCartMergeTests: XCTestCase {
         }
         let shared = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
         XCTAssertFalse(
-            FamilyCartMerge.isDeletableStarter(
+            try FamilyCartMerge.isDeletableStarter(
                 shared,
-                scope: try XCTUnwrap(persistence.scope(for: shared))
+                scope: XCTUnwrap(persistence.scope(for: shared))
             )
         )
     }

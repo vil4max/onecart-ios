@@ -130,9 +130,26 @@ sim_name() {
 }
 
 destination_spec() {
-  local name
+  local name id
   name="$(sim_name)"
-  echo "platform=iOS Simulator,name=${name}"
+  id="$(
+    xcrun simctl list devices available -j 2>/dev/null \
+      | /usr/bin/python3 -c "
+import json, sys
+name = sys.argv[1]
+data = json.load(sys.stdin)
+for devices in data.get('devices', {}).values():
+    for d in devices:
+        if d.get('name') == name and d.get('isAvailable', True):
+            print(d['udid'])
+            raise SystemExit(0)
+" "$name" 2>/dev/null || true
+  )"
+  if [[ -n "$id" ]]; then
+    echo "platform=iOS Simulator,id=${id}"
+  else
+    echo "platform=iOS Simulator,name=${name}"
+  fi
 }
 
 harness_version() {

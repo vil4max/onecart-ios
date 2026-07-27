@@ -458,7 +458,7 @@ private struct ProductRow: View {
     }
 }
 
-/// Minimal add/rename: product name only. Quantity/unit/category use defaults.
+// Minimal add/rename: product name only. Quantity/unit/category use defaults.
 
 struct QuickAddProductSheet: View {
     @EnvironmentObject private var model: AppModel
@@ -579,7 +579,7 @@ struct QuickAddProductSheet: View {
     }
 }
 
-/// Kept for any remaining call sites; forwards to the quick name editor.
+// Kept for any remaining call sites; forwards to the quick name editor.
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel

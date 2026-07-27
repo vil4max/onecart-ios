@@ -249,23 +249,26 @@ enum AppleSignInPresentationAnchor {
     static var current: ASPresentationAnchor {
         let scenes = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
-            .filter {
-                $0.activationState == .foregroundActive
-                    || $0.activationState == .foregroundInactive
-            }
+        let preferredScenes = scenes.filter {
+            $0.activationState == .foregroundActive
+                || $0.activationState == .foregroundInactive
+        }
+        let orderedScenes = preferredScenes.isEmpty ? scenes : preferredScenes
 
-        for scene in scenes {
+        for scene in orderedScenes {
             if let window = scene.windows.first(where: \.isKeyWindow) {
                 return window
             }
         }
-        if let window = scenes.flatMap(\.windows).first(where: { !$0.isHidden }) {
-            return window
+        for scene in orderedScenes {
+            if let window = scene.windows.first(where: { !$0.isHidden }) {
+                return window
+            }
         }
-        return UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first ?? UIWindow()
+        if let scene = orderedScenes.first ?? scenes.first {
+            return UIWindow(windowScene: scene)
+        }
+        preconditionFailure("No UIWindowScene for Sign in with Apple presentation")
     }
 }
 

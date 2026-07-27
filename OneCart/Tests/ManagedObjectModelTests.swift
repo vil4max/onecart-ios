@@ -1,6 +1,6 @@
-@testable import OneCart
 import CoreData
 import CoreLocation
+@testable import OneCart
 import XCTest
 
 final class ManagedObjectModelTests: XCTestCase {

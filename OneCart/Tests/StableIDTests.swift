@@ -47,8 +47,8 @@ final class StableIDTests: XCTestCase {
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let listID = try XCTUnwrap(space.activeLists.first?.id)
         let stableID = UUID()
-        let older = Date(timeIntervalSince1970: 1_000)
-        let newer = Date(timeIntervalSince1970: 2_000)
+        let older = Date(timeIntervalSince1970: 1000)
+        let newer = Date(timeIntervalSince1970: 2000)
 
         try await persistence.performBackgroundTask { context in
             guard let family = try Self.fetchFamilySpace(id: familyID, in: context),

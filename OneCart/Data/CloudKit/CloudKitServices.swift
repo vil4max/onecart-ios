@@ -599,6 +599,10 @@ final class CloudKitBackendService {
 
 /// CloudKit share creation must stay off the MainActor. Keeping this as a plain enum
 /// avoids inheriting actor isolation from `CloudKitBackendService`.
+private enum ShareCreateRace: @unchecked Sendable {
+    case share(CKShare)
+}
+
 private enum FamilyInviteLinkBuilder {
     static func makeInviteLink(
         persistence: PersistenceController,
@@ -699,7 +703,7 @@ private enum FamilyInviteLinkBuilder {
         attempts: Int = 3
     ) async throws -> CKShare {
         var lastError: Error = OneCartCloudKitError.stillSyncing
-        for attempt in 0..<attempts {
+        for attempt in 0 ..< attempts {
             try Task.checkCancellation()
             if attempt > 0 {
                 try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
@@ -766,19 +770,23 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
-        try await withThrowingTaskGroup(of: CKShare.self) { group in
+        try await withThrowingTaskGroup(of: ShareCreateRace.self) { group in
             group.addTask {
-                try await createShareUnscoped(
+                let share = try await createShareUnscoped(
                     persistence: persistence,
                     objectID: objectID
                 )
+                return .share(share)
             }
             group.addTask {
                 try await Task.sleep(nanoseconds: 12_000_000_000)
                 throw OneCartCloudKitError.stillSyncing
             }
             do {
-                let share = try await group.next()!
+                guard case let .share(share) = try await group.next() else {
+                    group.cancelAll()
+                    throw OneCartCloudKitError.stillSyncing
+                }
                 group.cancelAll()
                 return share
             } catch {

@@ -159,13 +159,12 @@ struct AccountView: View {
         let work = Task { @MainActor in
             defer { isSharing = false }
             do {
-                let link: FamilyInviteLink
-                if let cached = model.preparedInviteLink,
-                   cached.expiresAt > Date().addingTimeInterval(30)
+                let link: FamilyInviteLink = if let cached = model.preparedInviteLink,
+                                                cached.expiresAt > Date().addingTimeInterval(30)
                 {
-                    link = cached
+                    cached
                 } else {
-                    link = try await model.createFamilyInviteLink()
+                    try await model.createFamilyInviteLink()
                 }
                 guard !Task.isCancelled else { return }
                 sharePayload = CartSharePayload(link: link)
