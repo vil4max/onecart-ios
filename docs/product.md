@@ -54,9 +54,9 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add) |
 | **История** | Purchase sessions (month sections, last 30 + show more) |
-| **Ещё** | Profile, members, invite family (owner), sign out |
+| **Аккаунт** | Participants, share cart (owner), sign out |
 
-Share is a secondary action in **Ещё**, not a primary cart CTA. Invite once; shop every day.
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day.
 
 Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 Общая корзина` when `familyMembers.count >= 2`.
 
@@ -65,7 +65,7 @@ Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 
 1. Install → Welcome: Sign in with Apple + three-step trolley metaphor + iCloud errors / Retry.
 2. After sign-in → one household cart (`isHouseholdDefault`). `+` opens name-only quick add.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
-4. After cart create, warm-start a private `CKShare` in the background. Invite from **Ещё**.
+4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
 5. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No merge sheet.
 
 Up to four people share one cart; changes sync via CloudKit.
@@ -76,7 +76,7 @@ Up to four people share one cart; changes sync via CloudKit.
 
 ```text
 Create household cart → warm-start CKShare (publicPermission = .none)
-  → Ещё → «Пригласить семью» → system Share Sheet → Accept
+  → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
 ```
 
 Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a UI watchdog so the loader cannot stick.

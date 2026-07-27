@@ -12,9 +12,9 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
-| Tabs: Корзина / История / Ещё | Theme-unit prefs / Stores / catalog UI |
+| Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
 | Name-only quick add (medium sheet) | Rich product editor / money UI |
-| Invite from Ещё; members sheet | Multi-cart switcher |
+| Invite from Аккаунт; members on the same screen | Multi-cart switcher |
 | System alert for errors | Toast / sync banner chrome |
 
 Store/catalog **UI modules are removed from the target**. Core Data still models `Store` and price fields for the CloudKit sync graph and legacy data. Do not re-wire catalog/store/price screens until two-device invite/sync is solid.
@@ -38,7 +38,7 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events, `alertMessage`, `cartTitle` |
 | `OneCart/Application/AppDelegate.swift` | System CloudKit share invitation handoff |
 | `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; members sheet; system alert |
-| `OneCart/Application/MainTabView.swift` | Корзина / История / Ещё |
+| `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `completePurchased` (checked items → session) |
 | `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |

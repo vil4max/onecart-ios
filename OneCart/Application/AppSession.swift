@@ -85,7 +85,7 @@ final class AppSession: ObservableObject {
     @Published private(set) var familyMembers: [FamilyMember] = []
     @Published private(set) var access: FamilyAccess?
     @Published private(set) var isFamilyMetadataLoading = false
-    @Published var familyManagementPresented = false
+    @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
     /// Pre-warmed CKShare invite for the active owner cart (filled after cart create).
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
@@ -597,12 +597,9 @@ final class AppSession: ObservableObject {
             reloadProfileMedia(for: updated.id)
             applyProfileToFamilyMembers(updated)
             objectWillChange.send()
-            if familyManagementPresented {
-                await refreshFamilyMetadata(showErrors: false)
-            }
+            await refreshFamilyMetadata(showErrors: false)
             return true
         } catch {
-            // Local photos already saved — keep them and still close the editor.
             reloadProfileMedia(for: account.id)
             show(error)
             return false
@@ -610,8 +607,12 @@ final class AppSession: ObservableObject {
     }
 
     func showFamilyManagement() {
-        familyManagementPresented = true
+        preferredMainTab = .account
         Task { await refreshFamilyMetadata(showErrors: true) }
+    }
+
+    func refreshAccountSharing() async {
+        await refreshFamilyMetadata(showErrors: false)
     }
 
     private func reloadProfileMedia(for userID: UUID) {
@@ -961,9 +962,7 @@ final class AppSession: ObservableObject {
             guard !Task.isCancelled, let self, let account = self.account else { return }
             do {
                 try await adoptSharedFamilyCartIfNeeded(for: account)
-                if familyManagementPresented {
-                    await refreshFamilyMetadata(showErrors: false)
-                }
+                await refreshFamilyMetadata(showErrors: false)
             } catch {
                 self.syncState = .failed
                 self.lastSyncError = userFacingMessage(for: error)

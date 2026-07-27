@@ -6,7 +6,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 Version: **1.2.1 (7)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.2.1.
 
-**Scope for this train:** stability of the living family cart + invite/sync. Three tabs (Корзина / История / Ещё), name-only add, share from «Ещё»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
+**Scope for this train:** stability of the living family cart + invite/sync. Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md) § Priority / § Why we cut surface area. Do not block release on restoring those features.
 
 On a Mac with Xcode:
 
@@ -62,7 +62,7 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 1. Signed Debug build on A and B (version 1.2.1 / build ≥ 2). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK), not a toast/banner.
 3. Go online → items remain; after a moment both devices can edit the same cart once shared (no persistent sync chrome in the UI).
-4. Tab «Ещё» → «Поделиться» → Invite → open iCloud share URL on B.
+4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
 5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways.
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Remove member on A → B loses access.
