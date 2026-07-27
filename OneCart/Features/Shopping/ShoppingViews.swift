@@ -105,7 +105,6 @@ private struct HomePressButtonStyle: ButtonStyle {
     }
 }
 
-
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
     let listID: UUID
