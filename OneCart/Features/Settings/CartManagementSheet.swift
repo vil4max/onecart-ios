@@ -46,7 +46,7 @@ struct CartManagementSheet: View {
                 .padding(.vertical, 20)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("Корзина")
+            .navigationTitle(model.cartTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -90,7 +90,7 @@ struct CartManagementSheet: View {
             }
 
             VStack(spacing: 5) {
-                Text(model.activeFamilySpace?.displayName ?? String(localized: "cart.default_title"))
+                Text(model.cartTitle)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
                 Text(memberCountText(displayedMembers.count))

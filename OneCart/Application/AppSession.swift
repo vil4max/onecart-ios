@@ -103,6 +103,13 @@ final class AppSession: ObservableObject {
         online
     }
 
+    var cartTitle: String {
+        if familyMembers.count >= 2 {
+            return String(localized: "cart.shared_title")
+        }
+        return String(localized: "cart.mine_title")
+    }
+
     private let repository: FamilySpaceRepository
     private let backend: CloudKitBackendService
     private let appleSignIn: AppleSignInAuthenticating

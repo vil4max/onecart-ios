@@ -69,24 +69,67 @@
       }
     },
     "cart.empty_title" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cart is empty"
+            "value" : "Empty for now 🙂"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Корзина пуста"
+            "value" : "Пока пусто 🙂"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Кошик порожній"
+            "value" : "Поки порожньо 🙂"
+          }
+        }
+      }
+    },
+    "cart.mine_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 My cart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 Моя корзина"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 Мій кошик"
+          }
+        }
+      }
+    },
+    "cart.shared_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👨‍👩‍👧‍👦 Shared cart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👨‍👩‍👧‍👦 Общая корзина"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👨‍👩‍👧‍👦 Спільний кошик"
           }
         }
       }
@@ -118,19 +161,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your cart is empty. Add the first item."
+            "value" : "Tap + and add the first thing — milk, bread, anything"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Корзина пуста. Добавьте первый товар."
+            "value" : "Жми +, добавь первое — молоко, хлеб, что угодно"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Кошик порожній. Додайте перший товар."
+            "value" : "Тисни +, додай перше — молоко, хліб, що завгодно"
           }
         }
       }

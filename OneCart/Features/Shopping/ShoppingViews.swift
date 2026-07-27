@@ -30,7 +30,7 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(OneCartPalette.background.ignoresSafeArea())
-                        .navigationTitle(String(localized: "cart.default_title"))
+                        .navigationTitle(model.cartTitle)
                         .navigationBarTitleDisplayMode(.inline)
                         .task {
                             await viewModel.ensureHouseholdCartIfNeeded()
@@ -39,16 +39,12 @@ struct HomeView: View {
                     ShoppingListView(listID: listID)
                 } else {
                     HomeEmptyCartPanel(
-                        cartName: model.activeFamilySpace?.displayName
-                            ?? String(localized: "cart.default_title")
+                        cartName: model.cartTitle
                     )
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OneCartPalette.background.ignoresSafeArea())
-                    .navigationTitle(
-                        model.activeFamilySpace?.displayName
-                            ?? String(localized: "cart.default_title")
-                    )
+                    .navigationTitle(model.cartTitle)
                     .navigationBarTitleDisplayMode(.inline)
                     .task {
                         await viewModel.ensureHouseholdCartIfNeeded()
@@ -216,10 +212,7 @@ struct ShoppingListView: View {
 
                     bottomBar
                 }
-                .navigationTitle(
-                    model.activeFamilySpace?.displayName
-                        ?? String(localized: "cart.default_title")
-                )
+                .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .sheet(isPresented: $showingAddProduct) {
                     QuickAddProductSheet(listID: listID)
