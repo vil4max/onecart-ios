@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Members / leave cart. Sharing is triggered from the cart screen itself.
+/// Members and leave-cart management.
 struct CartManagementSheet: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss

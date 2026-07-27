@@ -114,14 +114,10 @@ struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
     let listID: UUID
 
-    // Share uses AppSession directly; ViewModel kept for members sheet only.
     @State private var showingAddProduct = false
     @State private var editingProduct: ProductEntity?
     @State private var confirmingCompletion = false
     @State private var pendingDelete: ProductEntity?
-    @State private var sharePayload: CartSharePayload?
-    @State private var isSharing = false
-    @State private var shareAlert: String?
 
     init(listID: UUID) {
         self.listID = listID
@@ -231,22 +227,6 @@ struct ShoppingListView: View {
                 .sheet(item: $editingProduct) { product in
                     QuickAddProductSheet(listID: listID, product: product)
                 }
-                .sheet(item: $sharePayload) { payload in
-                    CartActivityViewController(
-                        activityItems: [CartInviteActivityItem(link: payload.link)]
-                    )
-                }
-                .alert(
-                    "OneCart",
-                    isPresented: Binding(
-                        get: { shareAlert != nil },
-                        set: { if !$0 { shareAlert = nil } }
-                    )
-                ) {
-                    Button("OK", role: .cancel) { shareAlert = nil }
-                } message: {
-                    Text(shareAlert ?? "")
-                }
                 .alert("Всё оплачено?", isPresented: $confirmingCompletion) {
                     Button("Отмена", role: .cancel) {}
                     Button("Завершить покупки ✅") {
@@ -287,85 +267,22 @@ struct ShoppingListView: View {
 
     private var bottomBar: some View {
         HStack(spacing: 12) {
-            if model.access?.isOwner == true {
-                Button {
-                    shareCart()
-                } label: {
-                    HStack(spacing: 8) {
-                        if isSharing {
-                            ProgressView().tint(.white)
-                        } else {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        Text("Поделиться")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .foregroundColor(.white)
-                    .background(
-                        OneCartPalette.primary,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
-                }
-                .disabled(isSharing || !model.isOnline)
-                .opacity(model.isOnline ? 1 : 0.55)
-            }
-
             if model.canEdit {
                 Button {
                     showingAddProduct = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(model.access?.isOwner == true ? OneCartPalette.primaryStrong : .white)
+                        .foregroundStyle(.white)
                         .frame(width: 56, height: 56)
-                        .background(
-                            model.access?.isOwner == true
-                                ? OneCartPalette.primarySoft
-                                : OneCartPalette.primary,
-                            in: Circle()
-                        )
+                        .background(OneCartPalette.primary, in: Circle())
                 }
                 .accessibilityLabel("Добавить товар")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .trailing)
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
-    }
-
-    private func shareCart() {
-        guard !isSharing else { return }
-        isSharing = true
-        let work = Task { @MainActor in
-            defer { isSharing = false }
-            do {
-                let link: FamilyInviteLink
-                if let cached = model.preparedInviteLink,
-                   cached.expiresAt > Date().addingTimeInterval(30)
-                {
-                    link = cached
-                } else {
-                    link = try await model.createFamilyInviteLink()
-                }
-                guard !Task.isCancelled else { return }
-                sharePayload = CartSharePayload(link: link)
-            } catch is CancellationError {
-                return
-            } catch {
-                shareAlert = (error as? LocalizedError)?.errorDescription
-                    ?? error.localizedDescription
-            }
-        }
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 24_000_000_000)
-            guard !work.isCancelled else { return }
-            if isSharing {
-                work.cancel()
-                isSharing = false
-                shareAlert = OneCartCloudKitError.shareTimedOut.errorDescription
-            }
-        }
     }
 
     private var listSummaryCard: some View {
