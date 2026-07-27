@@ -145,10 +145,6 @@ struct ShoppingListView: View {
         products.count - remainingCount
     }
 
-    private var estimatedTotal: Double {
-        products.reduce(0) { $0 + $1.estimatedPriceValue }
-    }
-
     var body: some View {
         Group {
             if let list {
@@ -416,23 +412,11 @@ struct ShoppingListView: View {
             }
 
             if !products.isEmpty {
-                GeometryReader { geo in
-                    let progress = Double(purchasedCount) / Double(products.count)
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color(.tertiarySystemFill))
-                        Capsule()
-                            .fill(OneCartPalette.primary)
-                            .frame(width: max(10, geo.size.width * progress))
-                    }
-                }
-                .frame(height: 8)
-
-                if estimatedTotal > 0 {
-                    Text(estimatedTotal.oneCartCurrency)
-                        .font(.title3.bold())
-                        .monospacedDigit()
-                }
+                ProgressView(
+                    value: Double(purchasedCount),
+                    total: Double(products.count)
+                )
+                .tint(OneCartPalette.primary)
             } else if model.access?.isOwner == true {
                 Text("Нажмите «Поделиться», чтобы пригласить семью в эту корзину.")
                     .font(.footnote)
@@ -445,44 +429,6 @@ struct ShoppingListView: View {
             OneCartPalette.surface,
             in: RoundedRectangle(cornerRadius: 18, style: .continuous)
         )
-    }
-}
-
-private struct ProductPriceStack: View {
-    let price: Double
-    let originalPrice: Double?
-    var alignment: HorizontalAlignment = .trailing
-
-    var body: some View {
-        if price > 0 {
-            VStack(alignment: alignment, spacing: 2) {
-                Text(price.oneCartCurrency)
-                    .font(.subheadline.weight(.bold))
-                    .monospacedDigit()
-                    .foregroundColor(
-                        originalPrice == nil ? .primary : OneCartPalette.danger
-                    )
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                if let originalPrice {
-                    Text(originalPrice.oneCartCurrency)
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .strikethrough(true)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(priceAccessibilityLabel)
-        }
-    }
-
-    private var priceAccessibilityLabel: String {
-        if let originalPrice {
-            return "Цена \(price.oneCartCurrency), было \(originalPrice.oneCartCurrency)"
-        }
-        return "Цена \(price.oneCartCurrency)"
     }
 }
 
@@ -536,7 +482,6 @@ private struct ProductRow: View {
             )
 
             OfficialProductThumbnail(
-                media: OfficialProductMedia.resolve(product: product),
                 category: product.categoryValue,
                 isPurchased: product.isPurchasedValue,
                 size: 52
@@ -556,31 +501,6 @@ private struct ProductRow: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-
-                    if product.isCatalogPriceStale {
-                        Label("Цена требует проверки", systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.red)
-                    } else if let promotionEndsAt = product.promotionEndsAt,
-                              product.originalPriceValue != nil
-                    {
-                        Label(
-                            promotionEndsAt > Date()
-                                ? "Акция до \(promotionEndsAt.formatted(date: .abbreviated, time: .omitted))"
-                                : "Акция завершена",
-                            systemImage: promotionEndsAt > Date()
-                                ? "timer"
-                                : "exclamationmark.triangle.fill"
-                        )
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(promotionEndsAt > Date() ? .orange : .red)
-                    } else if let catalogFetchedAt = product.catalogFetchedAt {
-                        Text(
-                            "Проверено \(catalogFetchedAt.formatted(date: .abbreviated, time: .shortened))"
-                        )
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -588,45 +508,32 @@ private struct ProductRow: View {
             .buttonStyle(.plain)
             .disabled(!canEdit)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                ProductPriceStack(
-                    price: product.estimatedPriceValue,
-                    originalPrice: product.originalPriceValue
-                )
-
-                Menu {
-                    Button {
-                        onEdit()
-                    } label: {
-                        Label("Изменить", systemImage: "pencil")
-                    }
-                    .disabled(!canEdit)
-
-                    if let sourceURL = product.sourceURLValue {
-                        Link(destination: sourceURL) {
-                            Label("Проверить на сайте", systemImage: "safari")
-                        }
-                    }
-
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("Удалить", systemImage: "trash")
-                    }
-                    .disabled(!canEdit)
+            Menu {
+                Button {
+                    onEdit()
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Color(.tertiarySystemFill),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
+                    Label("Изменить", systemImage: "pencil")
                 }
                 .disabled(!canEdit)
-                .accessibilityLabel("Ещё действия")
+
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Удалить", systemImage: "trash")
+                }
+                .disabled(!canEdit)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Color(.tertiarySystemFill),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
             }
+            .disabled(!canEdit)
+            .accessibilityLabel("Ещё действия")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -886,13 +793,6 @@ private struct HistoryEntryCard: View {
                 }
 
                 Spacer(minLength: 8)
-
-                Text(entry.totalValue.oneCartCurrency)
-                    .font(.headline)
-                    .monospacedDigit()
-                    .foregroundColor(OneCartPalette.primaryStrong)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
         }
         .padding(16)
@@ -920,27 +820,14 @@ private struct HistoryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Дата")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .textCase(.uppercase)
-                            Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
-                                .font(.body.weight(.semibold))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 12)
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Итого")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .textCase(.uppercase)
-                            Text(entry.totalValue.oneCartCurrency)
-                                .font(.title3.bold())
-                                .monospacedDigit()
-                                .foregroundColor(OneCartPalette.primaryStrong)
-                        }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Дата")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                        Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
+                            .font(.body.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -1029,32 +916,17 @@ private struct HistoryProductRow: View {
     var body: some View {
         HStack(spacing: 12) {
             OfficialProductThumbnail(
-                media: OfficialProductMedia.resolve(historyItem: item),
                 category: item.categoryValue,
                 size: 52
             )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.displayName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(
-                    "\(item.quantityValue.oneCartQuantity) \(item.unitValue.localizedName)"
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            ProductPriceStack(
-                price: item.estimatedPriceValue,
-                originalPrice: item.originalPriceValue
-            )
+            Text(item.displayName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -1133,31 +1005,5 @@ struct ContentUnavailableViewCompat: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(OneCartPalette.background)
-    }
-}
-
-extension Double {
-    var oneCartCurrency: String {
-        formatted(
-            .currency(code: "UAH")
-                .locale(Locale(identifier: "uk_UA"))
-                .precision(.fractionLength(0 ... 2))
-        )
-    }
-
-    var oneCartQuantity: String {
-        formatted(.number.precision(.fractionLength(0 ... 2)))
-    }
-}
-
-extension Color {
-    init(hex: String) {
-        let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var value: UInt64 = 0
-        Scanner(string: cleaned).scanHexInt64(&value)
-        let red = Double((value >> 16) & 0xFF) / 255
-        let green = Double((value >> 8) & 0xFF) / 255
-        let blue = Double(value & 0xFF) / 255
-        self.init(red: red, green: green, blue: blue)
     }
 }
