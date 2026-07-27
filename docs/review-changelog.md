@@ -168,11 +168,18 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Do not invent scope: no Universal Links, custom schemes, or `UICloudSharingController`
 
 ### RC23 — Persist link-join ACL on existing share URL fast path
-- Status: done (this train)
+- Status: done (this train); RC28 upgrades participant write ACL
 - Paths: `CloudKitServices.swift`, `docs/review-changelog.md`
 - What changed: reusing an already-published share URL now background-persists `publicPermission = .readWrite` (and branding), not branding alone — fixes Item Unavailable on Telegram forwards for pre-RC21 shares
 - How to verify: owner Share again from Account; same or updated link opens for a second Apple ID that is not a private invitee
 - Do not invent scope: no new share UX, no deleting old CKShares
+
+### RC28 — Upgrade CKShare participant write permission (fix readOnly invitees)
+- Status: done (this train)
+- Paths: `CloudKitServices.swift`, `SharedCartJoinTests.swift`, `docs/review-changelog.md`
+- What changed: `applyReadWriteACL` now also sets every non-owner `participant.permission = .readWrite` (not only `publicPermission`); invite fast path / finalize awaits `persistUpdatedShare` (8s ceiling, then background retry) before handing out the URL — fixes «You don't have permission to edit this cart» when `canUpdateRecord` is false for readOnly members
+- How to verify: owner opens «Поделиться корзиной» once on this build (upgrades existing members); invitee can check items / quick-add without permission alert; `ShareLinkJoinACLTests` green
+- Do not invent scope: no CloudKit Dashboard changes, no UICloudSharingController, no new invite UX
 
 ### RC24 — Scene-based CKShare accept delivery
 - Status: done (this train)
@@ -207,5 +214,6 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - `just build`
 - `xcodebuild test -project OneCart/OneCart.xcodeproj -scheme OneCart -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:OneCartTests`
 - Manual: Welcome → Sign in with Apple → Корзина (empty household cart) → thumb + → name → Add → check the row → «Завершить покупки» → checked items in История, unchecked still in the cart
-- Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; errors via system alert
+- Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; invitee can add/check items (not readOnly); errors via system alert
+- Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
 - See also [release.md](release.md) § Preflight + §3

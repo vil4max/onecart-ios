@@ -226,4 +226,29 @@ final class ShareLinkJoinACLTests: XCTestCase {
         XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
         XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
     }
+
+    func testApplyReadWriteACLUpgradesReadOnlyParticipants() {
+        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        share.publicPermission = .readWrite
+
+        let readOnlyMembers = share.participants.filter {
+            $0.role != .owner && $0.permission != .readWrite
+        }
+        // Fresh shares may only contain the owner; still assert public ACL stays put
+        // and a second apply is a no-op when everyone already has write.
+        if readOnlyMembers.isEmpty {
+            XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+            XCTAssertEqual(share.publicPermission, .readWrite)
+            return
+        }
+
+        for participant in readOnlyMembers {
+            participant.permission = .readOnly
+        }
+        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+        for participant in share.participants where participant.role != .owner {
+            XCTAssertEqual(participant.permission, .readWrite)
+        }
+        XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+    }
 }

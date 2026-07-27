@@ -142,11 +142,22 @@ enum OneCartShareBranding {
 }
 
 enum OneCartShareLinkJoin {
+    /// Ensures link-join and every non-owner participant can edit the cart.
+    /// `publicPermission` alone is not enough: invitees who already accepted with
+    /// `.readOnly` keep that participant permission until the owner upgrades it.
     @discardableResult
     static func applyReadWriteACL(to share: CKShare) -> Bool {
-        guard share.publicPermission != .readWrite else { return false }
-        share.publicPermission = .readWrite
-        return true
+        var changed = false
+        if share.publicPermission != .readWrite {
+            share.publicPermission = .readWrite
+            changed = true
+        }
+        for participant in share.participants where participant.role != .owner {
+            guard participant.permission != .readWrite else { continue }
+            participant.permission = .readWrite
+            changed = true
+        }
+        return changed
     }
 }
 
@@ -631,11 +642,12 @@ private enum FamilyInviteLinkBuilder {
     ) async throws -> FamilyInviteLink {
         try Task.checkCancellation()
 
-        // Fast path: reuse an existing share URL without blocking on persistUpdatedShare.
+        // Fast path: reuse an existing share URL. Persist write ACL first when needed
+        // so invitees (and already-joined readOnly members) get edit rights.
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            refreshLinkJoinShareInBackground(existing, persistence: persistence)
+            await ensureReadWriteACLPersisted(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -655,7 +667,7 @@ private enum FamilyInviteLinkBuilder {
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            refreshLinkJoinShareInBackground(existing, persistence: persistence)
+            await ensureReadWriteACLPersisted(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -863,13 +875,17 @@ private enum FamilyInviteLinkBuilder {
         OneCartShareLinkJoin.applyReadWriteACL(to: share)
         OneCartShareBranding.apply(to: share)
 
-        // `persistUpdatedShare` is known to stall; if CloudKit already minted a URL,
-        // return it immediately and persist branding/permissions in the background.
+        // Prefer awaiting ACL persist so the published URL grants write access.
+        // `persistUpdatedShare` can stall — fall back to the minted URL and keep
+        // trying in the background rather than blocking Invite forever.
         if let url = share.url {
-            let shareToPersist = share
-            let persistence = persistence
-            Task.detached(priority: .utility) {
-                _ = try? await persistShare(shareToPersist, persistence: persistence)
+            let persisted = await persistShareBestEffort(share, persistence: persistence)
+            if persisted == nil {
+                let shareToPersist = share
+                let persistence = persistence
+                Task.detached(priority: .utility) {
+                    _ = try? await persistShare(shareToPersist, persistence: persistence)
+                }
             }
             return FamilyInviteLink(
                 id: stableUUID(for: share.recordID.recordName),
@@ -890,10 +906,11 @@ private enum FamilyInviteLinkBuilder {
         )
     }
 
-    private static func refreshLinkJoinShareInBackground(
+    /// Applies write ACL + branding and awaits persist (with timeout) when anything changed.
+    private static func ensureReadWriteACLPersisted(
         _ share: CKShare,
         persistence: PersistenceController
-    ) {
+    ) async {
         var needsPersist = false
         if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
             needsPersist = true
@@ -902,8 +919,34 @@ private enum FamilyInviteLinkBuilder {
             needsPersist = true
         }
         guard needsPersist else { return }
-        Task.detached(priority: .utility) {
-            _ = try? await persistShare(share, persistence: persistence)
+
+        if await persistShareBestEffort(share, persistence: persistence) == nil {
+            Task.detached(priority: .utility) {
+                _ = try? await persistShare(share, persistence: persistence)
+            }
+        }
+    }
+
+    private static func persistShareBestEffort(
+        _ share: CKShare,
+        persistence: PersistenceController,
+        timeoutNanoseconds: UInt64 = 8_000_000_000
+    ) async -> CKShare? {
+        do {
+            return try await withThrowingTaskGroup(of: CKShare.self) { group in
+                group.addTask {
+                    try await persistShare(share, persistence: persistence)
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                    throw OneCartCloudKitError.shareTimedOut
+                }
+                let saved = try await group.next()!
+                group.cancelAll()
+                return saved
+            }
+        } catch {
+            return nil
         }
     }
 
