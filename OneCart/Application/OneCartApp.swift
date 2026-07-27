@@ -26,6 +26,7 @@ struct OneCartApp: App {
 }
 
 private struct OneCartScene: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var model: AppModel
 
     var body: some View {
@@ -40,6 +41,11 @@ private struct OneCartScene: View {
                         await DemoUIMode.seed(model)
                     }
                 #endif
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard !Self.isRunningUnitTests else { return }
+                guard newPhase == .active, model.account != nil else { return }
+                Task { await model.refreshFromServer() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
                 guard !Self.isRunningUnitTests else { return }

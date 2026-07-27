@@ -187,4 +187,43 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(migrationText))
     }
+
+    func testProductReloadPolicyTriggersOnlyOnSuccessfulImport() {
+        XCTAssertTrue(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: true,
+                error: nil
+            )
+        )
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .export,
+                ended: true,
+                error: nil
+            )
+        )
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: false,
+                error: nil
+            )
+        )
+        let failure = NSError(domain: CKError.errorDomain, code: CKError.Code.networkUnavailable.rawValue)
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: true,
+                error: failure
+            )
+        )
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .setup,
+                ended: true,
+                error: nil
+            )
+        )
+    }
 }

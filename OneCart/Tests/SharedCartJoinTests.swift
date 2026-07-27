@@ -62,6 +62,50 @@ final class SharedCartJoinTests: XCTestCase {
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
+    func testRefreshFromServerPicksUpToggledPurchasedState() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: "Семейная",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        let listID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+        )
+        let productID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Test 1")
+        )
+        defaults.set(familyID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        XCTAssertEqual(session.products.filter(\.isPurchasedValue).count, 0)
+
+        try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
+        await session.refreshFromServer()
+
+        XCTAssertEqual(session.products.filter(\.isPurchasedValue).count, 1)
+        let refreshed = try XCTUnwrap(session.products.first { $0.id == productID })
+        XCTAssertTrue(refreshed.isPurchasedValue)
+        XCTAssertEqual(refreshed.purchasedByName, "Анна")
+        XCTAssertEqual(
+            session.products(inListID: listID).filter(\.isPurchasedValue).count,
+            1
+        )
+    }
+
     private func makeJoinFixture(
         privateName: String,
         sharedName: String,

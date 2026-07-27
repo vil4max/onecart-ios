@@ -185,6 +185,16 @@ enum OneCartCloudKitError: LocalizedError {
     }
 }
 
+enum CloudKitProductReloadPolicy {
+    static func shouldReloadProductsAfterEvent(
+        type: NSPersistentCloudKitContainer.EventType,
+        ended: Bool,
+        error: Error?
+    ) -> Bool {
+        ended && error == nil && type == .import
+    }
+}
+
 enum CloudKitUserFacingError {
     static var genericSyncFailure: String {
         String(localized: "sync.generic_failure")

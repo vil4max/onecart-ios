@@ -38,10 +38,16 @@ struct HomeView: View {
                 } else if let listID = primaryListID {
                     ShoppingListView(listID: listID)
                 } else {
-                    HomeEmptyCartPanel(
-                        cartName: model.cartTitle
-                    )
-                    .padding(.horizontal, 20)
+                    ScrollView {
+                        HomeEmptyCartPanel(
+                            cartName: model.cartTitle
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    }
+                    .refreshable {
+                        await model.refreshFromServer()
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OneCartPalette.background.ignoresSafeArea())
                     .navigationTitle(model.cartTitle)
@@ -205,6 +211,9 @@ struct ShoppingListView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
                         .padding(.bottom, model.canEdit ? 120 : 28)
+                    }
+                    .refreshable {
+                        await model.refreshFromServer()
                     }
                     .background(OneCartPalette.background.ignoresSafeArea())
 

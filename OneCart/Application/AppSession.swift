@@ -546,6 +546,7 @@ final class AppSession: ObservableObject {
         do {
             try reload()
             await refreshFamilyMetadata(showErrors: true)
+            try refreshProducts()
             syncState = online ? .synchronized : .offline
         } catch {
             show(error)
@@ -961,6 +962,13 @@ final class AppSession: ObservableObject {
                 } else {
                     self.syncState = self.online ? .synchronized : .offline
                     self.lastSyncError = nil
+                    if CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                        type: event.type,
+                        ended: true,
+                        error: nil
+                    ) {
+                        self.scheduleCloudReload(delayNanoseconds: 150_000_000)
+                    }
                 }
             }
         }
@@ -975,6 +983,7 @@ final class AppSession: ObservableObject {
             do {
                 try await offerSharedCartJoinIfNeeded(for: account)
                 await refreshFamilyMetadata(showErrors: false)
+                try refreshProducts()
             } catch {
                 syncState = .failed
                 lastSyncError = userFacingMessage(for: error)
