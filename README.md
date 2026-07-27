@@ -4,7 +4,7 @@ One shared family cart on iOS: add what you need, mark what is already in the tr
 
 ## Stack
 
-- SwiftUI, iOS 15+
+- SwiftUI, iOS 26+
 - Core Data via `NSPersistentCloudKitContainer`
 - CloudKit private / shared databases
 - `CKShare` link-join invites (`publicPermission = .readWrite`)

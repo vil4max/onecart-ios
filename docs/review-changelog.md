@@ -20,7 +20,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - NC03 Core Data store filenames (OneCart-private.sqlite / OneCart-shared.sqlite)
 - NC04 No Coordinator / Clean Domain modules
 - NC05 No multi-cart UX
-- NC06 Deployment target remains iOS 15
+- NC06 Deployment target iOS 26 (was iOS 15; aligned project/tests with app target)
 - NC07 No Apple Family member-list / same-family / share-to-all-family APIs
 - NC08 No IAP / Family Sharing subscriptions in this PR
 
@@ -166,6 +166,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - What changed: `publicPermission = .readWrite` so anyone with the share URL can Accept (Telegram/Messages forwards); supersedes RC10 `.none` ACL; Apple Family positioning still forbids Family Sharing membership APIs
 - How to verify: `grep publicPermission` shows `.readWrite` only; owner re-shares once to persist ACL; invitee taps forwarded `icloud.com/share/...` → Accept → shared cart
 - Do not invent scope: no Universal Links, custom schemes, or `UICloudSharingController`
+
+### RC22 — Deployment target iOS 26
+- Status: done (this train)
+- Paths: `OneCart.xcodeproj/project.pbxproj`, `ShoppingViews.swift`, `ProfileView.swift`, `README.md`, `docs/review-changelog.md`
+- What changed: project + test targets aligned to `IPHONEOS_DEPLOYMENT_TARGET = 26.0` (app target already 26.0); clears XC Cloud `CKRecord`/`Sendable` availability warnings; drop iOS 16 `#available` for medium sheet
+- How to verify: all `IPHONEOS_DEPLOYMENT_TARGET` = 26.0; Archive without CKRecord Sendable warnings
+- Do not invent scope: no `@Observable` migration (FU02)
 
 ## Verification
 - `just doctor`

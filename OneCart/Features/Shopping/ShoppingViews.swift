@@ -935,13 +935,8 @@ struct ContentUnavailableViewCompat: View {
 }
 
 private extension View {
-    @ViewBuilder
     func oneCartMediumSheet() -> some View {
-        if #available(iOS 16.0, *) {
-            presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        } else {
-            self
-        }
+        presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
     }
 }

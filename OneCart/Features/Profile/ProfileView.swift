@@ -404,7 +404,7 @@ struct ProfileAvatarView: View {
     }
 }
 
-// MARK: - PHPicker (iOS 15+)
+// MARK: - PHPicker
 
 private struct PhotoLibraryPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
