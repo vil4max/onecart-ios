@@ -172,7 +172,6 @@ struct ShoppingListView: View {
                                     ForEach(products, id: \.objectID) { product in
                                         ProductRow(
                                             product: product,
-                                            lists: model.activeLists,
                                             canEdit: model.canEdit,
                                             onToggle: {
                                                 Task { await model.togglePurchased(product) }
@@ -182,14 +181,6 @@ struct ShoppingListView: View {
                                             },
                                             onDelete: {
                                                 pendingDelete = product
-                                            },
-                                            onMove: { destination in
-                                                Task {
-                                                    await model.moveProduct(
-                                                        product,
-                                                        to: destination
-                                                    )
-                                                }
                                             }
                                         )
                                     }
@@ -531,16 +522,10 @@ private struct ProductPurchaseToggle: View {
 
 private struct ProductRow: View {
     let product: ProductEntity
-    let lists: [ShoppingListEntity]
     let canEdit: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
-    let onMove: (ShoppingListEntity) -> Void
-
-    private var moveTargets: [ShoppingListEntity] {
-        lists.filter { $0.id != product.list?.id }
-    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -616,19 +601,6 @@ private struct ProductRow: View {
                         Label("Изменить", systemImage: "pencil")
                     }
                     .disabled(!canEdit)
-
-                    if !moveTargets.isEmpty {
-                        Menu {
-                            ForEach(moveTargets, id: \.objectID) { list in
-                                Button(list.store?.displayName ?? list.displayTitle) {
-                                    onMove(list)
-                                }
-                            }
-                        } label: {
-                            Label("Переместить", systemImage: "arrow.right.square")
-                        }
-                        .disabled(!canEdit)
-                    }
 
                     if let sourceURL = product.sourceURLValue {
                         Link(destination: sourceURL) {

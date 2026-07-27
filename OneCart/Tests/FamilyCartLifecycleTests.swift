@@ -36,17 +36,6 @@ final class FamilyCartLifecycleTests: XCTestCase {
     func testArchiveFamilySpaceHidesCartAndSoftDeletesChildren() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, _, productID) = try await seedCart(repository: repository)
-        _ = try await repository.addStore(
-            to: familyID,
-            draft: StoreDraft(
-                name: "АТБ",
-                icon: "АТБ",
-                colorHex: "#E30613",
-                address: nil,
-                externalAppURL: nil,
-                isPinned: false
-            )
-        )
 
         try await repository.archiveFamilySpace(id: familyID)
 
@@ -64,8 +53,6 @@ final class FamilyCartLifecycleTests: XCTestCase {
         spaceRequest.predicate = NSPredicate(format: "id == %@", familyID as NSUUID)
         let space = try XCTUnwrap(persistence.container.viewContext.fetch(spaceRequest).first)
         XCTAssertNotNil(space.deletedAt)
-        let stores = space.stores?.allObjects as? [StoreEntity] ?? []
-        XCTAssertTrue(stores.allSatisfy { $0.deletedAt != nil })
     }
 
     func testRenameFamilySpaceUpdatesDisplayName() async throws {
@@ -96,35 +83,5 @@ final class FamilyCartLifecycleTests: XCTestCase {
 
         try await repository.removeCachedFamilySpace(id: familyID, for: userID)
         XCTAssertNil(try repository.fetchFamilySpace(id: familyID))
-    }
-
-    func testSoftDeleteStoreUnlinksProducts() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
-        let (familyID, listID, productID) = try await seedCart(repository: repository)
-        let storeID = try await repository.addStore(
-            to: familyID,
-            draft: StoreDraft(
-                name: "АТБ",
-                icon: "АТБ",
-                colorHex: "#E30613",
-                address: nil,
-                externalAppURL: nil,
-                isPinned: false
-            )
-        )
-        try await assignStore(
-            persistence: persistence,
-            productID: productID,
-            storeID: storeID
-        )
-        XCTAssertEqual(fetchProduct(id: productID, repository: repository)?.store?.id, storeID)
-
-        try await repository.deleteStore(id: storeID)
-
-        let product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
-        XCTAssertNil(product.store)
-        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        XCTAssertTrue(space.sortedStores.isEmpty)
-        _ = listID
     }
 }

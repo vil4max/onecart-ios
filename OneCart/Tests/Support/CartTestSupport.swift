@@ -59,34 +59,6 @@ extension XCTestCase {
         return nil
     }
 
-    func assignStore(
-        persistence: PersistenceController,
-        productID: UUID,
-        storeID: UUID
-    ) async throws {
-        try await persistence.performBackgroundTask { context in
-            let productRequest = ProductEntity.fetchRequest()
-            productRequest.predicate = NSPredicate(
-                format: "id == %@ AND deletedAt == nil",
-                productID as NSUUID
-            )
-            productRequest.fetchLimit = 1
-            let storeRequest = StoreEntity.fetchRequest()
-            storeRequest.predicate = NSPredicate(
-                format: "id == %@ AND deletedAt == nil",
-                storeID as NSUUID
-            )
-            storeRequest.fetchLimit = 1
-            guard let product = try context.fetch(productRequest).first,
-                  let store = try context.fetch(storeRequest).first
-            else {
-                throw RepositoryError.productNotFound
-            }
-            product.store = store
-            product.updatedAt = Date()
-        }
-    }
-
     func makeDefaults() throws -> UserDefaults {
         let suiteName = "OneCartTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

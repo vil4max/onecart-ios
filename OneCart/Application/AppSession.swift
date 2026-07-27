@@ -39,21 +39,6 @@ final class DevicePreferences: ObservableObject {
     }
 }
 
-struct HomeOverview: Equatable {
-    var purchasedCount = 0
-    var totalCount = 0
-    var estimatedTotal = 0.0
-
-    var remainingCount: Int {
-        max(totalCount - purchasedCount, 0)
-    }
-}
-
-struct ListOverviewSummary: Equatable {
-    let productCount: Int
-    let purchasedCount: Int
-}
-
 enum InviteLinkError: LocalizedError {
     case notOwner
     case offline
@@ -96,8 +81,6 @@ final class AppSession: ObservableObject {
     @Published private(set) var activeLists: [ShoppingListEntity] = []
     @Published private(set) var products: [ProductEntity] = []
     @Published private(set) var productsByListID: [UUID: [ProductEntity]] = [:]
-    @Published private(set) var listSummaries: [UUID: ListOverviewSummary] = [:]
-    @Published private(set) var homeOverview = HomeOverview()
     @Published private(set) var history: [PurchaseHistoryEntity] = []
     @Published private(set) var familyMembers: [FamilyMember] = []
     @Published private(set) var access: FamilyAccess?
@@ -194,23 +177,6 @@ final class AppSession: ObservableObject {
 
     func retryStartup() async {
         await retryWelcome()
-    }
-
-    func refreshFamilyCartFromCloud() async {
-        guard account != nil else { return }
-        isBusy = true
-        defer { isBusy = false }
-        await acceptPendingCloudKitShares()
-        do {
-            try reload()
-            if let account {
-                try await adoptSharedFamilyCartIfNeeded(for: account)
-            }
-            if activeFamilySpace != nil {
-            }
-        } catch {
-            show(error)
-        }
     }
 
     func ensureHouseholdCartIfNeeded() async {
@@ -353,34 +319,6 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func renameFamilySpace(name: String) async {
-        guard access?.isOwner == true, let id = activeFamilySpace?.id else {
-            presentAlert("Название может менять только владелец корзины.")
-            return
-        }
-        await performMutation(successMessage: "Название обновлено") {
-            try await self.repository.renameFamilySpace(id: id, name: name)
-        }
-    }
-
-    func addList(title: String, store: StoreEntity?) async {
-        guard let familySpaceID = activeFamilySpace?.id else { return }
-        await performMutation(successMessage: "Список создан") {
-            try await self.repository.addList(
-                to: familySpaceID,
-                title: title,
-                storeID: store?.id
-            )
-        }
-    }
-
-    func deleteList(_ list: ShoppingListEntity) async {
-        guard let id = list.id else { return }
-        await performMutation(successMessage: "Список удалён") {
-            try await self.repository.deleteList(id: id)
-        }
-    }
-
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
         guard let listID = list.id else { return }
         await performMutation(successMessage: "Товар добавлен") {
@@ -400,8 +338,6 @@ final class AppSession: ObservableObject {
         }
     }
 
-
-
     func togglePurchased(_ product: ProductEntity) async {
         guard let id = product.id else { return }
         guard canEdit else {
@@ -418,28 +354,14 @@ final class AppSession: ObservableObject {
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
-            try refreshProductsAndSummaries()
+            try refreshProducts()
         } catch {
             show(error)
         }
     }
 
-    func summary(for listID: UUID) -> ListOverviewSummary {
-        listSummaries[listID] ?? ListOverviewSummary(productCount: 0, purchasedCount: 0)
-    }
-
     func products(inListID listID: UUID) -> [ProductEntity] {
         productsByListID[listID] ?? []
-    }
-
-    func moveProduct(
-        _ product: ProductEntity,
-        to destination: ShoppingListEntity
-    ) async {
-        guard let id = product.id, let destinationID = destination.id else { return }
-        await performMutation(successMessage: "Товар перемещён") {
-            try await self.repository.moveProduct(id: id, to: destinationID)
-        }
     }
 
     func deleteProduct(_ product: ProductEntity) async {
@@ -817,8 +739,6 @@ final class AppSession: ObservableObject {
         activeLists = []
         products = []
         productsByListID = [:]
-        listSummaries = [:]
-        homeOverview = HomeOverview()
         history = []
         familyMembers = []
         access = nil
@@ -906,7 +826,7 @@ final class AppSession: ObservableObject {
         rebuildDerivedCollections()
     }
 
-    private func refreshProductsAndSummaries() throws {
+    private func refreshProducts() throws {
         guard let selectedID = activeFamilySpace?.id else { return }
         let context = persistence.container.viewContext
         context.processPendingChanges()
@@ -917,36 +837,14 @@ final class AppSession: ObservableObject {
     private func rebuildDerivedCollections() {
         activeLists = lists.filter { !$0.isDeletedValue && $0.statusValue == .active }
 
-        var purchasedCount = 0
-        var estimatedTotal = 0.0
         var grouped: [UUID: [ProductEntity]] = [:]
-        var counts: [UUID: (total: Int, purchased: Int)] = [:]
 
         for product in products where !product.isDeletedValue {
-            if product.isPurchasedValue {
-                purchasedCount += 1
-            }
-            estimatedTotal += product.estimatedPriceValue
-
             guard let listID = product.list?.id else { continue }
             grouped[listID, default: []].append(product)
-            var entry = counts[listID] ?? (0, 0)
-            entry.total += 1
-            if product.isPurchasedValue {
-                entry.purchased += 1
-            }
-            counts[listID] = entry
         }
 
         productsByListID = grouped
-        listSummaries = counts.mapValues {
-            ListOverviewSummary(productCount: $0.total, purchasedCount: $0.purchased)
-        }
-        homeOverview = HomeOverview(
-            purchasedCount: purchasedCount,
-            totalCount: products.count,
-            estimatedTotal: estimatedTotal
-        )
     }
 
     private func fetchLists(

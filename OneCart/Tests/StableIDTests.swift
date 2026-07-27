@@ -15,41 +15,6 @@ final class StableIDTests: XCTestCase {
         )
     }
 
-    func testStableIDPreventsDuplicateStores() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
-        let familyID = try await repository.createFamilySpace(name: "Family")
-        let storeID = UUID()
-        let draft = StoreDraft(
-            name: "АТБ",
-            icon: "АТБ",
-            colorHex: "#315B9A",
-            address: nil,
-            externalAppURL: nil,
-            isPinned: true
-        )
-
-        _ = try await repository.addStore(
-            to: familyID,
-            id: storeID,
-            draft: draft
-        )
-        _ = try await repository.addStore(
-            to: familyID,
-            id: storeID,
-            draft: draft
-        )
-
-        let request = StoreEntity.fetchRequest()
-        request.predicate = NSPredicate(
-            format: "familySpace.id == %@",
-            familyID as NSUUID
-        )
-        XCTAssertEqual(
-            try persistence.container.viewContext.fetch(request).count,
-            1
-        )
-    }
-
     func testAddProductIsIdempotentForExactStableID() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let (familyID, listID, _) = try await seedCart(repository: repository, name: "Семья")

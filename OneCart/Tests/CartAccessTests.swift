@@ -5,37 +5,6 @@ import CoreLocation
 import XCTest
 
 final class CartAccessTests: XCTestCase {
-    func testRepositoryEnforcesReadOnlyPermission() async throws {
-        let persistence = PersistenceController(inMemory: true)
-        try await persistence.load()
-        let ownerRepository = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
-        )
-        let familyID = try await ownerRepository.createFamilySpace(name: "Family")
-        let readOnlyRepository = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: DenyAllPermissionAuthorizer()
-        )
-
-        do {
-            _ = try await readOnlyRepository.addStore(
-                to: familyID,
-                draft: StoreDraft(
-                    name: "Store",
-                    icon: "S",
-                    colorHex: "#34785B",
-                    address: nil,
-                    externalAppURL: nil,
-                    isPinned: false
-                )
-            )
-            XCTFail("Expected permission error")
-        } catch let error as RepositoryError {
-            XCTAssertEqual(error, .permissionDenied)
-        }
-    }
-
     func testFamilyAccessAllowsSharedListEditing() {
         XCTAssertTrue(FamilyAccess.owner.canEdit)
         XCTAssertTrue(FamilyAccess.member.canEdit)

@@ -34,7 +34,6 @@
 		A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* CloudKitErrorMappingTests.swift */; };
 		A20000000000000000000020 /* LegacyMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025 /* LegacyMigrationTests.swift */; };
 		A20000000000000000000021 /* AppleSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* AppleSignInTests.swift */; };
-		A20000000000000000000022 /* CatalogPriceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* CatalogPriceTests.swift */; };
 		D20000000000000000000002 /* CloudKitServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitServices.swift */; };
 		E20000000000000000000001 /* OneCartStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* OneCartStableID.swift */; };
 		E20000000000000000000002 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* AppleSignInService.swift */; };
@@ -89,7 +88,6 @@
 		A10000000000000000000024 /* CloudKitErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrorMappingTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000025 /* LegacyMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000026 /* AppleSignInTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000027 /* CatalogPriceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogPriceTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000001 /* CloudKitServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitServices.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
@@ -155,7 +153,6 @@
 				A10000000000000000000024 /* CloudKitErrorMappingTests.swift */,
 				A10000000000000000000025 /* LegacyMigrationTests.swift */,
 				A10000000000000000000026 /* AppleSignInTests.swift */,
-				A10000000000000000000027 /* CatalogPriceTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -463,7 +460,6 @@
 				A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */,
 				A20000000000000000000020 /* LegacyMigrationTests.swift in Sources */,
 				A20000000000000000000021 /* AppleSignInTests.swift in Sources */,
-				A20000000000000000000022 /* CatalogPriceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

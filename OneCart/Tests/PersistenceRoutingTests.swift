@@ -98,29 +98,4 @@ final class PersistenceRoutingTests: XCTestCase {
         XCTAssertEqual(products.count, 1)
         XCTAssertEqual(products.first?.displayName, "Хлеб")
     }
-
-    func testStoreLocationIsPersistedWithSelectedBranch() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
-        let familyID = try await repository.createFamilySpace(name: "Family")
-
-        let storeID = try await repository.addStore(
-            to: familyID,
-            draft: StoreDraft(
-                name: "АТБ",
-                icon: "АТБ",
-                colorHex: "#E30613",
-                address: "Київ · Хрещатик, 1",
-                latitude: 50.4501,
-                longitude: 30.5234,
-                externalAppURL: "https://www.atbmarket.com",
-                isPinned: false
-            )
-        )
-
-        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        let store = try XCTUnwrap(space.sortedStores.first { $0.id == storeID })
-        XCTAssertEqual(store.address, "Київ · Хрещатик, 1")
-        XCTAssertEqual(store.latitudeValue ?? 0, 50.4501, accuracy: 0.000_001)
-        XCTAssertEqual(store.longitudeValue ?? 0, 30.5234, accuracy: 0.000_001)
-    }
 }

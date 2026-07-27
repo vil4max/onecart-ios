@@ -41,7 +41,7 @@ final class FamilyCartMergeTests: XCTestCase {
     }
 
     func testMergeFamilyContentCopiesProducts() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
+        let (_, repository) = try await makeInMemoryRepository()
         let sourceID = try await repository.createFamilySpace(name: "Моя")
         let destinationID = try await repository.createFamilySpace(name: "Семейная")
         let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
@@ -120,46 +120,6 @@ final class FamilyCartMergeTests: XCTestCase {
             FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault(AppSession.defaultFamilyName)
         )
         XCTAssertFalse(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Дача"))
-    }
-
-    func testMergeFamilyContentRemapsStoresOntoDestination() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
-        let sourceID = try await repository.createFamilySpace(name: "Моя")
-        let destinationID = try await repository.createFamilySpace(name: "Семейная")
-        let storeID = try await repository.addStore(
-            to: sourceID,
-            draft: StoreDraft(
-                name: "Сільпо",
-                icon: "С",
-                colorHex: "#34785B",
-                address: "Київ",
-                latitude: 50.45,
-                longitude: 30.52,
-                externalAppURL: nil,
-                isPinned: true
-            )
-        )
-        let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
-        let listID = try XCTUnwrap(source.activeLists.first?.id)
-        let productID = try await repository.addProduct(
-            to: listID,
-            draft: productDraft(name: "Йогурт", price: 28)
-        )
-        try await assignStore(
-            persistence: persistence,
-            productID: productID,
-            storeID: storeID
-        )
-
-        try await repository.mergeFamilyContent(from: sourceID, into: destinationID)
-
-        let destination = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
-        XCTAssertEqual(destination.sortedProducts.count, 1)
-        XCTAssertEqual(destination.sortedProducts.first?.displayName, "Йогурт")
-        XCTAssertEqual(destination.sortedProducts.first?.store?.displayName, "Сільпо")
-        XCTAssertNotEqual(destination.sortedProducts.first?.store?.id, storeID)
-        XCTAssertEqual(destination.sortedStores.filter { $0.displayName == "Сільпо" }.count, 1)
-        XCTAssertNil(try repository.fetchFamilySpace(id: sourceID))
     }
 
     func testMergeFamilyContentRejectsSharedSource() async throws {

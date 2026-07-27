@@ -42,37 +42,6 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(product.note, "холодное")
     }
 
-    func testMoveProductTransfersToDestinationListInSameFamily() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
-        let (familyID, sourceListID, productID) = try await seedCart(repository: repository)
-        let destinationListID = try await repository.addList(
-            to: familyID,
-            title: "АТБ"
-        )
-
-        try await repository.moveProduct(id: productID, to: destinationListID)
-
-        let product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
-        XCTAssertEqual(product.list?.id, destinationListID)
-        XCTAssertNotEqual(product.list?.id, sourceListID)
-    }
-
-    func testMoveProductRejectsCrossFamilyDestination() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
-        let (_, _, productID) = try await seedCart(repository: repository)
-        let otherFamilyID = try await repository.createFamilySpace(name: "Другая")
-        let otherListID = try XCTUnwrap(
-            try repository.fetchFamilySpace(id: otherFamilyID)?.activeLists.first?.id
-        )
-
-        do {
-            try await repository.moveProduct(id: productID, to: otherListID)
-            XCTFail("Expected crossShareRelationship")
-        } catch let error as RepositoryError {
-            XCTAssertEqual(error, .crossShareRelationship)
-        }
-    }
-
     func testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Offline")
