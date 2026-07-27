@@ -592,33 +592,69 @@ struct QuickAddProductSheet: View {
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel
     @State private var pendingDelete: PurchaseHistoryEntity?
+    @State private var visibleCount = 30
+
+    private var groupedHistory: [(month: Date, entries: [PurchaseHistoryEntity])] {
+        let visibleEntries = Array(model.history.prefix(visibleCount))
+        let grouped = Dictionary(grouping: visibleEntries) { entry in
+            let components = Calendar.current.dateComponents(
+                [.year, .month],
+                from: entry.purchaseDate
+            )
+            return Calendar.current.date(from: components) ?? entry.purchaseDate
+        }
+        return grouped
+            .map { (month: $0.key, entries: $0.value) }
+            .sorted { $0.month > $1.month }
+    }
 
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                LazyVStack(alignment: .leading, spacing: 16) {
                     if model.history.isEmpty {
                         EmptyCard(
                             image: "clock",
-                            title: "История пуста",
-                            message: "Завершённые покупки появятся здесь."
+                            title: "Пока тишина 📭",
+                            message: "Завершённые покупки появятся здесь — ничего не потеряется."
                         )
                     } else {
-                        ForEach(model.history, id: \.objectID) { entry in
-                            NavigationLink {
-                                HistoryDetailView(entry: entry)
-                            } label: {
-                                HistoryEntryCard(entry: entry)
-                            }
-                            .buttonStyle(HomePressButtonStyle())
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    pendingDelete = entry
-                                } label: {
-                                    Label("Удалить запись", systemImage: "trash")
+                        ForEach(groupedHistory, id: \.month) { group in
+                            Section {
+                                VStack(spacing: 12) {
+                                    ForEach(group.entries, id: \.objectID) { entry in
+                                        NavigationLink {
+                                            HistoryDetailView(entry: entry)
+                                        } label: {
+                                            HistoryEntryCard(entry: entry)
+                                        }
+                                        .buttonStyle(HomePressButtonStyle())
+                                        .contextMenu {
+                                            Button(role: .destructive) {
+                                                pendingDelete = entry
+                                            } label: {
+                                                Label("Удалить запись", systemImage: "trash")
+                                            }
+                                            .disabled(!model.canEdit)
+                                        }
+                                    }
                                 }
-                                .disabled(!model.canEdit)
+                            } header: {
+                                Text(group.month.formatted(.dateTime.month(.wide).year()))
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                    .textCase(nil)
                             }
+                        }
+
+                        if visibleCount < model.history.count {
+                            Button {
+                                visibleCount = min(visibleCount + 30, model.history.count)
+                            } label: {
+                                Text("Показать ещё")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(OneCartSecondaryButtonStyle())
                         }
                     }
                 }
@@ -627,7 +663,7 @@ struct HistoryView: View {
                 .padding(.bottom, 28)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("История")
+            .navigationTitle("📜 История")
             .navigationBarTitleDisplayMode(.inline)
             .alert(
                 "Удалить запись?",
@@ -655,7 +691,7 @@ private struct HistoryEntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(entry.purchaseDate.formatted(date: .abbreviated, time: .shortened))
+                Text(entry.purchaseDate.formatted(date: .omitted, time: .shortened))
                     .font(.caption.weight(.bold))
                     .foregroundColor(OneCartPalette.primaryStrong)
                     .padding(.horizontal, 10)
@@ -681,14 +717,13 @@ private struct HistoryEntryCard: View {
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Корзина")
+                    Text(entry.membersDisplay)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    Text("\(entry.sortedItems.count) товаров · \(entry.membersDisplay)")
+                        .lineLimit(2)
+                    Text("\(entry.sortedItems.count) товаров")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
                 }
 
                 Spacer(minLength: 8)
@@ -793,7 +828,7 @@ private struct HistoryDetailView: View {
             .padding(.bottom, 28)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle("Корзина")
+        .navigationTitle("Сессия")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Удалить запись?", isPresented: $confirmingDelete) {
             Button("Отмена", role: .cancel) {}
