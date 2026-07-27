@@ -183,19 +183,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 The family adds what needs buying"
+            "value" : "📝 Add to the list"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Семья набрасывает, что нужно купить"
+            "value" : "📝 Добавили в список"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Родина додає, що потрібно купити"
+            "value" : "📝 Додали до списку"
           }
         }
       }
@@ -205,19 +205,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📜 Paid — the purchases move to history"
+            "value" : "✅ Paid - to history"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📜 Оплатил — покупки уехали в историю"
+            "value" : "✅ Оплатили - в историю"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📜 Оплачено — покупки поїхали в історію"
+            "value" : "✅ Оплатили - в історію"
           }
         }
       }
@@ -227,19 +227,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 In the store, mark what is already in the trolley — everyone at home sees it instantly"
+            "value" : "🛒 Mark in the trolley"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 В магазине отмечаешь, что уже в тележке — дома видят сразу"
+            "value" : "🛒 Отметили в тележке"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 У магазині відмічаєш, що вже у візку — вдома бачать одразу"
+            "value" : "🛒 Відмітили у візку"
           }
         }
       }
@@ -298,19 +298,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple Sign In is your session. Shopping lists sync through the device iCloud account."
+            "value" : "Apple ID and iCloud"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вход через Apple — это сессия. Списки синхронизируются через iCloud-аккаунт устройства."
+            "value" : "Нужны Apple ID и iCloud"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вхід через Apple — це сесія. Списки синхронізуються через iCloud-акаунт пристрою."
+            "value" : "Потрібні Apple ID та iCloud"
           }
         }
       }
@@ -343,19 +343,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in with Apple to open your cart. Sync and family sharing need iCloud on this iPhone."
+            "value" : "One family cart"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Войдите через Apple, чтобы открыть корзину. Синхронизация и шаринг семье требуют iCloud на этом iPhone."
+            "value" : "Одна корзина на семью"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Увійдіть через Apple, щоб відкрити кошик. Синхронізація і шаринг для сімʼї потребують iCloud на цьому iPhone."
+            "value" : "Один кошик на родину"
           }
         }
       }

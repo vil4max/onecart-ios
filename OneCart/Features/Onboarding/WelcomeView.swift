@@ -11,26 +11,18 @@ struct WelcomeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 28) {
             Spacer()
 
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 OneCartMark()
-                Text("welcome.title")
-                    .font(.largeTitle.bold())
-                    .multilineTextAlignment(.center)
                 Text("welcome.subtitle")
-                    .font(.body)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             content
-
-            Text("welcome.footer")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
 
             Spacer()
         }
@@ -52,11 +44,11 @@ struct WelcomeView: View {
     }
 
     private var signInContent: some View {
-        VStack(spacing: 20) {
-            VStack(alignment: .leading, spacing: 14) {
-                OnboardingStepRow(systemImage: "list.bullet", textKey: "onboarding.step.list")
-                OnboardingStepRow(systemImage: "cart.fill", textKey: "onboarding.step.trolley")
-                OnboardingStepRow(systemImage: "checkmark.seal.fill", textKey: "onboarding.step.paid")
+        VStack(spacing: 22) {
+            VStack(alignment: .leading, spacing: 12) {
+                OnboardingStepRow(textKey: "onboarding.step.list")
+                OnboardingStepRow(textKey: "onboarding.step.trolley")
+                OnboardingStepRow(textKey: "onboarding.step.paid")
             }
 
             AppleSignInAuthorizationButton(
@@ -70,6 +62,11 @@ struct WelcomeView: View {
             .id(colorScheme)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
+
+            Text("welcome.footer")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
     }
 
@@ -116,20 +113,12 @@ struct WelcomeView: View {
 }
 
 private struct OnboardingStepRow: View {
-    let systemImage: String
     let textKey: LocalizedStringKey
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-                .frame(width: 24)
-            Text(textKey)
-                .font(.subheadline)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text(textKey)
+            .font(.body)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
