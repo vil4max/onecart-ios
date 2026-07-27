@@ -8,10 +8,6 @@ final class CartShareViewModel: ObservableObject {
         self.session = session
     }
 
-    func createFamilyInviteLink() async throws -> FamilyInviteLink {
-        try await session.createFamilyInviteLink()
-    }
-
     func removeMember(_ member: FamilyMember) async {
         await session.removeMember(member)
     }

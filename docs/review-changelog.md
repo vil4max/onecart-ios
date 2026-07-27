@@ -1,6 +1,6 @@
 # OneCart PR review changelog
 
-Branch: refactor/onecart-structure-naming
+Branch: feat/living-cart-and-tabs
 Base: main
 Audience: human reviewer + review agent (alex)
 
@@ -152,11 +152,19 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - What changed: briefly landed History tab + slim Settings on main; then PR #17 merged cart-only shell (History as sheet from cart menu)
 - Build after merge: **1.2.1 (5)**
 
+### RC20 — Living cart: trolley metaphor, three tabs, dead-code purge
+- Status: done (this train)
+- Paths: `ShoppingViews.swift`, `RootView`, `AppSession.swift`, `FamilySpaceRepository.swift`, `WelcomeView.swift`, `ProductMedia.swift`, `Localizable.xcstrings`, `OneCart/Tests/**`, `docs/**`, `assets/store/screenshots/01-welcome.png`
+- What changed: checkbox now means «в тележке», «Завершить покупки» archives **only checked items** (`completePurchased`) and keeps the rest in the living cart; tabs Корзина / История / Аккаунт with share on the Account screen; quick add is a medium sheet that dismisses after one item; history grouped by session/month; Welcome explains the three steps; price / unit / pseudo-catalog UI, StoreMark assets, dead multi-list and store APIs and stale strings removed; monolithic `BusinessLogicTests` / `OneCartTests` split into thematic suites over shared `CartTestSupport`
+- How to verify: `just build`; tests 44 pass; check an item → progress counts it → «Завершить покупки» → only checked items appear in История, unchecked stay in the cart; no money or «шт.» anywhere in the UI
+- Do not invent scope: price input, units and rich product fields stay FU10; Stores/catalog stay FU08/FU09
+- Core Data model unchanged (CloudKit schema compatibility)
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
 - `just build`
 - `xcodebuild test -project OneCart/OneCart.xcodeproj -scheme OneCart -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:OneCartTests`
-- Manual: Welcome → Sign in with Apple → Cart (empty household cart) → thumb + → name → Add
-- Manual (device): Cart invite → accept on second device → shared cart replaces/merges private starter; errors via system alert
+- Manual: Welcome → Sign in with Apple → Корзина (empty household cart) → thumb + → name → Add → check the row → «Завершить покупки» → checked items in История, unchecked still in the cart
+- Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; errors via system alert
 - See also [release.md](release.md) § Preflight + §3

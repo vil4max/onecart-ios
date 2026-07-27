@@ -1,31 +1,101 @@
-# Product flow
+# Product
 
-## Priority: stability first
+## Thesis
 
-OneCart ships a **narrow, reliable core** before optional surface area.
+**OneCart is one shared family cart and a single place to see every purchase.**
 
-| Order | Goal |
-|-------|------|
-| 1 | Sign in, one household cart, add/check items, offline local save |
-| 2 | Private `CKShare` invite that actually opens and syncs on two devices |
-| 3 | Clear errors (system alert), no stuck spinners / flashing chrome |
-| 4 | Only then: richer catalog, stores map, multi-list UX, polish features |
+One person adds items, another shops, everyone sees progress live. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
 
-**Rule for agents and PRs:** do not re-expand UI scope until the core path above is green on real devices. Extra features that touch CloudKit graphs, WebKit scrapers, or multi-list routing have already caused fragile invite/sync and heavy screens — they wait.
+## Business skeleton
 
-## Why we cut surface area
+Four entities, one loop:
 
-| Cut from main UX | Why (stability) | Status |
-|------------------|-----------------|--------|
-| **Settings tab** | Theme/unit prefs and a second root competed with the cart; invite and members belong on the cart itself. | Removed. Profile / history / members are sheets from the cart menu. |
-| **Theme & default unit prefs** | System appearance is enough; quick add always uses piece defaults. | Removed from prefs (`DevicePreferences` keeps display name only). |
-| **Stores / official catalogs UI** | WebKit scrapers + store locator enlarged CK surface and blocked the simple “type a name” path. | Deleted from the app target (Core Data `Store` remains for sync graph). |
-| **Rich product editor** (qty / unit / category / price / notes on add) | More fields → more abandon / keyboard friction; defaults are enough for a working list. | `QuickAddProductSheet`: name → Add → next. |
-| **History as a main tab** | Competed with cart focus. | Sheet from cart menu. |
-| **Audience / merge sheets / multi-cart switcher** | Parallel onboarding paths made accept-share and “which cart is active?” unreliable. | One household cart; invite replaces/merges private starter. |
-| **Toast / sync banner chrome** | Flashing top errors felt broken and raced with CloudKit events. | System alert (`OK`) only. |
+| Entity | Role |
+|--------|------|
+| **Family** (`FamilySpace`) | Up to four people via private `CKShare`; everyone can add and check items |
+| **Cart** | One per family; lives forever; never “closes” |
+| **Item** | A name plus trolley state: still needed, or already in the physical cart |
+| **Session** | Snapshot of what was paid for in one trip: when, who, how many items |
 
-Deferred (explicit non-goals until core is stable): multi-cart, store locator as primary UX, catalog-first shopping, IAP / Apple Family Sharing APIs, public join links.
+```text
+Family → living cart → items (needed / in trolley)
+                         ↓ «Завершить покупки»
+                    purchase session → history
+```
+
+### Trolley metaphor
+
+The app mirrors the store floor:
+
+1. Family piles items into the shared cart.
+2. Shopper walks the aisle, picks from the shelf into a real trolley, taps the checkbox.
+3. Home sees “in the trolley” immediately over CloudKit.
+4. At checkout, **Завершить покупки** moves checked items into history as bought; unchecked items stay for the next trip.
+
+Checkbox means **in the trolley**, not paid. “Bought” happens at session complete.
+
+### Product promises
+
+1. **Sync** — added at home, visible in the store at once.
+2. **Transparency** — who put what in the trolley, without calls.
+3. **Memory** — sessions answer what the family buys regularly.
+
+Money is not a promise on this train: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
+
+### What OneCart is not
+
+Not a budget tracker, not store-catalog price comparison, not a multi-list task manager, not a messenger. Those paths grew the CloudKit graph and blurred the core loop — leftover APIs and UI for them were removed.
+
+## Shell
+
+Three tabs after Welcome:
+
+| Tab | Contents |
+|-----|----------|
+| **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add) |
+| **История** | Purchase sessions (month sections, last 30 + show more) |
+| **Аккаунт** | Participants, share cart (owner), sign out |
+
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day.
+
+Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 Общая корзина` when `familyMembers.count >= 2`.
+
+## User flow
+
+1. Install → Welcome: Sign in with Apple + three-step trolley metaphor + iCloud errors / Retry.
+2. After sign-in → one household cart (`isHouseholdDefault`). `+` opens name-only quick add.
+3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
+4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
+5. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No merge sheet.
+
+Up to four people share one cart; changes sync via CloudKit.
+
+**Cart lines are unique.** Same product name from several members stays as separate rows — quantities are never merged.
+
+## Technical invite path
+
+```text
+Create household cart → warm-start CKShare (publicPermission = .none)
+  → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
+```
+
+Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a UI watchdog so the loader cannot stick.
+
+## Account and profile
+
+- **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
+- **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
+- Display name, avatar, banner: **device-local** — not in CloudKit.
+- Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
+- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
+- Failures use a system alert (`OK`), not toast/banner chrome.
+
+## Default cart identity
+
+- Nav display: `cart.mine_title` / `cart.shared_title` (computed from member count).
+- Identity flag: `isHouseholdDefault`.
+- Legacy names `"Наша семья"` / `"Наша группа"` / `"Наши покупки"` / `"Our shopping"` / `"Наші покупки"` migrated once to the flag.
+- `cart.default_title` remains for legacy/tests.
 
 ## Positioning vs Apple Family
 
@@ -39,44 +109,27 @@ Deferred (explicit non-goals until core is stable): multi-cart, store locator as
 
 Apple Family does **not** merge carts by itself — participants need an in-app `CKShare` invite.
 
-## Technical invite path
+## Stability context (engineering)
 
-```text
-Create household cart → warm-start CKShare (background, publicPermission = .none)
-  → Cart bottom bar «Поделиться» → system Share Sheet → Accept
-```
+Ship a reliable SIWA → one cart → add/check → invite/sync loop before re-expanding surface area.
 
-Legacy `onecart://invite/...` tokens and the old invite endpoint are gone.
+| Kept out of UX | Why |
+|----------------|-----|
+| Theme / unit prefs | System appearance; name-only add |
+| Stores / catalog scrapers | Enlarged CK surface; blocked simple add |
+| Rich product editor (qty / unit / price / notes) | Friction; add fields later on a working core |
+| Multi-cart switcher / audience sheets | Unreliable “which cart?” paths |
+| Toast / sync banner chrome | Raced with CloudKit; system alert only |
 
-Invite must not hard-block on `recordID` forever; share creation has timeouts and UI watchdog so the loader cannot stick.
+Deferred until core is solid on real devices: multi-cart, store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, public join links, price input.
 
-## User flow
+## Idea: history assistant (not this train)
 
-1. Install → Welcome: Sign in with Apple + short onboarding copy (iCloud errors + Retry on the same screen).
-2. After sign-in → **one cart screen** (`isHouseholdDefault`). Thumb-zone **+** opens a name-only quick add (type → Add → next).
-3. If iCloud already has a cart for this account, show that cart instead of creating a duplicate empty one when possible.
-4. After cart create, warm-start a private `CKShare` invite URL in the background. **Share** from the cart bottom bar (system Share Sheet). Members / history / profile live in the cart overflow menu.
-5. Invitee: SIWA → open share link → Accept in iCloud → **active cart is replaced** by the shared family cart (empty private starter archived; private items with content auto-merged into shared, then private archived). No merge sheet.
+History sessions are a dataset of family habits (what, how often, who). Possible later:
 
-**Shell:** cart-only (no Settings / Stores tabs). History / members / profile are sheets from the cart menu. Copy uses **корзина** (cart), not a group.
+- Autocomplete while typing (“мол…” → “Молоко”)
+- Reminders for regularly forgotten items
+- Sort cart by category / aisle
+- Rough trip total once prices exist
 
-Up to four people share one list; changes sync via CloudKit.
-
-**Cart line items are unique.** If several members add the same product (same name or catalog URL), the cart shows a separate row for each add — quantities are never merged/summed into one position.
-
-## Account and profile
-
-- **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
-- **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
-- No email/password forms.
-- Display name, avatar, banner: **device-local** — not in CloudKit, not in migration.
-- Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
-- Welcome **Retry** soft-retries by default; local SQLite wipe only when Core Data itself failed.
-- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
-- Post-welcome failures use a system alert (`OK`), not toast/banner chrome.
-
-## Default cart identity
-
-- Display: localized `cart.default_title` («Список покупок» / Shopping list)
-- Identity: `isHouseholdDefault`
-- Legacy names `"Наша семья"` / `"Наша группа"` / `"Наши покупки"` / `"Our shopping"` / `"Наші покупки"` migrated once to the flag
+Prefer on-device, no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.

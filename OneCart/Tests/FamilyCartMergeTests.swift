@@ -41,7 +41,7 @@ final class FamilyCartMergeTests: XCTestCase {
     }
 
     func testMergeFamilyContentCopiesProducts() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
+        let (_, repository) = try await makeInMemoryRepository()
         let sourceID = try await repository.createFamilySpace(name: "Моя")
         let destinationID = try await repository.createFamilySpace(name: "Семейная")
         let source = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID))
@@ -122,15 +122,54 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertFalse(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Дача"))
     }
 
-    private func makeInMemoryRepository() async throws
-        -> (PersistenceController, FamilySpaceRepository)
-    {
+    func testMergeFamilyContentRejectsSharedSource() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let destinationID = try await repository.createFamilySpace(name: "Семейная")
+        let sharedID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let space = FamilySpace(context: context)
+            try persistence.assign(space, to: .shared, in: context)
+            space.id = sharedID
+            space.name = "Чужая"
+            space.createdAt = Date()
+            space.updatedAt = Date()
+            let list = ShoppingListEntity(context: context)
+            try persistence.assign(list, toSameStoreAs: space, in: context)
+            list.id = UUID()
+            list.title = "Общий список"
+            list.status = ShoppingListStatus.active.rawValue
+            list.createdAt = Date()
+            list.updatedAt = Date()
+            list.familySpace = space
+        }
+
+        do {
+            try await repository.mergeFamilyContent(from: sharedID, into: destinationID)
+            XCTFail("Expected crossShareRelationship")
+        } catch let error as RepositoryError {
+            XCTAssertEqual(error, .crossShareRelationship)
+        }
+    }
+
+    func testMergeFamilyContentRequiresDestinationPermission() async throws {
         let persistence = PersistenceController(inMemory: true)
         try await persistence.load()
-        let repository = FamilySpaceRepository(
+        let owner = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
         )
-        return (persistence, repository)
+        let sourceID = try await owner.createFamilySpace(name: "Моя")
+        let destinationID = try await owner.createFamilySpace(name: "Семейная")
+        let denied = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: DenyAllPermissionAuthorizer()
+        )
+
+        do {
+            try await denied.mergeFamilyContent(from: sourceID, into: destinationID)
+            XCTFail("Expected permissionDenied")
+        } catch let error as RepositoryError {
+            XCTAssertEqual(error, .permissionDenied)
+        }
     }
 }

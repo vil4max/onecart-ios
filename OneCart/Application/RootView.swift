@@ -1,12 +1,33 @@
 import SwiftUI
+import UIKit
 
 enum OneCartPalette {
-    static let primary = Color(red: 52 / 255, green: 120 / 255, blue: 91 / 255)
-    static let primaryStrong = Color(red: 40 / 255, green: 95 / 255, blue: 71 / 255)
-    static let primarySoft = Color(red: 225 / 255, green: 239 / 255, blue: 231 / 255)
+    /// Filled surfaces that carry white content.
+    static let primary = adaptive(light: (52, 120, 91), dark: (62, 147, 112))
+    /// Pressed state of a filled surface.
+    static let primaryStrong = adaptive(light: (40, 95, 71), dark: (46, 110, 83))
+    /// Text and glyphs drawn on `background`, `surface` or `primarySoft`.
+    static let primaryAccent = adaptive(light: (40, 95, 71), dark: (116, 199, 159))
+    /// Tinted backing for chips and icon tiles.
+    static let primarySoft = adaptive(light: (225, 239, 231), dark: (30, 51, 41))
     static let background = Color(.systemGroupedBackground)
     static let surface = Color(.secondarySystemGroupedBackground)
-    static let danger = Color(red: 185 / 255, green: 74 / 255, blue: 72 / 255)
+    static let danger = adaptive(light: (185, 74, 72), dark: (232, 117, 111))
+
+    private static func adaptive(
+        light: (CGFloat, CGFloat, CGFloat),
+        dark: (CGFloat, CGFloat, CGFloat)
+    ) -> Color {
+        Color(UIColor { traits in
+            let components = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: components.0 / 255,
+                green: components.1 / 255,
+                blue: components.2 / 255,
+                alpha: 1
+            )
+        })
+    }
 }
 
 private enum RootPhase: Equatable {
@@ -69,10 +90,6 @@ struct RootView: View {
         } message: {
             Text(model.alertMessage ?? "")
         }
-        .sheet(isPresented: $model.familyManagementPresented) {
-            CartManagementSheet(model: model)
-                .environmentObject(model)
-        }
     }
 
     @ViewBuilder
@@ -83,7 +100,7 @@ struct RootView: View {
         case .welcome:
             WelcomeView(model: model)
         case .main:
-            HomeView(model: model)
+            MainTabView()
         }
     }
 }
@@ -213,7 +230,7 @@ struct OneCartSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundColor(OneCartPalette.primaryStrong)
+            .foregroundColor(OneCartPalette.primaryAccent)
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
             .background(

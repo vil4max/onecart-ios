@@ -1,6 +1,6 @@
 # OneCart
 
-Family shopping list for up to four people on iOS. One Welcome screen with **Sign in with Apple**; the shared cart syncs through iCloud / CloudKit. The first signed-in owner gets a Household cart; others join via a private invite link (`CKShare`).
+One shared family cart on iOS: add what you need, mark what is already in the trolley at the store, and keep purchase sessions in one place. Sign in with Apple; sync and invites run through iCloud / CloudKit (`CKShare`).
 
 ## Stack
 
@@ -25,7 +25,7 @@ For device / TestFlight: App ID capabilities and CloudKit Production — see [do
 .
 ├── OneCart/                 # App product
 │   ├── OneCart.xcodeproj
-│   ├── Application/         # App entry, AppSession, root UI
+│   ├── Application/         # App entry, AppSession, root + tabs
 │   ├── Features/            # Feature UI + ViewModels
 │   ├── Data/                # Persistence, CloudKit, Auth, Migration
 │   ├── Shared/

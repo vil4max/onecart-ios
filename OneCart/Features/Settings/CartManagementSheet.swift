@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Members / leave cart. Sharing is triggered from the cart screen itself.
+/// Members and leave-cart management.
 struct CartManagementSheet: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -46,7 +46,7 @@ struct CartManagementSheet: View {
                 .padding(.vertical, 20)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("Корзина")
+            .navigationTitle(model.cartTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -86,11 +86,11 @@ struct CartManagementSheet: View {
                     .frame(width: 82, height: 82)
                 Image(systemName: "cart.fill")
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
             }
 
             VStack(spacing: 5) {
-                Text(model.activeFamilySpace?.displayName ?? String(localized: "cart.default_title"))
+                Text(model.cartTitle)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
                 Text(memberCountText(displayedMembers.count))
@@ -110,7 +110,7 @@ struct CartManagementSheet: View {
                 Spacer()
                 Text("\(displayedMembers.count)")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(OneCartPalette.primarySoft, in: Capsule())
@@ -252,7 +252,7 @@ private struct CartMemberRow: View {
                     if member.isCurrentUser {
                         Text("вы")
                             .font(.caption2.weight(.semibold))
-                            .foregroundColor(OneCartPalette.primaryStrong)
+                            .foregroundColor(OneCartPalette.primaryAccent)
                     }
                 }
                 Text(member.access.isOwner ? "Владелец корзины" : "Участник корзины")

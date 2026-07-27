@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct OneCartApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = AppModel()
+    @StateObject private var model = OneCartApp.makeModel()
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +13,15 @@ struct OneCartApp: App {
                     model.persistence.container.viewContext
                 )
         }
+    }
+
+    private static func makeModel() -> AppModel {
+        #if DEBUG
+            if DemoUIMode.isEnabled {
+                return DemoUIMode.makeSession()
+            }
+        #endif
+        return AppModel()
     }
 }
 
@@ -26,6 +35,11 @@ private struct OneCartScene: View {
             .task {
                 guard !Self.isRunningUnitTests else { return }
                 await model.start()
+                #if DEBUG
+                    if DemoUIMode.isEnabled {
+                        await DemoUIMode.seed(model)
+                    }
+                #endif
             }
             .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
                 guard !Self.isRunningUnitTests else { return }
