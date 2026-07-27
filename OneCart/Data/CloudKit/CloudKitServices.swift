@@ -612,11 +612,11 @@ private enum FamilyInviteLinkBuilder {
     ) async throws -> FamilyInviteLink {
         try Task.checkCancellation()
 
-        // Fast path: reuse an existing share URL without persistUpdatedShare (can stall).
+        // Fast path: reuse an existing share URL without blocking on persistUpdatedShare.
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            refreshBrandingInBackground(existing, persistence: persistence)
+            refreshLinkJoinShareInBackground(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -636,7 +636,7 @@ private enum FamilyInviteLinkBuilder {
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            refreshBrandingInBackground(existing, persistence: persistence)
+            refreshLinkJoinShareInBackground(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -871,12 +871,19 @@ private enum FamilyInviteLinkBuilder {
         )
     }
 
-    /// Keep invite UI snappy: update OneCart title/logo on an already-published share off the hot path.
-    private static func refreshBrandingInBackground(
+    private static func refreshLinkJoinShareInBackground(
         _ share: CKShare,
         persistence: PersistenceController
     ) {
-        guard OneCartShareBranding.apply(to: share) else { return }
+        var needsPersist = false
+        if share.publicPermission != .readWrite {
+            share.publicPermission = .readWrite
+            needsPersist = true
+        }
+        if OneCartShareBranding.apply(to: share) {
+            needsPersist = true
+        }
+        guard needsPersist else { return }
         Task.detached(priority: .utility) {
             _ = try? await persistShare(share, persistence: persistence)
         }

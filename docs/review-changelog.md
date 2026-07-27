@@ -161,11 +161,18 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Core Data model unchanged (CloudKit schema compatibility)
 
 ### RC21 — CKShare link-join for forwarded invites
-- Status: done (this train)
+- Status: done (this train); RC23 closes re-share ACL gap
 - Paths: `CloudKitServices.swift`, `docs/product.md`, `docs/architecture.md`, `docs/adr/0002-cloudkit-native-backend.md`, `README.md`, `docs/review-changelog.md`
 - What changed: `publicPermission = .readWrite` so anyone with the share URL can Accept (Telegram/Messages forwards); supersedes RC10 `.none` ACL; Apple Family positioning still forbids Family Sharing membership APIs
-- How to verify: `grep publicPermission` shows `.readWrite` only; owner re-shares once to persist ACL; invitee taps forwarded `icloud.com/share/...` → Accept → shared cart
+- How to verify: `grep publicPermission` shows `.readWrite`; owner opens Share once on a build with RC23 so existing shares persist ACL; invitee taps forwarded `icloud.com/share/...` → Accept → shared cart
 - Do not invent scope: no Universal Links, custom schemes, or `UICloudSharingController`
+
+### RC23 — Persist link-join ACL on existing share URL fast path
+- Status: done (this train)
+- Paths: `CloudKitServices.swift`, `docs/review-changelog.md`
+- What changed: reusing an already-published share URL now background-persists `publicPermission = .readWrite` (and branding), not branding alone — fixes Item Unavailable on Telegram forwards for pre-RC21 shares
+- How to verify: owner Share again from Account; same or updated link opens for a second Apple ID that is not a private invitee
+- Do not invent scope: no new share UX, no deleting old CKShares
 
 ### RC22 — Deployment target iOS 26
 - Status: done (this train)
