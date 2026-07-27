@@ -136,7 +136,7 @@ struct ShoppingListView: View {
 
     private var emptyCartMessage: String {
         if model.access?.isOwner == true {
-            return "\(String(localized: "home.empty_hint")) Пригласить семью можно во вкладке «Ещё»."
+            return "\(String(localized: "home.empty_hint")) Поделиться корзиной можно во вкладке «Аккаунт»."
         }
         return String(localized: "home.empty_hint")
     }
@@ -309,7 +309,7 @@ struct ShoppingListView: View {
                         .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(OneCartPalette.primaryStrong)
+                .foregroundStyle(OneCartPalette.primaryAccent)
             }
         }
         .padding(16)
@@ -685,7 +685,7 @@ private struct HistoryEntryCard: View {
             HStack {
                 Text(entry.purchaseDate.formatted(date: .omitted, time: .shortened))
                     .font(.caption.weight(.bold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
@@ -701,7 +701,7 @@ private struct HistoryEntryCard: View {
             HStack(spacing: 12) {
                 Image(systemName: "cart.fill")
                     .font(.body.weight(.semibold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
                     .frame(width: 48, height: 48)
                     .background(
                         OneCartPalette.primarySoft,

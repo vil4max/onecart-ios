@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: WelcomeViewModel
 
     init(model: AppModel) {
@@ -66,6 +67,7 @@ struct WelcomeView: View {
                     handleSignInResult(result)
                 }
             )
+            .id(colorScheme)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
         }
@@ -121,7 +123,7 @@ private struct OnboardingStepRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: systemImage)
                 .font(.body.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryStrong)
+                .foregroundStyle(OneCartPalette.primaryAccent)
                 .frame(width: 24)
             Text(textKey)
                 .font(.subheadline)
@@ -132,6 +134,8 @@ private struct OnboardingStepRow: View {
 }
 
 private struct AppleSignInAuthorizationButton: UIViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
+
     var onRequest: (ASAuthorizationAppleIDRequest) -> Void
     var onCompletion: (Result<ASAuthorization, Error>) -> Void
 
@@ -140,9 +144,10 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
+        let style: ASAuthorizationAppleIDButton.Style = colorScheme == .dark ? .white : .black
         let button = ASAuthorizationAppleIDButton(
             authorizationButtonType: .signIn,
-            authorizationButtonStyle: .black
+            authorizationButtonStyle: style
         )
         button.cornerRadius = 14
         button.addTarget(

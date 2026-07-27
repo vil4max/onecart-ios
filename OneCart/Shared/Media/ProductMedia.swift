@@ -7,26 +7,16 @@ struct OfficialProductThumbnail: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    OneCartPalette.primary.opacity(0.13),
-                    OneCartPalette.primary.opacity(0.04),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+                .fill(OneCartPalette.primarySoft)
             Image(systemName: category.systemImage)
                 .font(.system(size: size * 0.37, weight: .semibold))
-                .foregroundColor(OneCartPalette.primary.opacity(0.78))
+                .foregroundStyle(OneCartPalette.primaryAccent)
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: size * 0.27, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-                .stroke(Color(.separator).opacity(0.35), lineWidth: 0.5)
-        )
-        .saturation(isPurchased ? 0.2 : 1)
-        .opacity(isPurchased ? 0.68 : 1)
+        .saturation(isPurchased ? 0.35 : 1)
+        .opacity(isPurchased ? 0.72 : 1)
     }
 }
 

@@ -86,7 +86,7 @@ struct CartManagementSheet: View {
                     .frame(width: 82, height: 82)
                 Image(systemName: "cart.fill")
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
             }
 
             VStack(spacing: 5) {
@@ -110,7 +110,7 @@ struct CartManagementSheet: View {
                 Spacer()
                 Text("\(displayedMembers.count)")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(OneCartPalette.primaryStrong)
+                    .foregroundColor(OneCartPalette.primaryAccent)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(OneCartPalette.primarySoft, in: Capsule())
@@ -252,7 +252,7 @@ private struct CartMemberRow: View {
                     if member.isCurrentUser {
                         Text("вы")
                             .font(.caption2.weight(.semibold))
-                            .foregroundColor(OneCartPalette.primaryStrong)
+                            .foregroundColor(OneCartPalette.primaryAccent)
                     }
                 }
                 Text(member.access.isOwner ? "Владелец корзины" : "Участник корзины")
