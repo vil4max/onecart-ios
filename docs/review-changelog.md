@@ -179,7 +179,14 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Paths: `SceneDelegate.swift`, `AppDelegate.swift`, `OneCart.xcodeproj`, `docs/review-changelog.md`
 - What changed: SwiftUI scene apps receive share metadata via `windowScene(_:userDidAcceptCloudKitShareWith:)` and cold-start `connectionOptions.cloudKitShareMetadata`; AppDelegate path kept as fallback; existing `acceptPendingCloudKitShares` → `adoptSharedFamilyCartIfNeeded` unchanged (one living cart)
 - How to verify: invitee taps `icloud.com/share/...` (cold or warm) → Accept → shared cart replaces private starter; items from owner visible
-- Do not invent scope: no cart merge UX changes, no Universal Links
+- Do not invent scope: no Universal Links
+
+### RC25 — Confirm before replacing cart on share join
+- Status: done (this train)
+- Paths: `AppSession.swift`, `RootView.swift`, `Localizable.xcstrings`, `docs/product.md`, `docs/review-changelog.md`
+- What changed: after CloudKit Accept, show Join/Cancel alert before `adoptSharedFamilyCartIfNeeded`; Join replaces personal cart with shared (merge then archive); Cancel keeps personal cart and does not Leave
+- How to verify: invitee Accept → alert → Join shows owner items; Cancel leaves empty My cart
+- Do not invent scope: no Leave-on-Cancel, no merge sheet UI
 
 ### RC22 — Deployment target iOS 26
 - Status: done (this train)

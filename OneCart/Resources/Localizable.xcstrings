@@ -1036,6 +1036,52 @@
         }
       }
     },
+    "cart.join_shared_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join shared cart?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Присоединиться к общей корзине?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приєднатися до спільного кошика?"
+          }
+        }
+      }
+    },
+    "cart.join_shared_action": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Присоединиться"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приєднатися"
+          }
+        }
+      }
+    },
     "cart.more_actions_a11y": {
       "extractionState": "manual",
       "localizations": {
@@ -3668,6 +3714,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ втратить доступ до цього кошика."
+          }
+        }
+      }
+    },
+    "cart.join_shared_message %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are joining «%@». Your current cart will be replaced by the shared one. Items you already added will move into it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы присоединяетесь к «%@». Ваша текущая корзина будет заменена общей. Товары, которые вы уже добавили, перенесутся туда."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви приєднуєтесь до «%@». Ваш поточний кошик буде замінено спільним. Товари, які ви вже додали, перенесуться туди."
           }
         }
       }

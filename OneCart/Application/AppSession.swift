@@ -9,6 +9,11 @@ import UIKit
 /// Compatibility alias while Views migrate to AppSession.
 typealias AppModel = AppSession
 
+struct PendingSharedCartJoin: Identifiable, Equatable {
+    let id: UUID
+    let cartName: String
+}
+
 final class DevicePreferences: ObservableObject {
     @Published var participantDisplayName: String {
         didSet {
@@ -87,10 +92,12 @@ final class AppSession: ObservableObject {
     @Published private(set) var isFamilyMetadataLoading = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
+    @Published private(set) var pendingSharedCartJoin: PendingSharedCartJoin?
     /// Pre-warmed CKShare invite for the active owner cart (filled after cart create).
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
     @Published private(set) var profileAvatar: UIImage?
     @Published private(set) var profileBanner: UIImage?
+    private var declinedSharedCartJoinIDs: Set<UUID> = []
 
     let preferences: DevicePreferences
     let persistence: PersistenceController
@@ -201,7 +208,7 @@ final class AppSession: ObservableObject {
                 )
                 try reload()
             } else {
-                try await adoptSharedFamilyCartIfNeeded(for: account)
+                try await offerSharedCartJoinIfNeeded(for: account)
             }
             await refreshFamilyMetadata(showErrors: false)
             scheduleInviteLinkPreparation()
@@ -492,8 +499,9 @@ final class AppSession: ObservableObject {
             try await persistence.acceptShareInvitations(from: metadata)
             syncState = .synchronized
             try reload()
+            declinedSharedCartJoinIDs.removeAll()
             if let account {
-                try await adoptSharedFamilyCartIfNeeded(for: account)
+                try await offerSharedCartJoinIfNeeded(for: account)
             }
             scheduleCloudReload(delayNanoseconds: 350_000_000)
         } catch {
@@ -645,6 +653,26 @@ final class AppSession: ObservableObject {
         alertMessage = nil
     }
 
+    func confirmSharedCartJoin() async {
+        guard let account, pendingSharedCartJoin != nil else { return }
+        pendingSharedCartJoin = nil
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await adoptSharedFamilyCartIfNeeded(for: account)
+            await refreshFamilyMetadata(showErrors: false)
+        } catch {
+            show(error)
+        }
+    }
+
+    func declineSharedCartJoin() {
+        if let id = pendingSharedCartJoin?.id {
+            declinedSharedCartJoinIDs.insert(id)
+        }
+        pendingSharedCartJoin = nil
+    }
+
     private func prepareApplication(appleCredential: AppleSignInCredential) async {
         do {
             try await persistence.load()
@@ -700,15 +728,41 @@ final class AppSession: ObservableObject {
             )
             try reload()
         }
-        try await adoptSharedFamilyCartIfNeeded(for: account)
+        try await offerSharedCartJoinIfNeeded(for: account)
     }
 
     private func preferredSharedFamilyID() -> UUID? {
         familySpaces.first { persistence.scope(for: $0) == .shared }?.id
     }
 
-    /// When a shared family cart exists, it becomes active. Empty private starters are
-    /// archived; private carts with content are merged into the shared cart, then archived.
+    private func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws {
+        try reload()
+        guard let sharedFamily = familySpaces.first(where: {
+            persistence.scope(for: $0) == .shared
+        }), let sharedID = sharedFamily.id else {
+            return
+        }
+
+        let activeIsShared = activeFamilySpace?.id == sharedID
+        if activeIsShared {
+            try await adoptSharedFamilyCartIfNeeded(for: account)
+            return
+        }
+
+        if declinedSharedCartJoinIDs.contains(sharedID) {
+            return
+        }
+        if pendingSharedCartJoin?.id == sharedID {
+            return
+        }
+
+        let name = (sharedFamily.name ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfBlank
+            ?? Self.defaultFamilyName
+        pendingSharedCartJoin = PendingSharedCartJoin(id: sharedID, cartName: name)
+    }
+
     private func adoptSharedFamilyCartIfNeeded(for account: OneCartAccount) async throws {
         try reload()
         guard let sharedFamily = familySpaces.first(where: {
@@ -732,6 +786,8 @@ final class AppSession: ObservableObject {
             try await repository.mergeFamilyContent(from: privateID, into: sharedID)
         }
 
+        declinedSharedCartJoinIDs.remove(sharedID)
+        pendingSharedCartJoin = nil
         defaults.set(
             sharedID.uuidString,
             forKey: activeFamilyKey(accountID: account.id)
@@ -741,6 +797,8 @@ final class AppSession: ObservableObject {
 
     private func clearAccountData() {
         clearPreparedInviteLink()
+        pendingSharedCartJoin = nil
+        declinedSharedCartJoinIDs.removeAll()
         familySpaces = []
         activeFamilySpace = nil
         lists = []
@@ -961,7 +1019,7 @@ final class AppSession: ObservableObject {
             try? await Task.sleep(nanoseconds: delayNanoseconds)
             guard !Task.isCancelled, let self, let account else { return }
             do {
-                try await adoptSharedFamilyCartIfNeeded(for: account)
+                try await offerSharedCartJoinIfNeeded(for: account)
                 await refreshFamilyMetadata(showErrors: false)
             } catch {
                 syncState = .failed

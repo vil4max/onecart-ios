@@ -66,7 +66,7 @@ Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 
 2. After sign-in → one household cart (`isHouseholdDefault`). `+` opens name-only quick add.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
-5. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No merge sheet.
+5. Invitee: SIWA → open share → Accept in iCloud → confirm in-app alert → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). Cancel keeps the personal cart for now (share stays accepted; no Leave).
 
 Up to four people share one cart; changes sync via CloudKit.
 
