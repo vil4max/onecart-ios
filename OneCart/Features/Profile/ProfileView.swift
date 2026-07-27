@@ -83,7 +83,7 @@ enum ProfileMediaError: LocalizedError {
     case encodeFailed
 
     var errorDescription: String? {
-        "Не удалось сохранить изображение."
+        String(localized: "profile.save_image_failed")
     }
 }
 
@@ -134,7 +134,7 @@ struct ProfileEditorSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     bannerSection
@@ -145,25 +145,23 @@ struct ProfileEditorSheet: View {
                             .font(.footnote)
                             .foregroundColor(OneCartPalette.danger)
                     }
-                    Text(
-                        "Имя, аватар и баннер хранятся только на этом устройстве и не синхронизируются с корзиной через iCloud."
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text("profile.privacy_note")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("Профиль")
+            .navigationTitle("profile.nav_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button("common.cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
+                    Button("common.save") {
                         Task { await save() }
                     }
                     .font(.body.weight(.semibold))
@@ -176,7 +174,6 @@ struct ProfileEditorSheet: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
     }
 
     private var canSave: Bool {
@@ -214,18 +211,18 @@ struct ProfileEditorSheet: View {
                 Button {
                     picking = .banner
                 } label: {
-                    Label("Выбрать фото", systemImage: "photo")
+                    Label("profile.choose_photo", systemImage: "photo")
                 }
                 if bannerImage != nil {
                     Button(role: .destructive) {
                         bannerImage = nil
                         bannerRemoved = true
                     } label: {
-                        Label("Убрать баннер", systemImage: "trash")
+                        Label("profile.remove_banner", systemImage: "trash")
                     }
                 }
             } label: {
-                Label("Баннер", systemImage: "camera.fill")
+                Label("profile.banner", systemImage: "camera.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
@@ -235,7 +232,7 @@ struct ProfileEditorSheet: View {
             .padding(12)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Баннер профиля")
+        .accessibilityLabel(String(localized: "profile.banner_a11y"))
     }
 
     private var identitySection: some View {
@@ -255,14 +252,14 @@ struct ProfileEditorSheet: View {
                     Button {
                         picking = .avatar
                     } label: {
-                        Label("Выбрать фото", systemImage: "photo")
+                        Label("profile.choose_photo", systemImage: "photo")
                     }
                     if avatarImage != nil {
                         Button(role: .destructive) {
                             avatarImage = nil
                             avatarRemoved = true
                         } label: {
-                            Label("Убрать фото", systemImage: "trash")
+                            Label("profile.remove_photo", systemImage: "trash")
                         }
                     }
                 } label: {
@@ -273,20 +270,20 @@ struct ProfileEditorSheet: View {
                         .background(OneCartPalette.primary, in: Circle())
                         .overlay(Circle().stroke(OneCartPalette.background, lineWidth: 2))
                 }
-                .accessibilityLabel("Изменить аватар")
+                .accessibilityLabel(String(localized: "profile.change_avatar_a11y"))
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? "Ваше имя"
+                    ? String(localized: "profile.name_placeholder_empty")
                     : displayName)
                     .font(.title3.bold())
                     .foregroundStyle(.primary)
                     .lineLimit(2)
-                Text("Личный профиль")
+                Text("profile.personal")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text("Нажмите на фото, чтобы заменить")
+                Text("profile.tap_photo_hint")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -297,12 +294,12 @@ struct ProfileEditorSheet: View {
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Имя")
+            Text("profile.name_label")
                 .font(.caption.weight(.semibold))
                 .foregroundColor(OneCartPalette.primary)
                 .textCase(.uppercase)
 
-            TextField("Как вас видят в корзине", text: $displayName)
+            TextField("profile.name_field_placeholder", text: $displayName)
                 .textInputAutocapitalization(.words)
                 .disableAutocorrection(true)
                 .padding(14)
@@ -329,7 +326,7 @@ struct ProfileEditorSheet: View {
         validationMessage = nil
         let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            validationMessage = "Укажите имя."
+            validationMessage = String(localized: "profile.validation_empty_name")
             return
         }
         let ok = await model.updateProfile(

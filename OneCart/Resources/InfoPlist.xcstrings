@@ -1,0 +1,29 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSLocationWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart uses your location to show nearby stores for the selected chain."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart использует геопозицию, чтобы показать ближайшие магазины выбранной сети."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart використовує геопозицію, щоб показати найближчі магазини обраної мережі."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.1"
+}

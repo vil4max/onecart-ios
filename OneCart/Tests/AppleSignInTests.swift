@@ -26,7 +26,7 @@ final class AppleSignInTests: XCTestCase {
             familyName: nil
         )
         XCTAssertNil(withoutName.providedDisplayName)
-        XCTAssertEqual(withoutName.displayName, "Пользователь")
+        XCTAssertEqual(withoutName.displayName, String(localized: "common.default_user"))
     }
 
     func testKeychainAppleSignInCredentialStorePersistsCredential() {

@@ -29,8 +29,8 @@ enum FamilyAccess: String, Equatable {
 
     var title: String {
         switch self {
-        case .owner: "Владелец корзины"
-        case .member: "Участник корзины"
+        case .owner: String(localized: "cart.owner_role")
+        case .member: String(localized: "cart.member_role")
         }
     }
 
@@ -55,10 +55,10 @@ enum OneCartSyncState: Equatable {
 
     var title: String {
         switch self {
-        case .synchronized: "Все изменения сохранены"
-        case .syncing: "Синхронизация…"
-        case .offline: "Офлайн — изменения сохранены"
-        case .failed: "Синхронизация приостановлена"
+        case .synchronized: String(localized: "sync.synchronized")
+        case .syncing: String(localized: "sync.syncing")
+        case .offline: String(localized: "sync.offline")
+        case .failed: String(localized: "sync.failed")
         }
     }
 
@@ -92,7 +92,7 @@ struct FamilyInviteLink: Identifiable, Equatable {
     }
 
     var shareMessage: String {
-        "OneCart\nПрисоединяйтесь к корзине «\(familyName)»\n\n\(url.absoluteString)"
+        String(format: String(localized: "share.message"), familyName, url.absoluteString)
     }
 
     var shareTitle: String {
@@ -154,38 +154,39 @@ enum OneCartCloudKitError: LocalizedError {
         case let .accountUnavailable(status):
             switch status {
             case .noAccount:
-                "Для синхронизации нужен iCloud на этом iPhone (Настройки → Apple Account → iCloud). Входа через Apple недостаточно."
+                String(localized: "sync.icloud_no_account")
             case .restricted:
-                "iCloud ограничен на этом устройстве — синхронизация и шаринг корзины недоступны."
+                String(localized: "sync.icloud_restricted")
             case .temporarilyUnavailable:
-                "iCloud временно недоступен. Проверьте сеть и повторите — вход через Apple уже сохранён."
+                String(localized: "sync.icloud_temp_unavailable")
             default:
-                "Не удалось проверить iCloud на устройстве. Синхронизация требует доступный iCloud-аккаунт."
+                String(localized: "sync.icloud_check_failed")
             }
         case .familyNotShared:
-            "Корзина ещё не опубликована."
+            String(localized: "sync.family_not_shared")
         case .shareURLUnavailable:
-            "Не удалось создать ссылку общего доступа. Попробуйте ещё раз."
+            String(localized: "sync.share_url_unavailable")
         case .participantNotFound:
-            "Участник больше не найден в общем доступе."
+            String(localized: "sync.participant_not_found")
         case .stillSyncing:
-            "Корзина ещё синхронизируется с iCloud. Подождите несколько секунд и попробуйте снова."
+            String(localized: "sync.still_syncing")
         case .shareTimedOut:
-            "Не удалось создать ссылку вовремя. Проверьте сеть и синхронизацию iCloud, затем повторите."
+            String(localized: "sync.share_timed_out")
         }
     }
 }
 
-/// Maps CloudKit / Core Data sync failures to short Russian copy for alerts.
 enum CloudKitUserFacingError {
-    static let genericSyncFailure =
-        "Не удалось синхронизировать с iCloud. Проверьте сеть и место в iCloud, затем повторите."
+    static var genericSyncFailure: String {
+        String(localized: "sync.generic_failure")
+    }
 
     /// TestFlight / App Store use CloudKit Production — new Core Data types must be
     /// deployed from Development in CloudKit Console before they can sync.
     /// This cannot be fixed in the binary alone; the container owner must Deploy Schema.
-    static let productionSchemaMissing =
-        "Схема iCloud для OneCart не задеплоена в Production. Владелец: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, затем Force Quit приложения и открыть снова."
+    static var productionSchemaMissing: String {
+        String(localized: "sync.production_schema_missing")
+    }
 
     static func isProductionSchemaFailure(_ error: Error) -> Bool {
         for candidate in flattened(error) {
@@ -228,7 +229,7 @@ enum CloudKitUserFacingError {
             return genericSyncFailure
         }
         if raw.lowercased().contains("not authenticated") || raw.lowercased().contains("not signed in") {
-            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
+            return String(localized: "sync.sign_in_apple_account")
         }
         return raw
     }
@@ -295,23 +296,23 @@ enum CloudKitUserFacingError {
         guard let ckError = error as? CKError else { return nil }
         switch ckError.code {
         case .notAuthenticated:
-            return "Войдите в Apple Account в Настройках iPhone и повторите попытку."
+            return String(localized: "sync.sign_in_apple_account")
         case .networkUnavailable, .networkFailure:
-            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
+            return String(localized: "sync.network_deferred")
         case .quotaExceeded:
-            return "В iCloud закончилось место. Освободите место в Настройках iPhone и повторите."
+            return String(localized: "sync.quota_exceeded")
         case .accountTemporarilyUnavailable:
-            return "Синхронизация временно недоступна. Попробуйте ещё раз позже."
+            return String(localized: "sync.temporarily_unavailable")
         case .permissionFailure:
-            return "Нет доступа к общей корзине в iCloud. Попросите владельца пригласить вас снова."
+            return String(localized: "sync.share_access_denied")
         case .serverRejectedRequest, .invalidArguments, .incompatibleVersion:
             // Schema / argument detail may still be in userInfo — checked earlier via
             // productionSchemaMessage. Fall back only when no specific mapping matched.
             return genericSyncFailure
         case .zoneNotFound, .userDeletedZone:
-            return "Облачная зона OneCart недоступна. Перезапустите приложение и проверьте iCloud."
+            return String(localized: "sync.zone_unavailable")
         case .limitExceeded, .requestRateLimited, .zoneBusy, .serviceUnavailable:
-            return "iCloud временно перегружен. Подождите немного — синхронизация продолжится сама."
+            return String(localized: "sync.icloud_overloaded")
         case .partialFailure:
             // Nested item errors carry the real reason; outer code 2 is opaque.
             return nil
@@ -328,7 +329,7 @@ enum CloudKitUserFacingError {
             return genericSyncFailure
         }
         if nsError.code == NSCloudSharingQuotaExceededError {
-            return "В iCloud закончилось место. Освободите место в Настройках iPhone и повторите."
+            return String(localized: "sync.quota_exceeded")
         }
         return nil
     }
@@ -412,7 +413,7 @@ final class CloudKitBackendService {
         if persistence.inMemory {
             return OneCartAccount(
                 id: OneCartStableID.uuid(for: "onecart.in-memory-user"),
-                displayName: displayName?.nilIfBlank ?? "Пользователь"
+                displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")
             )
         }
 
@@ -422,7 +423,7 @@ final class CloudKitBackendService {
         }
         return OneCartAccount(
             id: OneCartStableID.uuid(for: "apple:\(appleUserID)"),
-            displayName: displayName?.nilIfBlank ?? "Пользователь"
+            displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")
         )
     }
 
@@ -509,7 +510,7 @@ final class CloudKitBackendService {
             let isCurrent = recordName == currentRecordName
             return FamilyMember(
                 id: FamilyInviteLinkBuilder.stableUUID(for: recordName),
-                displayName: name ?? (isCurrent ? account.displayName : "Участник"),
+                displayName: name ?? (isCurrent ? account.displayName : String(localized: "common.default_member")),
                 access: participant.role == .owner ? .owner : .member,
                 joinedAt: family.createdDate,
                 isCurrentUser: isCurrent,

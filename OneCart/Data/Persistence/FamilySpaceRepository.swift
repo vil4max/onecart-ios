@@ -28,19 +28,19 @@ enum RepositoryError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .familySpaceNotFound:
-            "Группа не найдена."
+            String(localized: "sync.error.family_not_found")
         case .listNotFound:
-            "Список покупок не найден."
+            String(localized: "sync.error.list_not_found")
         case .productNotFound:
-            "Товар не найден."
+            String(localized: "sync.error.product_not_found")
         case .storeNotFound:
-            "Магазин не найден."
+            String(localized: "sync.error.store_not_found")
         case .permissionDenied:
-            "У вас нет права изменять эту корзину."
+            String(localized: "sync.error.permission_denied")
         case .crossShareRelationship:
-            "Нельзя связывать данные из разных корзин."
+            String(localized: "sync.error.cross_share")
         case .invalidName:
-            "Введите название."
+            String(localized: "sync.error.invalid_name")
         }
     }
 }
@@ -132,7 +132,7 @@ final class FamilySpaceRepository {
             let list = ShoppingListEntity(context: context)
             try self.persistence.assign(list, toSameStoreAs: space, in: context)
             list.id = UUID()
-            list.title = "Общий список"
+            list.title = String(localized: "common.default_list")
             list.status = ShoppingListStatus.active.rawValue
             list.createdAt = createdAt
             list.updatedAt = createdAt
@@ -458,7 +458,8 @@ final class FamilySpaceRepository {
             let names = Set(
                 purchased.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
             ).sorted()
-            history.memberNames = names.isEmpty ? "Группа" : names.joined(separator: ", ")
+            history.memberNames = names.isEmpty ? String(localized: "common.default_group") : names
+                .joined(separator: ", ")
 
             for product in purchased {
                 let item = HistoryItemEntity(context: context)

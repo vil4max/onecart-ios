@@ -1,20 +1,22 @@
 # Store / TestFlight visuals
 
-Captured from iPhone 17 simulator (1206×2622).
+## App Store Connect — iPhone 6.5" (1284 × 2778)
 
-| File | Use | State |
-|------|-----|-------|
-| `screenshots/01-welcome.png` | Welcome + three-step trolley metaphor + Sign in with Apple | current |
-| `preview/tf-welcome-siwa.mp4` | Short preview: Welcome → SIWA → system prompt | stale — recorded before the three-step Welcome |
+Default locale shots are **English** (app `developmentRegion = en`), light + dark.
 
-Apple 6.7" slot expects **1290×2796**. Current sim size is **1206×2622** — upsample or re-capture before App Store submission.
+Upload order (first 3 = install sheet):
 
-Past Welcome needs Apple ID on simulator or device for more screens.
+| # | File in `asc-6.5/` | Theme | Screen |
+|---|--------------------|-------|--------|
+| 1 | `01-welcome-dark.png` | dark | Welcome + Sign in with Apple |
+| 2 | `02-cart-dark.png` | dark | Cart |
+| 3 | `03-history-dark.png` | dark | History |
+| 4 | `04-account-dark.png` | dark | Account |
+| 5 | `05-welcome-light.png` | light | Welcome |
+| 6 | `06-cart-light.png` | light | Cart |
+| 7 | `07-history-light.png` | light | History |
+| 8 | `08-account-light.png` | light | Account |
 
-## Re-capture
+Folders: [`asc-6.5/dark/`](asc-6.5/dark/), [`asc-6.5/light/`](asc-6.5/light/). Raw: [`raw/`](raw/) (`en-*`).
 
-```bash
-xcrun simctl status_bar <udid> override --time "09:41" --wifiMode active --wifiBars 3 \
-  --cellularMode active --cellularBars 4 --batteryState charging --batteryLevel 100
-xcrun simctl io <udid> screenshot --type=png assets/store/screenshots/01-welcome.png
-```
+Captured with sim language `en`, status bar 09:41, ~2.8s after launch. Demo: `-oneCartDemoUI` / `-oneCartDemoTab`.

@@ -12,23 +12,15 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            HomeView(model: model)
-                .tag(MainTab.cart)
-                .tabItem {
-                    Label("Корзина", systemImage: "cart.fill")
-                }
-
-            HistoryView()
-                .tag(MainTab.history)
-                .tabItem {
-                    Label("История", systemImage: "clock")
-                }
-
-            AccountView(model: model)
-                .tag(MainTab.account)
-                .tabItem {
-                    Label("Аккаунт", systemImage: "person.crop.circle.fill")
-                }
+            Tab("cart.tab", systemImage: "cart.fill", value: .cart) {
+                HomeView(model: model)
+            }
+            Tab("history.tab", systemImage: "clock", value: .history) {
+                HistoryView()
+            }
+            Tab("account.tab", systemImage: "person.crop.circle.fill", value: .account) {
+                AccountView(model: model)
+            }
         }
         .tint(OneCartPalette.primary)
         .onReceive(model.$preferredMainTab.compactMap { $0 }) { tab in

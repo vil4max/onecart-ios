@@ -16,7 +16,7 @@ struct CartManagementSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     header
@@ -28,7 +28,7 @@ struct CartManagementSheet: View {
                             confirmingLeave = true
                         } label: {
                             Label(
-                                "Покинуть корзину",
+                                "account.leave_cart",
                                 systemImage: "rectangle.portrait.and.arrow.right"
                             )
                             .font(.headline)
@@ -50,32 +50,36 @@ struct CartManagementSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Готово") { dismiss() }
+                    Button("common.done") { dismiss() }
                 }
             }
-            .alert("Покинуть корзину?", isPresented: $confirmingLeave) {
-                Button("Отмена", role: .cancel) {}
-                Button("Покинуть", role: .destructive) {
+            .alert("account.leave_confirm_title", isPresented: $confirmingLeave) {
+                Button("common.cancel", role: .cancel) {}
+                Button("account.leave_confirm_action", role: .destructive) {
                     Task {
                         await viewModel.leaveCurrentFamily()
                         dismiss()
                     }
                 }
             } message: {
-                Text("Список исчезнет из вашего аккаунта. Данные остальных участников не изменятся.")
+                Text("account.leave_confirm_message")
             }
-            .alert(item: $memberToRemove) { member in
-                Alert(
-                    title: Text("Удалить участника?"),
-                    message: Text("\(member.displayName) потеряет доступ к этой корзине."),
-                    primaryButton: .destructive(Text("Удалить")) {
-                        Task { await viewModel.removeMember(member) }
-                    },
-                    secondaryButton: .cancel()
-                )
+            .alert(
+                "account.remove_member_title",
+                isPresented: Binding(
+                    get: { memberToRemove != nil },
+                    set: { if !$0 { memberToRemove = nil } }
+                ),
+                presenting: memberToRemove
+            ) { member in
+                Button("common.delete", role: .destructive) {
+                    Task { await viewModel.removeMember(member) }
+                }
+                Button("common.cancel", role: .cancel) {}
+            } message: { member in
+                Text("account.remove_member_message \(member.displayName)")
             }
         }
-        .navigationViewStyle(.stack)
     }
 
     private var header: some View {
@@ -105,7 +109,7 @@ struct CartManagementSheet: View {
     private var membersSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Участники")
+                Text("account.members_section")
                     .font(.headline)
                 Spacer()
                 Text("\(displayedMembers.count)")
@@ -121,7 +125,7 @@ struct CartManagementSheet: View {
                     HStack(spacing: 12) {
                         ProgressView()
                             .tint(OneCartPalette.primary)
-                        Text("Обновляем участников…")
+                        Text("account.updating_members")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -141,7 +145,7 @@ struct CartManagementSheet: View {
                                 Button(role: .destructive) {
                                     memberToRemove = member
                                 } label: {
-                                    Label("Удалить из корзины", systemImage: "person.fill.xmark")
+                                    Label("account.remove_from_cart", systemImage: "person.fill.xmark")
                                 }
                             }
                         }
@@ -250,12 +254,12 @@ private struct CartMemberRow: View {
                     Text(member.displayName)
                         .font(.subheadline.weight(.semibold))
                     if member.isCurrentUser {
-                        Text("вы")
+                        Text("common.you")
                             .font(.caption2.weight(.semibold))
                             .foregroundColor(OneCartPalette.primaryAccent)
                     }
                 }
-                Text(member.access.isOwner ? "Владелец корзины" : "Участник корзины")
+                Text(member.access.isOwner ? "cart.owner_role" : "cart.member_role")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -298,7 +302,7 @@ private struct CartMemberProfileView: View {
                     Button(role: .destructive) {
                         confirmingRemoval = true
                     } label: {
-                        Label("Удалить из корзины", systemImage: "person.fill.xmark")
+                        Label("account.remove_from_cart", systemImage: "person.fill.xmark")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -315,33 +319,22 @@ private struct CartMemberProfileView: View {
             .frame(maxWidth: .infinity)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle("Участник")
+        .navigationTitle("account.member_detail_title")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Удалить участника?", isPresented: $confirmingRemoval) {
-            Button("Отмена", role: .cancel) {}
-            Button("Удалить", role: .destructive) {
+        .alert("account.remove_member_title", isPresented: $confirmingRemoval) {
+            Button("common.cancel", role: .cancel) {}
+            Button("common.delete", role: .destructive) {
                 Task {
                     await model.removeMember(member)
                     dismiss()
                 }
             }
         } message: {
-            Text("\(member.displayName) потеряет доступ к этой корзине.")
+            Text("account.remove_member_message \(member.displayName)")
         }
     }
 }
 
 func memberCountText(_ count: Int) -> String {
-    let remainder100 = count % 100
-    let remainder10 = count % 10
-    let noun = if remainder100 >= 11, remainder100 <= 14 {
-        "участников"
-    } else if remainder10 == 1 {
-        "участник"
-    } else if remainder10 >= 2, remainder10 <= 4 {
-        "участника"
-    } else {
-        "участников"
-    }
-    return "\(count) \(noun)"
+    String(localized: "account.members_count \(count)")
 }

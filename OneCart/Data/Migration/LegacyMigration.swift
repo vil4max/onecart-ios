@@ -88,7 +88,7 @@ final class LegacyMigrationService {
             let space = FamilySpace(context: context)
             try self.persistence.assign(space, to: .private, in: context)
             space.id = familySpaceID
-            space.name = "Группа"
+            space.name = String(localized: "common.default_group")
             space.createdAt = now
             space.updatedAt = now
 
@@ -140,7 +140,7 @@ final class LegacyMigrationService {
                     let general = ShoppingListEntity(context: context)
                     try self.persistence.assign(general, toSameStoreAs: space, in: context)
                     general.id = UUID.deterministic("onecart.legacy.list.general-fallback")
-                    general.title = "Общий список"
+                    general.title = String(localized: "common.default_list")
                     general.status = ShoppingListStatus.active.rawValue
                     general.createdAt = now
                     general.updatedAt = now

@@ -78,13 +78,13 @@ struct RootView: View {
             }
         }
         .alert(
-            "OneCart",
+            "common.app_name",
             isPresented: Binding(
                 get: { model.alertMessage != nil },
                 set: { if !$0 { model.dismissAlert() } }
             )
         ) {
-            Button("OK", role: .cancel) {
+            Button("common.ok", role: .cancel) {
                 model.dismissAlert()
             }
         } message: {
@@ -139,7 +139,7 @@ private struct LaunchCartRideView: View {
             .clipped()
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Загрузка OneCart")
+        .accessibilityLabel(String(localized: "common.loading"))
         .accessibilityAddTraits(.updatesFrequently)
         .task { await runRide() }
     }

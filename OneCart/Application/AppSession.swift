@@ -46,9 +46,9 @@ enum InviteLinkError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notOwner:
-            "Приглашать участников может только владелец корзины."
+            String(localized: "sync.invite_owner_only")
         case .offline:
-            "Для создания ссылки подключитесь к интернету."
+            String(localized: "sync.invite_need_network")
         }
     }
 }
@@ -65,7 +65,7 @@ final class AppSession: ObservableObject {
 
     nonisolated static let defaultFamilyName = String(
         localized: "cart.default_title",
-        defaultValue: "Список покупок"
+        defaultValue: "Shopping list"
     )
 
     @Published private(set) var isReady = false
@@ -328,7 +328,7 @@ final class AppSession: ObservableObject {
 
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
         guard let listID = list.id else { return }
-        await performMutation(successMessage: "Товар добавлен") {
+        await performMutation(successMessage: String(localized: "alert.product_added")) {
             try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
@@ -340,7 +340,7 @@ final class AppSession: ObservableObject {
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
         guard let id = product.id else { return }
-        await performMutation(successMessage: "Товар обновлён") {
+        await performMutation(successMessage: String(localized: "alert.product_updated")) {
             try await self.repository.updateProduct(id: id, draft: draft)
         }
     }
@@ -373,21 +373,21 @@ final class AppSession: ObservableObject {
 
     func deleteProduct(_ product: ProductEntity) async {
         guard let id = product.id else { return }
-        await performMutation(successMessage: "Товар удалён") {
+        await performMutation(successMessage: String(localized: "alert.product_deleted")) {
             try await self.repository.deleteProduct(id: id)
         }
     }
 
     func completePurchasedItems(_ list: ShoppingListEntity) async {
         guard let id = list.id else { return }
-        await performMutation(successMessage: "Отмеченное уехало в историю 📜") {
+        await performMutation(successMessage: String(localized: "alert.purchase_completed")) {
             _ = try await self.repository.completePurchased(listID: id)
         }
     }
 
     func deleteHistory(_ entry: PurchaseHistoryEntity) async {
         guard let id = entry.id else { return }
-        await performMutation(successMessage: "Запись истории удалена") {
+        await performMutation(successMessage: String(localized: "alert.history_deleted")) {
             try await self.repository.deleteHistory(id: id)
         }
     }
@@ -509,7 +509,7 @@ final class AppSession: ObservableObject {
               access?.isOwner == true,
               !member.isCurrentUser else { return }
         guard online else {
-            presentAlert("Для изменения состава корзины подключитесь к интернету.")
+            presentAlert(String(localized: "alert.members_need_network"))
             return
         }
 
@@ -528,7 +528,7 @@ final class AppSession: ObservableObject {
               let family = activeFamilySpace,
               access?.isParticipant == true else { return }
         guard online else {
-            presentAlert("Чтобы покинуть корзину, подключитесь к интернету.")
+            presentAlert(String(localized: "alert.leave_need_network"))
             return
         }
 
@@ -564,7 +564,7 @@ final class AppSession: ObservableObject {
         guard let account else { return false }
         let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            presentAlert("Укажите имя")
+            presentAlert(String(localized: "alert.enter_name"))
             return false
         }
 
@@ -680,7 +680,7 @@ final class AppSession: ObservableObject {
             await refreshFamilyMetadata(showErrors: false)
             needsWelcome = false
             isReady = true
-            // Start CKShare early so Settings → Пригласить is usually instant.
+            // Start CKShare early so Account share is usually instant.
             scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
         } catch {
             needsWelcome = true
@@ -1011,7 +1011,7 @@ final class AppSession: ObservableObject {
             return CloudKitUserFacingError.message(for: error)
         }
         if CloudKitUserFacingError.isNetworkError(error) {
-            return "Нет соединения с сервисом синхронизации. Изменения останутся на устройстве и синхронизируются позже."
+            return String(localized: "sync.network_deferred")
         }
         if PersistenceController.isUserFacingCoreDataFailure(error) {
             return String(localized: "welcome.core_data_failed")

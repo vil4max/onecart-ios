@@ -15,9 +15,11 @@ enum PersistenceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .storeNotLoaded(scope):
-            "Хранилище \(scope.rawValue) ещё не загружено."
+            String(localized: "sync.store_not_loaded \(scope.rawValue)")
         case let .unableToIdentifyStore(url):
-            "Не удалось определить Core Data store: \(url?.lastPathComponent ?? "без URL")."
+            String(
+                localized: "sync.store_unidentified \(url?.lastPathComponent ?? String(localized: "sync.store_no_url"))"
+            )
         }
     }
 }

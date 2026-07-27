@@ -15,9 +15,14 @@ final class CloudKitErrorMappingTests: XCTestCase {
             url: shareURL
         )
 
+        let expected = String(
+            format: String(localized: "share.message"),
+            "Наша группа",
+            shareURL.absoluteString
+        )
+        XCTAssertEqual(invite.shareMessage, expected)
         XCTAssertTrue(invite.shareMessage.contains(shareURL.absoluteString))
         XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
-        XCTAssertTrue(invite.shareMessage.contains("корзине"))
         XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart"))
         XCTAssertEqual(invite.shareTitle, "OneCart")
         XCTAssertEqual(invite.expiresAt, .distantFuture)
@@ -47,8 +52,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             userInfo: [CKPartialErrorsByItemIDKey: ["record": quota]]
         )
         let message = CloudKitUserFacingError.message(for: partial)
-        XCTAssertTrue(message.contains("iCloud"))
-        XCTAssertTrue(message.contains("место"))
+        XCTAssertEqual(message, String(localized: "sync.quota_exceeded"))
     }
 
     func testCloudKitUserFacingErrorDetectsNetworkFailure() {
@@ -126,7 +130,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             displayName: "  "
         )
         XCTAssertEqual(account.id, OneCartStableID.uuid(for: "onecart.in-memory-user"))
-        XCTAssertEqual(account.displayName, "Пользователь")
+        XCTAssertEqual(account.displayName, String(localized: "common.default_user"))
     }
 
     func testCloudKitUserFacingErrorMapsAuthAndPermission() {
@@ -135,8 +139,9 @@ final class CloudKitErrorMappingTests: XCTestCase {
             code: CKError.Code.notAuthenticated.rawValue,
             userInfo: nil
         )
-        XCTAssertTrue(
-            CloudKitUserFacingError.message(for: auth).contains("Apple Account")
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: auth),
+            String(localized: "sync.sign_in_apple_account")
         )
 
         let permission = NSError(
@@ -144,8 +149,9 @@ final class CloudKitErrorMappingTests: XCTestCase {
             code: CKError.Code.permissionFailure.rawValue,
             userInfo: nil
         )
-        XCTAssertTrue(
-            CloudKitUserFacingError.message(for: permission).contains("пригласить")
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: permission),
+            String(localized: "sync.share_access_denied")
         )
 
         let constraint = NSError(

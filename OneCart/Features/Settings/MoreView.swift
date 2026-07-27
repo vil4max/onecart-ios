@@ -15,14 +15,14 @@ struct AccountView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 Section {
                     if model.isFamilyMetadataLoading, displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
                                 .tint(OneCartPalette.primary)
-                            Text("Обновляем участников…")
+                            Text("account.updating_members")
                                 .foregroundStyle(.secondary)
                         }
                     } else {
@@ -33,7 +33,7 @@ struct AccountView: View {
                                         Button(role: .destructive) {
                                             memberToRemove = member
                                         } label: {
-                                            Label("Удалить", systemImage: "person.fill.xmark")
+                                            Label("common.delete", systemImage: "person.fill.xmark")
                                         }
                                     }
                                 }
@@ -45,7 +45,7 @@ struct AccountView: View {
                             shareCart()
                         } label: {
                             HStack {
-                                Label("Поделиться корзиной", systemImage: "square.and.arrow.up")
+                                Label("account.share_cart", systemImage: "square.and.arrow.up")
                                 Spacer()
                                 if isSharing {
                                     ProgressView()
@@ -55,7 +55,7 @@ struct AccountView: View {
                         .disabled(isSharing || !model.isOnline)
                     }
                 } header: {
-                    Text("Участники")
+                    Text("account.members_section")
                 } footer: {
                     Text(memberCountText(displayedMembers.count))
                 }
@@ -65,7 +65,7 @@ struct AccountView: View {
                         Button(role: .destructive) {
                             confirmingLeave = true
                         } label: {
-                            Label("Покинуть корзину", systemImage: "rectangle.portrait.and.arrow.right")
+                            Label("account.leave_cart", systemImage: "rectangle.portrait.and.arrow.right")
                         }
                     }
                 }
@@ -74,18 +74,18 @@ struct AccountView: View {
                     Button(role: .destructive) {
                         confirmingSignOut = true
                     } label: {
-                        Label("Выйти", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("account.sign_out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 } header: {
-                    Text("Аккаунт")
+                    Text("account.section")
                 } footer: {
                     if let account = model.account {
-                        Text("Вход: \(account.displayName)")
+                        Text("account.signed_in_as \(account.displayName)")
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Аккаунт")
+            .navigationTitle("account.nav_title")
             .task {
                 await model.refreshAccountSharing()
             }
@@ -95,44 +95,52 @@ struct AccountView: View {
                 )
             }
             .alert(
-                "OneCart",
+                "common.app_name",
                 isPresented: Binding(
                     get: { shareAlert != nil },
                     set: { if !$0 { shareAlert = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) { shareAlert = nil }
+                Button("common.ok", role: .cancel) { shareAlert = nil }
             } message: {
                 Text(shareAlert ?? "")
             }
-            .alert("Покинуть корзину?", isPresented: $confirmingLeave) {
-                Button("Отмена", role: .cancel) {}
-                Button("Покинуть", role: .destructive) {
+            .alert("account.leave_confirm_title", isPresented: $confirmingLeave) {
+                Button("common.cancel", role: .cancel) {}
+                Button("account.leave_confirm_action", role: .destructive) {
                     Task { await viewModel.leaveCurrentFamily() }
                 }
             } message: {
-                Text("Список исчезнет из вашего аккаунта. Данные остальных участников не изменятся.")
+                Text("account.leave_confirm_message")
             }
-            .alert(item: $memberToRemove) { member in
-                Alert(
-                    title: Text("Удалить участника?"),
-                    message: Text("\(member.displayName) потеряет доступ к этой корзине."),
-                    primaryButton: .destructive(Text("Удалить")) {
-                        Task { await viewModel.removeMember(member) }
-                    },
-                    secondaryButton: .cancel()
-                )
+            .alert(
+                "account.remove_member_title",
+                isPresented: Binding(
+                    get: { memberToRemove != nil },
+                    set: { if !$0 { memberToRemove = nil } }
+                ),
+                presenting: memberToRemove
+            ) { member in
+                Button("common.delete", role: .destructive) {
+                    Task { await viewModel.removeMember(member) }
+                }
+                Button("common.cancel", role: .cancel) {}
+            } message: { member in
+                Text("account.remove_member_message \(member.displayName)")
             }
-            .confirmationDialog("Выйти из аккаунта?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
-                Button("Выйти", role: .destructive) {
+            .confirmationDialog(
+                "account.sign_out_confirm_title",
+                isPresented: $confirmingSignOut,
+                titleVisibility: .visible
+            ) {
+                Button("account.sign_out", role: .destructive) {
                     model.signOut()
                 }
-                Button("Отмена", role: .cancel) {}
+                Button("common.cancel", role: .cancel) {}
             } message: {
-                Text("Корзина на этом устройстве останется локально до следующего входа.")
+                Text("account.sign_out_message")
             }
         }
-        .navigationViewStyle(.stack)
     }
 
     private var displayedMembers: [FamilyMember] {
@@ -204,12 +212,13 @@ private struct AccountMemberRow: View {
                     Text(member.displayName)
                         .font(.body.weight(.semibold))
                     if member.isCurrentUser {
-                        Text("вы")
+                        Text("common.you")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(OneCartPalette.primaryAccent)
                     }
                 }
-                Text(member.access.isOwner ? "Владелец корзины" : "Участник корзины")
+                Text(member.access
+                    .isOwner ? String(localized: "cart.owner_role") : String(localized: "cart.member_role"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

@@ -44,7 +44,7 @@ final class PersistenceRoutingTests: XCTestCase {
 
         XCTAssertEqual(space.displayName, "Наша группа")
         XCTAssertEqual(lists.count, 1)
-        XCTAssertEqual(lists.first?.displayTitle, "Общий список")
+        XCTAssertEqual(lists.first?.displayTitle, String(localized: "common.default_list"))
         XCTAssertEqual(lists.first?.statusValue, .active)
         XCTAssertEqual(
             lists.first?.objectID.persistentStore,

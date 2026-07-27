@@ -23,7 +23,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if model.activeFamilySpace == nil {
                     HomeConnectingCartPanel()
@@ -52,7 +52,6 @@ struct HomeView: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
     }
 }
 
@@ -136,7 +135,7 @@ struct ShoppingListView: View {
 
     private var emptyCartMessage: String {
         if model.access?.isOwner == true {
-            return "\(String(localized: "home.empty_hint")) Поделиться корзиной можно во вкладке «Аккаунт»."
+            return "\(String(localized: "home.empty_hint")) \(String(localized: "home.empty_hint_share"))"
         }
         return String(localized: "home.empty_hint")
     }
@@ -186,7 +185,7 @@ struct ShoppingListView: View {
                                     Button {
                                         confirmingCompletion = true
                                     } label: {
-                                        Text("Завершить покупки ✅")
+                                        Text("cart.complete_button")
                                             .frame(maxWidth: .infinity)
                                     }
                                     .buttonStyle(OneCartPrimaryButtonStyle())
@@ -194,7 +193,7 @@ struct ShoppingListView: View {
                                     .opacity(purchasedCount > 0 && model.canEdit ? 1 : 0.5)
 
                                     Text(
-                                        "Отмеченное уедет в историю как купленное, остальное останется в корзине"
+                                        String(localized: "cart.complete_caption")
                                     )
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
@@ -219,39 +218,37 @@ struct ShoppingListView: View {
                 .sheet(item: $editingProduct) { product in
                     QuickAddProductSheet(listID: listID, product: product)
                 }
-                .alert("Всё оплачено?", isPresented: $confirmingCompletion) {
-                    Button("Отмена", role: .cancel) {}
-                    Button("Завершить покупки ✅") {
+                .alert("cart.complete_confirm_title", isPresented: $confirmingCompletion) {
+                    Button("common.cancel", role: .cancel) {}
+                    Button("cart.complete_button") {
                         Task { await model.completePurchasedItems(list) }
                     }
                 } message: {
-                    Text(
-                        "\(purchasedCount) товаров из тележки уедут в историю. Остальное останется в корзине."
-                    )
+                    Text("cart.complete_confirm_message \(purchasedCount)")
                 }
                 .alert(
-                    "Удалить товар?",
+                    "cart.delete_item_title",
                     isPresented: Binding(
                         get: { pendingDelete != nil },
                         set: { if !$0 { pendingDelete = nil } }
                     )
                 ) {
-                    Button("Отмена", role: .cancel) { pendingDelete = nil }
-                    Button("Удалить", role: .destructive) {
+                    Button("common.cancel", role: .cancel) { pendingDelete = nil }
+                    Button("common.delete", role: .destructive) {
                         if let pendingDelete {
                             Task { await model.deleteProduct(pendingDelete) }
                         }
                         pendingDelete = nil
                     }
                 } message: {
-                    Text(pendingDelete?.displayName ?? "Товар будет удалён.")
+                    Text(pendingDelete?.displayName ?? String(localized: "cart.delete_item_fallback"))
                 }
 
             } else {
                 ContentUnavailableViewCompat(
                     image: "questionmark.folder",
-                    title: "Список недоступен",
-                    message: "Он мог быть удалён или перемещён."
+                    title: String(localized: "cart.list_unavailable_title"),
+                    message: String(localized: "cart.list_unavailable_message")
                 )
             }
         }
@@ -269,7 +266,7 @@ struct ShoppingListView: View {
                         .frame(width: 56, height: 56)
                         .background(OneCartPalette.primary, in: Circle())
                 }
-                .accessibilityLabel("Добавить товар")
+                .accessibilityLabel(String(localized: "cart.add_a11y"))
             }
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -279,11 +276,11 @@ struct ShoppingListView: View {
 
     private var listSummaryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("🛒 Покупки")
+            Text("cart.section_title")
                 .font(.headline)
 
             Text(
-                "В тележке \(purchasedCount) из \(products.count) · осталось \(remainingCount)"
+                String(localized: "cart.trolley_progress \(purchasedCount) \(products.count) \(remainingCount)")
             )
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -295,7 +292,7 @@ struct ShoppingListView: View {
             .tint(OneCartPalette.primary)
 
             if purchasedCount == 0 {
-                Text("Отмечай галочкой то, что кладёшь в тележку 🛒")
+                Text("cart.trolley_hint")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +302,7 @@ struct ShoppingListView: View {
                 Button {
                     model.showFamilyManagement()
                 } label: {
-                    Text("👥 \(model.familyMembers.count) вместе")
+                    Text("cart.together \(model.familyMembers.count)")
                         .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.plain)
@@ -350,7 +347,7 @@ private struct ProductPurchaseToggle: View {
         .buttonStyle(HomePressButtonStyle())
         .disabled(!canEdit)
         .accessibilityLabel(
-            isPurchased ? "Убрать из тележки" : "Отметить как в тележке"
+            isPurchased ? String(localized: "cart.unmark_trolley_a11y") : String(localized: "cart.mark_in_trolley_a11y")
         )
         .accessibilityAddTraits(isPurchased ? [.isSelected] : [])
     }
@@ -403,14 +400,14 @@ private struct ProductRow: View {
                 Button {
                     onEdit()
                 } label: {
-                    Label("Изменить", systemImage: "pencil")
+                    Label("common.edit", systemImage: "pencil")
                 }
                 .disabled(!canEdit)
 
                 Button(role: .destructive) {
                     onDelete()
                 } label: {
-                    Label("Удалить", systemImage: "trash")
+                    Label("common.delete", systemImage: "trash")
                 }
                 .disabled(!canEdit)
             } label: {
@@ -424,7 +421,7 @@ private struct ProductRow: View {
                     )
             }
             .disabled(!canEdit)
-            .accessibilityLabel("Ещё действия")
+            .accessibilityLabel(String(localized: "cart.more_actions_a11y"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -452,9 +449,9 @@ private struct ProductRow: View {
            let purchasedByName = product.purchasedByName,
            !purchasedByName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
-            return "В тележке 🛒 · \(purchasedByName)"
+            return String(localized: "cart.in_trolley_by \(purchasedByName)")
         }
-        return "В тележке 🛒"
+        return String(localized: "cart.in_trolley")
     }
 }
 
@@ -486,9 +483,9 @@ struct QuickAddProductSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 16) {
-                TextField("Например, молоко…", text: $name)
+                TextField("cart.add_placeholder", text: $name)
                     .font(.title3.weight(.semibold))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
@@ -508,7 +505,7 @@ struct QuickAddProductSheet: View {
                         if isSaving {
                             ProgressView().tint(.white)
                         }
-                        Text(isEditing ? "Сохранить" : "В корзину 🛒")
+                        Text(isEditing ? "common.save" : "cart.add_to_cart")
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -519,11 +516,11 @@ struct QuickAddProductSheet: View {
             }
             .padding(20)
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Редактируем ✏️" : "Что берём? ✨")
+            .navigationTitle(isEditing ? "cart.edit_title" : "cart.add_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") { dismiss() }
+                    Button("common.close") { dismiss() }
                 }
             }
             .task {
@@ -531,7 +528,6 @@ struct QuickAddProductSheet: View {
                 nameFocused = true
             }
         }
-        .navigationViewStyle(.stack)
         .oneCartMediumSheet()
     }
 
@@ -601,14 +597,14 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if model.history.isEmpty {
                         EmptyCard(
                             image: "clock",
-                            title: "Пока тишина 📭",
-                            message: "Завершённые покупки появятся здесь — ничего не потеряется."
+                            title: String(localized: "history.empty_title"),
+                            message: String(localized: "history.empty_message")
                         )
                     } else {
                         ForEach(groupedHistory, id: \.month) { group in
@@ -625,7 +621,7 @@ struct HistoryView: View {
                                             Button(role: .destructive) {
                                                 pendingDelete = entry
                                             } label: {
-                                                Label("Удалить запись", systemImage: "trash")
+                                                Label("history.delete_entry", systemImage: "trash")
                                             }
                                             .disabled(!model.canEdit)
                                         }
@@ -643,7 +639,7 @@ struct HistoryView: View {
                             Button {
                                 visibleCount = min(visibleCount + 30, model.history.count)
                             } label: {
-                                Text("Показать ещё")
+                                Text("history.show_more")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(OneCartSecondaryButtonStyle())
@@ -655,17 +651,17 @@ struct HistoryView: View {
                 .padding(.bottom, 28)
             }
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle("📜 История")
+            .navigationTitle("history.nav_title")
             .navigationBarTitleDisplayMode(.inline)
             .alert(
-                "Удалить запись?",
+                "history.delete_title",
                 isPresented: Binding(
                     get: { pendingDelete != nil },
                     set: { if !$0 { pendingDelete = nil } }
                 )
             ) {
-                Button("Отмена", role: .cancel) { pendingDelete = nil }
-                Button("Удалить", role: .destructive) {
+                Button("common.cancel", role: .cancel) { pendingDelete = nil }
+                Button("common.delete", role: .destructive) {
                     if let pendingDelete {
                         Task { await model.deleteHistory(pendingDelete) }
                     }
@@ -673,7 +669,6 @@ struct HistoryView: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
     }
 }
 
@@ -713,7 +708,7 @@ private struct HistoryEntryCard: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(2)
-                    Text("\(entry.sortedItems.count) товаров")
+                    Text("history.items_count \(entry.sortedItems.count)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -747,7 +742,7 @@ private struct HistoryDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Дата")
+                        Text("history.date")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
@@ -757,7 +752,7 @@ private struct HistoryDetailView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Участники")
+                        Text("history.members")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
@@ -778,7 +773,7 @@ private struct HistoryDetailView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("Товары")
+                        Text("history.items")
                             .font(.title3.bold())
                         Spacer()
                         Text("\(entry.sortedItems.count)")
@@ -801,7 +796,7 @@ private struct HistoryDetailView: View {
                     Button(role: .destructive) {
                         confirmingDelete = true
                     } label: {
-                        Label("Удалить запись", systemImage: "trash")
+                        Label("history.delete_entry", systemImage: "trash")
                             .font(.headline)
                             .foregroundColor(OneCartPalette.danger)
                             .frame(maxWidth: .infinity)
@@ -820,18 +815,18 @@ private struct HistoryDetailView: View {
             .padding(.bottom, 28)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle("Сессия")
+        .navigationTitle("history.session_title")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Удалить запись?", isPresented: $confirmingDelete) {
-            Button("Отмена", role: .cancel) {}
-            Button("Удалить", role: .destructive) {
+        .alert("history.delete_title", isPresented: $confirmingDelete) {
+            Button("common.cancel", role: .cancel) {}
+            Button("common.delete", role: .destructive) {
                 Task {
                     await model.deleteHistory(entry)
                     dismiss()
                 }
             }
         } message: {
-            Text("Запись исчезнет из истории покупок.")
+            Text("history.delete_message")
         }
     }
 }
@@ -874,9 +869,9 @@ struct ReadOnlyBanner: View {
             Image(systemName: "lock.fill")
                 .foregroundColor(.orange)
             VStack(alignment: .leading, spacing: 3) {
-                Text("Только просмотр")
+                Text("cart.read_only_title")
                     .font(.subheadline.bold())
-                Text("Владелец не предоставил право редактирования.")
+                Text("cart.read_only_message")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

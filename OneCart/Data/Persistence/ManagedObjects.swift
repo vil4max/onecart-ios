@@ -27,7 +27,7 @@ final class FamilySpace: NSManagedObject {
     }
 
     var displayName: String {
-        name?.nilIfBlank ?? "Группа"
+        name?.nilIfBlank ?? String(localized: "common.default_group")
     }
 
     var createdDate: Date {
@@ -122,7 +122,7 @@ final class StoreEntity: NSManagedObject {
     }
 
     var displayName: String {
-        name?.nilIfBlank ?? "Магазин"
+        name?.nilIfBlank ?? String(localized: "common.default_store")
     }
 
     var displayIcon: String {
@@ -197,7 +197,7 @@ final class ShoppingListEntity: NSManagedObject {
     }
 
     var displayTitle: String {
-        title?.nilIfBlank ?? "Список покупок"
+        title?.nilIfBlank ?? String(localized: "cart.default_title")
     }
 
     var statusValue: ShoppingListStatus {
@@ -246,12 +246,12 @@ enum ProductUnit: String, CaseIterable, Identifiable {
 
     var localizedName: String {
         switch self {
-        case .piece: "шт."
-        case .kg: "кг"
-        case .g: "г"
-        case .l: "л"
-        case .ml: "мл"
-        case .pack: "уп."
+        case .piece: String(localized: "common.unit.piece")
+        case .kg: String(localized: "common.unit.kg")
+        case .g: String(localized: "common.unit.g")
+        case .l: String(localized: "common.unit.l")
+        case .ml: String(localized: "common.unit.ml")
+        case .pack: String(localized: "common.unit.pack")
         }
     }
 }
@@ -270,12 +270,12 @@ enum ProductCategory: String, CaseIterable, Identifiable {
 
     var localizedName: String {
         switch self {
-        case .produce: "Овощи и фрукты"
-        case .dairy: "Молочное"
-        case .meat: "Мясо"
-        case .drinks: "Напитки"
-        case .household: "Для дома"
-        case .other: "Другое"
+        case .produce: String(localized: "common.category.produce")
+        case .dairy: String(localized: "common.category.dairy")
+        case .meat: String(localized: "common.category.meat")
+        case .drinks: String(localized: "common.category.drinks")
+        case .household: String(localized: "common.category.household")
+        case .other: String(localized: "common.category.other")
         }
     }
 
@@ -345,7 +345,7 @@ final class ProductEntity: NSManagedObject {
     }
 
     var displayName: String {
-        name?.nilIfBlank ?? "Товар"
+        name?.nilIfBlank ?? String(localized: "common.default_product")
     }
 
     var quantityValue: Double {
@@ -448,7 +448,7 @@ final class PurchaseHistoryEntity: NSManagedObject {
     }
 
     var membersDisplay: String {
-        memberNames?.nilIfBlank ?? "Группа"
+        memberNames?.nilIfBlank ?? String(localized: "common.default_group")
     }
 
     var createdDate: Date {
@@ -500,7 +500,7 @@ final class HistoryItemEntity: NSManagedObject {
     }
 
     var displayName: String {
-        name?.nilIfBlank ?? "Товар"
+        name?.nilIfBlank ?? String(localized: "common.default_product")
     }
 
     var quantityValue: Double {

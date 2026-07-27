@@ -17,7 +17,7 @@ struct AppleSignInCredential: Codable, Equatable {
     }
 
     var displayName: String {
-        providedDisplayName ?? "Пользователь"
+        providedDisplayName ?? String(localized: "common.default_user")
     }
 
     var accountID: UUID {
@@ -40,11 +40,11 @@ enum AppleSignInError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingIdentityToken:
-            "Не удалось получить данные Apple ID. Попробуйте ещё раз."
+            String(localized: "auth.apple_missing_credentials")
         case .cancelled:
-            "Вход через Apple был отменён."
+            String(localized: "auth.apple_cancelled")
         case .failed:
-            "Не удалось войти через Apple. Попробуйте ещё раз."
+            String(localized: "auth.apple_failed")
         }
     }
 }
