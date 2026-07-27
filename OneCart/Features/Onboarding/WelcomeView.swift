@@ -4,38 +4,75 @@ import SwiftUI
 struct WelcomeView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: WelcomeViewModel
+    @State private var contentVisible = false
 
     init(model: AppModel) {
         _viewModel = StateObject(wrappedValue: WelcomeViewModel(session: model))
     }
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
+        VStack(spacing: 0) {
+            header
+                .padding(.top, 12)
 
-            VStack(spacing: 10) {
-                OneCartMark()
-                Text("welcome.subtitle")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+            Spacer(minLength: 24)
 
-            content
+            middle
+                .opacity(contentVisible ? 1 : 0)
+                .offset(y: contentVisible || reduceMotion ? 0 : 14)
 
-            Spacer()
+            Spacer(minLength: 24)
+
+            bottom
         }
-        .padding(28)
+        .padding(.horizontal, 28)
+        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(OneCartPalette.background)
+        .background(OneCartPalette.background.ignoresSafeArea())
+        .onAppear {
+            guard !contentVisible else { return }
+            if reduceMotion {
+                contentVisible = true
+            } else {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
+                    contentVisible = true
+                }
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            OneCartMark()
+
+            Text("welcome.title")
+                .font(.largeTitle.bold())
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("welcome.subtitle")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(contentVisible ? 1 : 0)
+        .offset(y: contentVisible || reduceMotion ? 0 : 10)
     }
 
     @ViewBuilder
-    private var content: some View {
+    private var middle: some View {
         switch model.welcomePhase {
         case .signIn:
-            signInContent
+            VStack(spacing: 16) {
+                OnboardingStepRow(textKey: "onboarding.step.list", delay: 0.05)
+                OnboardingStepRow(textKey: "onboarding.step.trolley", delay: 0.12)
+                OnboardingStepRow(textKey: "onboarding.step.paid", delay: 0.19)
+            }
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
         case .connecting:
             connectingContent
         case let .failed(message):
@@ -43,31 +80,29 @@ struct WelcomeView: View {
         }
     }
 
-    private var signInContent: some View {
-        VStack(spacing: 22) {
-            VStack(alignment: .leading, spacing: 12) {
-                OnboardingStepRow(textKey: "onboarding.step.list")
-                OnboardingStepRow(textKey: "onboarding.step.trolley")
-                OnboardingStepRow(textKey: "onboarding.step.paid")
+    private var bottom: some View {
+        VStack(spacing: 12) {
+            if model.welcomePhase == .signIn {
+                AppleSignInAuthorizationButton(
+                    onRequest: { request in
+                        request.requestedScopes = [.fullName, .email]
+                    },
+                    onCompletion: { result in
+                        handleSignInResult(result)
+                    }
+                )
+                .id(colorScheme)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .accessibilityHint(Text("welcome.footer"))
+
+                Text("welcome.footer")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-
-            AppleSignInAuthorizationButton(
-                onRequest: { request in
-                    request.requestedScopes = [.fullName, .email]
-                },
-                onCompletion: { result in
-                    handleSignInResult(result)
-                }
-            )
-            .id(colorScheme)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-
-            Text("welcome.footer")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
+        .padding(.bottom, 8)
     }
 
     private var connectingContent: some View {
@@ -79,7 +114,6 @@ struct WelcomeView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
     }
 
     private func failedContent(message: String) -> some View {
@@ -113,12 +147,27 @@ struct WelcomeView: View {
 }
 
 private struct OnboardingStepRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let textKey: LocalizedStringKey
+    let delay: Double
+    @State private var visible = false
 
     var body: some View {
         Text(textKey)
-            .font(.body)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .font(.title3)
+            .foregroundStyle(.primary)
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible || reduceMotion ? 0 : 8)
+            .onAppear {
+                guard !visible else { return }
+                if reduceMotion {
+                    visible = true
+                } else {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.88).delay(delay)) {
+                        visible = true
+                    }
+                }
+            }
     }
 }
 

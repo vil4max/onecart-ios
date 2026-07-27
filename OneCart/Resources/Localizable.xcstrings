@@ -183,19 +183,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Add to the list"
+            "value" : "📝 Toss it in the list"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Добавили в список"
+            "value" : "📝 Набросали в список"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Додали до списку"
+            "value" : "📝 Накидали у список"
           }
         }
       }
@@ -205,7 +205,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "✅ Paid - to history"
+            "value" : "✅ Paid - off to history"
           }
         },
         "ru" : {
@@ -227,7 +227,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 Mark in the trolley"
+            "value" : "🛒 Check it into the trolley"
           }
         },
         "ru" : {
@@ -298,19 +298,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple ID and iCloud"
+            "value" : "Apple ID + iCloud on this iPhone"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Нужны Apple ID и iCloud"
+            "value" : "Apple ID и iCloud на этом iPhone"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Потрібні Apple ID та iCloud"
+            "value" : "Apple ID та iCloud на цьому iPhone"
           }
         }
       }
@@ -343,19 +343,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One family cart"
+            "value" : "One living cart for the family"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Одна корзина на семью"
+            "value" : "Одна живая корзина на семью"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один кошик на родину"
+            "value" : "Один живий кошик на родину"
           }
         }
       }
@@ -365,19 +365,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OneCart"
+            "value" : "They add. You shop."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OneCart"
+            "value" : "Дома пишут. Ты в магазине."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OneCart"
+            "value" : "Вдома пишуть. Ти в магазині."
           }
         }
       }
