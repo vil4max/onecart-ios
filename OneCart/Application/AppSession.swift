@@ -653,6 +653,16 @@ final class AppSession: ObservableObject {
         alertMessage = nil
     }
 
+    func bootstrapTestingSession(account: OneCartAccount) throws {
+        self.account = account
+        try reload()
+    }
+
+    func offerSharedCartJoinIfNeededForTesting() async throws {
+        guard let account else { return }
+        try await offerSharedCartJoinIfNeeded(for: account)
+    }
+
     func confirmSharedCartJoin() async {
         guard let account, pendingSharedCartJoin != nil else { return }
         pendingSharedCartJoin = nil

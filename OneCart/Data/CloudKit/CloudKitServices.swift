@@ -141,6 +141,15 @@ enum OneCartShareBranding {
     static let thumbnailImageData: Data = thumbnailImage.pngData() ?? Data()
 }
 
+enum OneCartShareLinkJoin {
+    @discardableResult
+    static func applyReadWriteACL(to share: CKShare) -> Bool {
+        guard share.publicPermission != .readWrite else { return false }
+        share.publicPermission = .readWrite
+        return true
+    }
+}
+
 enum OneCartCloudKitError: LocalizedError {
     case accountUnavailable(CKAccountStatus)
     case familyNotShared
@@ -841,7 +850,7 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        share.publicPermission = .readWrite
+        OneCartShareLinkJoin.applyReadWriteACL(to: share)
         OneCartShareBranding.apply(to: share)
 
         // `persistUpdatedShare` is known to stall; if CloudKit already minted a URL,
@@ -876,8 +885,7 @@ private enum FamilyInviteLinkBuilder {
         persistence: PersistenceController
     ) {
         var needsPersist = false
-        if share.publicPermission != .readWrite {
-            share.publicPermission = .readWrite
+        if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
             needsPersist = true
         }
         if OneCartShareBranding.apply(to: share) {

@@ -71,42 +71,49 @@ final class PersistenceRoutingTests: XCTestCase {
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
-        defer {
-            try? persistence.hardResetPersistentStores()
-            try? FileManager.default.removeItem(at: directory)
+
+        let productCount: Int
+        let productName: String?
+        do {
+            try await persistence.load()
+            let repository = FamilySpaceRepository(
+                persistence: persistence,
+                permissionAuthorizer: AllowAllPermissionAuthorizer()
+            )
+            let familyID = try await repository.createFamilySpace(name: "Offline")
+            let listID = try XCTUnwrap(
+                repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+            )
+
+            _ = try await repository.addProduct(
+                to: listID,
+                draft: ProductDraft(
+                    name: "Хлеб",
+                    quantity: 1,
+                    unit: .piece,
+                    category: .other,
+                    estimatedPrice: 38,
+                    note: ""
+                )
+            )
+
+            persistence.container.viewContext.reset()
+
+            let productRequest = ProductEntity.fetchRequest()
+            productRequest.predicate = NSPredicate(
+                format: "familySpace.id == %@",
+                familyID as NSUUID
+            )
+            let products = try persistence.container.viewContext.fetch(productRequest)
+            productCount = products.count
+            productName = products.first?.displayName
+            persistence.container.viewContext.reset()
         }
 
-        try await persistence.load()
-        let repository = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
-        )
-        let familyID = try await repository.createFamilySpace(name: "Offline")
-        let listID = try XCTUnwrap(
-            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
-        )
+        XCTAssertEqual(productCount, 1)
+        XCTAssertEqual(productName, "Хлеб")
 
-        _ = try await repository.addProduct(
-            to: listID,
-            draft: ProductDraft(
-                name: "Хлеб",
-                quantity: 1,
-                unit: .piece,
-                category: .other,
-                estimatedPrice: 38,
-                note: ""
-            )
-        )
-
-        persistence.container.viewContext.reset()
-
-        let productRequest = ProductEntity.fetchRequest()
-        productRequest.predicate = NSPredicate(
-            format: "familySpace.id == %@",
-            familyID as NSUUID
-        )
-        let products = try persistence.container.viewContext.fetch(productRequest)
-        XCTAssertEqual(products.count, 1)
-        XCTAssertEqual(products.first?.displayName, "Хлеб")
+        try? persistence.hardResetPersistentStores()
+        try? FileManager.default.removeItem(at: directory)
     }
 }

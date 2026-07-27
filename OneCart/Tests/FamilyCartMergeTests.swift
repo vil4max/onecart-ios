@@ -30,6 +30,7 @@ final class FamilyCartMergeTests: XCTestCase {
                 note: ""
             )
         )
+        persistence.container.viewContext.processPendingChanges()
         let updated = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let updatedScope = try XCTUnwrap(persistence.scope(for: updated))
         XCTAssertFalse(

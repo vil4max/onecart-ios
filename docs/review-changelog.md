@@ -185,7 +185,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Status: done (this train)
 - Paths: `AppSession.swift`, `RootView.swift`, `Localizable.xcstrings`, `docs/product.md`, `docs/review-changelog.md`
 - What changed: after CloudKit Accept, show Join/Cancel alert before `adoptSharedFamilyCartIfNeeded`; Join replaces personal cart with shared (merge then archive); Cancel keeps personal cart and does not Leave
-- How to verify: invitee Accept → alert → Join shows owner items; Cancel leaves empty My cart
+- How to verify: invitee Accept → alert → Join shows owner items; Cancel leaves empty My cart; `SharedCartJoinTests` + `ShareLinkJoinACLTests`
 - Do not invent scope: no Leave-on-Cancel, no merge sheet UI
 
 ### RC22 — Deployment target iOS 26
