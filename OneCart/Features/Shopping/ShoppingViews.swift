@@ -278,10 +278,10 @@ struct ShoppingListView: View {
                 .alert("Завершить покупку?", isPresented: $confirmingCompletion) {
                     Button("Отмена", role: .cancel) {}
                     Button("Завершить") {
-                        Task { await model.completeList(list) }
+                        Task { await model.completePurchasedItems(list) }
                     }
                 } message: {
-                    Text("Товары перейдут в историю, корзина станет пустой.")
+                    Text("Отмеченные товары перейдут в историю.")
                 }
                 .alert(
                     "Удалить товар?",

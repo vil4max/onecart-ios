@@ -428,9 +428,9 @@ final class FamilySpaceRepository {
     }
 
     @discardableResult
-    func completeList(id: UUID) async throws -> UUID {
+    func completePurchased(listID: UUID) async throws -> UUID? {
         try await persistence.performBackgroundTask { context in
-            guard let list = try Self.fetchList(id: id, in: context) else {
+            guard let list = try Self.fetchList(id: listID, in: context) else {
                 throw RepositoryError.listNotFound
             }
             try self.requireUpdatePermission(for: list)
@@ -438,14 +438,16 @@ final class FamilySpaceRepository {
                 throw RepositoryError.familySpaceNotFound
             }
 
-            let products = list.sortedProducts
+            let purchased = list.sortedProducts.filter(\.isPurchasedValue)
+            guard !purchased.isEmpty else { return nil }
+
             let now = Date()
             let historyID = UUID()
             let history = PurchaseHistoryEntity(context: context)
             try self.persistence.assign(history, toSameStoreAs: list, in: context)
             history.id = historyID
             history.total = NSNumber(
-                value: products.reduce(0) { $0 + $1.estimatedPriceValue }
+                value: purchased.reduce(0) { $0 + $1.estimatedPriceValue }
             )
             history.date = now
             history.createdAt = now
@@ -454,11 +456,11 @@ final class FamilySpaceRepository {
             history.store = list.store
 
             let names = Set(
-                products.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
+                purchased.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
             ).sorted()
             history.memberNames = names.isEmpty ? "Группа" : names.joined(separator: ", ")
 
-            for product in products {
+            for product in purchased {
                 let item = HistoryItemEntity(context: context)
                 try self.persistence.assign(item, toSameStoreAs: list, in: context)
                 item.id = product.id ?? UUID()
@@ -482,19 +484,7 @@ final class FamilySpaceRepository {
                 product.updatedAt = now
             }
 
-            list.status = ShoppingListStatus.completed.rawValue
             list.updatedAt = now
-
-            let replacement = ShoppingListEntity(context: context)
-            try self.persistence.assign(replacement, toSameStoreAs: list, in: context)
-            replacement.id = UUID()
-            replacement.title = list.title
-            replacement.status = ShoppingListStatus.active.rawValue
-            replacement.createdAt = now
-            replacement.updatedAt = now
-            replacement.familySpace = space
-            replacement.store = list.store
-
             space.updatedAt = now
             return historyID
         }

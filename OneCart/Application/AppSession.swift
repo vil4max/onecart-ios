@@ -371,10 +371,10 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func completeList(_ list: ShoppingListEntity) async {
+    func completePurchasedItems(_ list: ShoppingListEntity) async {
         guard let id = list.id else { return }
-        await performMutation(successMessage: "Покупка сохранена в истории") {
-            _ = try await self.repository.completeList(id: id)
+        await performMutation(successMessage: "Отмеченное уехало в историю 📜") {
+            _ = try await self.repository.completePurchased(listID: id)
         }
     }
 
