@@ -145,6 +145,13 @@ struct ShoppingListView: View {
         products.count - remainingCount
     }
 
+    private var emptyCartMessage: String {
+        if model.access?.isOwner == true {
+            return "\(String(localized: "home.empty_hint")) Пригласить семью можно во вкладке «Ещё»."
+        }
+        return String(localized: "home.empty_hint")
+    }
+
     var body: some View {
         Group {
             if let list {
@@ -163,7 +170,7 @@ struct ShoppingListView: View {
                                 EmptyCard(
                                     image: "cart.badge.plus",
                                     title: String(localized: "cart.empty_title"),
-                                    message: String(localized: "home.empty_hint")
+                                    message: emptyCartMessage
                                 )
                             } else {
                                 VStack(alignment: .leading, spacing: 10) {
@@ -619,7 +626,7 @@ struct QuickAddProductSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
-                TextField("Что купить?", text: $name)
+                TextField("Например, молоко…", text: $name)
                     .font(.title3.weight(.semibold))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
@@ -628,7 +635,7 @@ struct QuickAddProductSheet: View {
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                     )
                     .focused($nameFocused)
-                    .submitLabel(isEditing ? .done : .next)
+                    .submitLabel(.done)
                     .onSubmit { save() }
                     .disabled(isSaving)
 
@@ -639,29 +646,22 @@ struct QuickAddProductSheet: View {
                         if isSaving {
                             ProgressView().tint(.white)
                         }
-                        Text(isEditing ? "Сохранить" : "Добавить")
+                        Text(isEditing ? "Сохранить" : "В корзину 🛒")
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(OneCartPrimaryButtonStyle())
                 .disabled(trimmedName.isEmpty || isSaving)
 
-                if !isEditing {
-                    Text("После добавления можно сразу ввести следующий товар.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
                 Spacer(minLength: 0)
             }
             .padding(20)
             .background(OneCartPalette.background.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Изменить" : "Добавить")
+            .navigationTitle(isEditing ? "Редактируем ✏️" : "Что берём? ✨")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Готово") { dismiss() }
+                    Button("Закрыть") { dismiss() }
                 }
             }
             .task {
@@ -670,6 +670,7 @@ struct QuickAddProductSheet: View {
             }
         }
         .navigationViewStyle(.stack)
+        .oneCartMediumSheet()
     }
 
     private func save() {
@@ -710,8 +711,7 @@ struct QuickAddProductSheet: View {
                 await model.addProduct(to: list, draft: draft)
                 let after = Set(model.products(inListID: listID).compactMap(\.id))
                 guard !after.subtracting(before).isEmpty else { return }
-                name = ""
-                nameFocused = true
+                dismiss()
             }
         }
     }
@@ -1034,5 +1034,17 @@ struct ContentUnavailableViewCompat: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(OneCartPalette.background)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func oneCartMediumSheet() -> some View {
+        if #available(iOS 16.0, *) {
+            presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        } else {
+            self
+        }
     }
 }
