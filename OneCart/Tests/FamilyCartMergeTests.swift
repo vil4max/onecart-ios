@@ -122,15 +122,4 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertFalse(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Дача"))
     }
 
-    private func makeInMemoryRepository() async throws
-        -> (PersistenceController, FamilySpaceRepository)
-    {
-        let persistence = PersistenceController(inMemory: true)
-        try await persistence.load()
-        let repository = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
-        )
-        return (persistence, repository)
-    }
 }

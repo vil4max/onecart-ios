@@ -578,25 +578,6 @@ final class OneCartTests: XCTestCase {
         )
     }
 
-    private func makeInMemoryRepository() async throws
-        -> (PersistenceController, FamilySpaceRepository)
-    {
-        let persistence = PersistenceController(inMemory: true)
-        try await persistence.load()
-        let repository = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
-        )
-        return (persistence, repository)
-    }
-
-    private func makeDefaults() throws -> UserDefaults {
-        let suiteName = "OneCartTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defaults.removePersistentDomain(forName: suiteName)
-        return defaults
-    }
-
     private static let legacyJSON = """
     {
       "version": 1,
@@ -644,14 +625,4 @@ final class OneCartTests: XCTestCase {
       }
     }
     """
-}
-
-private final class DenyAllPermissionAuthorizer: PermissionAuthorizing {
-    func canUpdate(_: NSManagedObjectID) -> Bool {
-        false
-    }
-
-    func canDelete(_: NSManagedObjectID) -> Bool {
-        false
-    }
 }
