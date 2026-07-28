@@ -67,6 +67,7 @@
 		A20000000000000000000039 /* HouseholdEnsureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000039 /* HouseholdEnsureTests.swift */; };
 		D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000008 /* FamilyShareOrchestrator.swift */; };
 		D2000000000000000000000A /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* HistoryViews.swift */; };
+		A20000000000000000000043 /* HistoryDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000043 /* HistoryDetailViews.swift */; };
 		D2000000000000000000000B /* CartChromeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000A /* CartChromeViews.swift */; };
 		E20000000000000000000001 /* OneCartStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* OneCartStableID.swift */; };
 		E20000000000000000000002 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* AppleSignInService.swift */; };
@@ -162,6 +163,7 @@
 		A10000000000000000000039 /* HouseholdEnsureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdEnsureTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
+		A10000000000000000000043 /* HistoryDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailViews.swift; sourceTree = "<group>"; };
 		A10000000000000000000043 /* HistoryDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailViews.swift; sourceTree = "<group>"; };
 		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
@@ -330,6 +332,7 @@
 				A10000000000000000000036 /* ShoppingListView.swift */,
 				A10000000000000000000037 /* QuickAddProductSheet.swift */,
 				D10000000000000000000009 /* HistoryViews.swift */,
+				A10000000000000000000043 /* HistoryDetailViews.swift */,
 				D1000000000000000000000A /* CartChromeViews.swift */,
 				E10000000000000000000005 /* ShoppingViewModel.swift */,
 			);
@@ -563,6 +566,7 @@
 				D20000000000000000000014 /* AppSession+FamilySelection.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
 				D2000000000000000000000A /* HistoryViews.swift in Sources */,
+				A20000000000000000000043 /* HistoryDetailViews.swift in Sources */,
 				D2000000000000000000000B /* CartChromeViews.swift in Sources */,
 				E20000000000000000000001 /* OneCartStableID.swift in Sources */,
 				E20000000000000000000002 /* AppleSignInService.swift in Sources */,
