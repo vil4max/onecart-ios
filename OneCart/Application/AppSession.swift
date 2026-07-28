@@ -205,9 +205,27 @@ final class AppSession: ObservableObject {
     }
 
     func syncCart(reason: CartSyncReason) async {
-        await cartSync.syncCart(reason: reason)
-        await refreshFamilyMetadata(showErrors: false)
-        syncState = online ? .synchronized : .offline
+        let previousState = syncState
+        let outcome = await cartSync.syncCart(reason: reason)
+        switch outcome {
+        case .succeeded:
+            await refreshFamilyMetadata(showErrors: false)
+            syncState = online ? .synchronized : .offline
+            lastSyncError = nil
+        case .skippedDebounce:
+            break
+        case let .failed(message):
+            lastSyncError = message
+            syncState = .failed
+            switch reason {
+            case .pull:
+                presentAlert(message)
+            case .foreground where previousState == .synchronized || previousState == .syncing:
+                presentAlert(message)
+            case .foreground, .appear, .cloudImport, .afterToggle, .afterMutation:
+                break
+            }
+        }
     }
 
     func dismissSharedCartRemovedMessage() {

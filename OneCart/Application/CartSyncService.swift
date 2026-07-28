@@ -11,13 +11,19 @@ enum CartSyncReason: String {
     case afterMutation
 }
 
+enum CartSyncOutcome: Equatable {
+    case succeeded
+    case skippedDebounce
+    case failed(String)
+}
+
 @MainActor
 final class CartSyncService: ObservableObject {
     @Published private(set) var isCartSyncing = false
     @Published private(set) var contentRevision = 0
 
     private let persistence: PersistenceController
-    private var syncTask: Task<Void, Never>?
+    private var syncTask: Task<CartSyncOutcome, Never>?
     private var lastAppearSyncAt: Date?
 
     var onHardRefresh: (() async throws -> Void)?
@@ -29,10 +35,11 @@ final class CartSyncService: ObservableObject {
         self.persistence = persistence
     }
 
-    func syncCart(reason: CartSyncReason, debouncedAppear: Bool = true) async {
+    @discardableResult
+    func syncCart(reason: CartSyncReason, debouncedAppear: Bool = true) async -> CartSyncOutcome {
         if reason == .appear, debouncedAppear {
             if let lastAppearSyncAt, Date().timeIntervalSince(lastAppearSyncAt) < 2.5 {
-                return
+                return .skippedDebounce
             }
             lastAppearSyncAt = Date()
         }
@@ -42,11 +49,11 @@ final class CartSyncService: ObservableObject {
             await performSync(reason: reason)
         }
         syncTask = work
-        await work.value
+        return await work.value
     }
 
-    private func performSync(reason: CartSyncReason) async {
-        guard !Task.isCancelled else { return }
+    private func performSync(reason: CartSyncReason) async -> CartSyncOutcome {
+        guard !Task.isCancelled else { return .skippedDebounce }
         isCartSyncing = true
         defer { isCartSyncing = false }
 
@@ -66,10 +73,13 @@ final class CartSyncService: ObservableObject {
             await onInviteeSharedGone?()
             CartSyncLog.cart
                 .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(self.contentRevision)")
+            return .succeeded
         } catch {
+            let message = error.localizedDescription
             CartSyncLog.cart.error(
-                "syncCart failed reason=\(reason.rawValue, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                "syncCart failed reason=\(reason.rawValue, privacy: .public) error=\(message, privacy: .public)"
             )
+            return .failed(message)
         }
     }
 
