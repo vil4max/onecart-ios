@@ -15,6 +15,9 @@
 		A20000000000000000000038 /* OneCartManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* OneCartManagedObjectModel.swift */; };
 		A20000000000000000000004 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* PersistenceController.swift */; };
 		A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* FamilySpaceRepository.swift */; };
+		A2000000000000000000003A /* FamilySpaceRepository+Merge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003A /* FamilySpaceRepository+Merge.swift */; };
+		A2000000000000000000003B /* FamilySpaceRepository+Deduplicate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003B /* FamilySpaceRepository+Deduplicate.swift */; };
+		A2000000000000000000003C /* FamilySpaceRepository+Products.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003C /* FamilySpaceRepository+Products.swift */; };
 		A20000000000000000000008 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* AppSession.swift */; };
 		A20000000000000000000009 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* RootView.swift */; };
 		A2000000000000000000000A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* HomeView.swift */; };
@@ -96,6 +99,9 @@
 		A10000000000000000000038 /* OneCartManagedObjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartManagedObjectModel.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* FamilySpaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilySpaceRepository.swift; sourceTree = "<group>"; };
+		A1000000000000000000003A /* FamilySpaceRepository+Merge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FamilySpaceRepository+Merge.swift"; sourceTree = "<group>"; };
+		A1000000000000000000003B /* FamilySpaceRepository+Deduplicate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FamilySpaceRepository+Deduplicate.swift"; sourceTree = "<group>"; };
+		A1000000000000000000003C /* FamilySpaceRepository+Products.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FamilySpaceRepository+Products.swift"; sourceTree = "<group>"; };
 		A10000000000000000000008 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		A10000000000000000000009 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -342,6 +348,9 @@
 				A10000000000000000000038 /* OneCartManagedObjectModel.swift */,
 				A10000000000000000000004 /* PersistenceController.swift */,
 				A10000000000000000000005 /* FamilySpaceRepository.swift */,
+				A1000000000000000000003A /* FamilySpaceRepository+Merge.swift */,
+				A1000000000000000000003B /* FamilySpaceRepository+Deduplicate.swift */,
+				A1000000000000000000003C /* FamilySpaceRepository+Products.swift */,
 			);
 			path = Persistence;
 			sourceTree = "<group>";
@@ -515,6 +524,9 @@
 				A20000000000000000000038 /* OneCartManagedObjectModel.swift in Sources */,
 				A20000000000000000000004 /* PersistenceController.swift in Sources */,
 				A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */,
+				A2000000000000000000003A /* FamilySpaceRepository+Merge.swift in Sources */,
+				A2000000000000000000003B /* FamilySpaceRepository+Deduplicate.swift in Sources */,
+				A2000000000000000000003C /* FamilySpaceRepository+Products.swift in Sources */,
 				D20000000000000000000002 /* CloudKitModels.swift in Sources */,
 				D20000000000000000000003 /* CloudKitErrors.swift in Sources */,
 				D20000000000000000000004 /* CloudKitShareSupport.swift in Sources */,
