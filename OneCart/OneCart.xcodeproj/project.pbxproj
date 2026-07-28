@@ -12,6 +12,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		A20000000000000000000002 /* OneCartApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* OneCartApp.swift */; };
 		A20000000000000000000003 /* ManagedObjects.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ManagedObjects.swift */; };
+		A20000000000000000000038 /* OneCartManagedObjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* OneCartManagedObjectModel.swift */; };
 		A20000000000000000000004 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* PersistenceController.swift */; };
 		A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* FamilySpaceRepository.swift */; };
 		A20000000000000000000008 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* AppSession.swift */; };
@@ -87,6 +88,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000002 /* OneCartApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* ManagedObjects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjects.swift; sourceTree = "<group>"; };
+		A10000000000000000000038 /* OneCartManagedObjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartManagedObjectModel.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* FamilySpaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilySpaceRepository.swift; sourceTree = "<group>"; };
 		A10000000000000000000008 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
@@ -322,6 +324,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000003 /* ManagedObjects.swift */,
+				A10000000000000000000038 /* OneCartManagedObjectModel.swift */,
 				A10000000000000000000004 /* PersistenceController.swift */,
 				A10000000000000000000005 /* FamilySpaceRepository.swift */,
 			);
@@ -494,6 +497,7 @@
 				F20000000000000000000005 /* SceneDelegate.swift in Sources */,
 				A20000000000000000000002 /* OneCartApp.swift in Sources */,
 				A20000000000000000000003 /* ManagedObjects.swift in Sources */,
+				A20000000000000000000038 /* OneCartManagedObjectModel.swift in Sources */,
 				A20000000000000000000004 /* PersistenceController.swift in Sources */,
 				A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */,
 				D20000000000000000000002 /* CloudKitModels.swift in Sources */,
