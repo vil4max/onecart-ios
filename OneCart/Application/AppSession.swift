@@ -303,6 +303,7 @@ final class AppSession: ObservableObject {
            message == String(localized: "welcome.core_data_failed")
         {
             do {
+                _ = try? persistence.copyStoreFilesForDiagnostics()
                 try persistence.hardResetPersistentStores()
                 objectWillChange.send()
             } catch {

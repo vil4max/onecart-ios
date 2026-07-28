@@ -31,6 +31,7 @@
 		A2000000000000000000001D /* StableIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* StableIDTests.swift */; };
 		A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023 /* PersistenceRoutingTests.swift */; };
 		A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* CloudKitErrorMappingTests.swift */; };
+		A20000000000000000000030 /* FragileStoreLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* FragileStoreLoadTests.swift */; };
 		A20000000000000000000021 /* AppleSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* AppleSignInTests.swift */; };
 		A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* SharedCartJoinTests.swift */; };
 		D20000000000000000000002 /* CloudKitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitModels.swift */; };
@@ -98,6 +99,7 @@
 		A10000000000000000000022 /* StableIDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableIDTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000023 /* PersistenceRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceRoutingTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000024 /* CloudKitErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrorMappingTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000030 /* FragileStoreLoadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FragileStoreLoadTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000026 /* AppleSignInTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000027 /* SharedCartJoinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedCartJoinTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000001 /* CloudKitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitModels.swift; sourceTree = "<group>"; };
@@ -177,6 +179,7 @@
 				A10000000000000000000022 /* StableIDTests.swift */,
 				A10000000000000000000023 /* PersistenceRoutingTests.swift */,
 				A10000000000000000000024 /* CloudKitErrorMappingTests.swift */,
+				A10000000000000000000030 /* FragileStoreLoadTests.swift */,
 				A10000000000000000000026 /* AppleSignInTests.swift */,
 				A10000000000000000000027 /* SharedCartJoinTests.swift */,
 			);
@@ -503,6 +506,7 @@
 				A2000000000000000000001D /* StableIDTests.swift in Sources */,
 				A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */,
 				A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */,
+				A20000000000000000000030 /* FragileStoreLoadTests.swift in Sources */,
 				A20000000000000000000021 /* AppleSignInTests.swift in Sources */,
 				A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */,
 			);

@@ -11,6 +11,7 @@ enum PersistentStoreScope: String {
 enum PersistenceError: LocalizedError {
     case storeNotLoaded(PersistentStoreScope)
     case unableToIdentifyStore(URL?)
+    case loadFailed(underlying: Error)
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +21,8 @@ enum PersistenceError: LocalizedError {
             String(
                 localized: "sync.store_unidentified \(url?.lastPathComponent ?? String(localized: "sync.store_no_url"))"
             )
+        case let .loadFailed(underlying):
+            underlying.localizedDescription
         }
     }
 }
@@ -92,13 +95,43 @@ final class PersistenceController: @unchecked Sendable {
         do {
             try await loadPersistentStoresOnce()
         } catch {
-            guard !inMemory else { throw error }
             logger.error(
-                "Persistent store load failed; rebuilding stores: \(error.localizedDescription, privacy: .public)"
+                "Persistent store load failed; preserving store files: \(error.localizedDescription, privacy: .public)"
             )
-            try hardResetPersistentStores()
-            try await loadPersistentStoresOnce()
+            throw PersistenceError.loadFailed(underlying: error)
         }
+    }
+
+    @discardableResult
+    func copyStoreFilesForDiagnostics() throws -> URL {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        let stamp = formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let diagnosticsRoot = storeDirectoryURL
+            .appendingPathComponent("OneCart-diagnostics", isDirectory: true)
+            .appendingPathComponent(stamp, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: diagnosticsRoot,
+            withIntermediateDirectories: true
+        )
+
+        let fileManager = FileManager.default
+        let contents = try fileManager.contentsOfDirectory(
+            at: storeDirectoryURL,
+            includingPropertiesForKeys: nil
+        )
+        for url in contents {
+            let name = url.lastPathComponent
+            guard name.lowercased().hasPrefix("onecart-") else { continue }
+            if name.lowercased().hasPrefix("onecart-diagnostics") { continue }
+            let destination = diagnosticsRoot.appendingPathComponent(name)
+            if fileManager.fileExists(atPath: destination.path) {
+                try fileManager.removeItem(at: destination)
+            }
+            try fileManager.copyItem(at: url, to: destination)
+        }
+        logger.info("Diagnostics snapshot written to \(diagnosticsRoot.path, privacy: .public)")
+        return diagnosticsRoot
     }
 
     func hardResetPersistentStores() throws {
@@ -423,6 +456,7 @@ final class PersistenceController: @unchecked Sendable {
         for url in contents {
             let name = url.lastPathComponent.lowercased()
             guard name.hasPrefix("onecart-") else { continue }
+            if name.hasPrefix("onecart-diagnostics") { continue }
             try? fileManager.removeItem(at: url)
         }
     }
