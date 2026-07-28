@@ -14,7 +14,6 @@
 		A20000000000000000000003 /* ManagedObjects.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* ManagedObjects.swift */; };
 		A20000000000000000000004 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* PersistenceController.swift */; };
 		A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* FamilySpaceRepository.swift */; };
-		A20000000000000000000006 /* LegacyMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* LegacyMigration.swift */; };
 		A20000000000000000000008 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* AppSession.swift */; };
 		A20000000000000000000009 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* RootView.swift */; };
 		A2000000000000000000000A /* ShoppingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* ShoppingViews.swift */; };
@@ -32,10 +31,18 @@
 		A2000000000000000000001D /* StableIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* StableIDTests.swift */; };
 		A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023 /* PersistenceRoutingTests.swift */; };
 		A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* CloudKitErrorMappingTests.swift */; };
-		A20000000000000000000020 /* LegacyMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025 /* LegacyMigrationTests.swift */; };
 		A20000000000000000000021 /* AppleSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* AppleSignInTests.swift */; };
 		A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* SharedCartJoinTests.swift */; };
-		D20000000000000000000002 /* CloudKitServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitServices.swift */; };
+		D20000000000000000000002 /* CloudKitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitModels.swift */; };
+		D20000000000000000000003 /* CloudKitErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000002 /* CloudKitErrors.swift */; };
+		D20000000000000000000004 /* CloudKitShareSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000003 /* CloudKitShareSupport.swift */; };
+		D20000000000000000000005 /* CloudKitPermissionAuthorizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000004 /* CloudKitPermissionAuthorizer.swift */; };
+		D20000000000000000000006 /* CloudKitBackendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000005 /* CloudKitBackendService.swift */; };
+		D20000000000000000000007 /* FamilyInviteLinkBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */; };
+		D20000000000000000000008 /* CartSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000007 /* CartSyncService.swift */; };
+		D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000008 /* FamilyShareOrchestrator.swift */; };
+		D2000000000000000000000A /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* HistoryViews.swift */; };
+		D2000000000000000000000B /* CartChromeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000A /* CartChromeViews.swift */; };
 		E20000000000000000000001 /* OneCartStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* OneCartStableID.swift */; };
 		E20000000000000000000002 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* AppleSignInService.swift */; };
 		E20000000000000000000003 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* WelcomeView.swift */; };
@@ -70,7 +77,6 @@
 		A10000000000000000000003 /* ManagedObjects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjects.swift; sourceTree = "<group>"; };
 		A10000000000000000000004 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* FamilySpaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilySpaceRepository.swift; sourceTree = "<group>"; };
-		A10000000000000000000006 /* LegacyMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigration.swift; sourceTree = "<group>"; };
 		A10000000000000000000008 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		A10000000000000000000009 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000A /* ShoppingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingViews.swift; sourceTree = "<group>"; };
@@ -92,10 +98,18 @@
 		A10000000000000000000022 /* StableIDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableIDTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000023 /* PersistenceRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceRoutingTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000024 /* CloudKitErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrorMappingTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000025 /* LegacyMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000026 /* AppleSignInTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000027 /* SharedCartJoinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedCartJoinTests.swift; sourceTree = "<group>"; };
-		D10000000000000000000001 /* CloudKitServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitServices.swift; sourceTree = "<group>"; };
+		D10000000000000000000001 /* CloudKitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitModels.swift; sourceTree = "<group>"; };
+		D10000000000000000000002 /* CloudKitErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrors.swift; sourceTree = "<group>"; };
+		D10000000000000000000003 /* CloudKitShareSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareSupport.swift; sourceTree = "<group>"; };
+		D10000000000000000000004 /* CloudKitPermissionAuthorizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitPermissionAuthorizer.swift; sourceTree = "<group>"; };
+		D10000000000000000000005 /* CloudKitBackendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitBackendService.swift; sourceTree = "<group>"; };
+		D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyInviteLinkBuilder.swift; sourceTree = "<group>"; };
+		D10000000000000000000007 /* CartSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartSyncService.swift; sourceTree = "<group>"; };
+		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
+		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
+		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		E10000000000000000000003 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -163,7 +177,6 @@
 				A10000000000000000000022 /* StableIDTests.swift */,
 				A10000000000000000000023 /* PersistenceRoutingTests.swift */,
 				A10000000000000000000024 /* CloudKitErrorMappingTests.swift */,
-				A10000000000000000000025 /* LegacyMigrationTests.swift */,
 				A10000000000000000000026 /* AppleSignInTests.swift */,
 				A10000000000000000000027 /* SharedCartJoinTests.swift */,
 			);
@@ -177,6 +190,8 @@
 				F10000000000000000000005 /* SceneDelegate.swift */,
 				A10000000000000000000002 /* OneCartApp.swift */,
 				A10000000000000000000008 /* AppSession.swift */,
+				D10000000000000000000007 /* CartSyncService.swift */,
+				D10000000000000000000008 /* FamilyShareOrchestrator.swift */,
 				A10000000000000000000009 /* RootView.swift */,
 				F10000000000000000000002 /* MainTabView.swift */,
 				F10000000000000000000004 /* DemoUISupport.swift */,
@@ -201,7 +216,6 @@
 				G10000000000000000000020 /* Persistence */,
 				G10000000000000000000021 /* CloudKit */,
 				G10000000000000000000022 /* Authentication */,
-				G10000000000000000000023 /* Migration */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -243,6 +257,8 @@
 			isa = PBXGroup;
 			children = (
 				A1000000000000000000000A /* ShoppingViews.swift */,
+				D10000000000000000000009 /* HistoryViews.swift */,
+				D1000000000000000000000A /* CartChromeViews.swift */,
 				E10000000000000000000005 /* ShoppingViewModel.swift */,
 			);
 			path = Shopping;
@@ -279,7 +295,12 @@
 		G10000000000000000000021 /* CloudKit */ = {
 			isa = PBXGroup;
 			children = (
-				D10000000000000000000001 /* CloudKitServices.swift */,
+				D10000000000000000000001 /* CloudKitModels.swift */,
+				D10000000000000000000002 /* CloudKitErrors.swift */,
+				D10000000000000000000003 /* CloudKitShareSupport.swift */,
+				D10000000000000000000004 /* CloudKitPermissionAuthorizer.swift */,
+				D10000000000000000000005 /* CloudKitBackendService.swift */,
+				D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */,
 			);
 			path = CloudKit;
 			sourceTree = "<group>";
@@ -290,14 +311,6 @@
 				E10000000000000000000002 /* AppleSignInService.swift */,
 			);
 			path = Authentication;
-			sourceTree = "<group>";
-		};
-		G10000000000000000000023 /* Migration */ = {
-			isa = PBXGroup;
-			children = (
-				A10000000000000000000006 /* LegacyMigration.swift */,
-			);
-			path = Migration;
 			sourceTree = "<group>";
 		};
 		G10000000000000000000030 /* Media */ = {
@@ -447,14 +460,22 @@
 				A20000000000000000000003 /* ManagedObjects.swift in Sources */,
 				A20000000000000000000004 /* PersistenceController.swift in Sources */,
 				A20000000000000000000005 /* FamilySpaceRepository.swift in Sources */,
-				D20000000000000000000002 /* CloudKitServices.swift in Sources */,
+				D20000000000000000000002 /* CloudKitModels.swift in Sources */,
+				D20000000000000000000003 /* CloudKitErrors.swift in Sources */,
+				D20000000000000000000004 /* CloudKitShareSupport.swift in Sources */,
+				D20000000000000000000005 /* CloudKitPermissionAuthorizer.swift in Sources */,
+				D20000000000000000000006 /* CloudKitBackendService.swift in Sources */,
+				D20000000000000000000007 /* FamilyInviteLinkBuilder.swift in Sources */,
+				D20000000000000000000008 /* CartSyncService.swift in Sources */,
+				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
+				D2000000000000000000000A /* HistoryViews.swift in Sources */,
+				D2000000000000000000000B /* CartChromeViews.swift in Sources */,
 				E20000000000000000000001 /* OneCartStableID.swift in Sources */,
 				E20000000000000000000002 /* AppleSignInService.swift in Sources */,
 				E20000000000000000000003 /* WelcomeView.swift in Sources */,
 				E20000000000000000000004 /* WelcomeViewModel.swift in Sources */,
 				E20000000000000000000005 /* ShoppingViewModel.swift in Sources */,
 				F20000000000000000000001 /* FamilyCartMerge.swift in Sources */,
-				A20000000000000000000006 /* LegacyMigration.swift in Sources */,
 				A20000000000000000000008 /* AppSession.swift in Sources */,
 				A20000000000000000000009 /* RootView.swift in Sources */,
 				A2000000000000000000000A /* ShoppingViews.swift in Sources */,
@@ -482,7 +503,6 @@
 				A2000000000000000000001D /* StableIDTests.swift in Sources */,
 				A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */,
 				A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */,
-				A20000000000000000000020 /* LegacyMigrationTests.swift in Sources */,
 				A20000000000000000000021 /* AppleSignInTests.swift in Sources */,
 				A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */,
 			);
@@ -646,7 +666,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -674,7 +694,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

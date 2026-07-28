@@ -1,5 +1,4 @@
 import CoreData
-import CoreLocation
 @testable import OneCart
 import XCTest
 

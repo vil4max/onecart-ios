@@ -27,7 +27,7 @@ For device / TestFlight: App ID capabilities and CloudKit Production — see [do
 │   ├── OneCart.xcodeproj
 │   ├── Application/         # App entry, AppSession, root + tabs
 │   ├── Features/            # Feature UI + ViewModels
-│   ├── Data/                # Persistence, CloudKit, Auth, Migration
+│   ├── Data/                # Persistence, CloudKit, Auth
 │   ├── Shared/
 │   ├── Resources/
 │   └── Tests/

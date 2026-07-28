@@ -1,10 +1,41 @@
 import CloudKit
 import CoreData
-import CoreLocation
 @testable import OneCart
 import XCTest
 
 final class CloudKitErrorMappingTests: XCTestCase {
+    func testCloudKitProductReloadPolicyOnlyOnSuccessfulImport() {
+        XCTAssertTrue(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: true,
+                error: nil
+            )
+        )
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .export,
+                ended: true,
+                error: nil
+            )
+        )
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: false,
+                error: nil
+            )
+        )
+        let error = NSError(domain: CKError.errorDomain, code: CKError.Code.networkFailure.rawValue)
+        XCTAssertFalse(
+            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
+                type: .import,
+                ended: true,
+                error: error
+            )
+        )
+    }
+
     func testCloudKitFamilyInviteShareMessageContainsShareURL() throws {
         let shareURL = try XCTUnwrap(
             URL(string: "https://www.icloud.com/share/onecart-family")

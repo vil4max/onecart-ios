@@ -14,20 +14,22 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 |------------------|----------------------------------|
 | Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
 | Name-only quick add (medium sheet) | Rich product editor / money UI |
-| Invite from Аккаунт; members on the same screen | Multi-cart switcher |
-| System alert for errors | Toast / sync banner chrome |
+| Invite + Delete cart from Аккаунт; members on the same screen | Multi-cart switcher |
+| Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
+| System alert for errors | — |
 
-Store/catalog **UI modules are removed from the target**. Core Data still models `Store` and price fields for the CloudKit sync graph and legacy data. Do not re-wire catalog/store/price screens until two-device invite/sync is solid.
+Store/catalog **UI modules are removed from the target**. Core Data still models `Store` and price fields for the CloudKit sync graph and older local rows. Do not re-wire catalog/store/price screens until two-device invite/sync is solid.
 
 ## Composition root
 
-`AppSession` (typealias `AppModel` for gradual View migration) owns:
+`AppSession` (typealias `AppModel` for gradual View migration) owns published session state and thin wrappers for Views. Heavy work is delegated:
 
-- Sign in with Apple session restore
-- iCloud readiness / sync state
-- Selected Household cart
-- CloudKit share accept / invite orchestration
-- Factory-style access to `FamilySpaceRepository` and CloudKit/Auth services
+| Type | Role |
+|------|------|
+| `CartSyncService` | `syncCart(reason:)`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
+| `FamilyShareOrchestrator` | invite link creation, owner ACL heal, delete cart + recreate |
+| `FamilySpaceRepository` | local CRUD / purchase sessions |
+| `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
 
 Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 
@@ -35,19 +37,23 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/AppSession.swift` | Launch, selected family, sync state, CloudKit events, `alertMessage`, `cartTitle` |
+| `OneCart/Application/AppSession.swift` | Composition root: auth, published cart state, CloudKit observers, alerts |
+| `OneCart/Application/CartSyncService.swift` | Hard cart refresh / sync chrome state |
+| `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / delete-and-recreate |
 | `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
 | `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
-| `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; members sheet; system alert |
+| `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert |
 | `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
-| `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes |
+| `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; viewContext StoreTrump merge |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `completePurchased` (checked items → session) |
-| `OneCart/Data/CloudKit/CloudKitServices.swift` | iCloud account, `CKShare` roles, invites, members |
+| `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
-| `OneCart/Features/Shopping/ShoppingViews.swift` | Cart UI, quick add, history sessions |
-| `OneCart/Features/Settings/MoreView.swift` | Profile / members / invite / sign out |
-| `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart |
+| `OneCart/Features/Shopping/ShoppingViews.swift` | Cart home, list, toggle, quick add, nav sync title |
+| `OneCart/Features/Shopping/HistoryViews.swift` | History list + detail |
+| `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
+| `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / delete cart / sign out |
+| `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart (sheet helpers) |
 
 ## Purchase completion
 
@@ -62,9 +68,11 @@ Same SQLite filenames as older installs (no rename):
 | `OneCart-private.sqlite` | private database |
 | `OneCart-shared.sqlite` | shared database |
 
-New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online. User-facing failures use a system alert (no sync banner/toast).
+New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online.
 
-`CKShare` uses `publicPermission = .readWrite` so anyone with the share URL can join. See [product.md](product.md) for Household vs Apple Family positioning.
+There is **no public API to force** a CloudKit import/export mirror ([TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) / [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)). The app schedules best-effort hard refresh after import events, pull-to-refresh, cart appear, and foreground. ViewContext uses `NSMergeByPropertyStoreTrumpMergePolicy` so remote store wins over stale in-memory values. User-facing failures use a system alert; transient share create retries honor `CKError.retryAfterSeconds` when present.
+
+`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Delete cart** stops the share (old URL dies) and creates a fresh private cart. See [product.md](product.md) and [privacy.md](privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 

@@ -91,9 +91,11 @@ final class AppSession: ObservableObject {
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
     @Published private(set) var profileAvatar: UIImage?
     @Published private(set) var profileBanner: UIImage?
+    @Published private(set) var sharedCartRemovedMessage: String?
 
     let preferences: DevicePreferences
     let persistence: PersistenceController
+    let cartSync: CartSyncService
 
     var canEdit: Bool {
         activeFamilySpace != nil && (access?.canEdit ?? false)
@@ -101,6 +103,14 @@ final class AppSession: ObservableObject {
 
     var isOnline: Bool {
         online
+    }
+
+    var isCartSyncing: Bool {
+        cartSync.isCartSyncing
+    }
+
+    var contentRevision: Int {
+        cartSync.contentRevision
     }
 
     var cartTitle: String {
@@ -112,9 +122,8 @@ final class AppSession: ObservableObject {
 
     private let repository: FamilySpaceRepository
     private let backend: CloudKitBackendService
+    private let shareOrchestrator: FamilyShareOrchestrator
     private let appleSignIn: AppleSignInAuthenticating
-    private let migrationService: LegacyMigrationService
-    private let legacySnapshotProvider: LegacySnapshotProviding
     private let defaults: UserDefaults
     private let connectivity = ConnectivityMonitor()
     private var online = true
@@ -124,14 +133,14 @@ final class AppSession: ObservableObject {
     private var scheduledReloadTask: Task<Void, Never>?
     private var invitePrepareTask: Task<Void, Never>?
     private var preparedInviteFamilyID: UUID?
-    /// Production-schema sync failure is sticky until Deploy; alert once per session.
     private var didPresentProductionSchemaAlert = false
+    private var lastActiveFamilyWasShared = false
+    private var cartSyncCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
         preferences: DevicePreferences = DevicePreferences(),
         defaults: UserDefaults = .standard,
-        legacySnapshotProvider: LegacySnapshotProviding = DefaultLegacySnapshotProvider(),
         backend: CloudKitBackendService? = nil,
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared
     ) {
@@ -139,7 +148,6 @@ final class AppSession: ObservableObject {
         self.persistence = persistence
         self.preferences = preferences
         self.defaults = defaults
-        self.legacySnapshotProvider = legacySnapshotProvider
         self.appleSignIn = appleSignIn
 
         let repository = FamilySpaceRepository(
@@ -149,13 +157,16 @@ final class AppSession: ObservableObject {
         let backend = backend ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
         self.backend = backend
-        migrationService = LegacyMigrationService(
+        cartSync = CartSyncService(persistence: persistence)
+        shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
-            userDefaults: defaults
+            backend: backend,
+            repository: repository
         )
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             isReady = true
         }
+        bindCartSync()
     }
 
     private static func makeDefaultPersistence() -> PersistenceController {
@@ -163,6 +174,71 @@ final class AppSession: ObservableObject {
             return PersistenceController(inMemory: true, cloudKitEnabled: false)
         }
         return .shared
+    }
+
+    private func bindCartSync() {
+        cartSyncCancellable = cartSync.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        cartSync.onHardRefresh = { [weak self] in
+            guard let self else { return }
+            try CartSyncService.resetViewContextAndRefetch(persistence: self.persistence) {
+                try self.reload()
+            }
+        }
+        cartSync.onOwnerACLHeal = { [weak self] in
+            guard let self, let family = self.activeFamilySpace else { return }
+            await self.shareOrchestrator.ensureOwnerReadWriteACL(
+                for: family,
+                isOwner: self.access?.isOwner == true
+            )
+        }
+        cartSync.onInviteeSharedGone = { [weak self] in
+            await self?.handleInviteeSharedCartGoneIfNeeded()
+        }
+        cartSync.purchasedCountProvider = { [weak self] in
+            guard let self else { return (0, 0) }
+            let total = self.products.count
+            let purchased = self.products.filter(\.isPurchasedValue).count
+            return (purchased, total)
+        }
+    }
+
+    func syncCart(reason: CartSyncReason) async {
+        await cartSync.syncCart(reason: reason)
+        await refreshFamilyMetadata(showErrors: false)
+        syncState = online ? .synchronized : .offline
+    }
+
+    func dismissSharedCartRemovedMessage() {
+        sharedCartRemovedMessage = nil
+    }
+
+    func deleteCurrentCartAndStartFresh() async {
+        guard let account,
+              let family = activeFamilySpace,
+              access?.isOwner == true
+        else { return }
+        guard online else {
+            presentAlert(String(localized: "alert.delete_cart_need_network"))
+            return
+        }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let newID = try await shareOrchestrator.deleteCurrentCartAndStartFresh(
+                family: family,
+                accountID: account.id,
+                defaultFamilyName: Self.defaultFamilyName
+            )
+            clearPreparedInviteLink()
+            defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+            try reload(preferredFamilySpaceID: newID)
+            await refreshFamilyMetadata(showErrors: false)
+            scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
+        } catch {
+            show(error)
+        }
     }
 
     deinit {
@@ -348,11 +424,13 @@ final class AppSession: ObservableObject {
     func togglePurchased(_ product: ProductEntity) async {
         guard let id = product.id else { return }
         guard canEdit else {
+            CartSyncLog.cart.error("togglePurchased denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
             return
         }
 
         do {
+            CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
             try await repository.togglePurchased(
                 id: id,
                 participantDisplayName: preferences.participantDisplayName.nilIfBlank
@@ -362,7 +440,12 @@ final class AppSession: ObservableObject {
                 self.persistence.container.viewContext.processPendingChanges()
             }
             try refreshProducts()
+            cartSync.bumpRevisionAfterLocalChange()
+            CartSyncLog.cart.info(
+                "togglePurchased done purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
+            )
         } catch {
+            CartSyncLog.cart.error("togglePurchased failed error=\(error.localizedDescription, privacy: .public)")
             show(error)
         }
     }
@@ -457,21 +540,7 @@ final class AppSession: ObservableObject {
     }
 
     private func fetchFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
-        // Capture Core Data identifiers on MainActor, then leave it so ProgressView
-        // keeps animating and a UI watchdog can cancel a stuck CloudKit call.
-        let objectID = family.objectID
-        let displayName = family.displayName
-        let viewContext = persistence.container.viewContext
-        if viewContext.hasChanges {
-            try viewContext.save()
-        }
-        let backend = backend
-        return try await Task.detached(priority: .userInitiated) {
-            try await backend.createFamilyInviteLink(
-                objectID: objectID,
-                displayName: displayName
-            )
-        }.value
+        try await shareOrchestrator.createInviteLink(for: family)
     }
 
     private func clearPreparedInviteLink() {
@@ -543,14 +612,7 @@ final class AppSession: ObservableObject {
     }
 
     func refreshFromServer() async {
-        do {
-            try reload()
-            await refreshFamilyMetadata(showErrors: true)
-            try refreshProducts()
-            syncState = online ? .synchronized : .offline
-        } catch {
-            show(error)
-        }
+        await syncCart(reason: .pull)
     }
 
     /// Profile media stays on this device; CloudKit synchronizes only shopping data.
@@ -660,10 +722,7 @@ final class AppSession: ObservableObject {
         do {
             try await persistence.load()
             objectWillChange.send()
-            let legacyData = legacySnapshotProvider.loadSnapshotData()
-            _ = try await migrationService.migrateIfNeeded(data: legacyData)
             try await repository.deduplicateStableIDs()
-            try await repository.migrateLegacyHouseholdDefaultsIfNeeded()
             preferences.reloadFromDefaults()
 
             let preferredName = appleCredential.providedDisplayName
@@ -691,7 +750,6 @@ final class AppSession: ObservableObject {
             await refreshFamilyMetadata(showErrors: false)
             needsWelcome = false
             isReady = true
-            // Start CKShare early so Account share is usually instant.
             scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
         } catch {
             needsWelcome = true
@@ -783,6 +841,7 @@ final class AppSession: ObservableObject {
                 self.persistence.container.viewContext.processPendingChanges()
             }
             try reload()
+            cartSync.bumpRevisionAfterLocalChange()
         } catch {
             show(error)
         }
@@ -809,6 +868,11 @@ final class AppSession: ObservableObject {
         }) ?? familySpaces.first
 
         activeFamilySpace = selected
+        if let selected {
+            lastActiveFamilyWasShared = persistence.scope(for: selected) == .shared
+        } else {
+            lastActiveFamilyWasShared = false
+        }
         if let selectedID = selected?.id {
             defaults.set(
                 selectedID.uuidString,
@@ -967,11 +1031,44 @@ final class AppSession: ObservableObject {
                         ended: true,
                         error: nil
                     ) {
+                        CartSyncLog.cart.info("cloudKit import finished; scheduling cart sync")
                         self.scheduleCloudReload(delayNanoseconds: 150_000_000)
                     }
                 }
             }
         }
+    }
+
+    private func handleInviteeSharedCartGoneIfNeeded() async {
+        guard let account else { return }
+        let hasShared = familySpaces.contains { persistence.scope(for: $0) == .shared }
+        guard !hasShared, lastActiveFamilyWasShared || access?.isParticipant == true else { return }
+
+        let privateFamily = familySpaces.first {
+            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
+        }
+        if let privateID = privateFamily?.id {
+            defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+            try? reload(preferredFamilySpaceID: privateID)
+        } else if activeFamilySpace == nil {
+            do {
+                let newID = try await repository.createFamilySpace(
+                    name: Self.defaultFamilyName,
+                    cachedForUserID: account.id,
+                    isHouseholdDefault: true
+                )
+                defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+                try reload(preferredFamilySpaceID: newID)
+            } catch {
+                show(error)
+                return
+            }
+        }
+        lastActiveFamilyWasShared = false
+        if sharedCartRemovedMessage == nil {
+            sharedCartRemovedMessage = String(localized: "cart.shared_removed_message")
+        }
+        CartSyncLog.cart.info("invitee shared cart gone; fell back to private")
     }
 
     private func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
@@ -982,8 +1079,7 @@ final class AppSession: ObservableObject {
             guard !Task.isCancelled, let self, let account else { return }
             do {
                 try await offerSharedCartJoinIfNeeded(for: account)
-                await refreshFamilyMetadata(showErrors: false)
-                try refreshProducts()
+                await syncCart(reason: .cloudImport)
             } catch {
                 syncState = .failed
                 lastSyncError = userFacingMessage(for: error)

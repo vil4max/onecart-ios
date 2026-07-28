@@ -339,7 +339,7 @@ final class PersistenceController: @unchecked Sendable {
         context.name = "OneCartViewContext"
         context.transactionAuthor = "OneCartUI"
         context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
         context.shouldDeleteInaccessibleFaults = true
     }
 

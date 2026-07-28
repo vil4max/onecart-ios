@@ -23,6 +23,8 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - NC06 Deployment target iOS 26 (was iOS 15; aligned project/tests with app target)
 - NC07 No Apple Family member-list / same-family / share-to-all-family APIs
 - NC08 No IAP / Family Sharing subscriptions in this PR
+- NC09 CI stays Xcode Cloud release-only (no pre-merge GitHub Actions in this train)
+- NC10 Keep CKShare link-join `publicPermission = .readWrite` (revoke via Delete cart / remove member)
 
 ## Changes
 
@@ -208,6 +210,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: all `IPHONEOS_DEPLOYMENT_TARGET` = 26.0; Archive without CKRecord Sendable warnings
 - Do not invent scope: no `@Observable` migration (FU02)
 
+### RC29 — Shared cart sync UI, ACL heal, delete cart, decompose, audit hygiene
+- Status: done (this train)
+- Paths: `CartSyncService.swift`, `FamilyShareOrchestrator.swift`, `CloudKit/*.swift` (split), `AppSession.swift`, `ShoppingViews.swift`, `HistoryViews.swift`, `CartChromeViews.swift`, `MoreView.swift`, `PersistenceController.swift`, `Localizable.xcstrings`, `Info.plist`, `PrivacyInfo.xcprivacy`, splash assets, `docs/architecture.md`, `docs/legacy.md`, `docs/product.md`, `docs/privacy.md`, `docs/release.md`, `README.md`, `AGENTS.md`
+- What changed: StoreTrump on viewContext; hard cart sync (pull/appear/import/foreground) with nav Updating chrome; owner ACL heal; owner Delete cart rotates invite URL; invitee shared-gone fallback alert; CloudKit god-file split + CartSync/Share orchestration extract; History/CartChrome UI split; removed LegacyMigration + CoreLocation/location plist; dropped PreciseLocation/PhysicalAddress from PrivacyInfo; `CKError.retryAfterSeconds` in share retry; splash PNG compress; CartSync/ShareACL `os.Logger` (no full share URLs); docs aligned to new layout
+- How to verify: unit tests green; Max check → Tim pull/appear sees trolley counts; Tim edits without permission alert; Max Delete cart → Tim fallback alert + new Share URL; files under CloudKit/ and Shopping/ are smaller than pre-split monoliths
+- Do not invent scope: no GitHub Actions / Xcode Cloud config change (see NC09); no MetricKit/XCUITest/Swift 6 strict; no revert of link-join `.readWrite`
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
@@ -216,4 +225,5 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Manual: Welcome → Sign in with Apple → Корзина (empty household cart) → thumb + → name → Add → check the row → «Завершить покупки» → checked items in История, unchecked still in the cart
 - Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; invitee can add/check items (not readOnly); errors via system alert
 - Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
+- Manual (RC29): Max marks items → Tim appear/pull sees Updating + matching trolley counts; owner Delete cart rotates link
 - See also [release.md](release.md) § Preflight + §3

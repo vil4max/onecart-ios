@@ -28,9 +28,9 @@ project: OneCart/OneCart.xcodeproj
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/` | Composition root (`AppSession`), app entry |
+| `OneCart/Application/` | Composition root (`AppSession`, `CartSyncService`, `FamilyShareOrchestrator`) |
 | `OneCart/Features/` | Feature Views + ViewModels |
-| `OneCart/Data/` | Persistence, CloudKit, Auth, Migration |
+| `OneCart/Data/` | Persistence, CloudKit, Auth |
 | `OneCart/Shared/` | Cross-feature helpers |
 | `OneCart/Resources/` | Bundle resources |
 | `OneCart/Tests/` | Unit tests (`OneCartTests` target) |

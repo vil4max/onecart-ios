@@ -28,8 +28,6 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>OneCart uses your location to show nearby stores for the selected chain.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

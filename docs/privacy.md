@@ -1,6 +1,6 @@
 # Privacy Policy — OneCart Family
 
-**Last updated:** July 27, 2026  
+**Last updated:** July 28, 2026  
 **Developer:** Maksim Vilchevskiy  
 **Contact:** vil4max@gmail.com
 
@@ -22,7 +22,7 @@ We do **not** sell personal data. We do **not** use tracking for advertising. We
 
 ## Sharing
 
-Cart data is shared only with people you invite through Apple’s CloudKit share (for example Messages, Mail, or a share link). Apple processes iCloud data under [Apple’s Privacy Policy](https://www.apple.com/privacy/).
+Cart data is shared only with people you invite through Apple’s CloudKit share (for example Messages, Mail, or a share link). Anyone who has the invite link can join and edit the cart until you remove them or delete the cart (which stops the old link). Apple processes iCloud data under [Apple’s Privacy Policy](https://www.apple.com/privacy/).
 
 ## Children’s privacy
 
@@ -31,7 +31,7 @@ The App is not directed at children under 13. Do not use the App to collect data
 ## Your choices
 
 - Sign out in the App to clear the local Sign in with Apple session.
-- Leave a shared cart or stop using the App; CloudKit data remains subject to your Apple ID and share settings.
+- Leave a shared cart (member) or **Delete cart** (owner) to stop an invite link and start fresh; CloudKit data remains subject to your Apple ID and share settings.
 - You can request deletion of app-related CloudKit data by contacting us; we will guide you through Apple ID / iCloud controls where applicable.
 
 ## Changes

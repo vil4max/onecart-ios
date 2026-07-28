@@ -3924,6 +3924,190 @@
           }
         }
       }
+    },
+    "cart.updating": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновлення…"
+          }
+        }
+      }
+    },
+    "cart.shared_removed_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The shared cart is no longer available. You are back on your personal cart."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Общая корзина больше недоступна. Вы снова в своей личной корзине."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спільний кошик більше недоступний. Ви знову у своєму особистому кошику."
+          }
+        }
+      }
+    },
+    "account.delete_cart": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить корзину"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити кошик"
+          }
+        }
+      }
+    },
+    "account.delete_cart_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this cart?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить эту корзину?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити цей кошик?"
+          }
+        }
+      }
+    },
+    "account.delete_cart_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить корзину"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити кошик"
+          }
+        }
+      }
+    },
+    "account.delete_cart_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone loses access. The invite link stops working. A new empty cart is created for you."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ пропадёт у всех. Старая ссылка перестанет работать. Для вас создастся новая пустая корзина."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ зникне для всіх. Старе посилання перестане працювати. Для вас створиться новий порожній кошик."
+          }
+        }
+      }
+    },
+    "account.share_link_warning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anyone with the invite link can join and edit this cart. Delete the cart to revoke the link."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У кого есть ссылка, может присоединиться и править корзину. Удалите корзину, чтобы отозвать ссылку."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хто має посилання, може приєднатися й редагувати кошик. Видаліть кошик, щоб відкликати посилання."
+          }
+        }
+      }
+    },
+    "alert.delete_cart_need_network": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to the internet to delete the cart."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключитесь к интернету, чтобы удалить корзину."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключіться до інтернету, щоб видалити кошик."
+          }
+        }
+      }
     }
   },
   "version": "1.1"

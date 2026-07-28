@@ -9,6 +9,7 @@ struct AccountView: View {
     @State private var confirmingLeave = false
     @State private var memberToRemove: FamilyMember?
     @State private var confirmingSignOut = false
+    @State private var confirmingDeleteCart = false
 
     init(model: AppModel) {
         _viewModel = StateObject(wrappedValue: CartShareViewModel(session: model))
@@ -53,11 +54,18 @@ struct AccountView: View {
                             }
                         }
                         .disabled(isSharing || !model.isOnline)
+
+                        Button(role: .destructive) {
+                            confirmingDeleteCart = true
+                        } label: {
+                            Label("account.delete_cart", systemImage: "trash")
+                        }
+                        .disabled(model.isBusy || !model.isOnline)
                     }
                 } header: {
                     Text("account.members_section")
                 } footer: {
-                    Text(memberCountText(displayedMembers.count))
+                    Text(accountShareFooter)
                 }
 
                 if model.access?.isParticipant == true {
@@ -113,6 +121,14 @@ struct AccountView: View {
             } message: {
                 Text("account.leave_confirm_message")
             }
+            .alert("account.delete_cart_title", isPresented: $confirmingDeleteCart) {
+                Button("common.cancel", role: .cancel) {}
+                Button("account.delete_cart_confirm", role: .destructive) {
+                    Task { await model.deleteCurrentCartAndStartFresh() }
+                }
+            } message: {
+                Text("account.delete_cart_message")
+            }
             .alert(
                 "account.remove_member_title",
                 isPresented: Binding(
@@ -159,6 +175,18 @@ struct AccountView: View {
                 bannerURL: account.bannerURL
             ),
         ]
+    }
+
+    private var accountShareFooter: String {
+        let count = memberCountText(displayedMembers.count)
+        if model.access?.isOwner == true {
+            return "\(count)\n\(String(localized: "account.share_link_warning"))"
+        }
+        return count
+    }
+
+    private func memberCountText(_ count: Int) -> String {
+        String(localized: "account.members_count \(count)")
     }
 
     private func shareCart() {

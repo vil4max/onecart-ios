@@ -142,27 +142,6 @@ final class FamilySpaceRepository {
         }
     }
 
-    func migrateLegacyHouseholdDefaultsIfNeeded() async throws {
-        try await persistence.performBackgroundTask(author: "OneCartHouseholdDefaultMigration") { context in
-            let request = FamilySpace.fetchRequest()
-            request.predicate = NSPredicate(format: "deletedAt == nil")
-            let spaces = try context.fetch(request)
-            var changed = false
-            for space in spaces {
-                if space.isHouseholdDefaultValue { continue }
-                let name = space.name ?? ""
-                if FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault(name) {
-                    space.isHouseholdDefault = NSNumber(value: true)
-                    space.updatedAt = Date()
-                    changed = true
-                }
-            }
-            if !changed {
-                context.rollback()
-            }
-        }
-    }
-
     func claimUnassignedFamilySpaces(for userID: UUID) async throws {
         try await persistence.performBackgroundTask(author: "OneCartAccountClaim") { context in
             let request = FamilySpace.fetchRequest()

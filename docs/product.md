@@ -12,7 +12,7 @@ Four entities, one loop:
 
 | Entity | Role |
 |--------|------|
-| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items |
+| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner deletes the cart or removes the member. |
 | **Cart** | One per family; lives forever; never “closes” |
 | **Item** | A name plus trolley state: still needed, or already in the physical cart |
 | **Session** | Snapshot of what was paid for in one trip: when, who, how many items |
@@ -52,11 +52,11 @@ Three tabs after Welcome:
 
 | Tab | Contents |
 |-----|----------|
-| **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add) |
+| **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add); pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Purchase sessions (month sections, last 30 + show more) |
-| **Аккаунт** | Participants, share cart (owner), sign out |
+| **Аккаунт** | Participants, share cart (owner), **Delete cart** (owner), leave (member), sign out |
 
-Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day.
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Delete cart rotates the invite link.
 
 Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 Общая корзина` when `familyMembers.count >= 2`.
 
@@ -79,7 +79,7 @@ Create household cart → warm-start CKShare (publicPermission = .readWrite)
   → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
 ```
 
-Anyone with the share URL can join (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts and a UI watchdog so the loader cannot stick.
+Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Revoke by removing a member or **Account → Delete cart** (stops the old link and starts a new empty cart). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
 
 ## Account and profile
 
@@ -88,14 +88,15 @@ Anyone with the share URL can join (Messages, Telegram, Mail, and forwards). Leg
 - Display name, avatar, banner: **device-local** — not in CloudKit.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
+- Owner **Delete cart**: stop share → archive local family → create a new household cart; invitees whose shared cart disappears fall back to a private cart with an alert.
 - Failures use a system alert (`OK`), not toast/banner chrome.
 
 ## Default cart identity
 
 - Nav display: `cart.mine_title` / `cart.shared_title` (computed from member count).
-- Identity flag: `isHouseholdDefault`.
-- Legacy names `"Наша семья"` / `"Наша группа"` / `"Наши покупки"` / `"Our shopping"` / `"Наші покупки"` migrated once to the flag.
-- `cart.default_title` remains for legacy/tests.
+- Identity flag: `isHouseholdDefault` on new household carts.
+- JSON / rename-legacy-name import path was removed (pre–App Store); wipe app or Delete cart for a clean TestFlight start — see [legacy.md](legacy.md).
+- `cart.default_title` remains for defaults/tests.
 
 ## Positioning vs Apple Family
 
@@ -119,7 +120,7 @@ Ship a reliable SIWA → one cart → add/check → invite/sync loop before re-e
 | Stores / catalog scrapers | Enlarged CK surface; blocked simple add |
 | Rich product editor (qty / unit / price / notes) | Friction; add fields later on a working core |
 | Multi-cart switcher / audience sheets | Unreliable “which cart?” paths |
-| Toast / sync banner chrome | Raced with CloudKit; system alert only |
+| Toast / sync banner chrome | Prefer system alert; cart nav shows short «Updating…» only while hard-refreshing |
 
 Deferred until core is solid on real devices: multi-cart, store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, public join links, price input.
 
