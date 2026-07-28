@@ -22,6 +22,7 @@
 		A2000000000000000000003C /* FamilySpaceRepository+Products.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003C /* FamilySpaceRepository+Products.swift */; };
 		A20000000000000000000008 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* AppSession.swift */; };
 		A20000000000000000000009 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* RootView.swift */; };
+		A20000000000000000000040 /* LaunchChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* LaunchChrome.swift */; };
 		A2000000000000000000000A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* HomeView.swift */; };
 		A20000000000000000000036 /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* ShoppingListView.swift */; };
 		A20000000000000000000037 /* QuickAddProductSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* QuickAddProductSheet.swift */; };
@@ -108,6 +109,8 @@
 		A1000000000000000000003C /* FamilySpaceRepository+Products.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FamilySpaceRepository+Products.swift"; sourceTree = "<group>"; };
 		A10000000000000000000008 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		A10000000000000000000009 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A10000000000000000000040 /* LaunchChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchChrome.swift; sourceTree = "<group>"; };
+		A10000000000000000000040 /* LaunchChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchChrome.swift; sourceTree = "<group>"; };
 		A1000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A10000000000000000000036 /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
 		A10000000000000000000037 /* QuickAddProductSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddProductSheet.swift; sourceTree = "<group>"; };
@@ -120,6 +123,7 @@
 		A10000000000000000000018 /* FamilyCartMergeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartMergeTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000019 /* ManagedObjectModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjectModelTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001B /* CartManagementSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartManagementSheet.swift; sourceTree = "<group>"; };
+		A10000000000000000000042 /* CartShareActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareActivityBridge.swift; sourceTree = "<group>"; };
 		A1000000000000000000001C /* CartShareViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareViewModel.swift; sourceTree = "<group>"; };
 		A1000000000000000000001D /* CartTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartTestSupport.swift; sourceTree = "<group>"; };
 		A1000000000000000000001E /* CartItemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartItemsTests.swift; sourceTree = "<group>"; };
@@ -144,6 +148,7 @@
 		D1000000000000000000000C /* CartContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartContentStore.swift; sourceTree = "<group>"; };
 		D1000000000000000000000D /* SessionBootstrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBootstrapper.swift; sourceTree = "<group>"; };
 		D1000000000000000000000E /* CloudSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncCoordinator.swift; sourceTree = "<group>"; };
+		A10000000000000000000041 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		D1000000000000000000000F /* SessionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTypes.swift; sourceTree = "<group>"; };
 		D10000000000000000000010 /* InviteLinkPreparer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkPreparer.swift; sourceTree = "<group>"; };
 		D10000000000000000000011 /* HouseholdCartCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdCartCoordinator.swift; sourceTree = "<group>"; };
@@ -155,6 +160,7 @@
 		A10000000000000000000039 /* HouseholdEnsureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdEnsureTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
+		A10000000000000000000043 /* HistoryDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailViews.swift; sourceTree = "<group>"; };
 		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
@@ -254,6 +260,7 @@
 				D1000000000000000000000E /* CloudSyncCoordinator.swift */,
 				D10000000000000000000008 /* FamilyShareOrchestrator.swift */,
 				A10000000000000000000009 /* RootView.swift */,
+				A10000000000000000000040 /* LaunchChrome.swift */,
 				F10000000000000000000002 /* MainTabView.swift */,
 				F10000000000000000000004 /* DemoUISupport.swift */,
 			);
@@ -562,6 +569,7 @@
 				F20000000000000000000001 /* FamilyCartMerge.swift in Sources */,
 				A20000000000000000000008 /* AppSession.swift in Sources */,
 				A20000000000000000000009 /* RootView.swift in Sources */,
+				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
 				A2000000000000000000000A /* HomeView.swift in Sources */,
 				A20000000000000000000036 /* ShoppingListView.swift in Sources */,
 				A20000000000000000000037 /* QuickAddProductSheet.swift in Sources */,
