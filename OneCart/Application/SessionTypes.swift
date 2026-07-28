@@ -33,7 +33,7 @@ final class DevicePreferences: ObservableObject {
     }
 }
 
-enum InviteLinkError: LocalizedError {
+enum InviteLinkError: LocalizedError, Equatable {
     case notOwner
     case offline
 

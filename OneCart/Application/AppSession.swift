@@ -28,7 +28,6 @@ final class AppSession: ObservableObject {
     @Published private(set) var householdCartBootstrapFailed = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
-    @Published private(set) var preparedInviteLink: FamilyInviteLink?
     @Published private(set) var sharedCartRemovedMessage: String?
 
     let preferences: DevicePreferences
@@ -37,6 +36,7 @@ final class AppSession: ObservableObject {
     let cartContent: CartContentStore
     let bootstrapper: SessionBootstrapper
     let cloudSync: CloudSyncCoordinator
+    let invitePreparer: InviteLinkPreparer
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
@@ -44,6 +44,10 @@ final class AppSession: ObservableObject {
     var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
     var history: [PurchaseHistoryEntity] { cartContent.history }
     var historyHasMore: Bool { cartContent.historyHasMore }
+
+    var preparedInviteLink: FamilyInviteLink? {
+        invitePreparer.preparedInviteLink
+    }
 
     var canEdit: Bool {
         activeFamilySpace != nil && (access?.canEdit ?? false)
@@ -80,12 +84,11 @@ final class AppSession: ObservableObject {
     private let defaults: UserDefaults
     private var online = true
     private var started = false
-    private var invitePrepareTask: Task<Void, Never>?
-    private var preparedInviteFamilyID: UUID?
     private var didPresentProductionSchemaAlert = false
     private var lastActiveFamilyWasShared = false
     private var cartSyncCancellable: AnyCancellable?
     private var cartContentCancellable: AnyCancellable?
+    private var invitePreparerCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -121,6 +124,7 @@ final class AppSession: ObservableObject {
             backend: backend,
             repository: repository
         )
+        invitePreparer = InviteLinkPreparer()
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             isReady = true
         }
@@ -141,6 +145,9 @@ final class AppSession: ObservableObject {
             self?.objectWillChange.send()
         }
         cartContentCancellable = cartContent.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        invitePreparerCancellable = invitePreparer.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         cartSync.onHardRefresh = { [weak self] in
@@ -477,86 +484,42 @@ final class AppSession: ObservableObject {
         }
     }
 
-    /// Creates a CloudKit invite URL. Does not toggle `isBusy` — callers show local progress
-    /// so the invite UI stays responsive instead of looking frozen.
-    /// Prefers a link prepared in the background right after household cart creation.
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
-        guard let family = activeFamilySpace,
-              let familyID = family.id,
-              access?.isOwner == true
-        else {
+        guard let family = activeFamilySpace else {
             CartSyncLog.action.error("shareInvite denied notOwner")
             throw InviteLinkError.notOwner
         }
-        guard online else {
-            CartSyncLog.action.error("shareInvite denied offline")
-            throw InviteLinkError.offline
-        }
-
-        if let preparedInviteLink,
-           preparedInviteFamilyID == familyID,
-           preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
-        {
-            CartSyncLog.action.info("shareInvite cacheHit")
-            return preparedInviteLink
-        }
-
-        CartSyncLog.action.info("shareInvite start family=\(familyID.uuidString, privacy: .public)")
-        let link = try await fetchFamilyInviteLink(for: family)
-        preparedInviteLink = link
-        preparedInviteFamilyID = familyID
-        CartSyncLog.action.info(
-            "shareInvite done host=\(link.url.host ?? "-", privacy: .public)"
+        return try await invitePreparer.createInviteLink(
+            family: family,
+            isOwner: access?.isOwner == true,
+            isOnline: online,
+            fetch: { [shareOrchestrator] in
+                try await shareOrchestrator.createInviteLink(for: family)
+            }
         )
-        return link
     }
 
-    /// Background CKShare warm-up after cart creation. Failures are silent — Invite retries.
     func scheduleInviteLinkPreparation(delayNanoseconds: UInt64 = 1_500_000_000) {
-        invitePrepareTask?.cancel()
-        invitePrepareTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled else { return }
-            await prepareInviteLinkInBackground()
-        }
-    }
-
-    private func prepareInviteLinkInBackground() async {
-        guard online else { return }
-        guard let family = activeFamilySpace,
-              let familyID = family.id,
-              access?.isOwner == true,
-              persistence.scope(for: family) == .private
-        else {
-            return
-        }
-        if let preparedInviteLink,
-           preparedInviteFamilyID == familyID,
-           preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
-        {
-            return
-        }
-
-        do {
-            let link = try await fetchFamilyInviteLink(for: family)
-            guard !Task.isCancelled else { return }
-            guard activeFamilySpace?.id == familyID else { return }
-            preparedInviteLink = link
-            preparedInviteFamilyID = familyID
-        } catch {
-            // Keep Invite button as the explicit retry path.
-        }
-    }
-
-    private func fetchFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
-        try await shareOrchestrator.createInviteLink(for: family)
+        invitePreparer.schedulePreparation(
+            delayNanoseconds: delayNanoseconds,
+            isOnline: { [weak self] in self?.online == true },
+            family: { [weak self] in self?.activeFamilySpace },
+            isOwner: { [weak self] in self?.access?.isOwner == true },
+            scopeIsPrivate: { [weak self] family in
+                self?.persistence.scope(for: family) == .private
+            },
+            familyStillActive: { [weak self] familyID in
+                self?.activeFamilySpace?.id == familyID
+            },
+            fetch: { [weak self] family in
+                guard let self else { throw InviteLinkError.offline }
+                return try await self.shareOrchestrator.createInviteLink(for: family)
+            }
+        )
     }
 
     private func clearPreparedInviteLink() {
-        invitePrepareTask?.cancel()
-        invitePrepareTask = nil
-        preparedInviteLink = nil
-        preparedInviteFamilyID = nil
+        invitePreparer.clear()
     }
 
     func acceptPendingCloudKitShares() async {
@@ -796,12 +759,11 @@ final class AppSession: ObservableObject {
             if previousID != selectedID {
                 familyMembers = []
             }
-            if let preparedInviteFamilyID, preparedInviteFamilyID != selectedID {
-                clearPreparedInviteLink()
-            } else if preparedInviteLink != nil,
-                      (access?.isOwner != true
-                          || selected.map { persistence.scope(for: $0) } != .private)
-            {
+            if invitePreparer.shouldClearCache(
+                forSelectedFamilyID: selectedID,
+                isOwner: access?.isOwner == true,
+                scopeIsPrivate: selected.map { persistence.scope(for: $0) } == .private
+            ) {
                 clearPreparedInviteLink()
             }
         } else {
