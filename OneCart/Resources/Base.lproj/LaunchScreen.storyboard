@@ -17,19 +17,27 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchIcon" translatesAutoresizingMaskIntoConstraints="NO" id="icon-launch">
-                                <rect key="frame" x="132.5" y="362" width="128" height="128"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="OneCart" textAlignment="center" lineBreakMode="tailTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="title-launch">
+                                <rect key="frame" x="148.5" y="87" width="96" height="28"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="22"/>
+                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchIcon" translatesAutoresizingMaskIntoConstraints="NO" id="cart-launch">
+                                <rect key="frame" x="-68" y="370" width="112" height="112"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="128" id="icon-w"/>
-                                    <constraint firstAttribute="height" constant="128" id="icon-h"/>
+                                    <constraint firstAttribute="width" constant="112" id="cart-w"/>
+                                    <constraint firstAttribute="height" constant="112" id="cart-h"/>
                                 </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safe-area"/>
                         <color key="backgroundColor" name="LaunchBackground"/>
                         <constraints>
-                            <constraint firstItem="icon-launch" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="icon-cx"/>
-                            <constraint firstItem="icon-launch" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="icon-cy"/>
+                            <constraint firstItem="title-launch" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="title-cx"/>
+                            <constraint firstItem="title-launch" firstAttribute="top" secondItem="safe-area" secondAttribute="top" constant="28" id="title-top"/>
+                            <constraint firstItem="cart-launch" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="cart-cy"/>
+                            <constraint firstItem="cart-launch" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-68" id="cart-leading"/>
                         </constraints>
                     </view>
                 </viewController>

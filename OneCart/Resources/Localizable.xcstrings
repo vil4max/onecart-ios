@@ -2977,19 +2977,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Toss it in the list"
+            "value" : "Family members add items"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Набросали в список"
+            "value" : "Члены семьи добавляют товары"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "📝 Накидали у список"
+            "value" : "Члени родини додають товари"
           }
         }
       }
@@ -3000,19 +3000,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "✅ Paid - off to history"
+            "value" : "Purchased items go to History"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "✅ Оплатили - в историю"
+            "value" : "Купленное уходит в Историю"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "✅ Оплатили - в історію"
+            "value" : "Куплене потрапляє в Історію"
           }
         }
       }
@@ -3023,19 +3023,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 Check it into the trolley"
+            "value" : "You collect them"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 Отметили в тележке"
+            "value" : "Ты собираешь их в магазине"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "🛒 Відмітили у візку"
+            "value" : "Ти збираєш їх у магазині"
           }
         }
       }
@@ -4246,19 +4246,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple ID + iCloud on this iPhone"
+            "value" : "Private • iCloud Sync"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple ID и iCloud на этом iPhone"
+            "value" : "Приватно • Синхронизация через iCloud"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple ID та iCloud на цьому iPhone"
+            "value" : "Приватно • Синхронізація через iCloud"
           }
         }
       }
@@ -4292,19 +4292,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One living cart for the family"
+            "value" : "One shared shopping list\nfor the whole family."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Одна живая корзина на семью"
+            "value" : "Один общий список покупок\nна всю семью."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Один живий кошик на родину"
+            "value" : "Один спільний список покупок\nна всю родину."
           }
         }
       }

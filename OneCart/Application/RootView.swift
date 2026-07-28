@@ -53,7 +53,7 @@ struct RootView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             ZStack {
                 if cartRideFinished {
                     destinationView
@@ -73,6 +73,8 @@ struct RootView: View {
                         cartRideFinished = true
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
                 .transition(.opacity)
                 .zIndex(4)
             }

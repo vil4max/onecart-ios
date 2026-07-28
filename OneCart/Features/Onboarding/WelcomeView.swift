@@ -14,20 +14,24 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-                .padding(.top, 12)
+            Spacer(minLength: 32)
 
-            Spacer(minLength: 24)
+            Group {
+                switch model.welcomePhase {
+                case .signIn:
+                    signInContent
+                case .connecting:
+                    connectingContent
+                case let .failed(message):
+                    failedContent(message: message)
+                }
+            }
+            .opacity(contentVisible ? 1 : 0)
+            .offset(y: contentVisible || reduceMotion ? 0 : 12)
 
-            middle
-                .opacity(contentVisible ? 1 : 0)
-                .offset(y: contentVisible || reduceMotion ? 0 : 14)
-
-            Spacer(minLength: 24)
-
-            bottom
+            Spacer(minLength: 32)
         }
-        .padding(.horizontal, 28)
+        .padding(.horizontal, 32)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(OneCartPalette.background.ignoresSafeArea())
@@ -43,66 +47,96 @@ struct WelcomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            OneCartMark()
+    private var signInContent: some View {
+        VStack(spacing: 0) {
+            brandHero
+
+            Divider()
+                .padding(.top, 28)
+                .padding(.bottom, 22)
+
+            features
+
+            Divider()
+                .padding(.top, 22)
+                .padding(.bottom, 24)
+
+            signInActions
+        }
+        .frame(maxWidth: 400)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var brandHero: some View {
+        VStack(spacing: 16) {
+            Image("LaunchIcon")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .accessibilityHidden(true)
+
+            Text("OneCart")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.primary)
 
             Text("welcome.title")
-                .font(.largeTitle.bold())
+                .font(.title3)
                 .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("welcome.subtitle")
-                .font(.title3)
+                .font(.body)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var features: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingFeatureRow(
+                systemImage: "person.2",
+                textKey: "onboarding.step.list",
+                delay: 0.05
+            )
+            OnboardingFeatureRow(
+                systemImage: "cart",
+                textKey: "onboarding.step.trolley",
+                delay: 0.12
+            )
+            OnboardingFeatureRow(
+                systemImage: "checkmark.circle",
+                textKey: "onboarding.step.paid",
+                delay: 0.19
+            )
+        }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .opacity(contentVisible ? 1 : 0)
-        .offset(y: contentVisible || reduceMotion ? 0 : 10)
     }
 
-    @ViewBuilder
-    private var middle: some View {
-        switch model.welcomePhase {
-        case .signIn:
-            VStack(spacing: 16) {
-                OnboardingStepRow(textKey: "onboarding.step.list", delay: 0.05)
-                OnboardingStepRow(textKey: "onboarding.step.trolley", delay: 0.12)
-                OnboardingStepRow(textKey: "onboarding.step.paid", delay: 0.19)
-            }
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
-        case .connecting:
-            connectingContent
-        case let .failed(message):
-            failedContent(message: message)
-        }
-    }
-
-    private var bottom: some View {
+    private var signInActions: some View {
         VStack(spacing: 12) {
-            if model.welcomePhase == .signIn {
-                AppleSignInAuthorizationButton(
-                    onRequest: { request in
-                        request.requestedScopes = [.fullName, .email]
-                    },
-                    onCompletion: { result in
-                        handleSignInResult(result)
-                    }
-                )
-                .id(colorScheme)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .accessibilityHint(Text("welcome.footer"))
+            AppleSignInAuthorizationButton(
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email]
+                },
+                onCompletion: { result in
+                    handleSignInResult(result)
+                }
+            )
+            .id(colorScheme)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .accessibilityHint(Text("welcome.footer"))
 
-                Text("welcome.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+            Text("welcome.footer")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
-        .padding(.bottom, 8)
     }
 
     private var connectingContent: some View {
@@ -120,7 +154,7 @@ struct WelcomeView: View {
         VStack(spacing: 14) {
             Text(message)
                 .font(.footnote)
-                .foregroundColor(OneCartPalette.danger)
+                .foregroundStyle(OneCartPalette.danger)
                 .multilineTextAlignment(.center)
 
             Button(String(localized: "welcome.try_again")) {
@@ -159,28 +193,39 @@ struct WelcomeView: View {
     }
 }
 
-private struct OnboardingStepRow: View {
+private struct OnboardingFeatureRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let systemImage: String
     let textKey: LocalizedStringKey
     let delay: Double
     @State private var visible = false
 
     var body: some View {
-        Text(textKey)
-            .font(.title3)
-            .foregroundStyle(.primary)
-            .opacity(visible ? 1 : 0)
-            .offset(y: visible || reduceMotion ? 0 : 8)
-            .onAppear {
-                guard !visible else { return }
-                if reduceMotion {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .frame(width: 22, alignment: .center)
+                .accessibilityHidden(true)
+
+            Text(textKey)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .opacity(visible ? 1 : 0)
+        .offset(y: visible || reduceMotion ? 0 : 8)
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            guard !visible else { return }
+            if reduceMotion {
+                visible = true
+            } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.88).delay(delay)) {
                     visible = true
-                } else {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.88).delay(delay)) {
-                        visible = true
-                    }
                 }
             }
+        }
     }
 }
 
