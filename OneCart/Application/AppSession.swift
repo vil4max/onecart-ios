@@ -2,7 +2,6 @@ import AuthenticationServices
 import Combine
 import CoreData
 import Foundation
-import Network
 import SwiftUI
 import UIKit
 
@@ -92,6 +91,7 @@ final class AppSession: ObservableObject {
     let cartSync: CartSyncService
     let cartContent: CartContentStore
     let bootstrapper: SessionBootstrapper
+    let cloudSync: CloudSyncCoordinator
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
@@ -127,12 +127,8 @@ final class AppSession: ObservableObject {
     private let shareOrchestrator: FamilyShareOrchestrator
     private let appleSignIn: AppleSignInAuthenticating
     private let defaults: UserDefaults
-    private let connectivity = ConnectivityMonitor()
     private var online = true
     private var started = false
-    private var remoteChangeObserver: NSObjectProtocol?
-    private var cloudEventObserver: NSObjectProtocol?
-    private var scheduledReloadTask: Task<Void, Never>?
     private var invitePrepareTask: Task<Void, Never>?
     private var preparedInviteFamilyID: UUID?
     private var didPresentProductionSchemaAlert = false
@@ -168,6 +164,7 @@ final class AppSession: ObservableObject {
             backend: backend,
             appleSignIn: appleSignIn
         )
+        cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
@@ -177,6 +174,7 @@ final class AppSession: ObservableObject {
             isReady = true
         }
         bootstrapper.bind(host: self)
+        cloudSync.bind(host: self)
         bindCartSync()
     }
 
@@ -219,27 +217,7 @@ final class AppSession: ObservableObject {
     }
 
     func syncCart(reason: CartSyncReason) async {
-        let previousState = syncState
-        let outcome = await cartSync.syncCart(reason: reason)
-        switch outcome {
-        case .succeeded:
-            await refreshFamilyMetadata(showErrors: false)
-            syncState = online ? .synchronized : .offline
-            lastSyncError = nil
-        case .skippedDebounce:
-            break
-        case let .failed(message):
-            lastSyncError = message
-            syncState = .failed
-            switch reason {
-            case .pull:
-                presentAlert(message)
-            case .foreground where previousState == .synchronized || previousState == .syncing:
-                presentAlert(message)
-            case .foreground, .appear, .cloudImport, .afterToggle, .afterMutation:
-                break
-            }
-        }
+        await cloudSync.syncCart(reason: reason)
     }
 
     func dismissSharedCartRemovedMessage() {
@@ -271,17 +249,6 @@ final class AppSession: ObservableObject {
         } catch {
             show(error)
         }
-    }
-
-    deinit {
-        scheduledReloadTask?.cancel()
-        if let remoteChangeObserver {
-            NotificationCenter.default.removeObserver(remoteChangeObserver)
-        }
-        if let cloudEventObserver {
-            NotificationCenter.default.removeObserver(cloudEventObserver)
-        }
-        connectivity.stop()
     }
 
     func start() async {
@@ -556,7 +523,7 @@ final class AppSession: ObservableObject {
             if let account {
                 try await offerSharedCartJoinIfNeeded(for: account)
             }
-            scheduleCloudReload(delayNanoseconds: 350_000_000)
+            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
         } catch {
             AppDelegate.requeue(metadata)
             syncState = .failed
@@ -597,7 +564,7 @@ final class AppSession: ObservableObject {
         defer { isBusy = false }
         do {
             try await backend.leaveFamily(family)
-            scheduleCloudReload(delayNanoseconds: 350_000_000)
+            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
         } catch {
             show(error)
         }
@@ -728,7 +695,7 @@ final class AppSession: ObservableObject {
         familySpaces.first { persistence.scope(for: $0) == .shared }?.id
     }
 
-    private func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws {
+    func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws {
         try await adoptSharedFamilyCartIfNeeded(for: account)
     }
 
@@ -873,50 +840,7 @@ final class AppSession: ObservableObject {
     }
 
     func installCloudObservers() {
-        guard remoteChangeObserver == nil, cloudEventObserver == nil else { return }
-        remoteChangeObserver = NotificationCenter.default.addObserver(
-            forName: .NSPersistentStoreRemoteChange,
-            object: persistence.container.persistentStoreCoordinator,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.scheduleCloudReload() }
-        }
-
-        cloudEventObserver = NotificationCenter.default.addObserver(
-            forName: NSPersistentCloudKitContainer.eventChangedNotification,
-            object: persistence.container,
-            queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor in
-                guard let self,
-                      let event = notification.userInfo?[
-                          NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                      ] as? NSPersistentCloudKitContainer.Event else { return }
-                if event.endDate == nil {
-                    self.syncState = .syncing
-                } else if let error = event.error {
-                    self.syncState = self.isNetworkError(error) ? .offline : .failed
-                    let message = self.userFacingMessage(for: error)
-                    self.lastSyncError = message
-                    // Mirroring failures never go through `show(_:)` — surface the
-                    // Production-schema Deploy instruction instead of failing silently.
-                    if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                        self.presentProductionSchemaAlertIfNeeded(message)
-                    }
-                } else {
-                    self.syncState = self.online ? .synchronized : .offline
-                    self.lastSyncError = nil
-                    if CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                        type: event.type,
-                        ended: true,
-                        error: nil
-                    ) {
-                        CartSyncLog.cart.info("cloudKit import finished; scheduling cart sync")
-                        self.scheduleCloudReload(delayNanoseconds: 150_000_000)
-                    }
-                }
-            }
-        }
+        cloudSync.installCloudObservers()
     }
 
     private func handleInviteeSharedCartGoneIfNeeded() async {
@@ -951,37 +875,8 @@ final class AppSession: ObservableObject {
         CartSyncLog.cart.info("invitee shared cart gone; fell back to private")
     }
 
-    private func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
-        guard account != nil else { return }
-        scheduledReloadTask?.cancel()
-        scheduledReloadTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled, let self, let account else { return }
-            do {
-                try await offerSharedCartJoinIfNeeded(for: account)
-                await syncCart(reason: .cloudImport)
-            } catch {
-                syncState = .failed
-                lastSyncError = userFacingMessage(for: error)
-            }
-        }
-    }
-
     func installConnectivityMonitor() {
-        connectivity.onChange = { [weak self] isOnline in
-            Task { @MainActor in
-                guard let self else { return }
-                let wasOnline = self.online
-                self.online = isOnline
-                if !isOnline {
-                    self.syncState = .offline
-                } else if !wasOnline, self.account != nil {
-                    self.syncState = .syncing
-                    self.scheduleCloudReload(delayNanoseconds: 150_000_000)
-                }
-            }
-        }
-        connectivity.start()
+        cloudSync.installConnectivityMonitor()
     }
 
     private func activeFamilyKey(accountID: UUID) -> String {
@@ -997,7 +892,7 @@ final class AppSession: ObservableObject {
         presentAlert(message)
     }
 
-    private func presentProductionSchemaAlertIfNeeded(_ message: String) {
+    func presentProductionSchemaAlertIfNeeded(_ message: String) {
         guard !didPresentProductionSchemaAlert else { return }
         didPresentProductionSchemaAlert = true
         presentAlert(message)
@@ -1018,6 +913,24 @@ final class AppSession: ObservableObject {
 
     private func isNetworkError(_ error: Error) -> Bool {
         CloudKitUserFacingError.isNetworkError(error)
+    }
+}
+
+extension AppSession: CloudSyncHost {
+    func applySyncState(_ state: OneCartSyncState) {
+        syncState = state
+    }
+
+    func applyLastSyncError(_ message: String?) {
+        lastSyncError = message
+    }
+
+    func presentSyncAlert(_ message: String) {
+        presentAlert(message)
+    }
+
+    func applyConnectivityOnline(_ isOnline: Bool) {
+        online = isOnline
     }
 }
 
@@ -1063,29 +976,6 @@ extension AppSession: SessionBootstrapHost {
 
     func clearStoredAppleCredential() {
         appleSignIn.clearCredential()
-    }
-}
-
-private final class ConnectivityMonitor {
-    var onChange: ((Bool) -> Void)?
-
-    private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "com.vil55tim.onecart.connectivity")
-    private var running = false
-
-    func start() {
-        guard !running else { return }
-        running = true
-        monitor.pathUpdateHandler = { [weak self] path in
-            self?.onChange?(path.status == .satisfied)
-        }
-        monitor.start(queue: queue)
-    }
-
-    func stop() {
-        guard running else { return }
-        running = false
-        monitor.cancel()
     }
 }
 
