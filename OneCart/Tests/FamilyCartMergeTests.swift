@@ -18,8 +18,9 @@ final class FamilyCartMergeTests: XCTestCase {
             )
         )
 
+        let listID = try XCTUnwrap(space.activeLists.first?.id)
         _ = try await repository.addProduct(
-            to: XCTUnwrap(space.activeLists.first?.id),
+            to: listID,
             draft: ProductDraft(
                 name: "Хлеб",
                 quantity: 1,
@@ -29,7 +30,9 @@ final class FamilyCartMergeTests: XCTestCase {
                 note: ""
             )
         )
-        persistence.container.viewContext.processPendingChanges()
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
         let updated = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let updatedScope = try XCTUnwrap(persistence.scope(for: updated))
         XCTAssertFalse(
