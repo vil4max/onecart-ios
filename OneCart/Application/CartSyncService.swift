@@ -23,7 +23,8 @@ final class CartSyncService: ObservableObject {
     @Published private(set) var contentRevision = 0
 
     private let persistence: PersistenceController
-    private var syncTask: Task<CartSyncOutcome, Never>?
+    private var pendingReason: CartSyncReason?
+    private var isExclusiveRunning = false
     private var lastAppearSyncAt: Date?
 
     var onHardRefresh: (() async throws -> Void)?
@@ -44,23 +45,68 @@ final class CartSyncService: ObservableObject {
             lastAppearSyncAt = Date()
         }
 
-        syncTask?.cancel()
-        let work = Task { @MainActor in
-            await performSync(reason: reason)
+        pendingReason = Self.preferred(pending: pendingReason, incoming: reason)
+
+        if isExclusiveRunning {
+            CartSyncLog.cart.info(
+                "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(self.pendingReason?.rawValue ?? "-", privacy: .public)"
+            )
+            while isExclusiveRunning {
+                await Task.yield()
+            }
+            if let leftover = pendingReason {
+                return await syncCart(reason: leftover, debouncedAppear: false)
+            }
+            return .succeeded
         }
-        syncTask = work
-        return await work.value
+
+        isExclusiveRunning = true
+        defer {
+            isCartSyncing = false
+            isExclusiveRunning = false
+        }
+
+        var lastOutcome: CartSyncOutcome = .succeeded
+        while let reasonToRun = takePendingReason() {
+            isCartSyncing = Self.showsSyncChrome(for: reasonToRun)
+            lastOutcome = await performSync(reason: reasonToRun)
+        }
+        return lastOutcome
+    }
+
+    private func takePendingReason() -> CartSyncReason? {
+        let reason = pendingReason
+        pendingReason = nil
+        return reason
+    }
+
+    private static func showsSyncChrome(for reason: CartSyncReason) -> Bool {
+        switch reason {
+        case .pull, .appear, .foreground:
+            true
+        case .cloudImport, .afterToggle, .afterMutation:
+            false
+        }
+    }
+
+    private static func preferred(pending: CartSyncReason?, incoming: CartSyncReason) -> CartSyncReason {
+        let rank: (CartSyncReason) -> Int = { reason in
+            switch reason {
+            case .pull: 4
+            case .foreground: 3
+            case .cloudImport, .afterToggle, .afterMutation: 2
+            case .appear: 1
+            }
+        }
+        guard let pending else { return incoming }
+        return rank(incoming) >= rank(pending) ? incoming : pending
     }
 
     private func performSync(reason: CartSyncReason) async -> CartSyncOutcome {
-        guard !Task.isCancelled else { return .skippedDebounce }
-        isCartSyncing = true
-        defer { isCartSyncing = false }
-
         CartSyncLog.cart.info("syncCart start reason=\(reason.rawValue, privacy: .public)")
 
         await onOwnerACLHeal?()
-        await waitForCloudImportBestEffort()
+        await waitForCloudImportBestEffort(reason: reason)
 
         do {
             try await onHardRefresh?()
@@ -74,6 +120,11 @@ final class CartSyncService: ObservableObject {
             CartSyncLog.cart
                 .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(self.contentRevision)")
             return .succeeded
+        } catch is CancellationError {
+            CartSyncLog.cart.info(
+                "syncCart cancelled reason=\(reason.rawValue, privacy: .public)"
+            )
+            return .skippedDebounce
         } catch {
             let message = error.localizedDescription
             CartSyncLog.cart.error(
@@ -87,9 +138,16 @@ final class CartSyncService: ObservableObject {
         contentRevision &+= 1
     }
 
-    private func waitForCloudImportBestEffort() async {
+    private func waitForCloudImportBestEffort(reason: CartSyncReason) async {
         guard !persistence.inMemory else { return }
-        try? await Task.sleep(nanoseconds: 200_000_000)
+        let nanoseconds: UInt64
+        switch reason {
+        case .cloudImport, .afterToggle, .afterMutation:
+            nanoseconds = 700_000_000
+        case .pull, .appear, .foreground:
+            nanoseconds = 250_000_000
+        }
+        try? await Task.sleep(nanoseconds: nanoseconds)
     }
 
     static func resetViewContextAndRefetch(

@@ -79,6 +79,58 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertNil(session.lastSyncError)
     }
 
+    func testSyncCartCoalescesWithoutCancellingInFlight() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        var refreshCount = 0
+        cartSync.onHardRefresh = {
+            refreshCount += 1
+            try? await Task.sleep(nanoseconds: 80_000_000)
+        }
+
+        async let first = cartSync.syncCart(reason: .cloudImport)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        async let second = cartSync.syncCart(reason: .pull)
+        let outcomes = await (first, second)
+
+        XCTAssertEqual(outcomes.0, .succeeded)
+        XCTAssertEqual(outcomes.1, .succeeded)
+        XCTAssertEqual(refreshCount, 2)
+        XCTAssertEqual(cartSync.contentRevision, 2)
+    }
+
+    func testSoftRefreshCartProductsBumpsRevision() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Soft")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: "Корзина",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        let list = try XCTUnwrap(session.activeLists.first)
+        await session.addProduct(to: list, draft: productDraft(name: "Молоко"))
+        let before = session.contentRevision
+
+        session.softRefreshCartProducts()
+
+        XCTAssertEqual(session.contentRevision, before + 1)
+        XCTAssertEqual(session.products.first?.displayName, "Молоко")
+    }
+
     func testCartContentStorePublishesAfterReload() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()

@@ -260,7 +260,6 @@ struct ShoppingListView: View {
 
                     bottomBar
                 }
-                .id(model.contentRevision)
                 .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

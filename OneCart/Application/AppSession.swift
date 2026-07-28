@@ -977,6 +977,20 @@ extension AppSession: CloudSyncHost {
         presentAlert(message)
     }
 
+    func softRefreshCartProducts() {
+        do {
+            try refreshProducts()
+            cartSync.bumpRevisionAfterLocalChange()
+            CartSyncLog.cart.info(
+                "softRefresh purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
+            )
+        } catch {
+            CartSyncLog.cart.error(
+                "softRefresh failed error=\(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
     func applyConnectivityOnline(_ isOnline: Bool) {
         online = isOnline
     }

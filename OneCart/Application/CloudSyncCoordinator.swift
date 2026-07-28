@@ -12,6 +12,7 @@ protocol CloudSyncHost: AnyObject {
     func applyLastSyncError(_ message: String?)
     func presentSyncAlert(_ message: String)
     func presentProductionSchemaAlertIfNeeded(_ message: String)
+    func softRefreshCartProducts()
     func refreshFamilyMetadata(showErrors: Bool) async
     func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws
     func userFacingMessage(for error: Error) -> String
@@ -27,7 +28,10 @@ final class CloudSyncCoordinator {
 
     private var remoteChangeObserver: NSObjectProtocol?
     private var cloudEventObserver: NSObjectProtocol?
+    private var objectsDidChangeObserver: NSObjectProtocol?
     private var scheduledReloadTask: Task<Void, Never>?
+    private var softRefreshTask: Task<Void, Never>?
+    private var cloudReloadPending = false
     private var didPresentProductionSchemaAlert = false
 
     init(persistence: PersistenceController, cartSync: CartSyncService) {
@@ -41,6 +45,8 @@ final class CloudSyncCoordinator {
 
     func cancel() {
         scheduledReloadTask?.cancel()
+        softRefreshTask?.cancel()
+        cloudReloadPending = false
         if let remoteChangeObserver {
             NotificationCenter.default.removeObserver(remoteChangeObserver)
             self.remoteChangeObserver = nil
@@ -48,6 +54,10 @@ final class CloudSyncCoordinator {
         if let cloudEventObserver {
             NotificationCenter.default.removeObserver(cloudEventObserver)
             self.cloudEventObserver = nil
+        }
+        if let objectsDidChangeObserver {
+            NotificationCenter.default.removeObserver(objectsDidChangeObserver)
+            self.objectsDidChangeObserver = nil
         }
         connectivity.stop()
     }
@@ -84,7 +94,21 @@ final class CloudSyncCoordinator {
             object: persistence.container.persistentStoreCoordinator,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.scheduleCloudReload() }
+            Task { @MainActor in
+                self?.scheduleSoftProductRefresh()
+                self?.scheduleCloudReload()
+            }
+        }
+
+        objectsDidChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextObjectsDidChange,
+            object: persistence.container.viewContext,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                guard let self, Self.productPurchasedStateChanged(in: notification) else { return }
+                self.scheduleSoftProductRefresh(delayNanoseconds: 50_000_000)
+            }
         }
 
         cloudEventObserver = NotificationCenter.default.addObserver(
@@ -118,6 +142,7 @@ final class CloudSyncCoordinator {
                         error: nil
                     ) {
                         CartSyncLog.cart.info("cloudKit import finished; scheduling cart sync")
+                        self.scheduleSoftProductRefresh()
                         self.scheduleCloudReload(delayNanoseconds: 150_000_000)
                     }
                 }
@@ -125,22 +150,72 @@ final class CloudSyncCoordinator {
         }
     }
 
-    func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
-        guard let host, host.account != nil else { return }
-        scheduledReloadTask?.cancel()
-        scheduledReloadTask = Task { [weak self] in
+    func scheduleSoftProductRefresh(delayNanoseconds: UInt64 = 80_000_000) {
+        guard host?.account != nil else { return }
+        softRefreshTask?.cancel()
+        softRefreshTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled, let self, let host = self.host, let account = host.account else {
+            guard !Task.isCancelled, let self, let host = self.host, host.account != nil else {
                 return
             }
-            do {
-                try await host.offerSharedCartJoinIfNeeded(for: account)
-                await self.syncCart(reason: .cloudImport)
-            } catch {
-                host.applySyncState(.failed)
-                host.applyLastSyncError(host.userFacingMessage(for: error))
+            host.softRefreshCartProducts()
+        }
+    }
+
+    func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
+        guard host?.account != nil else { return }
+        cloudReloadPending = true
+        guard scheduledReloadTask == nil else { return }
+        scheduledReloadTask = Task { [weak self] in
+            defer {
+                self?.scheduledReloadTask = nil
+            }
+            while let self, !Task.isCancelled {
+                guard self.cloudReloadPending else { return }
+                self.cloudReloadPending = false
+                try? await Task.sleep(nanoseconds: delayNanoseconds)
+                guard !Task.isCancelled else { return }
+                if self.cloudReloadPending {
+                    continue
+                }
+                guard let host = self.host, let account = host.account else { return }
+                host.softRefreshCartProducts()
+                do {
+                    try await host.offerSharedCartJoinIfNeeded(for: account)
+                    await self.syncCart(reason: .cloudImport)
+                } catch {
+                    host.applySyncState(.failed)
+                    host.applyLastSyncError(host.userFacingMessage(for: error))
+                }
             }
         }
+    }
+
+    private static func productPurchasedStateChanged(in notification: Notification) -> Bool {
+        let keys: [String] = [
+            NSUpdatedObjectsKey,
+            NSRefreshedObjectsKey,
+            NSInsertedObjectsKey,
+        ]
+        for key in keys {
+            guard let objects = notification.userInfo?[key] as? Set<NSManagedObject> else {
+                continue
+            }
+            for object in objects {
+                guard object is ProductEntity else { continue }
+                if key == NSInsertedObjectsKey || key == NSRefreshedObjectsKey {
+                    return true
+                }
+                let changed = object.changedValuesForCurrentEvent()
+                if changed["isPurchased"] != nil
+                    || changed["purchasedAt"] != nil
+                    || changed["purchasedByName"] != nil
+                {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     func installConnectivityMonitor() {
