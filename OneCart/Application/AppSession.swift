@@ -82,8 +82,6 @@ final class AppSession: ObservableObject {
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
-    @Published private(set) var profileAvatar: UIImage?
-    @Published private(set) var profileBanner: UIImage?
     @Published private(set) var sharedCartRemovedMessage: String?
 
     let preferences: DevicePreferences
@@ -92,12 +90,15 @@ final class AppSession: ObservableObject {
     let cartContent: CartContentStore
     let bootstrapper: SessionBootstrapper
     let cloudSync: CloudSyncCoordinator
+    let profileStore: ProfileStore
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
     var products: [ProductEntity] { cartContent.products }
     var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
     var history: [PurchaseHistoryEntity] { cartContent.history }
+    var profileAvatar: UIImage? { profileStore.avatar }
+    var profileBanner: UIImage? { profileStore.banner }
 
     var canEdit: Bool {
         activeFamilySpace != nil && (access?.canEdit ?? false)
@@ -135,6 +136,7 @@ final class AppSession: ObservableObject {
     private var lastActiveFamilyWasShared = false
     private var cartSyncCancellable: AnyCancellable?
     private var cartContentCancellable: AnyCancellable?
+    private var profileStoreCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -165,6 +167,7 @@ final class AppSession: ObservableObject {
             appleSignIn: appleSignIn
         )
         cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        profileStore = ProfileStore()
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
@@ -190,6 +193,9 @@ final class AppSession: ObservableObject {
             self?.objectWillChange.send()
         }
         cartContentCancellable = cartContent.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        profileStoreCancellable = profileStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         cartSync.onHardRefresh = { [weak self] in
@@ -594,20 +600,13 @@ final class AppSession: ObservableObject {
         defer { isBusy = false }
 
         do {
-            // Mirror to disk immediately so Settings/Home show the new photo even
-            // before the network round-trip finishes.
-            if removeAvatar {
-                ProfileMediaStore.remove(for: account.id, kind: .avatar)
-            } else if let avatar {
-                try ProfileMediaStore.save(avatar, for: account.id, kind: .avatar)
-            }
-
-            if removeBanner {
-                ProfileMediaStore.remove(for: account.id, kind: .banner)
-            } else if let banner {
-                try ProfileMediaStore.save(banner, for: account.id, kind: .banner)
-            }
-            reloadProfileMedia(for: account.id)
+            try profileStore.persistMedia(
+                accountID: account.id,
+                avatar: avatar,
+                banner: banner,
+                removeAvatar: removeAvatar,
+                removeBanner: removeBanner
+            )
 
             let updated = OneCartAccount(
                 id: account.id,
@@ -616,13 +615,13 @@ final class AppSession: ObservableObject {
 
             self.account = updated
             preferences.participantDisplayName = updated.displayName
-            reloadProfileMedia(for: updated.id)
+            profileStore.reload(for: updated.id)
             applyProfileToFamilyMembers(updated)
             objectWillChange.send()
             await refreshFamilyMetadata(showErrors: false)
             return true
         } catch {
-            reloadProfileMedia(for: account.id)
+            profileStore.reload(for: account.id)
             show(error)
             return false
         }
@@ -638,8 +637,7 @@ final class AppSession: ObservableObject {
     }
 
     func reloadProfileMedia(for userID: UUID) {
-        profileAvatar = ProfileMediaStore.image(for: userID, kind: .avatar)
-        profileBanner = ProfileMediaStore.image(for: userID, kind: .banner)
+        profileStore.reload(for: userID)
     }
 
     private func applyProfileToFamilyMembers(_ account: OneCartAccount) {
@@ -736,8 +734,7 @@ final class AppSession: ObservableObject {
         cartContent.clearContent()
         familyMembers = []
         access = nil
-        profileAvatar = nil
-        profileBanner = nil
+        profileStore.clear()
     }
 
     private func performMutation(
