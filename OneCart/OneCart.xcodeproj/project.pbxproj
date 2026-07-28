@@ -42,6 +42,7 @@
 		D20000000000000000000006 /* CloudKitBackendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000005 /* CloudKitBackendService.swift */; };
 		D20000000000000000000007 /* FamilyInviteLinkBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */; };
 		D20000000000000000000008 /* CartSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000007 /* CartSyncService.swift */; };
+		D2000000000000000000000C /* CartContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000C /* CartContentStore.swift */; };
 		D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000008 /* FamilyShareOrchestrator.swift */; };
 		D2000000000000000000000A /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* HistoryViews.swift */; };
 		D2000000000000000000000B /* CartChromeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000A /* CartChromeViews.swift */; };
@@ -111,6 +112,7 @@
 		D10000000000000000000005 /* CloudKitBackendService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitBackendService.swift; sourceTree = "<group>"; };
 		D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyInviteLinkBuilder.swift; sourceTree = "<group>"; };
 		D10000000000000000000007 /* CartSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartSyncService.swift; sourceTree = "<group>"; };
+		D1000000000000000000000C /* CartContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartContentStore.swift; sourceTree = "<group>"; };
 		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
 		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 				A10000000000000000000002 /* OneCartApp.swift */,
 				A10000000000000000000008 /* AppSession.swift */,
 				D10000000000000000000007 /* CartSyncService.swift */,
+				D1000000000000000000000C /* CartContentStore.swift */,
 				D10000000000000000000008 /* FamilyShareOrchestrator.swift */,
 				A10000000000000000000009 /* RootView.swift */,
 				F10000000000000000000002 /* MainTabView.swift */,
@@ -473,6 +476,7 @@
 				D20000000000000000000006 /* CloudKitBackendService.swift in Sources */,
 				D20000000000000000000007 /* FamilyInviteLinkBuilder.swift in Sources */,
 				D20000000000000000000008 /* CartSyncService.swift in Sources */,
+				D2000000000000000000000C /* CartContentStore.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
 				D2000000000000000000000A /* HistoryViews.swift in Sources */,
 				D2000000000000000000000B /* CartChromeViews.swift in Sources */,

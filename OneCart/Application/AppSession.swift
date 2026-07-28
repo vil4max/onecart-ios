@@ -77,17 +77,11 @@ final class AppSession: ObservableObject {
     @Published private(set) var lastSyncError: String?
     @Published private(set) var familySpaces: [FamilySpace] = []
     @Published private(set) var activeFamilySpace: FamilySpace?
-    @Published private(set) var lists: [ShoppingListEntity] = []
-    @Published private(set) var activeLists: [ShoppingListEntity] = []
-    @Published private(set) var products: [ProductEntity] = []
-    @Published private(set) var productsByListID: [UUID: [ProductEntity]] = [:]
-    @Published private(set) var history: [PurchaseHistoryEntity] = []
     @Published private(set) var familyMembers: [FamilyMember] = []
     @Published private(set) var access: FamilyAccess?
     @Published private(set) var isFamilyMetadataLoading = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
-    /// Pre-warmed CKShare invite for the active owner cart (filled after cart create).
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
     @Published private(set) var profileAvatar: UIImage?
     @Published private(set) var profileBanner: UIImage?
@@ -96,6 +90,13 @@ final class AppSession: ObservableObject {
     let preferences: DevicePreferences
     let persistence: PersistenceController
     let cartSync: CartSyncService
+    let cartContent: CartContentStore
+
+    var lists: [ShoppingListEntity] { cartContent.lists }
+    var activeLists: [ShoppingListEntity] { cartContent.activeLists }
+    var products: [ProductEntity] { cartContent.products }
+    var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
+    var history: [PurchaseHistoryEntity] { cartContent.history }
 
     var canEdit: Bool {
         activeFamilySpace != nil && (access?.canEdit ?? false)
@@ -136,6 +137,7 @@ final class AppSession: ObservableObject {
     private var didPresentProductionSchemaAlert = false
     private var lastActiveFamilyWasShared = false
     private var cartSyncCancellable: AnyCancellable?
+    private var cartContentCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -158,6 +160,7 @@ final class AppSession: ObservableObject {
         self.repository = repository
         self.backend = backend
         cartSync = CartSyncService(persistence: persistence)
+        cartContent = CartContentStore(persistence: persistence)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
@@ -178,6 +181,9 @@ final class AppSession: ObservableObject {
 
     private func bindCartSync() {
         cartSyncCancellable = cartSync.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        cartContentCancellable = cartContent.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         cartSync.onHardRefresh = { [weak self] in
@@ -470,7 +476,7 @@ final class AppSession: ObservableObject {
     }
 
     func products(inListID listID: UUID) -> [ProductEntity] {
-        productsByListID[listID] ?? []
+        cartContent.products(inListID: listID)
     }
 
     func deleteProduct(_ product: ProductEntity) async {
@@ -833,11 +839,7 @@ final class AppSession: ObservableObject {
         clearPreparedInviteLink()
         familySpaces = []
         activeFamilySpace = nil
-        lists = []
-        activeLists = []
-        products = []
-        productsByListID = [:]
-        history = []
+        cartContent.clearContent()
         familyMembers = []
         access = nil
         profileAvatar = nil
@@ -897,9 +899,7 @@ final class AppSession: ObservableObject {
                 selectedID.uuidString,
                 forKey: activeFamilyKey(accountID: account.id)
             )
-            lists = try fetchLists(familySpaceID: selectedID, in: context)
-            products = try fetchProducts(familySpaceID: selectedID, in: context)
-            history = try fetchHistory(familySpaceID: selectedID, in: context)
+            try cartContent.reloadContent(familySpaceID: selectedID)
             if let selected {
                 access = backend.access(for: selected)
             } else {
@@ -908,8 +908,6 @@ final class AppSession: ObservableObject {
             if previousID != selectedID {
                 familyMembers = []
             }
-            // Invalidate only a finished cache for the wrong cart / non-owner.
-            // Do not cancel an in-flight warm-up when `preparedInviteFamilyID` is still nil.
             if let preparedInviteFamilyID, preparedInviteFamilyID != selectedID {
                 clearPreparedInviteLink()
             } else if preparedInviteLink != nil,
@@ -920,80 +918,16 @@ final class AppSession: ObservableObject {
             }
         } else {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
-            lists = []
-            products = []
-            history = []
+            cartContent.clearContent()
             familyMembers = []
             access = nil
             clearPreparedInviteLink()
         }
-        rebuildDerivedCollections()
     }
 
     private func refreshProducts() throws {
         guard let selectedID = activeFamilySpace?.id else { return }
-        let context = persistence.container.viewContext
-        context.processPendingChanges()
-        products = try fetchProducts(familySpaceID: selectedID, in: context)
-        rebuildDerivedCollections()
-    }
-
-    private func rebuildDerivedCollections() {
-        activeLists = lists.filter { !$0.isDeletedValue && $0.statusValue == .active }
-
-        var grouped: [UUID: [ProductEntity]] = [:]
-
-        for product in products where !product.isDeletedValue {
-            guard let listID = product.list?.id else { continue }
-            grouped[listID, default: []].append(product)
-        }
-
-        productsByListID = grouped
-    }
-
-    private func fetchLists(
-        familySpaceID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [ShoppingListEntity] {
-        let request = ShoppingListEntity.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "status", ascending: true),
-            NSSortDescriptor(key: "updatedAt", ascending: false),
-        ]
-        return try context.fetch(request)
-    }
-
-    private func fetchProducts(
-        familySpaceID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [ProductEntity] {
-        let request = ProductEntity.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "isPurchased", ascending: true),
-            NSSortDescriptor(key: "createdAt", ascending: true),
-        ]
-        return try context.fetch(request)
-    }
-
-    private func fetchHistory(
-        familySpaceID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [PurchaseHistoryEntity] {
-        let request = PurchaseHistoryEntity.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-        return try context.fetch(request)
+        try cartContent.refreshProducts(familySpaceID: selectedID)
     }
 
     private func refreshFamilyMetadata(showErrors: Bool) async {

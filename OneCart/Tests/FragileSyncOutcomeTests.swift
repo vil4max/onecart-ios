@@ -78,4 +78,36 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(session.syncState, .synchronized)
         XCTAssertNil(session.lastSyncError)
     }
+
+    func testCartContentStorePublishesAfterReload() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Content")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: "Корзина",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        let list = try XCTUnwrap(session.activeLists.first)
+        await session.addProduct(to: list, draft: productDraft(name: "Хлеб"))
+        XCTAssertFalse(session.products.isEmpty)
+
+        try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {
+            try session.cartContent.reloadContent(familySpaceID: familyID)
+        }
+        XCTAssertFalse(session.products.isEmpty)
+        XCTAssertEqual(session.products.first?.displayName, "Хлеб")
+    }
 }
