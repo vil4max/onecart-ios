@@ -29,37 +29,56 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `SessionBootstrapper` | SIWA restore / welcome retry; Core Data wipe only on typed store failure |
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
-| `CloudSyncCoordinator` | CloudKit observers, connectivity, scheduled reload, maps sync outcome → `syncState` / alerts |
+| `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
+| `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator |
+| `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
+| `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation, owner ACL heal, delete cart + recreate |
-| `FamilySpaceRepository` | local CRUD / purchase sessions |
+| `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
 
 Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
+
+God-file split train (RC31): composition root target ~200 lines; hard trigger 400+. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
 
 ## Owner files
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/AppSession.swift` | Composition root: published session + View wrappers |
+| `OneCart/Application/AppSession.swift` | Composition root: published session + wiring |
+| `OneCart/Application/AppSession+*.swift` | Welcome/auth, hosts, cart mutations, membership, family selection |
+| `OneCart/Application/SessionTypes.swift` | Shared session enums / device preferences types |
 | `OneCart/Application/SessionBootstrapper.swift` | Welcome / prepare / explicit wipe gate |
 | `OneCart/Application/CartContentStore.swift` | Cart content + history page size 30 / loadMore |
 | `OneCart/Application/CartSyncService.swift` | Hard cart refresh / sync chrome state |
-| `OneCart/Application/CloudSyncCoordinator.swift` | Observers, connectivity, sync outcome application |
+| `OneCart/Application/CloudSyncCoordinator.swift` | Observers, scheduled reload, sync outcome application |
+| `OneCart/Application/ConnectivityMonitor.swift` | Path monitor used by cloud sync |
+| `OneCart/Application/HouseholdCartCoordinator.swift` | Household ensure / adopt / shared-gone |
+| `OneCart/Application/InviteLinkPreparer.swift` | Invite link prepare / cache |
 | `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / delete-and-recreate |
 | `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
 | `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
 | `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert |
+| `OneCart/Application/LaunchChrome.swift` | Launch cart ride + shared chrome controls |
 | `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; non-destructive `load()` |
+| `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile |
+| `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
+| `OneCart/Data/Persistence/ManagedObjects.swift` | Core Data entity subclasses |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `completePurchased` (checked items → session) |
+| `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Merge / dedupe / product mutation slices |
 | `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
-| `OneCart/Features/Shopping/ShoppingViews.swift` | Cart home, list, toggle, quick add, nav sync title |
-| `OneCart/Features/Shopping/HistoryViews.swift` | History list + detail (`historyHasMore` / load more) |
+| `OneCart/Features/Shopping/HomeView.swift` | Cart home |
+| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + toggle / complete |
+| `OneCart/Features/Shopping/QuickAddProductSheet.swift` | Name-only quick add |
+| `OneCart/Features/Shopping/HistoryViews.swift` | History list (`historyHasMore` / load more) |
+| `OneCart/Features/Shopping/HistoryDetailViews.swift` | History session detail |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
 | `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / delete cart / sign out |
 | `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart (sheet helpers) |
+| `OneCart/Features/Settings/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
 
 ## Trade-offs (recovery / sync)
 

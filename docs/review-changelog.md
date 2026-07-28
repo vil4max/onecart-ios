@@ -227,6 +227,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: F1–F10 green via `test_sim`; grep checklist — no `hardReset` in `load()` / `prepare`; sync failure leaves `.failed`
 - Do not invent scope: NC09 still no pre-merge GitHub Actions; Swift 6 strict and MetricKit remain FU
 
+### RC31 — God-file split train (composition root ~200)
+- Status: done (this train)
+- Paths: `AppSession.swift` + `AppSession+*.swift`, `HouseholdCartCoordinator.swift`, `InviteLinkPreparer.swift`, `SessionTypes.swift`, `HomeView.swift` / `ShoppingListView.swift` / `QuickAddProductSheet.swift`, `FamilySpaceRepository+*.swift`, `OneCartManagedObjectModel.swift`, `PersistenceController+*.swift`, `LaunchChrome.swift`, `CartShareActivityBridge.swift`, `HistoryDetailViews.swift`, `ConnectivityMonitor.swift`, characterization tests under `OneCart/Tests/`, `docs/architecture.md`, `docs/review-changelog.md`
+- What changed: split former god-files under hard trigger 400+; `AppSession` composition root ~200 lines; coordinators/extensions own household, invite warm-up, mutations, membership, selection; shopping / persistence / soft-band UI extracts; F1–F10 invariants unchanged
+- How to verify: F1–F10 + `just verify`; `AppSession.swift` ≤ ~200; former ≥400 owners under 400 (entity subclasses in `ManagedObjects.swift` remain data-model density)
+- Do not invent scope: no product feature restore (stores/catalog/price UI); no silent/soft-fail policy changes; NC09 unchanged
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
@@ -237,4 +244,5 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
 - Manual (RC29): Max marks items → Tim appear/pull sees Updating + matching trolley counts; owner Delete cart rotates link
 - Manual (RC30): failed sync shows failed state (not “synced”); welcome network retry does not wipe SQLite; History “show more” loads next page
+- Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; history detail delete still works; connectivity offline→online still schedules reload
 - See also [release.md](release.md) § Preflight + §3
