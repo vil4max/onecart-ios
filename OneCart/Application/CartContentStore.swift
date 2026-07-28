@@ -3,11 +3,14 @@ import Foundation
 
 @MainActor
 final class CartContentStore: ObservableObject {
+    static let historyPageSize = 30
+
     @Published private(set) var lists: [ShoppingListEntity] = []
     @Published private(set) var activeLists: [ShoppingListEntity] = []
     @Published private(set) var products: [ProductEntity] = []
     @Published private(set) var productsByListID: [UUID: [ProductEntity]] = [:]
     @Published private(set) var history: [PurchaseHistoryEntity] = []
+    @Published private(set) var historyHasMore = false
 
     private let persistence: PersistenceController
 
@@ -25,6 +28,7 @@ final class CartContentStore: ObservableObject {
         products = []
         productsByListID = [:]
         history = []
+        historyHasMore = false
     }
 
     func reloadContent(familySpaceID: UUID?) throws {
@@ -36,7 +40,7 @@ final class CartContentStore: ObservableObject {
         }
         lists = try fetchLists(familySpaceID: familySpaceID, in: context)
         products = try fetchProducts(familySpaceID: familySpaceID, in: context)
-        history = try fetchHistory(familySpaceID: familySpaceID, in: context)
+        try reloadHistoryPage(familySpaceID: familySpaceID, in: context)
         rebuildDerivedCollections()
     }
 
@@ -45,6 +49,20 @@ final class CartContentStore: ObservableObject {
         context.processPendingChanges()
         products = try fetchProducts(familySpaceID: familySpaceID, in: context)
         rebuildDerivedCollections()
+    }
+
+    func loadMoreHistory(familySpaceID: UUID) throws {
+        guard historyHasMore else { return }
+        let context = persistence.container.viewContext
+        context.processPendingChanges()
+        let page = try fetchHistory(
+            familySpaceID: familySpaceID,
+            in: context,
+            limit: Self.historyPageSize + 1,
+            offset: history.count
+        )
+        historyHasMore = page.count > Self.historyPageSize
+        history.append(contentsOf: Array(page.prefix(Self.historyPageSize)))
     }
 
     func rebuildDerivedCollections() {
@@ -56,6 +74,20 @@ final class CartContentStore: ObservableObject {
             grouped[listID, default: []].append(product)
         }
         productsByListID = grouped
+    }
+
+    private func reloadHistoryPage(
+        familySpaceID: UUID,
+        in context: NSManagedObjectContext
+    ) throws {
+        let page = try fetchHistory(
+            familySpaceID: familySpaceID,
+            in: context,
+            limit: Self.historyPageSize + 1,
+            offset: 0
+        )
+        historyHasMore = page.count > Self.historyPageSize
+        history = Array(page.prefix(Self.historyPageSize))
     }
 
     private func fetchLists(
@@ -93,7 +125,8 @@ final class CartContentStore: ObservableObject {
     func fetchHistory(
         familySpaceID: UUID,
         in context: NSManagedObjectContext,
-        limit: Int? = nil
+        limit: Int? = nil,
+        offset: Int = 0
     ) throws -> [PurchaseHistoryEntity] {
         let request = PurchaseHistoryEntity.fetchRequest()
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
@@ -104,14 +137,10 @@ final class CartContentStore: ObservableObject {
         if let limit {
             request.fetchLimit = limit
         }
+        if offset > 0 {
+            request.fetchOffset = offset
+        }
         request.fetchBatchSize = 20
         return try context.fetch(request)
-    }
-
-    private func fetchHistory(
-        familySpaceID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [PurchaseHistoryEntity] {
-        try fetchHistory(familySpaceID: familySpaceID, in: context, limit: nil)
     }
 }

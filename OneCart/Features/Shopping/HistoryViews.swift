@@ -3,11 +3,9 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel
     @State private var pendingDelete: PurchaseHistoryEntity?
-    @State private var visibleCount = 30
 
     private var groupedHistory: [(month: Date, entries: [PurchaseHistoryEntity])] {
-        let visibleEntries = Array(model.history.prefix(visibleCount))
-        let grouped = Dictionary(grouping: visibleEntries) { entry in
+        let grouped = Dictionary(grouping: model.history) { entry in
             let components = Calendar.current.dateComponents(
                 [.year, .month],
                 from: entry.purchaseDate
@@ -58,9 +56,9 @@ struct HistoryView: View {
                             }
                         }
 
-                        if visibleCount < model.history.count {
+                        if model.historyHasMore {
                             Button {
-                                visibleCount = min(visibleCount + 30, model.history.count)
+                                model.loadMoreHistory()
                             } label: {
                                 Text("history.show_more")
                                     .frame(maxWidth: .infinity)

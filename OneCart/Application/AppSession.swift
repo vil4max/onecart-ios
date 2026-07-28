@@ -97,6 +97,7 @@ final class AppSession: ObservableObject {
     var products: [ProductEntity] { cartContent.products }
     var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
     var history: [PurchaseHistoryEntity] { cartContent.history }
+    var historyHasMore: Bool { cartContent.historyHasMore }
     var profileAvatar: UIImage? { profileStore.avatar }
     var profileBanner: UIImage? { profileStore.banner }
 
@@ -437,6 +438,15 @@ final class AppSession: ObservableObject {
         guard let id = entry.id else { return }
         await performMutation(successMessage: String(localized: "alert.history_deleted")) {
             try await self.repository.deleteHistory(id: id)
+        }
+    }
+
+    func loadMoreHistory() {
+        guard let familySpaceID = activeFamilySpace?.id else { return }
+        do {
+            try cartContent.loadMoreHistory(familySpaceID: familySpaceID)
+        } catch {
+            show(error)
         }
     }
 
