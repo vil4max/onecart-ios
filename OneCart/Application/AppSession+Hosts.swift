@@ -43,8 +43,10 @@ extension AppSession: CloudSyncHost {
         do {
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
+            let purchasedCount = products.filter(\.isPurchasedValue).count
+            let totalCount = products.count
             CartSyncLog.cart.info(
-                "softRefresh purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
+                "softRefresh purchased=\(purchasedCount)/\(totalCount)"
             )
         } catch {
             CartSyncLog.cart.error(
@@ -110,4 +112,3 @@ extension AppSession: SessionBootstrapHost {
         appleSignIn.clearCredential()
     }
 }
-

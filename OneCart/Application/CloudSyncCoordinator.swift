@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+
 @MainActor
 protocol CloudSyncHost: AnyObject {
     var account: OneCartAccount? { get }
@@ -153,7 +154,7 @@ final class CloudSyncCoordinator {
         softRefreshTask?.cancel()
         softRefreshTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled, let self, let host = self.host, host.account != nil else {
+            guard !Task.isCancelled, let self, let host, host.account != nil else {
                 return
             }
             host.softRefreshCartProducts()
@@ -169,18 +170,18 @@ final class CloudSyncCoordinator {
                 self?.scheduledReloadTask = nil
             }
             while let self, !Task.isCancelled {
-                guard self.cloudReloadPending else { return }
-                self.cloudReloadPending = false
+                guard cloudReloadPending else { return }
+                cloudReloadPending = false
                 try? await Task.sleep(nanoseconds: delayNanoseconds)
                 guard !Task.isCancelled else { return }
-                if self.cloudReloadPending {
+                if cloudReloadPending {
                     continue
                 }
-                guard let host = self.host, let account = host.account else { return }
+                guard let host, let account = host.account else { return }
                 host.softRefreshCartProducts()
                 do {
                     try await host.offerSharedCartJoinIfNeeded(for: account)
-                    await self.syncCart(reason: .cloudImport)
+                    await syncCart(reason: .cloudImport)
                 } catch {
                     host.applySyncState(.failed)
                     host.applyLastSyncError(host.userFacingMessage(for: error))

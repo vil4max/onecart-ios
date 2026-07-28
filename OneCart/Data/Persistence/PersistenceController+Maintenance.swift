@@ -90,9 +90,9 @@ extension PersistenceController {
         let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
         let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
         #if DEBUG
-        let isDebugProcess = true
+            let isDebugProcess = true
         #else
-        let isDebugProcess = false
+            let isDebugProcess = false
         #endif
 
         guard Self.shouldWipeLocalStoresForCloudKitEnvironment(

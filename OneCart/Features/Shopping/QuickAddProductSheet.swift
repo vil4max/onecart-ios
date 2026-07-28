@@ -119,4 +119,3 @@ struct QuickAddProductSheet: View {
 }
 
 // Kept for any remaining call sites; forwards to the quick name editor.
-

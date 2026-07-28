@@ -39,12 +39,29 @@ final class AppSession: ObservableObject {
     let invitePreparer: InviteLinkPreparer
     let household: HouseholdCartCoordinator
 
-    var lists: [ShoppingListEntity] { cartContent.lists }
-    var activeLists: [ShoppingListEntity] { cartContent.activeLists }
-    var products: [ProductEntity] { cartContent.products }
-    var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
-    var history: [PurchaseHistoryEntity] { cartContent.history }
-    var historyHasMore: Bool { cartContent.historyHasMore }
+    var lists: [ShoppingListEntity] {
+        cartContent.lists
+    }
+
+    var activeLists: [ShoppingListEntity] {
+        cartContent.activeLists
+    }
+
+    var products: [ProductEntity] {
+        cartContent.products
+    }
+
+    var productsByListID: [UUID: [ProductEntity]] {
+        cartContent.productsByListID
+    }
+
+    var history: [PurchaseHistoryEntity] {
+        cartContent.history
+    }
+
+    var historyHasMore: Bool {
+        cartContent.historyHasMore
+    }
 
     var preparedInviteLink: FamilyInviteLink? {
         invitePreparer.preparedInviteLink
@@ -188,7 +205,6 @@ final class AppSession: ObservableObject {
     func dismissSharedCartRemovedMessage() {
         sharedCartRemovedMessage = nil
     }
-
 }
 
 private extension String {

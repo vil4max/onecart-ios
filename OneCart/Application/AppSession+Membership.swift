@@ -142,5 +142,4 @@ extension AppSession {
             if showErrors { show(error) }
         }
     }
-
 }

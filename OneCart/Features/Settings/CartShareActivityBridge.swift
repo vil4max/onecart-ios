@@ -57,4 +57,3 @@ final class CartInviteActivityItem: NSObject, UIActivityItemSource {
         link.shareTitle
     }
 }
-

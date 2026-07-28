@@ -374,4 +374,3 @@ private struct ProductRow: View {
         return String(localized: "cart.in_trolley")
     }
 }
-

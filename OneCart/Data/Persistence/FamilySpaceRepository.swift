@@ -301,7 +301,6 @@ final class FamilySpaceRepository {
         request.fetchLimit = 1
         return try context.fetch(request).first
     }
-
 }
 
 protocol SoftDeletable: AnyObject {

@@ -50,8 +50,10 @@ extension AppSession {
             }
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
+            let purchasedCount = products.filter(\.isPurchasedValue).count
+            let totalCount = products.count
             CartSyncLog.cart.info(
-                "togglePurchased done purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
+                "togglePurchased done purchased=\(purchasedCount)/\(totalCount)"
             )
             CartSyncLog.action.info("togglePurchased done")
         } catch {
@@ -78,7 +80,10 @@ extension AppSession {
     func completePurchasedItems(_ list: ShoppingListEntity) async {
         guard let id = list.id else { return }
         CartSyncLog.action.info("completePurchase start list=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "completePurchase", successMessage: String(localized: "alert.purchase_completed")) {
+        await performMutation(
+            action: "completePurchase",
+            successMessage: String(localized: "alert.purchase_completed")
+        ) {
             _ = try await self.repository.completePurchased(listID: id)
         }
     }

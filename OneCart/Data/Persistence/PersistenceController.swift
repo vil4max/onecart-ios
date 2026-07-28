@@ -316,5 +316,4 @@ final class PersistenceController: @unchecked Sendable {
         context.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
         context.shouldDeleteInaccessibleFaults = true
     }
-
 }

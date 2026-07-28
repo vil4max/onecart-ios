@@ -102,5 +102,4 @@ extension AppSession {
         guard let selectedID = activeFamilySpace?.id else { return }
         try cartContent.refreshProducts(familySpaceID: selectedID)
     }
-
 }

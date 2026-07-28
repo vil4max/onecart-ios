@@ -55,10 +55,10 @@ final class InviteLinkPreparerTests: XCTestCase {
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let preparer = InviteLinkPreparer()
-        let link = FamilyInviteLink(
+        let link = try FamilyInviteLink(
             id: UUID(),
             familyName: "Cart",
-            url: URL(string: "https://www.icloud.com/share/test")!
+            url: XCTUnwrap(URL(string: "https://www.icloud.com/share/test"))
         )
         var fetchCount = 0
 
@@ -93,10 +93,10 @@ final class InviteLinkPreparerTests: XCTestCase {
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let preparer = InviteLinkPreparer()
-        let link = FamilyInviteLink(
+        let link = try FamilyInviteLink(
             id: UUID(),
             familyName: "Cart",
-            url: URL(string: "https://www.icloud.com/share/test")!
+            url: XCTUnwrap(URL(string: "https://www.icloud.com/share/test"))
         )
         _ = try await preparer.createInviteLink(
             family: family,

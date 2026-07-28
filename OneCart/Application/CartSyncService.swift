@@ -48,8 +48,9 @@ final class CartSyncService: ObservableObject {
         pendingReason = Self.preferred(pending: pendingReason, incoming: reason)
 
         if isExclusiveRunning {
+            let pendingLabel = pendingReason?.rawValue ?? "-"
             CartSyncLog.cart.info(
-                "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(self.pendingReason?.rawValue ?? "-", privacy: .public)"
+                "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(pendingLabel, privacy: .public)"
             )
             while isExclusiveRunning {
                 await Task.yield()
@@ -117,8 +118,9 @@ final class CartSyncService: ObservableObject {
             }
             contentRevision &+= 1
             await onInviteeSharedGone?()
+            let revision = contentRevision
             CartSyncLog.cart
-                .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(self.contentRevision)")
+                .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(revision)")
             return .succeeded
         } catch is CancellationError {
             CartSyncLog.cart.info(
@@ -140,12 +142,11 @@ final class CartSyncService: ObservableObject {
 
     private func waitForCloudImportBestEffort(reason: CartSyncReason) async {
         guard !persistence.inMemory else { return }
-        let nanoseconds: UInt64
-        switch reason {
+        let nanoseconds: UInt64 = switch reason {
         case .cloudImport, .afterToggle, .afterMutation:
-            nanoseconds = 700_000_000
+            700_000_000
         case .pull, .appear, .foreground:
-            nanoseconds = 250_000_000
+            250_000_000
         }
         try? await Task.sleep(nanoseconds: nanoseconds)
     }

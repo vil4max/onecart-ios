@@ -131,4 +131,3 @@ struct HistoryProductRow: View {
         .accessibilityElement(children: .combine)
     }
 }
-
