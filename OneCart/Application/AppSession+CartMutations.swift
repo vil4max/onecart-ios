@@ -117,6 +117,9 @@ extension AppSession {
             return
         }
 
+        isBusy = true
+        defer { isBusy = false }
+
         do {
             try await operation()
             await persistence.container.viewContext.perform {

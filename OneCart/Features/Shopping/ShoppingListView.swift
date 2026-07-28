@@ -6,8 +6,8 @@ struct ShoppingListView: View {
 
     @State private var showingAddProduct = false
     @State private var editingProduct: ProductEntity?
-    @State private var confirmingCompletion = false
-    @State private var pendingDelete: ProductEntity?
+    @State private var isCompletingPurchase = false
+    @State private var toastMessage: String?
 
     init(listID: UUID) {
         self.listID = listID
@@ -21,12 +21,16 @@ struct ShoppingListView: View {
         model.products(inListID: listID)
     }
 
-    private var remainingCount: Int {
-        products.filter { !$0.isPurchasedValue }.count
+    private var toBuyProducts: [ProductEntity] {
+        products.filter { !$0.isPurchasedValue }
+    }
+
+    private var inTrolleyProducts: [ProductEntity] {
+        products.filter(\.isPurchasedValue)
     }
 
     private var purchasedCount: Int {
-        products.count - remainingCount
+        inTrolleyProducts.count
     }
 
     private var emptyCartMessage: String {
@@ -38,77 +42,80 @@ struct ShoppingListView: View {
 
     var body: some View {
         Group {
-            if let list {
-                ZStack(alignment: .bottom) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            if !model.canEdit {
-                                ReadOnlyBanner()
-                            }
+            if list != nil {
+                List {
+                    if !model.canEdit {
+                        Section {
+                            ReadOnlyBanner()
+                        }
+                    }
 
-                            if !products.isEmpty {
-                                listSummaryCard
-                            }
-
-                            if products.isEmpty {
-                                EmptyCard(
-                                    image: "cart.badge.plus",
-                                    title: String(localized: "cart.empty_title"),
-                                    message: emptyCartMessage
-                                )
-                            } else {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ForEach(products, id: \.objectID) { product in
-                                        ProductRow(
-                                            product: product,
-                                            canEdit: model.canEdit,
-                                            onToggle: {
-                                                Task { await model.togglePurchased(product) }
-                                            },
-                                            onEdit: {
-                                                editingProduct = product
-                                            },
-                                            onDelete: {
-                                                pendingDelete = product
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            if !products.isEmpty {
-                                VStack(spacing: 8) {
-                                    Button {
-                                        confirmingCompletion = true
-                                    } label: {
-                                        Text("cart.complete_button")
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(OneCartPrimaryButtonStyle())
-                                    .disabled(purchasedCount == 0 || !model.canEdit)
-                                    .opacity(purchasedCount > 0 && model.canEdit ? 1 : 0.5)
-
-                                    Text(
-                                        String(localized: "cart.complete_caption")
-                                    )
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                }
+                    if products.isEmpty {
+                        Section {
+                            EmptyCard(
+                                image: "cart.badge.plus",
+                                title: String(localized: "cart.empty_title"),
+                                message: emptyCartMessage
+                            )
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+                    } else {
+                        if !toBuyProducts.isEmpty {
+                            Section("cart.section_to_buy") {
+                                productRows(toBuyProducts)
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, model.canEdit ? 120 : 28)
-                    }
-                    .refreshable {
-                        await model.syncCart(reason: .pull)
-                    }
-                    .background(OneCartPalette.background.ignoresSafeArea())
 
-                    bottomBar
+                        if !inTrolleyProducts.isEmpty {
+                            Section("cart.section_in_trolley") {
+                                productRows(inTrolleyProducts)
+                            }
+                        }
+                    }
                 }
+                .listStyle(.insetGrouped)
+                .animation(.snappy, value: purchasedCount)
+                .scrollContentBackground(.hidden)
+                .background(OneCartPalette.background.ignoresSafeArea())
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if !products.isEmpty {
+                        cartProgressStrip
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    cartPeerActions
+                }
+                .refreshable {
+                    await model.syncCart(reason: .pull)
+                }
+                .disabled(model.isBusy)
+                .overlay {
+                    if model.isBusy {
+                        CartBusyOverlay(
+                            messageKey: isCompletingPurchase ? "cart.completing" : "cart.updating"
+                        )
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if let toastMessage {
+                        Text(toastMessage)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                OneCartPalette.surface,
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            )
+                            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .accessibilityAddTraits(.isStaticText)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: toastMessage)
                 .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -138,32 +145,6 @@ struct ShoppingListView: View {
                 .sheet(item: $editingProduct) { product in
                     QuickAddProductSheet(listID: listID, product: product)
                 }
-                .alert("cart.complete_confirm_title", isPresented: $confirmingCompletion) {
-                    Button("common.cancel", role: .cancel) {}
-                    Button("cart.complete_button") {
-                        Task { await model.completePurchasedItems(list) }
-                    }
-                } message: {
-                    Text("cart.complete_confirm_message \(purchasedCount)")
-                }
-                .alert(
-                    "cart.delete_item_title",
-                    isPresented: Binding(
-                        get: { pendingDelete != nil },
-                        set: { if !$0 { pendingDelete = nil } }
-                    )
-                ) {
-                    Button("common.cancel", role: .cancel) { pendingDelete = nil }
-                    Button("common.delete", role: .destructive) {
-                        if let pendingDelete {
-                            Task { await model.deleteProduct(pendingDelete) }
-                        }
-                        pendingDelete = nil
-                    }
-                } message: {
-                    Text(pendingDelete?.displayName ?? String(localized: "cart.delete_item_fallback"))
-                }
-
             } else {
                 ContentUnavailableViewCompat(
                     image: "questionmark.folder",
@@ -174,66 +155,133 @@ struct ShoppingListView: View {
         }
     }
 
-    private var bottomBar: some View {
-        HStack(spacing: 12) {
-            if model.canEdit {
-                Button {
-                    showingAddProduct = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(OneCartPalette.primary, in: Circle())
+    @ViewBuilder
+    private func productRows(_ items: [ProductEntity]) -> some View {
+        ForEach(items, id: \.objectID) { product in
+            ProductRow(
+                product: product,
+                canEdit: model.canEdit,
+                onToggle: {
+                    Task {
+                        await model.togglePurchased(product)
+                    }
+                },
+                onEdit: {
+                    editingProduct = product
                 }
-                .accessibilityLabel(String(localized: "cart.add_a11y"))
+            )
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                if model.canEdit {
+                    Button(role: .destructive) {
+                        Task { await model.deleteProduct(product) }
+                    } label: {
+                        Label("common.delete", systemImage: "trash")
+                    }
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
     }
 
-    private var listSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("cart.section_title")
-                .font(.headline)
+    private var cartProgressStrip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(
+                    String(localized: "cart.progress_collected \(purchasedCount) \(products.count)")
+                )
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
-            Text(
-                String(localized: "cart.trolley_progress \(purchasedCount) \(products.count) \(remainingCount)")
-            )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+
+                if model.familyMembers.count >= 2 {
+                    Button {
+                        model.showFamilyManagement()
+                    } label: {
+                        Text("cart.together \(model.familyMembers.count)")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(OneCartPalette.primaryAccent)
+                }
+            }
 
             ProgressView(
                 value: Double(purchasedCount),
-                total: Double(products.count)
+                total: Double(max(products.count, 1))
             )
             .tint(OneCartPalette.primary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(OneCartPalette.background.opacity(0.96))
+    }
 
-            if purchasedCount == 0 {
-                Text("cart.trolley_hint")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var cartPeerActions: some View {
+        HStack(spacing: 16) {
+            if purchasedCount > 0, model.canEdit {
+                CartPeerActionButton(
+                    systemName: "checkmark",
+                    accessibilityLabel: String(localized: "cart.complete_button")
+                ) {
+                    Task { await runCompletePurchase() }
+                }
+                .disabled(model.isBusy)
             }
 
-            if model.familyMembers.count >= 2 {
-                Button {
-                    model.showFamilyManagement()
-                } label: {
-                    Text("cart.together \(model.familyMembers.count)")
-                        .font(.subheadline.weight(.semibold))
+            Spacer(minLength: 0)
+
+            if model.canEdit {
+                CartPeerActionButton(
+                    systemName: "plus",
+                    accessibilityLabel: String(localized: "cart.add_a11y")
+                ) {
+                    showingAddProduct = true
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(OneCartPalette.primaryAccent)
+                .disabled(model.isBusy)
             }
         }
-        .padding(16)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 16)
+        .frame(maxWidth: .infinity)
+        .background(OneCartPalette.background.opacity(0.96))
+    }
+
+    @MainActor
+    private func runCompletePurchase() async {
+        let movingCount = purchasedCount
+        guard movingCount > 0 else { return }
+        isCompletingPurchase = true
+        defer { isCompletingPurchase = false }
+        guard let list = model.lists.first(where: { $0.id == listID }) else { return }
+        await model.completePurchasedItems(list)
+        guard purchasedCount == 0 else { return }
+        let message = String(localized: "cart.moved_to_history \(movingCount)")
+        toastMessage = message
+        try? await Task.sleep(nanoseconds: 2_200_000_000)
+        if toastMessage == message {
+            toastMessage = nil
+        }
+    }
+}
+
+private struct CartPeerActionButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(OneCartPalette.primary, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -244,27 +292,14 @@ private struct ProductPurchaseToggle: View {
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(
-                        isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.45),
-                        lineWidth: 2
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(isPurchased ? OneCartPalette.primary : Color.clear)
-                    )
-                if isPurchased {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(width: 28, height: 28)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
+            Image(systemName: isPurchased ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 28, weight: .regular))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.4))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(HomePressButtonStyle())
+        .buttonStyle(.borderless)
         .disabled(!canEdit)
         .accessibilityLabel(
             isPurchased ? String(localized: "cart.unmark_trolley_a11y") : String(localized: "cart.mark_in_trolley_a11y")
@@ -279,36 +314,25 @@ private struct ProductRow: View {
     let canEdit: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
-    let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            ProductPurchaseToggle(
-                isPurchased: product.isPurchasedValue,
-                canEdit: canEdit,
-                action: onToggle
-            )
-
-            OfficialProductThumbnail(
-                category: product.categoryValue,
-                isPurchased: product.isPurchasedValue,
-                size: 52
-            )
-
             Button(action: onEdit) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(product.displayName)
-                        .font(.body.weight(.semibold))
+                        .font(.body)
                         .strikethrough(product.isPurchasedValue)
                         .foregroundStyle(product.isPurchasedValue ? .secondary : .primary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(productSubtitle)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if !productSubtitle.isEmpty {
+                        Text(productSubtitle)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -316,50 +340,12 @@ private struct ProductRow: View {
             .buttonStyle(.plain)
             .disabled(!canEdit)
 
-            Menu {
-                Button {
-                    onEdit()
-                } label: {
-                    Label("common.edit", systemImage: "pencil")
-                }
-                .disabled(!canEdit)
-
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label("common.delete", systemImage: "trash")
-                }
-                .disabled(!canEdit)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Color(.tertiarySystemFill),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    )
-            }
-            .disabled(!canEdit)
-            .accessibilityLabel(String(localized: "cart.more_actions_a11y"))
+            ProductPurchaseToggle(
+                isPurchased: product.isPurchasedValue,
+                canEdit: canEdit,
+                action: onToggle
+            )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-            product.isPurchasedValue
-                ? OneCartPalette.surface.opacity(0.72)
-                : OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(
-                    product.isPurchasedValue
-                        ? Color.primary.opacity(0.03)
-                        : Color.primary.opacity(0.05),
-                    lineWidth: 1
-                )
-        )
         .accessibilityElement(children: .contain)
     }
 
