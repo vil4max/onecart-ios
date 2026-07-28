@@ -32,11 +32,11 @@ final class PersistenceController: @unchecked Sendable {
 
     static let cloudKitContainerIdentifier = "iCloud.com.vil555tim.onecart"
 
-    private(set) var container: NSPersistentCloudKitContainer
+    var container: NSPersistentCloudKitContainer
     let inMemory: Bool
 
-    private(set) var privateStore: NSPersistentStore?
-    private(set) var sharedStore: NSPersistentStore?
+    var privateStore: NSPersistentStore?
+    var sharedStore: NSPersistentStore?
 
     var isLoaded: Bool {
         loadLock.lock()
@@ -44,16 +44,16 @@ final class PersistenceController: @unchecked Sendable {
         return loaded
     }
 
-    private let logger = Logger(
+    let logger = Logger(
         subsystem: "com.vil555tim.onecart",
         category: "Persistence"
     )
-    private let loadLock = NSLock()
-    private var loaded = false
-    private var loading = false
-    private var loadWaiters: [CheckedContinuation<Result<Void, Error>, Never>] = []
-    private let storeDirectoryURL: URL
-    private let cloudKitEnabled: Bool
+    let loadLock = NSLock()
+    var loaded = false
+    var loading = false
+    var loadWaiters: [CheckedContinuation<Result<Void, Error>, Never>] = []
+    let storeDirectoryURL: URL
+    let cloudKitEnabled: Bool
 
     init(
         inMemory: Bool = false,
@@ -87,7 +87,7 @@ final class PersistenceController: @unchecked Sendable {
         )
     }
 
-    private static let cloudKitLocalEnvironmentKey = "onecart.cloudkit-local-environment"
+    static let cloudKitLocalEnvironmentKey = "onecart.cloudkit-local-environment"
 
     func load() async throws {
         if isLoaded {
@@ -107,73 +107,6 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     @discardableResult
-    func copyStoreFilesForDiagnostics() throws -> URL {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
-        let stamp = formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        let diagnosticsRoot = storeDirectoryURL
-            .appendingPathComponent("OneCart-diagnostics", isDirectory: true)
-            .appendingPathComponent(stamp, isDirectory: true)
-        try FileManager.default.createDirectory(
-            at: diagnosticsRoot,
-            withIntermediateDirectories: true
-        )
-
-        let fileManager = FileManager.default
-        let contents = try fileManager.contentsOfDirectory(
-            at: storeDirectoryURL,
-            includingPropertiesForKeys: nil
-        )
-        for url in contents {
-            let name = url.lastPathComponent
-            guard name.lowercased().hasPrefix("onecart-") else { continue }
-            if name.lowercased().hasPrefix("onecart-diagnostics") { continue }
-            let destination = diagnosticsRoot.appendingPathComponent(name)
-            if fileManager.fileExists(atPath: destination.path) {
-                try fileManager.removeItem(at: destination)
-            }
-            try fileManager.copyItem(at: url, to: destination)
-        }
-        logger.info("Diagnostics snapshot written to \(diagnosticsRoot.path, privacy: .public)")
-        return diagnosticsRoot
-    }
-
-    func hardResetPersistentStores() throws {
-        guard !inMemory else { return }
-
-        loadLock.lock()
-        loaded = false
-        loading = false
-        privateStore = nil
-        sharedStore = nil
-        let waiters = loadWaiters
-        loadWaiters.removeAll()
-        loadLock.unlock()
-        waiters.forEach { $0.resume(returning: .failure(PersistenceError.storeNotLoaded(.private))) }
-
-        let coordinator = container.persistentStoreCoordinator
-        for store in coordinator.persistentStores {
-            if let url = store.url {
-                try? coordinator.destroyPersistentStore(at: url, ofType: store.type, options: nil)
-            } else {
-                try? coordinator.remove(store)
-            }
-        }
-
-        Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
-
-        container = Self.makeContainer()
-        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
-            directory: storeDirectoryURL,
-            inMemory: false,
-            cloudKitEnabled: cloudKitEnabled
-        )
-    }
-
-    func resetLocalStoreFiles() throws {
-        try hardResetPersistentStores()
-    }
-
     func store(for scope: PersistentStoreScope) throws -> NSPersistentStore {
         switch scope {
         case .private:
@@ -384,158 +317,4 @@ final class PersistenceController: @unchecked Sendable {
         context.shouldDeleteInaccessibleFaults = true
     }
 
-    private static func makeContainer() -> NSPersistentCloudKitContainer {
-        let model = OneCartManagedObjectModel.makeModel()
-        return NSPersistentCloudKitContainer(name: "OneCart", managedObjectModel: model)
-    }
-
-    private static func makeStoreDescriptions(
-        directory: URL,
-        inMemory: Bool,
-        cloudKitEnabled: Bool
-    ) -> [NSPersistentStoreDescription] {
-        [
-            makeStoreDescription(
-                scope: .private,
-                directory: directory,
-                inMemory: inMemory,
-                cloudKitEnabled: cloudKitEnabled
-            ),
-            makeStoreDescription(
-                scope: .shared,
-                directory: directory,
-                inMemory: inMemory,
-                cloudKitEnabled: cloudKitEnabled
-            ),
-        ]
-    }
-
-    private static func makeStoreDescription(
-        scope: PersistentStoreScope,
-        directory: URL,
-        inMemory: Bool,
-        cloudKitEnabled: Bool
-    ) -> NSPersistentStoreDescription {
-        let fileName = scope == .private ? "OneCart-private.sqlite" : "OneCart-shared.sqlite"
-        let description: NSPersistentStoreDescription
-
-        if inMemory {
-            description = NSPersistentStoreDescription(
-                url: directory.appendingPathComponent(fileName)
-            )
-            description.type = NSSQLiteStoreType
-            description.shouldAddStoreAsynchronously = false
-            description.shouldMigrateStoreAutomatically = true
-            description.shouldInferMappingModelAutomatically = true
-        } else {
-            description = NSPersistentStoreDescription(
-                url: directory.appendingPathComponent(fileName)
-            )
-            description.type = NSSQLiteStoreType
-            description.shouldAddStoreAsynchronously = false
-            description.shouldMigrateStoreAutomatically = true
-            description.shouldInferMappingModelAutomatically = true
-
-            if cloudKitEnabled {
-                let cloudKitOptions = NSPersistentCloudKitContainerOptions(
-                    containerIdentifier: cloudKitContainerIdentifier
-                )
-                cloudKitOptions.databaseScope = scope == .private ? .private : .shared
-                description.cloudKitContainerOptions = cloudKitOptions
-            }
-
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(
-                true as NSNumber,
-                forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey
-            )
-        }
-
-        return description
-    }
-
-    static func shouldWipeLocalStoresForCloudKitEnvironment(
-        previous: String?,
-        current: String,
-        storeFilesExist: Bool,
-        isDebugProcess: Bool
-    ) -> Bool {
-        _ = storeFilesExist
-        _ = isDebugProcess
-        guard let previous else { return false }
-        return previous != current
-    }
-
-    private func reconcileCloudKitEnvironmentBeforeLoad() throws {
-        guard !inMemory, cloudKitEnabled else { return }
-
-        let current = CloudKitShareEnvironment.process.rawValue
-        let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
-        let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
-        #if DEBUG
-        let isDebugProcess = true
-        #else
-        let isDebugProcess = false
-        #endif
-
-        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(
-            previous: previous,
-            current: current,
-            storeFilesExist: storeFilesExist,
-            isDebugProcess: isDebugProcess
-        ) else { return }
-
-        logger.error(
-            "CloudKit env mismatch wipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public) storeFilesExist=\(storeFilesExist)"
-        )
-        CartSyncLog.action.error(
-            "cloudKitEnvWipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public)"
-        )
-        _ = try? copyStoreFilesForDiagnostics()
-        Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
-        UserDefaults.standard.removeObject(forKey: Self.cloudKitLocalEnvironmentKey)
-    }
-
-    private func stampCloudKitEnvironmentAfterSuccessfulLoad() {
-        guard !inMemory, cloudKitEnabled else { return }
-        UserDefaults.standard.set(
-            CloudKitShareEnvironment.process.rawValue,
-            forKey: Self.cloudKitLocalEnvironmentKey
-        )
-    }
-
-    private static func oneCartStoreFilesExist(in directory: URL) -> Bool {
-        let fileManager = FileManager.default
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        ) else { return false }
-        return contents.contains { url in
-            let name = url.lastPathComponent.lowercased()
-            guard name.hasPrefix("onecart-") else { return false }
-            return !name.hasPrefix("onecart-diagnostics")
-        }
-    }
-
-    private static func removeAllOneCartStoreFiles(in directory: URL) {
-        let fileManager = FileManager.default
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        ) else { return }
-
-        for url in contents {
-            let name = url.lastPathComponent.lowercased()
-            guard name.hasPrefix("onecart-") else { continue }
-            if name.hasPrefix("onecart-diagnostics") { continue }
-            try? fileManager.removeItem(at: url)
-        }
-    }
-
-    private static func scope(forStoreURL url: URL?) -> PersistentStoreScope? {
-        guard let name = url?.lastPathComponent.lowercased() else { return nil }
-        if name.contains("private") { return .private }
-        if name.contains("shared") { return .shared }
-        return nil
-    }
 }
