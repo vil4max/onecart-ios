@@ -78,7 +78,7 @@ final class AppSession: ObservableObject {
         return String(localized: "cart.owner_title \(name)")
     }
 
-    private let repository: FamilySpaceRepository
+    let repository: FamilySpaceRepository
     private let backend: CloudKitBackendService
     private let shareOrchestrator: FamilyShareOrchestrator
     private let appleSignIn: AppleSignInAuthenticating
@@ -334,99 +334,6 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
-        guard let listID = list.id else { return }
-        CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
-        await performMutation(action: "addProduct", successMessage: String(localized: "alert.product_added")) {
-            try await self.repository.addProduct(
-                to: listID,
-                draft: draft,
-                purchasedByName: self.preferences.participantDisplayName.nilIfBlank
-                    ?? self.account?.displayName
-            )
-        }
-    }
-
-    func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
-        guard let id = product.id else { return }
-        CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
-            try await self.repository.updateProduct(id: id, draft: draft)
-        }
-    }
-
-    func togglePurchased(_ product: ProductEntity) async {
-        guard let id = product.id else { return }
-        guard canEdit else {
-            CartSyncLog.cart.error("togglePurchased denied canEdit=false")
-            CartSyncLog.action.error("togglePurchased denied canEdit=false")
-            presentAlert(RepositoryError.permissionDenied.localizedDescription)
-            return
-        }
-
-        do {
-            CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
-            CartSyncLog.action.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
-            try await repository.togglePurchased(
-                id: id,
-                participantDisplayName: preferences.participantDisplayName.nilIfBlank
-                    ?? account?.displayName
-            )
-            await persistence.container.viewContext.perform {
-                self.persistence.container.viewContext.processPendingChanges()
-            }
-            try refreshProducts()
-            cartSync.bumpRevisionAfterLocalChange()
-            CartSyncLog.cart.info(
-                "togglePurchased done purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
-            )
-            CartSyncLog.action.info("togglePurchased done")
-        } catch {
-            CartSyncLog.cart.error("togglePurchased failed error=\(error.localizedDescription, privacy: .public)")
-            CartSyncLog.action.error(
-                "togglePurchased fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
-    func products(inListID listID: UUID) -> [ProductEntity] {
-        cartContent.products(inListID: listID)
-    }
-
-    func deleteProduct(_ product: ProductEntity) async {
-        guard let id = product.id else { return }
-        CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
-            try await self.repository.deleteProduct(id: id)
-        }
-    }
-
-    func completePurchasedItems(_ list: ShoppingListEntity) async {
-        guard let id = list.id else { return }
-        CartSyncLog.action.info("completePurchase start list=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "completePurchase", successMessage: String(localized: "alert.purchase_completed")) {
-            _ = try await self.repository.completePurchased(listID: id)
-        }
-    }
-
-    func deleteHistory(_ entry: PurchaseHistoryEntity) async {
-        guard let id = entry.id else { return }
-        CartSyncLog.action.info("deleteHistory start id=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "deleteHistory", successMessage: String(localized: "alert.history_deleted")) {
-            try await self.repository.deleteHistory(id: id)
-        }
-    }
-
-    func loadMoreHistory() {
-        guard let familySpaceID = activeFamilySpace?.id else { return }
-        do {
-            try cartContent.loadMoreHistory(familySpaceID: familySpaceID)
-        } catch {
-            show(error)
-        }
-    }
-
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
         guard let family = activeFamilySpace else {
             CartSyncLog.action.error("shareInvite denied notOwner")
@@ -590,35 +497,7 @@ final class AppSession: ObservableObject {
         isEnsuringHouseholdCart = false
     }
 
-    private func performMutation(
-        action: String,
-        successMessage: String?,
-        operation: @escaping () async throws -> Void
-    ) async {
-        _ = successMessage
-        guard canEdit else {
-            CartSyncLog.action.error("\(action) denied canEdit=false")
-            presentAlert(RepositoryError.permissionDenied.localizedDescription)
-            return
-        }
-
-        do {
-            try await operation()
-            await persistence.container.viewContext.perform {
-                self.persistence.container.viewContext.processPendingChanges()
-            }
-            try reload()
-            cartSync.bumpRevisionAfterLocalChange()
-            CartSyncLog.action.info("\(action) done")
-        } catch {
-            CartSyncLog.action.error(
-                "\(action) fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
-    private func reload(preferredFamilySpaceID: UUID? = nil) throws {
+    func reload(preferredFamilySpaceID: UUID? = nil) throws {
         guard let account else {
             clearAccountData()
             return
@@ -674,7 +553,7 @@ final class AppSession: ObservableObject {
         }
     }
 
-    private func refreshProducts() throws {
+    func refreshProducts() throws {
         guard let selectedID = activeFamilySpace?.id else { return }
         try cartContent.refreshProducts(familySpaceID: selectedID)
     }
@@ -706,7 +585,7 @@ final class AppSession: ObservableObject {
         "onecart.active-family-space-id.\(accountID.uuidString)"
     }
 
-    private func show(_ error: Error) {
+    func show(_ error: Error) {
         let message = userFacingMessage(for: error)
         if CloudKitUserFacingError.isProductionSchemaFailure(error) {
             presentProductionSchemaAlertIfNeeded(message)
