@@ -91,6 +91,7 @@ final class AppSession: ObservableObject {
     let persistence: PersistenceController
     let cartSync: CartSyncService
     let cartContent: CartContentStore
+    let bootstrapper: SessionBootstrapper
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
@@ -161,6 +162,12 @@ final class AppSession: ObservableObject {
         self.backend = backend
         cartSync = CartSyncService(persistence: persistence)
         cartContent = CartContentStore(persistence: persistence)
+        bootstrapper = SessionBootstrapper(
+            persistence: persistence,
+            repository: repository,
+            backend: backend,
+            appleSignIn: appleSignIn
+        )
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
@@ -169,6 +176,7 @@ final class AppSession: ObservableObject {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             isReady = true
         }
+        bootstrapper.bind(host: self)
         bindCartSync()
     }
 
@@ -311,32 +319,8 @@ final class AppSession: ObservableObject {
     }
 
     func retryWelcome() async {
-        guard let credential = appleSignIn.storedCredential() else {
-            needsWelcome = true
-            welcomePhase = .signIn
-            isReady = true
-            return
-        }
         let previousPhase = welcomePhase
-        needsWelcome = true
-        welcomePhase = .connecting
-        isReady = true
-
-        // Soft retry by default. Wipe local SQLite only when Core Data itself failed.
-        if case let .failed(message) = previousPhase,
-           message == String(localized: "welcome.core_data_failed")
-        {
-            do {
-                _ = try? persistence.copyStoreFilesForDiagnostics()
-                try persistence.hardResetPersistentStores()
-                objectWillChange.send()
-            } catch {
-                welcomePhase = .failed(userFacingMessage(for: error))
-                return
-            }
-        }
-
-        await prepareApplication(appleCredential: credential)
+        await bootstrapper.retry(previousPhase: previousPhase)
     }
 
     func reportWelcomeFailure(_ message: String) {
@@ -357,7 +341,7 @@ final class AppSession: ObservableObject {
             if let providedName = credential.providedDisplayName {
                 preferences.participantDisplayName = providedName
             }
-            await prepareApplication(appleCredential: credential)
+            await bootstrapper.prepare(appleCredential: credential)
         } catch {
             welcomePhase = .failed(userFacingMessage(for: error))
         }
@@ -378,24 +362,7 @@ final class AppSession: ObservableObject {
     }
 
     private func bootstrapSession() async {
-        if let credential = appleSignIn.storedCredential() {
-            let state = await appleSignIn.credentialState(for: credential.userID)
-            switch state {
-            case .authorized, .unknown:
-                // `.unknown` can be transient at launch — keep the session and let
-                // iCloud / prepareApplication report a real failure if needed.
-                needsWelcome = false
-                welcomePhase = .connecting
-                await prepareApplication(appleCredential: credential)
-                return
-            case .revoked, .notFound:
-                appleSignIn.clearCredential()
-            }
-        }
-
-        needsWelcome = true
-        welcomePhase = .signIn
-        isReady = true
+        await bootstrapper.start()
     }
 
     func setActiveFamilySpace(_ space: FamilySpace) {
@@ -528,7 +495,7 @@ final class AppSession: ObservableObject {
     }
 
     /// Background CKShare warm-up after cart creation. Failures are silent — Invite retries.
-    private func scheduleInviteLinkPreparation(delayNanoseconds: UInt64 = 1_500_000_000) {
+    func scheduleInviteLinkPreparation(delayNanoseconds: UInt64 = 1_500_000_000) {
         invitePrepareTask?.cancel()
         invitePrepareTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
@@ -703,7 +670,7 @@ final class AppSession: ObservableObject {
         await refreshFamilyMetadata(showErrors: false)
     }
 
-    private func reloadProfileMedia(for userID: UUID) {
+    func reloadProfileMedia(for userID: UUID) {
         profileAvatar = ProfileMediaStore.image(for: userID, kind: .avatar)
         profileBanner = ProfileMediaStore.image(for: userID, kind: .banner)
     }
@@ -743,48 +710,8 @@ final class AppSession: ObservableObject {
         try await offerSharedCartJoinIfNeeded(for: account)
     }
 
-    private func prepareApplication(appleCredential: AppleSignInCredential) async {
-        do {
-            try await persistence.load()
-            objectWillChange.send()
-            try await repository.deduplicateStableIDs()
-            preferences.reloadFromDefaults()
-
-            let preferredName = appleCredential.providedDisplayName
-                ?? preferences.participantDisplayName.nilIfBlank
-                ?? appleCredential.displayName
-            installConnectivityMonitor()
-            installCloudObservers()
-
-            let restoredAccount = try await backend.restoredAccount(
-                appleUserID: appleCredential.userID,
-                displayName: preferredName
-            )
-            account = restoredAccount
-            if let appleName = appleCredential.providedDisplayName {
-                preferences.participantDisplayName = appleName
-            } else if preferences.participantDisplayName.nilIfBlank == nil {
-                preferences.participantDisplayName = restoredAccount.displayName
-            }
-            reloadProfileMedia(for: restoredAccount.id)
-            try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
-            try reload()
-            await acceptPendingCloudKitShares()
-            try await finishFamilyCartSetup(for: restoredAccount)
-            syncState = online ? .synchronized : .offline
-            await refreshFamilyMetadata(showErrors: false)
-            needsWelcome = false
-            isReady = true
-            scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
-        } catch {
-            needsWelcome = true
-            welcomePhase = .failed(userFacingMessage(for: error))
-            isReady = true
-        }
-    }
-
     /// Ensures one household cart. Shared invite replaces the local private cart.
-    private func finishFamilyCartSetup(for account: OneCartAccount) async throws {
+    func finishFamilyCartSetup(for account: OneCartAccount) async throws {
         try reload()
         if familySpaces.isEmpty {
             _ = try await repository.createFamilySpace(
@@ -930,7 +857,7 @@ final class AppSession: ObservableObject {
         try cartContent.refreshProducts(familySpaceID: selectedID)
     }
 
-    private func refreshFamilyMetadata(showErrors: Bool) async {
+    func refreshFamilyMetadata(showErrors: Bool) async {
         guard let account, online else { return }
         isFamilyMetadataLoading = true
         defer { isFamilyMetadataLoading = false }
@@ -945,7 +872,7 @@ final class AppSession: ObservableObject {
         }
     }
 
-    private func installCloudObservers() {
+    func installCloudObservers() {
         guard remoteChangeObserver == nil, cloudEventObserver == nil else { return }
         remoteChangeObserver = NotificationCenter.default.addObserver(
             forName: .NSPersistentStoreRemoteChange,
@@ -1040,7 +967,7 @@ final class AppSession: ObservableObject {
         }
     }
 
-    private func installConnectivityMonitor() {
+    func installConnectivityMonitor() {
         connectivity.onChange = { [weak self] isOnline in
             Task { @MainActor in
                 guard let self else { return }
@@ -1076,7 +1003,7 @@ final class AppSession: ObservableObject {
         presentAlert(message)
     }
 
-    private func userFacingMessage(for error: Error) -> String {
+    func userFacingMessage(for error: Error) -> String {
         if error is OneCartCloudKitError {
             return CloudKitUserFacingError.message(for: error)
         }
@@ -1091,6 +1018,51 @@ final class AppSession: ObservableObject {
 
     private func isNetworkError(_ error: Error) -> Bool {
         CloudKitUserFacingError.isNetworkError(error)
+    }
+}
+
+extension AppSession: SessionBootstrapHost {
+    func notifyBootstrapObjectWillChange() {
+        objectWillChange.send()
+    }
+
+    func reloadAfterBootstrap() throws {
+        try reload()
+    }
+
+    func applyBootstrapAccount(_ account: OneCartAccount) {
+        self.account = account
+    }
+
+    func applyBootstrapSyncState(_ state: OneCartSyncState) {
+        syncState = state
+    }
+
+    func applyWelcomeSignIn() {
+        needsWelcome = true
+        welcomePhase = .signIn
+        isReady = true
+    }
+
+    func applyWelcomeConnecting() {
+        needsWelcome = true
+        welcomePhase = .connecting
+        isReady = true
+    }
+
+    func applyWelcomeFailed(_ message: String) {
+        needsWelcome = true
+        welcomePhase = .failed(message)
+        isReady = true
+    }
+
+    func applyWelcomeReady(needsWelcome: Bool) {
+        self.needsWelcome = needsWelcome
+        isReady = true
+    }
+
+    func clearStoredAppleCredential() {
+        appleSignIn.clearCredential()
     }
 }
 

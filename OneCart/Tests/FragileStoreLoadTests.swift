@@ -65,6 +65,17 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(cocoa))
     }
 
+    func testShouldHardResetStoresOnlyForCoreDataWelcomeFailure() {
+        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .signIn))
+        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .connecting))
+        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .failed("network blip")))
+        XCTAssertTrue(
+            SessionBootstrapper.shouldHardResetStores(
+                for: .failed(String(localized: "welcome.core_data_failed"))
+            )
+        )
+    }
+
     @MainActor
     func testRetryWelcomeDoesNotWipeUnlessCoreDataFailure() async throws {
         let directory = FileManager.default.temporaryDirectory
