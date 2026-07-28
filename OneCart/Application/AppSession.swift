@@ -12,20 +12,20 @@ final class AppSession: ObservableObject {
         defaultValue: "Shopping list"
     )
 
-    @Published private(set) var isReady = false
-    @Published private(set) var isBusy = false
-    @Published private(set) var needsWelcome = false
-    @Published private(set) var welcomePhase: WelcomePhase = .signIn
-    @Published private(set) var account: OneCartAccount?
-    @Published private(set) var syncState: OneCartSyncState = .synchronized
-    @Published private(set) var lastSyncError: String?
-    @Published private(set) var familySpaces: [FamilySpace] = []
-    @Published private(set) var activeFamilySpace: FamilySpace?
-    @Published private(set) var familyMembers: [FamilyMember] = []
-    @Published private(set) var access: FamilyAccess?
-    @Published private(set) var isFamilyMetadataLoading = false
-    @Published private(set) var isEnsuringHouseholdCart = false
-    @Published private(set) var householdCartBootstrapFailed = false
+    @Published var isReady = false
+    @Published var isBusy = false
+    @Published var needsWelcome = false
+    @Published var welcomePhase: WelcomePhase = .signIn
+    @Published var account: OneCartAccount?
+    @Published var syncState: OneCartSyncState = .synchronized
+    @Published var lastSyncError: String?
+    @Published var familySpaces: [FamilySpace] = []
+    @Published var activeFamilySpace: FamilySpace?
+    @Published var familyMembers: [FamilyMember] = []
+    @Published var access: FamilyAccess?
+    @Published var isFamilyMetadataLoading = false
+    @Published var isEnsuringHouseholdCart = false
+    @Published var householdCartBootstrapFailed = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
     @Published var sharedCartRemovedMessage: String?
@@ -79,11 +79,11 @@ final class AppSession: ObservableObject {
     }
 
     let repository: FamilySpaceRepository
-    private let backend: CloudKitBackendService
-    private let shareOrchestrator: FamilyShareOrchestrator
+    let backend: CloudKitBackendService
+    let shareOrchestrator: FamilyShareOrchestrator
     private let appleSignIn: AppleSignInAuthenticating
-    private let defaults: UserDefaults
-    private var online = true
+    let defaults: UserDefaults
+    var online = true
     private var started = false
     private var didPresentProductionSchemaAlert = false
     var lastActiveFamilyWasShared = false
@@ -189,44 +189,6 @@ final class AppSession: ObservableObject {
         sharedCartRemovedMessage = nil
     }
 
-    func deleteCurrentCartAndStartFresh() async {
-        guard let account,
-              let family = activeFamilySpace,
-              access?.isOwner == true
-        else {
-            CartSyncLog.action.error("deleteCart denied missingOwnerOrFamily")
-            return
-        }
-        guard online else {
-            CartSyncLog.action.error("deleteCart denied offline")
-            presentAlert(String(localized: "alert.delete_cart_need_network"))
-            return
-        }
-        CartSyncLog.action.info("deleteCart session begin")
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            let cartName = Self.householdCartName(for: account)
-            let newID = try await shareOrchestrator.deleteCurrentCartAndStartFresh(
-                family: family,
-                accountID: account.id,
-                defaultFamilyName: cartName
-            )
-            clearPreparedInviteLink()
-            defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
-            try reload(preferredFamilySpaceID: newID)
-            await refreshFamilyMetadata(showErrors: false)
-            scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
-            CartSyncLog.action.info("deleteCart session done")
-            presentAlert(String(localized: "account.recreate_cart_done \(cartName)"))
-        } catch {
-            CartSyncLog.action.error(
-                "deleteCart session fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
     func start() async {
         guard !started else { return }
         started = true
@@ -305,35 +267,6 @@ final class AppSession: ObservableObject {
         await bootstrapper.start()
     }
 
-    func setActiveFamilySpace(_ space: FamilySpace) {
-        guard let id = space.id, let account else { return }
-        defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
-        do {
-            try reload(preferredFamilySpaceID: id)
-            Task { await refreshFamilyMetadata(showErrors: false) }
-        } catch {
-            show(error)
-        }
-    }
-
-    func createFamilySpace(name: String) async {
-        guard let account else { return }
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            let id = try await repository.createFamilySpace(
-                name: name,
-                cachedForUserID: account.id,
-                serverRole: FamilyAccess.owner.rawValue,
-                needsRemoteCreation: false
-            )
-            defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
-            try reload(preferredFamilySpaceID: id)
-        } catch {
-            show(error)
-        }
-    }
-
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
         guard let family = activeFamilySpace else {
             CartSyncLog.action.error("shareInvite denied notOwner")
@@ -368,94 +301,8 @@ final class AppSession: ObservableObject {
         )
     }
 
-    private func clearPreparedInviteLink() {
+    func clearPreparedInviteLink() {
         invitePreparer.clear()
-    }
-
-    func acceptPendingCloudKitShares() async {
-        guard persistence.isLoaded else { return }
-        let metadata = AppDelegate.takePendingShareMetadata()
-        guard !metadata.isEmpty else { return }
-        isBusy = true
-        syncState = .syncing
-        defer { isBusy = false }
-        do {
-            try await persistence.acceptShareInvitations(from: metadata)
-            syncState = .synchronized
-            try reload()
-            if let account {
-                try await offerSharedCartJoinIfNeeded(for: account)
-            }
-            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
-        } catch {
-            AppDelegate.requeue(metadata)
-            syncState = .failed
-            lastSyncError = userFacingMessage(for: error)
-            show(error)
-        }
-    }
-
-    func removeMember(_ member: FamilyMember) async {
-        guard let family = activeFamilySpace,
-              access?.isOwner == true,
-              !member.isCurrentUser else { return }
-        guard online else {
-            presentAlert(String(localized: "alert.members_need_network"))
-            return
-        }
-
-        CartSyncLog.action.info("removeMember start id=\(member.id.uuidString, privacy: .public)")
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            try await backend.removeMember(member, from: family)
-            await refreshFamilyMetadata(showErrors: false)
-            CartSyncLog.action.info("removeMember done")
-        } catch {
-            CartSyncLog.action.error(
-                "removeMember fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
-    func leaveCurrentFamily() async {
-        guard account != nil,
-              let family = activeFamilySpace,
-              access?.isParticipant == true else { return }
-        guard online else {
-            presentAlert(String(localized: "alert.leave_need_network"))
-            return
-        }
-
-        CartSyncLog.action.info(
-            "leaveFamily start family=\(family.id?.uuidString ?? "-", privacy: .public)"
-        )
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            try await backend.leaveFamily(family)
-            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
-            CartSyncLog.action.info("leaveFamily done")
-        } catch {
-            CartSyncLog.action.error(
-                "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
-    func refreshFromServer() async {
-        await syncCart(reason: .pull)
-    }
-
-    func showFamilyManagement() {
-        preferredMainTab = .account
-        Task { await refreshFamilyMetadata(showErrors: true) }
-    }
-
-    func refreshAccountSharing() async {
-        await refreshFamilyMetadata(showErrors: false)
     }
 
     func presentAlert(_ message: String) {
@@ -484,93 +331,6 @@ final class AppSession: ObservableObject {
 
     func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws {
         try await household.offerSharedCartJoinIfNeeded(for: account)
-    }
-
-    private func clearAccountData() {
-        clearPreparedInviteLink()
-        familySpaces = []
-        activeFamilySpace = nil
-        cartContent.clearContent()
-        familyMembers = []
-        access = nil
-        householdCartBootstrapFailed = false
-        isEnsuringHouseholdCart = false
-    }
-
-    func reload(preferredFamilySpaceID: UUID? = nil) throws {
-        guard let account else {
-            clearAccountData()
-            return
-        }
-
-        let context = persistence.container.viewContext
-        context.processPendingChanges()
-        let previousID = activeFamilySpace?.id
-        familySpaces = try repository.fetchFamilySpaces(for: account.id)
-
-        let storedID = preferredFamilySpaceID
-            ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
-            .flatMap(UUID.init(uuidString:))
-        let selected = storedID.flatMap { id in
-            familySpaces.first { $0.id == id }
-        } ?? familySpaces.first(where: {
-            persistence.scope(for: $0) == .shared
-        }) ?? familySpaces.first
-
-        activeFamilySpace = selected
-        if let selected {
-            lastActiveFamilyWasShared = persistence.scope(for: selected) == .shared
-        } else {
-            lastActiveFamilyWasShared = false
-        }
-        if let selectedID = selected?.id {
-            defaults.set(
-                selectedID.uuidString,
-                forKey: activeFamilyKey(accountID: account.id)
-            )
-            try cartContent.reloadContent(familySpaceID: selectedID)
-            if let selected {
-                access = backend.access(for: selected)
-            } else {
-                access = nil
-            }
-            if previousID != selectedID {
-                familyMembers = []
-            }
-            if invitePreparer.shouldClearCache(
-                forSelectedFamilyID: selectedID,
-                isOwner: access?.isOwner == true,
-                scopeIsPrivate: selected.map { persistence.scope(for: $0) } == .private
-            ) {
-                clearPreparedInviteLink()
-            }
-        } else {
-            defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
-            cartContent.clearContent()
-            familyMembers = []
-            access = nil
-            clearPreparedInviteLink()
-        }
-    }
-
-    func refreshProducts() throws {
-        guard let selectedID = activeFamilySpace?.id else { return }
-        try cartContent.refreshProducts(familySpaceID: selectedID)
-    }
-
-    func refreshFamilyMetadata(showErrors: Bool) async {
-        guard let account, online else { return }
-        isFamilyMetadataLoading = true
-        defer { isFamilyMetadataLoading = false }
-        do {
-            if let family = activeFamilySpace {
-                familyMembers = try backend.familyMembers(for: family, account: account)
-            } else {
-                familyMembers = []
-            }
-        } catch {
-            if showErrors { show(error) }
-        }
     }
 
     func installCloudObservers() {
