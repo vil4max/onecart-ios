@@ -62,6 +62,8 @@
 		D20000000000000000000011 /* HouseholdCartCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000011 /* HouseholdCartCoordinator.swift */; };
 		D20000000000000000000012 /* AppSession+CartMutations.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000012 /* AppSession+CartMutations.swift */; };
 		D20000000000000000000013 /* AppSession+Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000013 /* AppSession+Membership.swift */; };
+		D20000000000000000000016 /* AppSession+Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000016 /* AppSession+Welcome.swift */; };
+		D20000000000000000000015 /* AppSession+Hosts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000015 /* AppSession+Hosts.swift */; };
 		D20000000000000000000014 /* AppSession+FamilySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000014 /* AppSession+FamilySelection.swift */; };
 		A20000000000000000000034 /* DevicePreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* DevicePreferencesTests.swift */; };
 		A20000000000000000000035 /* InviteLinkPreparerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* InviteLinkPreparerTests.swift */; };
@@ -159,6 +161,8 @@
 		D10000000000000000000011 /* HouseholdCartCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdCartCoordinator.swift; sourceTree = "<group>"; };
 		D10000000000000000000012 /* AppSession+CartMutations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+CartMutations.swift"; sourceTree = "<group>"; };
 		D10000000000000000000013 /* AppSession+Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Membership.swift"; sourceTree = "<group>"; };
+		D10000000000000000000016 /* AppSession+Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Welcome.swift"; sourceTree = "<group>"; };
+		D10000000000000000000015 /* AppSession+Hosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Hosts.swift"; sourceTree = "<group>"; };
 		D10000000000000000000014 /* AppSession+FamilySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+FamilySelection.swift"; sourceTree = "<group>"; };
 		A10000000000000000000034 /* DevicePreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePreferencesTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000035 /* InviteLinkPreparerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkPreparerTests.swift; sourceTree = "<group>"; };
@@ -259,6 +263,8 @@
 				D10000000000000000000011 /* HouseholdCartCoordinator.swift */,
 				D10000000000000000000012 /* AppSession+CartMutations.swift */,
 				D10000000000000000000013 /* AppSession+Membership.swift */,
+				D10000000000000000000016 /* AppSession+Welcome.swift */,
+				D10000000000000000000015 /* AppSession+Hosts.swift */,
 				D10000000000000000000014 /* AppSession+FamilySelection.swift */,
 				D10000000000000000000007 /* CartSyncService.swift */,
 				D1000000000000000000000C /* CartContentStore.swift */,
@@ -567,6 +573,8 @@
 				D20000000000000000000011 /* HouseholdCartCoordinator.swift in Sources */,
 				D20000000000000000000012 /* AppSession+CartMutations.swift in Sources */,
 				D20000000000000000000013 /* AppSession+Membership.swift in Sources */,
+				D20000000000000000000016 /* AppSession+Welcome.swift in Sources */,
+				D20000000000000000000015 /* AppSession+Hosts.swift in Sources */,
 				D20000000000000000000014 /* AppSession+FamilySelection.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
 				D2000000000000000000000A /* HistoryViews.swift in Sources */,
