@@ -28,7 +28,7 @@ final class AppSession: ObservableObject {
     @Published private(set) var householdCartBootstrapFailed = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
-    @Published private(set) var sharedCartRemovedMessage: String?
+    @Published var sharedCartRemovedMessage: String?
 
     let preferences: DevicePreferences
     let persistence: PersistenceController
@@ -37,6 +37,7 @@ final class AppSession: ObservableObject {
     let bootstrapper: SessionBootstrapper
     let cloudSync: CloudSyncCoordinator
     let invitePreparer: InviteLinkPreparer
+    let household: HouseholdCartCoordinator
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
@@ -85,7 +86,7 @@ final class AppSession: ObservableObject {
     private var online = true
     private var started = false
     private var didPresentProductionSchemaAlert = false
-    private var lastActiveFamilyWasShared = false
+    var lastActiveFamilyWasShared = false
     private var cartSyncCancellable: AnyCancellable?
     private var cartContentCancellable: AnyCancellable?
     private var invitePreparerCancellable: AnyCancellable?
@@ -125,11 +126,17 @@ final class AppSession: ObservableObject {
             repository: repository
         )
         invitePreparer = InviteLinkPreparer()
+        household = HouseholdCartCoordinator(
+            persistence: persistence,
+            repository: repository,
+            defaults: defaults
+        )
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             isReady = true
         }
         bootstrapper.bind(host: self)
         cloudSync.bind(host: self)
+        household.bind(host: self)
         bindCartSync()
     }
 
@@ -164,7 +171,7 @@ final class AppSession: ObservableObject {
             )
         }
         cartSync.onInviteeSharedGone = { [weak self] in
-            await self?.handleInviteeSharedCartGoneIfNeeded()
+            await self?.household.handleInviteeSharedCartGoneIfNeeded()
         }
         cartSync.purchasedCountProvider = { [weak self] in
             guard let self else { return (0, 0) }
@@ -231,75 +238,11 @@ final class AppSession: ObservableObject {
     }
 
     func ensureHouseholdCartIfNeeded() async {
-        guard let account else {
-            if activeFamilySpace == nil {
-                householdCartBootstrapFailed = true
-            }
-            CartSyncLog.action.error("ensureHousehold denied noAccount")
-            return
-        }
-        guard activeFamilySpace == nil else {
-            householdCartBootstrapFailed = false
-            return
-        }
-        guard !isEnsuringHouseholdCart else {
-            CartSyncLog.action.info("ensureHousehold skip alreadyRunning")
-            return
-        }
-
-        CartSyncLog.action.info("ensureHousehold start")
-        isEnsuringHouseholdCart = true
-        householdCartBootstrapFailed = false
-        defer { isEnsuringHouseholdCart = false }
-
-        do {
-            await acceptPendingCloudKitShares()
-            guard !Task.isCancelled else { return }
-            try reload()
-            if activeFamilySpace != nil {
-                CartSyncLog.action.info("ensureHousehold done afterAccept")
-                return
-            }
-
-            if familySpaces.isEmpty {
-                CartSyncLog.action.info("ensureHousehold create empty")
-                _ = try await repository.createFamilySpace(
-                    name: Self.householdCartName(for: account),
-                    cachedForUserID: account.id,
-                    isHouseholdDefault: true
-                )
-                guard !Task.isCancelled else { return }
-                try reload()
-            } else {
-                CartSyncLog.action.info("ensureHousehold offerSharedJoin count=\(self.familySpaces.count)")
-                try await offerSharedCartJoinIfNeeded(for: account)
-                guard !Task.isCancelled else { return }
-            }
-
-            if activeFamilySpace == nil {
-                householdCartBootstrapFailed = true
-                CartSyncLog.action.error("ensureHousehold fail noActiveFamily")
-                return
-            }
-
-            await refreshFamilyMetadata(showErrors: false)
-            scheduleInviteLinkPreparation()
-            CartSyncLog.action.info(
-                "ensureHousehold done family=\(self.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
-            )
-        } catch {
-            guard !Task.isCancelled else { return }
-            householdCartBootstrapFailed = true
-            CartSyncLog.action.error(
-                "ensureHousehold fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
+        await household.ensureHouseholdCartIfNeeded()
     }
 
     func retryHouseholdCartBootstrap() async {
-        householdCartBootstrapFailed = false
-        await ensureHouseholdCartIfNeeded()
+        await household.retryHouseholdCartBootstrap()
     }
 
     func retryWelcome() async {
@@ -499,7 +442,7 @@ final class AppSession: ObservableObject {
         )
     }
 
-    func scheduleInviteLinkPreparation(delayNanoseconds: UInt64 = 1_500_000_000) {
+    func scheduleInviteLinkPreparation(delayNanoseconds: UInt64) {
         invitePreparer.schedulePreparation(
             delayNanoseconds: delayNanoseconds,
             isOnline: { [weak self] in self?.online == true },
@@ -628,56 +571,12 @@ final class AppSession: ObservableObject {
         try await offerSharedCartJoinIfNeeded(for: account)
     }
 
-    /// Ensures one household cart. Shared invite replaces the local private cart.
     func finishFamilyCartSetup(for account: OneCartAccount) async throws {
-        try reload()
-        if familySpaces.isEmpty {
-            _ = try await repository.createFamilySpace(
-                name: Self.householdCartName(for: account),
-                cachedForUserID: account.id,
-                isHouseholdDefault: true
-            )
-            try reload()
-        }
-        try await offerSharedCartJoinIfNeeded(for: account)
-    }
-
-    private func preferredSharedFamilyID() -> UUID? {
-        familySpaces.first { persistence.scope(for: $0) == .shared }?.id
+        try await household.finishFamilyCartSetup(for: account)
     }
 
     func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws {
-        try await adoptSharedFamilyCartIfNeeded(for: account)
-    }
-
-    private func adoptSharedFamilyCartIfNeeded(for account: OneCartAccount) async throws {
-        try reload()
-        guard let sharedFamily = familySpaces.first(where: {
-            persistence.scope(for: $0) == .shared
-        }), let sharedID = sharedFamily.id else {
-            return
-        }
-
-        let privateFamilies = familySpaces.filter {
-            persistence.scope(for: $0) == .private
-                && $0.cachedForUserID == account.id
-        }
-
-        for privateFamily in privateFamilies {
-            guard let privateID = privateFamily.id,
-                  let scope = persistence.scope(for: privateFamily) else { continue }
-            if FamilyCartMerge.isDeletableStarter(privateFamily, scope: scope) {
-                try await repository.archiveFamilySpace(id: privateID)
-                continue
-            }
-            try await repository.mergeFamilyContent(from: privateID, into: sharedID)
-        }
-
-        defaults.set(
-            sharedID.uuidString,
-            forKey: activeFamilyKey(accountID: account.id)
-        )
-        try reload(preferredFamilySpaceID: sharedID)
+        try await household.offerSharedCartJoinIfNeeded(for: account)
     }
 
     private func clearAccountData() {
@@ -799,43 +698,11 @@ final class AppSession: ObservableObject {
         cloudSync.installCloudObservers()
     }
 
-    private func handleInviteeSharedCartGoneIfNeeded() async {
-        guard let account else { return }
-        let hasShared = familySpaces.contains { persistence.scope(for: $0) == .shared }
-        guard !hasShared, lastActiveFamilyWasShared || access?.isParticipant == true else { return }
-
-        let privateFamily = familySpaces.first {
-            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
-        }
-        if let privateID = privateFamily?.id {
-            defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
-            try? reload(preferredFamilySpaceID: privateID)
-        } else if activeFamilySpace == nil {
-            do {
-                let newID = try await repository.createFamilySpace(
-                    name: Self.householdCartName(for: account),
-                    cachedForUserID: account.id,
-                    isHouseholdDefault: true
-                )
-                defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
-                try reload(preferredFamilySpaceID: newID)
-            } catch {
-                show(error)
-                return
-            }
-        }
-        lastActiveFamilyWasShared = false
-        if sharedCartRemovedMessage == nil {
-            sharedCartRemovedMessage = String(localized: "cart.shared_removed_message")
-        }
-        CartSyncLog.cart.info("invitee shared cart gone; fell back to private")
-    }
-
     func installConnectivityMonitor() {
         cloudSync.installConnectivityMonitor()
     }
 
-    private func activeFamilyKey(accountID: UUID) -> String {
+    func activeFamilyKey(accountID: UUID) -> String {
         "onecart.active-family-space-id.\(accountID.uuidString)"
     }
 
@@ -869,6 +736,32 @@ final class AppSession: ObservableObject {
 
     private func isNetworkError(_ error: Error) -> Bool {
         CloudKitUserFacingError.isNetworkError(error)
+    }
+}
+
+extension AppSession: HouseholdCartHost {
+    func applyEnsuringHouseholdCart(_ value: Bool) {
+        isEnsuringHouseholdCart = value
+    }
+
+    func applyHouseholdCartBootstrapFailed(_ value: Bool) {
+        householdCartBootstrapFailed = value
+    }
+
+    func reloadHousehold(preferredFamilySpaceID: UUID?) throws {
+        try reload(preferredFamilySpaceID: preferredFamilySpaceID)
+    }
+
+    func presentHouseholdError(_ error: Error) {
+        show(error)
+    }
+
+    func scheduleInviteLinkPreparation() {
+        scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
+    }
+
+    func householdDisplayName(for account: OneCartAccount) -> String {
+        Self.householdCartName(for: account)
     }
 }
 

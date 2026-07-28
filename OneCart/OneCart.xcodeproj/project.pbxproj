@@ -51,6 +51,7 @@
 		D2000000000000000000000E /* CloudSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000E /* CloudSyncCoordinator.swift */; };
 		D2000000000000000000000F /* SessionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000F /* SessionTypes.swift */; };
 		D20000000000000000000010 /* InviteLinkPreparer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000010 /* InviteLinkPreparer.swift */; };
+		D20000000000000000000011 /* HouseholdCartCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000011 /* HouseholdCartCoordinator.swift */; };
 		A20000000000000000000034 /* DevicePreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* DevicePreferencesTests.swift */; };
 		A20000000000000000000035 /* InviteLinkPreparerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* InviteLinkPreparerTests.swift */; };
 		A20000000000000000000039 /* HouseholdEnsureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000039 /* HouseholdEnsureTests.swift */; };
@@ -132,6 +133,7 @@
 		D1000000000000000000000E /* CloudSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncCoordinator.swift; sourceTree = "<group>"; };
 		D1000000000000000000000F /* SessionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTypes.swift; sourceTree = "<group>"; };
 		D10000000000000000000010 /* InviteLinkPreparer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkPreparer.swift; sourceTree = "<group>"; };
+		D10000000000000000000011 /* HouseholdCartCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdCartCoordinator.swift; sourceTree = "<group>"; };
 		A10000000000000000000034 /* DevicePreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePreferencesTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000035 /* InviteLinkPreparerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinkPreparerTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000039 /* HouseholdEnsureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdEnsureTests.swift; sourceTree = "<group>"; };
@@ -226,6 +228,7 @@
 				A10000000000000000000008 /* AppSession.swift */,
 				D1000000000000000000000F /* SessionTypes.swift */,
 				D10000000000000000000010 /* InviteLinkPreparer.swift */,
+				D10000000000000000000011 /* HouseholdCartCoordinator.swift */,
 				D10000000000000000000007 /* CartSyncService.swift */,
 				D1000000000000000000000C /* CartContentStore.swift */,
 				D1000000000000000000000D /* SessionBootstrapper.swift */,
@@ -515,6 +518,7 @@
 				D2000000000000000000000E /* CloudSyncCoordinator.swift in Sources */,
 				D2000000000000000000000F /* SessionTypes.swift in Sources */,
 				D20000000000000000000010 /* InviteLinkPreparer.swift in Sources */,
+				D20000000000000000000011 /* HouseholdCartCoordinator.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
 				D2000000000000000000000A /* HistoryViews.swift in Sources */,
 				D2000000000000000000000B /* CartChromeViews.swift in Sources */,
