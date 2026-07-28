@@ -1,74 +1,29 @@
 import SwiftUI
 
-/// Lightweight cart ride on a solid background. Destination UI mounts only after
-/// this finishes, so the heavy main screen is not animating under an opaque veil.
 struct LaunchCartRideView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let onFinished: () -> Void
 
-    /// Only `travel` is animated — keeps the ride smooth on the main thread.
-    @State private var travel: CGFloat = -1.15
-
-    private let driveInDuration: Double = 0.9
-    private let driveOutDuration: Double = 0.55
-    private let cartWidth: CGFloat = 92
-
     var body: some View {
-        GeometryReader { geo in
-            let travelX = travel * (geo.size.width * 0.8)
+        ZStack {
+            Color("LaunchBackground")
+                .ignoresSafeArea()
 
-            ZStack {
-                OneCartPalette.background.ignoresSafeArea()
-
-                Image("LaunchCart")
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(width: cartWidth)
-                    .offset(x: travelX)
-                    .accessibilityHidden(true)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
+            Image("LaunchIcon")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 128, height: 128)
+                .accessibilityHidden(true)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "common.loading"))
-        .accessibilityAddTraits(.updatesFrequently)
-        .task { await runRide() }
-    }
-
-    @MainActor
-    private func runRide() async {
-        if reduceMotion {
-            travel = 0
+        .task {
             guard await waitUntilAppReady() else { return }
             onFinished()
-            return
         }
-
-        withAnimation(.timingCurve(0.2, 0.82, 0.24, 1, duration: driveInDuration)) {
-            travel = 0
-        }
-        do {
-            try await Task.sleep(nanoseconds: UInt64(driveInDuration * 1_000_000_000))
-        } catch {
-            return
-        }
-
-        guard await waitUntilAppReady() else { return }
-
-        withAnimation(.timingCurve(0.4, 0.02, 0.2, 1, duration: driveOutDuration)) {
-            travel = 1.35
-        }
-        do {
-            try await Task.sleep(nanoseconds: UInt64((driveOutDuration + 0.03) * 1_000_000_000))
-        } catch {
-            onFinished()
-            return
-        }
-        onFinished()
     }
 
     @MainActor
