@@ -182,10 +182,14 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     func scope(for objectID: NSManagedObjectID) -> PersistentStoreScope? {
+        guard !objectID.isTemporaryID else { return nil }
         guard let store = objectID.persistentStore else { return nil }
-        if store == privateStore { return .private }
-        if store == sharedStore { return .shared }
-        return Self.scope(forStoreURL: store.url)
+        if let byURL = Self.scope(forStoreURL: store.url) {
+            return byURL
+        }
+        if let privateStore, store === privateStore { return .private }
+        if let sharedStore, store === sharedStore { return .shared }
+        return nil
     }
 
     func scope(for object: NSManagedObject) -> PersistentStoreScope? {

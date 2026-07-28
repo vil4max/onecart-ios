@@ -3,9 +3,10 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class PersistenceRoutingTests: XCTestCase {
     func testPrivateAndSharedStoreRouting() async throws {
-        let persistence = PersistenceController(inMemory: true)
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -23,14 +24,20 @@ final class PersistenceRoutingTests: XCTestCase {
             space.updatedAt = Date()
         }
 
-        persistence.container.viewContext.processPendingChanges()
+        let viewContext = persistence.container.viewContext
+        await viewContext.perform {
+            viewContext.processPendingChanges()
+        }
 
-        let privateScope = try XCTUnwrap(
-            try persistence.scope(for: XCTUnwrap(repository.fetchFamilySpace(id: privateID)))
-        )
-        let sharedScope = try XCTUnwrap(
-            try persistence.scope(for: XCTUnwrap(repository.fetchFamilySpace(id: sharedID)))
-        )
+        let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateID))
+        let sharedSpace = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
+        XCTAssertFalse(privateSpace.objectID.isTemporaryID)
+        XCTAssertFalse(sharedSpace.objectID.isTemporaryID)
+        XCTAssertNotNil(privateSpace.objectID.persistentStore)
+        XCTAssertNotNil(sharedSpace.objectID.persistentStore)
+
+        let privateScope = try XCTUnwrap(persistence.scope(for: privateSpace))
+        let sharedScope = try XCTUnwrap(persistence.scope(for: sharedSpace))
         XCTAssertEqual(privateScope, .private)
         XCTAssertEqual(sharedScope, .shared)
     }

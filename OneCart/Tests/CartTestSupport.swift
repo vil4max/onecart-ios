@@ -6,7 +6,7 @@ extension XCTestCase {
     func makeInMemoryRepository() async throws
         -> (PersistenceController, FamilySpaceRepository)
     {
-        let persistence = PersistenceController(inMemory: true)
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,

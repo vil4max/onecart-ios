@@ -244,7 +244,6 @@ private struct CartMemberRow: View {
         HStack(spacing: 12) {
             ProfileAvatarView(
                 name: member.displayName,
-                image: nil,
                 remoteURL: member.avatarURL,
                 size: 44
             )
@@ -286,7 +285,6 @@ private struct CartMemberProfileView: View {
             VStack(spacing: 16) {
                 ProfileAvatarView(
                     name: member.displayName,
-                    image: member.isCurrentUser ? model.profileAvatar : nil,
                     remoteURL: member.avatarURL,
                     size: 96
                 )

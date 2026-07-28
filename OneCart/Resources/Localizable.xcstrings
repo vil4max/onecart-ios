@@ -2232,6 +2232,52 @@
         }
       }
     },
+    "home.connect_failed_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open your cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось открыть корзину"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося відкрити кошик"
+          }
+        }
+      }
+    },
+    "home.connect_failed_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the network and iCloud, then try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверь сеть и iCloud, затем нажми «Повторить»."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевір мережу та iCloud, потім натисни «Повторити»."
+          }
+        }
+      }
+    },
     "home.empty_hint": {
       "extractionState": "manual",
       "localizations": {

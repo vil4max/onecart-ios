@@ -8,7 +8,6 @@ protocol SessionBootstrapHost: AnyObject {
     func notifyBootstrapObjectWillChange()
     func installConnectivityMonitor()
     func installCloudObservers()
-    func reloadProfileMedia(for accountID: UUID)
     func acceptPendingCloudKitShares() async
     func finishFamilyCartSetup(for account: OneCartAccount) async throws
     func refreshFamilyMetadata(showErrors: Bool) async
@@ -63,7 +62,6 @@ final class SessionBootstrapper {
             let state = await appleSignIn.credentialState(for: credential.userID)
             switch state {
             case .authorized, .unknown:
-                host.applyWelcomeReady(needsWelcome: false)
                 host.applyWelcomeConnecting()
                 await prepare(appleCredential: credential)
                 return
@@ -121,7 +119,6 @@ final class SessionBootstrapper {
             } else if host.preferences.participantDisplayName.nilIfBlank == nil {
                 host.preferences.participantDisplayName = restoredAccount.displayName
             }
-            host.reloadProfileMedia(for: restoredAccount.id)
             try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
             try host.reloadAfterBootstrap()
             await host.acceptPendingCloudKitShares()

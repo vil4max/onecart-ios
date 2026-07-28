@@ -12,4 +12,8 @@ final class ShoppingViewModel: ObservableObject {
     func ensureHouseholdCartIfNeeded() async {
         await session.ensureHouseholdCartIfNeeded()
     }
+
+    func retryHouseholdCartBootstrap() async {
+        await session.retryHouseholdCartBootstrap()
+    }
 }

@@ -19,5 +19,5 @@ Please include:
 ## Scope notes
 
 - Shopping data syncs via the user’s iCloud / CloudKit container; Apple’s CloudKit threat model applies.
-- Profile photos are stored device-locally under the app Documents directory (`OneCartProfiles`), not in CloudKit.
+- Account display name comes from Sign in with Apple / iCloud restore; there is no local profile-photo store.
 - Sign in with Apple credentials are stored in the Keychain via `AppleSignInService`.

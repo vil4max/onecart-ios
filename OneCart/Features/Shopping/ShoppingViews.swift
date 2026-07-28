@@ -26,13 +26,13 @@ struct HomeView: View {
         NavigationStack {
             Group {
                 if model.activeFamilySpace == nil {
-                    HomeConnectingCartPanel()
+                    householdBootstrapContent
                         .padding(.horizontal, 20)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(OneCartPalette.background.ignoresSafeArea())
                         .navigationTitle(model.cartTitle)
                         .navigationBarTitleDisplayMode(.inline)
-                        .task {
+                        .task(id: householdBootstrapTaskID) {
                             await viewModel.ensureHouseholdCartIfNeeded()
                         }
                 } else if let listID = primaryListID {
@@ -57,11 +57,23 @@ struct HomeView: View {
                             CartNavSyncTitle(title: model.cartTitle, isSyncing: model.isCartSyncing)
                         }
                     }
-                    .task {
-                        await viewModel.ensureHouseholdCartIfNeeded()
-                    }
                 }
             }
+        }
+    }
+
+    private var householdBootstrapTaskID: String {
+        model.account?.id.uuidString ?? "no-account"
+    }
+
+    @ViewBuilder
+    private var householdBootstrapContent: some View {
+        if model.householdCartBootstrapFailed {
+            HomeConnectFailedPanel {
+                Task { await viewModel.retryHouseholdCartBootstrap() }
+            }
+        } else {
+            HomeConnectingCartPanel()
         }
     }
 }
@@ -75,6 +87,30 @@ private struct HomeConnectingCartPanel: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(
+            OneCartPalette.surface,
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+    }
+}
+
+private struct HomeConnectFailedPanel: View {
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("home.connect_failed_title")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text("home.connect_failed_message")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("welcome.try_again", action: onRetry)
+                .buttonStyle(OneCartSecondaryButtonStyle())
         }
         .frame(maxWidth: .infinity)
         .padding(24)

@@ -230,7 +230,6 @@ private struct AccountMemberRow: View {
         HStack(spacing: 12) {
             ProfileAvatarView(
                 name: member.displayName,
-                image: nil,
                 remoteURL: member.avatarURL,
                 size: 40
             )

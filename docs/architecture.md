@@ -30,7 +30,6 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
 | `CloudSyncCoordinator` | CloudKit observers, connectivity, scheduled reload, maps sync outcome → `syncState` / alerts |
-| `ProfileStore` | device-local avatar/banner via `ProfileMediaStore` (not CloudKit) |
 | `FamilyShareOrchestrator` | invite link creation, owner ACL heal, delete cart + recreate |
 | `FamilySpaceRepository` | local CRUD / purchase sessions |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
@@ -46,7 +45,6 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | `OneCart/Application/CartContentStore.swift` | Cart content + history page size 30 / loadMore |
 | `OneCart/Application/CartSyncService.swift` | Hard cart refresh / sync chrome state |
 | `OneCart/Application/CloudSyncCoordinator.swift` | Observers, connectivity, sync outcome application |
-| `OneCart/Application/ProfileStore.swift` | Device-local profile media |
 | `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / delete-and-recreate |
 | `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
 | `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
@@ -70,7 +68,7 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 | `load()` never auto-wipes | Offline SQLite must survive transient open failures; wipe only from welcome retry after Core Data failure + diagnostics copy |
 | `CartSyncOutcome` + failed ≠ synchronized | UI must not show “ok” after hard-refresh throws |
 | History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
-| Profile media device-local | Photos stay off CloudKit; shopping data syncs separately |
+| No local profile photos | Display name from SIWA / iCloud account only; member rows use initials (+ HTTPS avatar URL if CloudKit provides one) |
 | NC09: no pre-merge GitHub Actions | Xcode Cloud release-only for this personal train |
 
 ## Fragile-test matrix (living checklist)

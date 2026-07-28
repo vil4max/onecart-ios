@@ -49,7 +49,12 @@ struct RootView: View {
         if model.needsWelcome {
             return .welcome
         }
-        return .main
+        switch model.welcomePhase {
+        case .connecting, .failed:
+            return .welcome
+        case .signIn:
+            return .main
+        }
     }
 
     var body: some View {

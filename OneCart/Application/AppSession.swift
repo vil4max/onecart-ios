@@ -3,7 +3,6 @@ import Combine
 import CoreData
 import Foundation
 import SwiftUI
-import UIKit
 
 /// Compatibility alias while Views migrate to AppSession.
 typealias AppModel = AppSession
@@ -79,6 +78,8 @@ final class AppSession: ObservableObject {
     @Published private(set) var familyMembers: [FamilyMember] = []
     @Published private(set) var access: FamilyAccess?
     @Published private(set) var isFamilyMetadataLoading = false
+    @Published private(set) var isEnsuringHouseholdCart = false
+    @Published private(set) var householdCartBootstrapFailed = false
     @Published var preferredMainTab: MainTab?
     @Published var alertMessage: String?
     @Published private(set) var preparedInviteLink: FamilyInviteLink?
@@ -90,7 +91,6 @@ final class AppSession: ObservableObject {
     let cartContent: CartContentStore
     let bootstrapper: SessionBootstrapper
     let cloudSync: CloudSyncCoordinator
-    let profileStore: ProfileStore
 
     var lists: [ShoppingListEntity] { cartContent.lists }
     var activeLists: [ShoppingListEntity] { cartContent.activeLists }
@@ -98,8 +98,6 @@ final class AppSession: ObservableObject {
     var productsByListID: [UUID: [ProductEntity]] { cartContent.productsByListID }
     var history: [PurchaseHistoryEntity] { cartContent.history }
     var historyHasMore: Bool { cartContent.historyHasMore }
-    var profileAvatar: UIImage? { profileStore.avatar }
-    var profileBanner: UIImage? { profileStore.banner }
 
     var canEdit: Bool {
         activeFamilySpace != nil && (access?.canEdit ?? false)
@@ -137,7 +135,6 @@ final class AppSession: ObservableObject {
     private var lastActiveFamilyWasShared = false
     private var cartSyncCancellable: AnyCancellable?
     private var cartContentCancellable: AnyCancellable?
-    private var profileStoreCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -168,7 +165,6 @@ final class AppSession: ObservableObject {
             appleSignIn: appleSignIn
         )
         cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
-        profileStore = ProfileStore()
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
@@ -194,9 +190,6 @@ final class AppSession: ObservableObject {
             self?.objectWillChange.send()
         }
         cartContentCancellable = cartContent.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        profileStoreCancellable = profileStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         cartSync.onHardRefresh = { [weak self] in
@@ -269,27 +262,58 @@ final class AppSession: ObservableObject {
     }
 
     func ensureHouseholdCartIfNeeded() async {
-        guard let account, activeFamilySpace == nil else { return }
-        isBusy = true
-        defer { isBusy = false }
+        guard let account else {
+            if activeFamilySpace == nil {
+                householdCartBootstrapFailed = true
+            }
+            return
+        }
+        guard activeFamilySpace == nil else {
+            householdCartBootstrapFailed = false
+            return
+        }
+        guard !isEnsuringHouseholdCart else { return }
+
+        isEnsuringHouseholdCart = true
+        householdCartBootstrapFailed = false
+        defer { isEnsuringHouseholdCart = false }
+
         do {
             await acceptPendingCloudKitShares()
+            guard !Task.isCancelled else { return }
             try reload()
+            if activeFamilySpace != nil { return }
+
             if familySpaces.isEmpty {
                 _ = try await repository.createFamilySpace(
                     name: Self.defaultFamilyName,
                     cachedForUserID: account.id,
                     isHouseholdDefault: true
                 )
+                guard !Task.isCancelled else { return }
                 try reload()
             } else {
                 try await offerSharedCartJoinIfNeeded(for: account)
+                guard !Task.isCancelled else { return }
             }
+
+            if activeFamilySpace == nil {
+                householdCartBootstrapFailed = true
+                return
+            }
+
             await refreshFamilyMetadata(showErrors: false)
             scheduleInviteLinkPreparation()
         } catch {
+            guard !Task.isCancelled else { return }
+            householdCartBootstrapFailed = true
             show(error)
         }
+    }
+
+    func retryHouseholdCartBootstrap() async {
+        householdCartBootstrapFailed = false
+        await ensureHouseholdCartIfNeeded()
     }
 
     func retryWelcome() async {
@@ -317,7 +341,14 @@ final class AppSession: ObservableObject {
             }
             await bootstrapper.prepare(appleCredential: credential)
         } catch {
-            welcomePhase = .failed(userFacingMessage(for: error))
+            needsWelcome = true
+            if let localized = error as? LocalizedError,
+               let description = localized.errorDescription?.nilIfBlank
+            {
+                welcomePhase = .failed(description)
+            } else {
+                welcomePhase = .failed(String(localized: "welcome.sign_in_failed"))
+            }
         }
     }
 
@@ -590,53 +621,6 @@ final class AppSession: ObservableObject {
         await syncCart(reason: .pull)
     }
 
-    /// Profile media stays on this device; CloudKit synchronizes only shopping data.
-    @discardableResult
-    func updateProfile(
-        displayName: String,
-        avatar: UIImage?,
-        banner: UIImage?,
-        removeAvatar: Bool,
-        removeBanner: Bool
-    ) async -> Bool {
-        guard let account else { return false }
-        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            presentAlert(String(localized: "alert.enter_name"))
-            return false
-        }
-
-        isBusy = true
-        defer { isBusy = false }
-
-        do {
-            try profileStore.persistMedia(
-                accountID: account.id,
-                avatar: avatar,
-                banner: banner,
-                removeAvatar: removeAvatar,
-                removeBanner: removeBanner
-            )
-
-            let updated = OneCartAccount(
-                id: account.id,
-                displayName: trimmed
-            )
-
-            self.account = updated
-            preferences.participantDisplayName = updated.displayName
-            profileStore.reload(for: updated.id)
-            applyProfileToFamilyMembers(updated)
-            objectWillChange.send()
-            await refreshFamilyMetadata(showErrors: false)
-            return true
-        } catch {
-            profileStore.reload(for: account.id)
-            show(error)
-            return false
-        }
-    }
-
     func showFamilyManagement() {
         preferredMainTab = .account
         Task { await refreshFamilyMetadata(showErrors: true) }
@@ -644,25 +628,6 @@ final class AppSession: ObservableObject {
 
     func refreshAccountSharing() async {
         await refreshFamilyMetadata(showErrors: false)
-    }
-
-    func reloadProfileMedia(for userID: UUID) {
-        profileStore.reload(for: userID)
-    }
-
-    private func applyProfileToFamilyMembers(_ account: OneCartAccount) {
-        familyMembers = familyMembers.map { member in
-            guard member.isCurrentUser else { return member }
-            return FamilyMember(
-                id: member.id,
-                displayName: account.displayName,
-                access: member.access,
-                joinedAt: member.joinedAt,
-                isCurrentUser: true,
-                avatarURL: nil,
-                bannerURL: nil
-            )
-        }
     }
 
     func presentAlert(_ message: String) {
@@ -744,7 +709,8 @@ final class AppSession: ObservableObject {
         cartContent.clearContent()
         familyMembers = []
         access = nil
-        profileStore.clear()
+        householdCartBootstrapFailed = false
+        isEnsuringHouseholdCart = false
     }
 
     private func performMutation(
@@ -978,6 +944,9 @@ extension AppSession: SessionBootstrapHost {
 
     func applyWelcomeReady(needsWelcome: Bool) {
         self.needsWelcome = needsWelcome
+        if !needsWelcome {
+            welcomePhase = .signIn
+        }
         isReady = true
     }
 
