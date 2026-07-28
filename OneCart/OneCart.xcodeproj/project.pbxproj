@@ -46,6 +46,8 @@
 		D2000000000000000000000C /* CartContentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000C /* CartContentStore.swift */; };
 		D2000000000000000000000D /* SessionBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000D /* SessionBootstrapper.swift */; };
 		D2000000000000000000000E /* CloudSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000E /* CloudSyncCoordinator.swift */; };
+		D2000000000000000000000F /* SessionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000F /* SessionTypes.swift */; };
+		A20000000000000000000034 /* DevicePreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* DevicePreferencesTests.swift */; };
 		D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000008 /* FamilyShareOrchestrator.swift */; };
 		D2000000000000000000000A /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* HistoryViews.swift */; };
 		D2000000000000000000000B /* CartChromeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000A /* CartChromeViews.swift */; };
@@ -119,6 +121,8 @@
 		D1000000000000000000000C /* CartContentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartContentStore.swift; sourceTree = "<group>"; };
 		D1000000000000000000000D /* SessionBootstrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBootstrapper.swift; sourceTree = "<group>"; };
 		D1000000000000000000000E /* CloudSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncCoordinator.swift; sourceTree = "<group>"; };
+		D1000000000000000000000F /* SessionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTypes.swift; sourceTree = "<group>"; };
+		A10000000000000000000034 /* DevicePreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePreferencesTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
 		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 				A10000000000000000000030 /* FragileStoreLoadTests.swift */,
 				A10000000000000000000031 /* FragileSyncOutcomeTests.swift */,
 				A10000000000000000000033 /* HistoryPaginationTests.swift */,
+				A10000000000000000000034 /* DevicePreferencesTests.swift */,
 				A10000000000000000000026 /* AppleSignInTests.swift */,
 				A10000000000000000000027 /* SharedCartJoinTests.swift */,
 			);
@@ -205,6 +210,7 @@
 				F10000000000000000000005 /* SceneDelegate.swift */,
 				A10000000000000000000002 /* OneCartApp.swift */,
 				A10000000000000000000008 /* AppSession.swift */,
+				D1000000000000000000000F /* SessionTypes.swift */,
 				D10000000000000000000007 /* CartSyncService.swift */,
 				D1000000000000000000000C /* CartContentStore.swift */,
 				D1000000000000000000000D /* SessionBootstrapper.swift */,
@@ -488,6 +494,7 @@
 				D2000000000000000000000C /* CartContentStore.swift in Sources */,
 				D2000000000000000000000D /* SessionBootstrapper.swift in Sources */,
 				D2000000000000000000000E /* CloudSyncCoordinator.swift in Sources */,
+				D2000000000000000000000F /* SessionTypes.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
 				D2000000000000000000000A /* HistoryViews.swift in Sources */,
 				D2000000000000000000000B /* CartChromeViews.swift in Sources */,
@@ -527,6 +534,7 @@
 				A20000000000000000000030 /* FragileStoreLoadTests.swift in Sources */,
 				A20000000000000000000031 /* FragileSyncOutcomeTests.swift in Sources */,
 				A20000000000000000000033 /* HistoryPaginationTests.swift in Sources */,
+				A20000000000000000000034 /* DevicePreferencesTests.swift in Sources */,
 				A20000000000000000000021 /* AppleSignInTests.swift in Sources */,
 				A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */,
 			);

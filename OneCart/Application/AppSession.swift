@@ -4,61 +4,7 @@ import CoreData
 import Foundation
 import SwiftUI
 
-/// Compatibility alias while Views migrate to AppSession.
-typealias AppModel = AppSession
-
-final class DevicePreferences: ObservableObject {
-    @Published var participantDisplayName: String {
-        didSet {
-            defaults.set(
-                participantDisplayName.trimmingCharacters(in: .whitespacesAndNewlines),
-                forKey: Keys.participantDisplayName
-            )
-        }
-    }
-
-    private let defaults: UserDefaults
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        participantDisplayName = defaults.string(
-            forKey: Keys.participantDisplayName
-        ) ?? ""
-    }
-
-    func reloadFromDefaults() {
-        participantDisplayName = defaults.string(
-            forKey: Keys.participantDisplayName
-        ) ?? ""
-    }
-
-    private enum Keys {
-        static let participantDisplayName = "onecart.participant-display-name"
-    }
-}
-
-enum InviteLinkError: LocalizedError {
-    case notOwner
-    case offline
-
-    var errorDescription: String? {
-        switch self {
-        case .notOwner:
-            String(localized: "sync.invite_owner_only")
-        case .offline:
-            String(localized: "sync.invite_need_network")
-        }
-    }
-}
-
-enum WelcomePhase: Equatable {
-    case signIn
-    case connecting
-    case failed(String)
-}
-
 @MainActor
-// RC05: AppSession is the Level 1 MVVM composition root (auth, sync, household selection).
 final class AppSession: ObservableObject {
 
     nonisolated static let defaultFamilyName = String(
