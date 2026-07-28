@@ -144,15 +144,11 @@ struct AccountView: View {
             } message: { member in
                 Text("account.remove_member_message \(member.displayName)")
             }
-            .confirmationDialog(
-                "account.sign_out_confirm_title",
-                isPresented: $confirmingSignOut,
-                titleVisibility: .visible
-            ) {
+            .alert("account.sign_out_confirm_title", isPresented: $confirmingSignOut) {
+                Button("common.cancel", role: .cancel) {}
                 Button("account.sign_out", role: .destructive) {
                     model.signOut()
                 }
-                Button("common.cancel", role: .cancel) {}
             } message: {
                 Text("account.sign_out_message")
             }
