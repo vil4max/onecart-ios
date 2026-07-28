@@ -2,6 +2,12 @@
 
 One shared family cart on iOS: add what you need, mark what is already in the trolley at the store, and keep purchase sessions in one place. Sign in with Apple; sync and invites run through iCloud / CloudKit (`CKShare`).
 
+## About this repo
+
+This is a **father–son pet project**: we build and ship a real iOS app together as a way to learn product, SwiftUI, Core Data / CloudKit, and App Store tooling.
+
+Keep that framing **here** (README / contributor docs). Do **not** put “learning project”, “demo for my kid”, classroom, or similar wording in App Store Connect metadata, review notes, screenshots, or in-app marketing copy — describe OneCart as a normal family shopping cart product so Review does not treat the listing as incomplete or non-app content.
+
 ## Stack
 
 - SwiftUI, iOS 26+

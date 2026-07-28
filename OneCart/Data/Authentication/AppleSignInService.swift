@@ -118,6 +118,7 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
 
     private let store: AppleSignInCredentialStoring
     private var continuation: CheckedContinuation<AppleSignInCredential, Error>?
+    private var authorizationController: ASAuthorizationController?
 
     init(store: AppleSignInCredentialStoring = KeychainAppleSignInCredentialStore()) {
         self.store = store
@@ -153,6 +154,7 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
             request.requestedScopes = [.fullName, .email]
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
+            self.authorizationController = controller
             controller.delegate = self
             controller.presentationContextProvider = self
             controller.performRequests()
@@ -181,6 +183,7 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
     }
 
     private func finish(with result: Result<AppleSignInCredential, Error>) {
+        authorizationController = nil
         guard let continuation else { return }
         self.continuation = nil
         switch result {

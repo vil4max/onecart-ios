@@ -21,4 +21,8 @@ final class WelcomeViewModel: ObservableObject {
     func reportWelcomeFailure(_ message: String) {
         session.reportWelcomeFailure(message)
     }
+
+    func dismissWelcomeSignInAttempt() {
+        session.dismissWelcomeSignInAttempt()
+    }
 }

@@ -15,6 +15,7 @@ protocol SessionBootstrapHost: AnyObject {
     func reloadAfterBootstrap() throws
     func userFacingMessage(for error: Error) -> String
     func applyBootstrapAccount(_ account: OneCartAccount)
+    func clearBootstrapAccount()
     func applyBootstrapSyncState(_ state: OneCartSyncState)
     func applyWelcomeSignIn()
     func applyWelcomeConnecting()
@@ -128,6 +129,7 @@ final class SessionBootstrapper {
             host.applyWelcomeReady(needsWelcome: false)
             host.scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
         } catch {
+            host.clearBootstrapAccount()
             host.applyWelcomeFailed(host.userFacingMessage(for: error))
         }
     }

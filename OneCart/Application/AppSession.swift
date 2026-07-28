@@ -327,6 +327,12 @@ final class AppSession: ObservableObject {
         isReady = true
     }
 
+    func dismissWelcomeSignInAttempt() {
+        needsWelcome = true
+        welcomePhase = .signIn
+        isReady = true
+    }
+
     func completeAppleSignIn(authorization: ASAuthorization) async {
         needsWelcome = true
         welcomePhase = .connecting
@@ -918,6 +924,11 @@ extension AppSession: SessionBootstrapHost {
 
     func applyBootstrapAccount(_ account: OneCartAccount) {
         self.account = account
+    }
+
+    func clearBootstrapAccount() {
+        clearAccountData()
+        account = nil
     }
 
     func applyBootstrapSyncState(_ state: OneCartSyncState) {

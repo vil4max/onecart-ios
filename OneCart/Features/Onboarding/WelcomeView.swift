@@ -135,13 +135,26 @@ struct WelcomeView: View {
         case let .success(authorization):
             Task { await viewModel.completeAppleSignIn(authorization: authorization) }
         case let .failure(error):
-            if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+            if Self.isSignInDismissed(error) {
+                viewModel.dismissWelcomeSignInAttempt()
                 return
             }
             viewModel.reportWelcomeFailure(
                 (error as? LocalizedError)?.errorDescription
                     ?? String(localized: "welcome.sign_in_failed")
             )
+        }
+    }
+
+    private static func isSignInDismissed(_ error: Error) -> Bool {
+        guard let authError = error as? ASAuthorizationError else { return false }
+        switch authError.code {
+        case .canceled:
+            return true
+        case .unknown:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -206,6 +219,7 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
     {
         var onRequest: (ASAuthorizationAppleIDRequest) -> Void
         var onCompletion: (Result<ASAuthorization, Error>) -> Void
+        private var activeController: ASAuthorizationController?
 
         init(
             onRequest: @escaping (ASAuthorizationAppleIDRequest) -> Void,
@@ -220,6 +234,7 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
             onRequest(request)
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
+            activeController = controller
             controller.delegate = self
             controller.presentationContextProvider = self
             controller.performRequests()
@@ -229,6 +244,7 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
             controller _: ASAuthorizationController,
             didCompleteWithAuthorization authorization: ASAuthorization
         ) {
+            activeController = nil
             onCompletion(.success(authorization))
         }
 
@@ -236,6 +252,7 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
             controller _: ASAuthorizationController,
             didCompleteWithError error: Error
         ) {
+            activeController = nil
             onCompletion(.failure(error))
         }
 

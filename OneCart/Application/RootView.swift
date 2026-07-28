@@ -46,15 +46,10 @@ struct RootView: View {
         if !model.isReady {
             return .loading
         }
-        if model.needsWelcome {
+        if model.needsWelcome || model.account == nil {
             return .welcome
         }
-        switch model.welcomePhase {
-        case .connecting, .failed:
-            return .welcome
-        case .signIn:
-            return .main
-        }
+        return .main
     }
 
     var body: some View {
