@@ -120,6 +120,30 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertFalse(message.contains("mirroring delegate"))
     }
 
+    func testCloudKitUserFacingErrorMapsProductionSchemaFieldModify() {
+        let nested = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.invalidArguments.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema",
+            ]
+        )
+        let partial = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Failed to modify some records",
+                CKPartialErrorsByItemIDKey: ["product-1": nested],
+            ]
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isProductionSchemaFailure(partial))
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: partial),
+            CloudKitUserFacingError.productionSchemaMissing
+        )
+    }
+
     func testCloudKitUserFacingErrorMapsProductionSchemaFromUserInfoCrumb() {
         let error = NSError(
             domain: CKError.errorDomain,
@@ -256,5 +280,21 @@ final class CloudKitErrorMappingTests: XCTestCase {
                 error: nil
             )
         )
+    }
+
+    func testCloudKitShareEnvironmentParsesProductionAndSandbox() {
+        XCTAssertEqual(
+            CloudKitShareEnvironment.fromDiagnostic(
+                "CKContainerID: 0x1; containerIdentifier=iCloud.com.vil555tim.onecart, environment=Production"
+            ),
+            .production
+        )
+        XCTAssertEqual(
+            CloudKitShareEnvironment.fromDiagnostic(
+                "CKContainerID: 0x1; containerIdentifier=iCloud.com.vil555tim.onecart, environment=Sandbox"
+            ),
+            .development
+        )
+        XCTAssertEqual(CloudKitShareEnvironment.fromDiagnostic("plain share"), .unknown)
     }
 }

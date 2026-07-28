@@ -65,6 +65,41 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(cocoa))
     }
 
+    func testShouldWipeLocalStoresWhenCloudKitEnvironmentChanges() {
+        XCTAssertFalse(
+            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
+                previous: "production",
+                current: "production",
+                storeFilesExist: true,
+                isDebugProcess: true
+            )
+        )
+        XCTAssertTrue(
+            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
+                previous: "development",
+                current: "production",
+                storeFilesExist: true,
+                isDebugProcess: true
+            )
+        )
+        XCTAssertFalse(
+            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
+                previous: nil,
+                current: "production",
+                storeFilesExist: true,
+                isDebugProcess: true
+            )
+        )
+        XCTAssertFalse(
+            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
+                previous: nil,
+                current: "production",
+                storeFilesExist: true,
+                isDebugProcess: false
+            )
+        )
+    }
+
     func testShouldHardResetStoresOnlyForCoreDataWelcomeFailure() {
         XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .signIn))
         XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .connecting))

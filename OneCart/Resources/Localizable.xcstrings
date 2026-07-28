@@ -11,19 +11,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete cart"
+            "value" : "Recreate cart"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить корзину"
+            "value" : "Пересоздать корзину"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Видалити кошик"
+            "value" : "Перестворити кошик"
           }
         }
       }
@@ -34,19 +34,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete cart"
+            "value" : "Recreate"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить корзину"
+            "value" : "Пересоздать"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Видалити кошик"
+            "value" : "Перестворити"
           }
         }
       }
@@ -57,19 +57,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Everyone loses access. The invite link stops working. A new empty cart is created for you."
+            "value" : "Members lose access and the old invite link stops working. You get a new empty cart you can share again."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ пропадёт у всех. Старая ссылка перестанет работать. Для вас создастся новая пустая корзина."
+            "value" : "Участники потеряют доступ, старая ссылка перестанет работать. У вас появится новая пустая корзина — её можно снова поделиться."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ зникне для всіх. Старе посилання перестане працювати. Для вас створиться новий порожній кошик."
+            "value" : "Учасники втратять доступ, старе посилання перестане працювати. У вас з’явиться новий порожній кошик — ним можна знову поділитися."
           }
         }
       }
@@ -80,19 +80,42 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete this cart?"
+            "value" : "Recreate this cart?"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить эту корзину?"
+            "value" : "Пересоздать корзину?"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Видалити цей кошик?"
+            "value" : "Перестворити кошик?"
+          }
+        }
+      }
+    },
+    "account.recreate_cart_done %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cart recreated.\n\n“%@” is ready — you can share it again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Корзина пересоздана.\n\n«%@» готова — можно снова поделиться."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кошик перестворено.\n\n«%@» готовий — можна знову поділитися."
           }
         }
       }
@@ -623,19 +646,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connect to the internet to delete the cart."
+            "value" : "Connect to the internet to recreate the cart."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подключитесь к интернету, чтобы удалить корзину."
+            "value" : "Подключитесь к интернету, чтобы пересоздать корзину."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Підключіться до інтернету, щоб видалити кошик."
+            "value" : "Підключіться до інтернету, щоб перестворити кошик."
           }
         }
       }
@@ -1403,8 +1426,54 @@
         }
       }
     },
-    "cart.mine_title" : {
+    "cart.owner_title %@" : {
       "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@'s Cart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Корзина %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кошик %@"
+          }
+        }
+      }
+    },
+    "cart.mine_title %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🛒 %@"
+          }
+        }
+      }
+    },
+    "cart.mine_title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

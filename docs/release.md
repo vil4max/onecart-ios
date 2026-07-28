@@ -33,25 +33,30 @@ Simulator is enough for UI + unit tests. Real family sync needs two physical dev
 4. Team in Xcode must match the project Team.
 5. Entitlements (`CKSharingSupported`, SIWA, iCloud) are already in the project — unsigned Debug builds compile without App ID setup; signed install + real sync need the steps above.
 
-## 2. CloudKit Production schema (required for TestFlight)
+## 2. CloudKit Production schema (required for TestFlight and Xcode Run)
 
-TestFlight / App Store talk to CloudKit **Production**. New Core Data entities are **not** created there automatically. Without a deploy you get:
+TestFlight / App Store talk to CloudKit **Production**. OneCart also pins **Production** in both Debug and Release entitlements (`com.apple.developer.icloud-container-environment = Production`) so Xcode Run mirrors the same schema as TestFlight (Core Data + share keys stay aligned). The shared scheme **Launch** configuration is **Release** for the same reason; **Test** stays **Debug** for `@testable`.
+
+New Core Data entities **and new attributes** are **not** created in Production automatically. Without a deploy you get:
 
 `Cannot create new type CD_ShoppingList in production schema`
 
+or (after model field adds):
+
+`Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema`
+
 (and the app alert about mirroring / Partial Failure).
 
-**Do this before relying on any TF build:**
+**Do this before relying on sync/share:**
 
 1. Open [CloudKit Console](https://icloud.developer.apple.com/) → container `iCloud.com.vil555tim.onecart`.
-2. Environment: **Development** → Schema → confirm record types exist (at least):  
+2. Prefer Environment **Production** → Schema → confirm record types exist (at least):  
    `CD_FamilySpace`, `CD_ShoppingList`, `CD_Product`, `CD_Store`, `CD_PurchaseHistory`, `CD_HistoryItem`  
-   (plus CloudKit system types / indexes NSPersistentCloudKitContainer created).
-3. If Development is empty or stale: run the app once from Xcode (Debug) signed into iCloud so the container initializes the Development schema.
-4. **Deploy Schema Changes to Production** (Schema → Deploy… → Production).
-5. Force-quit the TestFlight app, relaunch, retry invite/sync.
+   and that soft-delete fields such as `CD_deletedAt` appear on those types.
+3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
+4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 
-Until Production matches Development, sync/share on TF will keep failing even if the binary is fine.
+Until Production has the fields Core Data expects, sync/share will keep failing even if the binary is fine.
 
 **Agents / CI cannot perform Deploy.** There is no API to promote schema to Production (`cktool` only imports Development). The container admin must click Deploy in CloudKit Console. App builds can only detect the failure and show a clear alert.
 

@@ -76,6 +76,12 @@ final class CartAccessTests: XCTestCase {
         await session.deleteCurrentCartAndStartFresh()
         XCTAssertNotEqual(session.activeFamilySpace?.id, familyID)
         XCTAssertNotNil(session.activeFamilySpace?.id)
+        XCTAssertEqual(session.activeFamilySpace?.name, "Max's Cart")
+        XCTAssertEqual(session.cartTitle, "Max's Cart")
+        XCTAssertEqual(
+            session.alertMessage,
+            String(localized: "account.recreate_cart_done \("Max's Cart")")
+        )
     }
 
     func testSharedCartVisibleAlongsideOwnPrivateCart() async throws {

@@ -1,10 +1,59 @@
 import CloudKit
 import UIKit
 
+enum CloudKitShareEnvironment: String {
+    case production
+    case development
+    case unknown
+
+    static var process: CloudKitShareEnvironment {
+        .production
+    }
+
+    static func fromDiagnostic(_ text: String) -> CloudKitShareEnvironment {
+        let normalized = text.lowercased()
+        if normalized.contains("environment=production")
+            || normalized.contains("environment: production")
+            || normalized.contains(", environment=production")
+        {
+            return .production
+        }
+        if normalized.contains("environment=sandbox")
+            || normalized.contains("environment=development")
+            || normalized.contains("environment: sandbox")
+            || normalized.contains("environment: development")
+        {
+            return .development
+        }
+        return .unknown
+    }
+
+    static func diagnostic(for share: CKShare) -> String {
+        var parts = [String(describing: share)]
+        for key in ["containerID", "containerIdentifier", "_containerID"] {
+            if let value = share.value(forKey: key) {
+                parts.append("\(key)=\(String(describing: value))")
+            }
+        }
+        return parts.joined(separator: " ")
+    }
+
+    static func of(_ share: CKShare) -> CloudKitShareEnvironment {
+        fromDiagnostic(diagnostic(for: share))
+    }
+
+    static func canMutateInProcess(_ share: CKShare) -> Bool {
+        let shareEnvironment = of(share)
+        if shareEnvironment == .unknown {
+            return true
+        }
+        return shareEnvironment == process
+    }
+}
+
 enum OneCartShareBranding {
     static let title = "OneCart"
 
-    /// Applies CloudKit share card branding. Returns `true` when the share was mutated.
     @discardableResult
     static func apply(to share: CKShare) -> Bool {
         var changed = false
@@ -43,9 +92,6 @@ enum OneCartShareBranding {
 }
 
 enum OneCartShareLinkJoin {
-    /// Ensures link-join and every non-owner participant can edit the cart.
-    /// `publicPermission` alone is not enough: invitees who already accepted with
-    /// `.readOnly` keep that participant permission until the owner upgrades it.
     @discardableResult
     static func applyReadWriteACL(to share: CKShare) -> Bool {
         var changed = false

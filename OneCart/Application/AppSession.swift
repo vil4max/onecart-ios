@@ -116,10 +116,15 @@ final class AppSession: ObservableObject {
     }
 
     var cartTitle: String {
-        if familyMembers.count >= 2 {
-            return String(localized: "cart.shared_title")
-        }
-        return String(localized: "cart.mine_title")
+        activeFamilySpace?.displayName
+            ?? account.map { Self.householdCartName(for: $0) }
+            ?? Self.defaultFamilyName
+    }
+
+    static func householdCartName(for account: OneCartAccount) -> String {
+        let name = account.displayName.nilIfBlank
+            ?? String(localized: "common.default_user")
+        return String(localized: "cart.owner_title \(name)")
     }
 
     private let repository: FamilySpaceRepository
@@ -228,25 +233,36 @@ final class AppSession: ObservableObject {
         guard let account,
               let family = activeFamilySpace,
               access?.isOwner == true
-        else { return }
+        else {
+            CartSyncLog.action.error("deleteCart denied missingOwnerOrFamily")
+            return
+        }
         guard online else {
+            CartSyncLog.action.error("deleteCart denied offline")
             presentAlert(String(localized: "alert.delete_cart_need_network"))
             return
         }
+        CartSyncLog.action.info("deleteCart session begin")
         isBusy = true
         defer { isBusy = false }
         do {
+            let cartName = Self.householdCartName(for: account)
             let newID = try await shareOrchestrator.deleteCurrentCartAndStartFresh(
                 family: family,
                 accountID: account.id,
-                defaultFamilyName: Self.defaultFamilyName
+                defaultFamilyName: cartName
             )
             clearPreparedInviteLink()
             defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
             try reload(preferredFamilySpaceID: newID)
             await refreshFamilyMetadata(showErrors: false)
             scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
+            CartSyncLog.action.info("deleteCart session done")
+            presentAlert(String(localized: "account.recreate_cart_done \(cartName)"))
         } catch {
+            CartSyncLog.action.error(
+                "deleteCart session fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -266,14 +282,19 @@ final class AppSession: ObservableObject {
             if activeFamilySpace == nil {
                 householdCartBootstrapFailed = true
             }
+            CartSyncLog.action.error("ensureHousehold denied noAccount")
             return
         }
         guard activeFamilySpace == nil else {
             householdCartBootstrapFailed = false
             return
         }
-        guard !isEnsuringHouseholdCart else { return }
+        guard !isEnsuringHouseholdCart else {
+            CartSyncLog.action.info("ensureHousehold skip alreadyRunning")
+            return
+        }
 
+        CartSyncLog.action.info("ensureHousehold start")
         isEnsuringHouseholdCart = true
         householdCartBootstrapFailed = false
         defer { isEnsuringHouseholdCart = false }
@@ -282,31 +303,43 @@ final class AppSession: ObservableObject {
             await acceptPendingCloudKitShares()
             guard !Task.isCancelled else { return }
             try reload()
-            if activeFamilySpace != nil { return }
+            if activeFamilySpace != nil {
+                CartSyncLog.action.info("ensureHousehold done afterAccept")
+                return
+            }
 
             if familySpaces.isEmpty {
+                CartSyncLog.action.info("ensureHousehold create empty")
                 _ = try await repository.createFamilySpace(
-                    name: Self.defaultFamilyName,
+                    name: Self.householdCartName(for: account),
                     cachedForUserID: account.id,
                     isHouseholdDefault: true
                 )
                 guard !Task.isCancelled else { return }
                 try reload()
             } else {
+                CartSyncLog.action.info("ensureHousehold offerSharedJoin count=\(self.familySpaces.count)")
                 try await offerSharedCartJoinIfNeeded(for: account)
                 guard !Task.isCancelled else { return }
             }
 
             if activeFamilySpace == nil {
                 householdCartBootstrapFailed = true
+                CartSyncLog.action.error("ensureHousehold fail noActiveFamily")
                 return
             }
 
             await refreshFamilyMetadata(showErrors: false)
             scheduleInviteLinkPreparation()
+            CartSyncLog.action.info(
+                "ensureHousehold done family=\(self.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
+            )
         } catch {
             guard !Task.isCancelled else { return }
             householdCartBootstrapFailed = true
+            CartSyncLog.action.error(
+                "ensureHousehold fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -407,7 +440,8 @@ final class AppSession: ObservableObject {
 
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
         guard let listID = list.id else { return }
-        await performMutation(successMessage: String(localized: "alert.product_added")) {
+        CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
+        await performMutation(action: "addProduct", successMessage: String(localized: "alert.product_added")) {
             try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
@@ -419,7 +453,8 @@ final class AppSession: ObservableObject {
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
         guard let id = product.id else { return }
-        await performMutation(successMessage: String(localized: "alert.product_updated")) {
+        CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
+        await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
             try await self.repository.updateProduct(id: id, draft: draft)
         }
     }
@@ -428,12 +463,14 @@ final class AppSession: ObservableObject {
         guard let id = product.id else { return }
         guard canEdit else {
             CartSyncLog.cart.error("togglePurchased denied canEdit=false")
+            CartSyncLog.action.error("togglePurchased denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
             return
         }
 
         do {
             CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
+            CartSyncLog.action.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
             try await repository.togglePurchased(
                 id: id,
                 participantDisplayName: preferences.participantDisplayName.nilIfBlank
@@ -447,8 +484,12 @@ final class AppSession: ObservableObject {
             CartSyncLog.cart.info(
                 "togglePurchased done purchased=\(self.products.filter(\.isPurchasedValue).count)/\(self.products.count)"
             )
+            CartSyncLog.action.info("togglePurchased done")
         } catch {
             CartSyncLog.cart.error("togglePurchased failed error=\(error.localizedDescription, privacy: .public)")
+            CartSyncLog.action.error(
+                "togglePurchased fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -459,21 +500,24 @@ final class AppSession: ObservableObject {
 
     func deleteProduct(_ product: ProductEntity) async {
         guard let id = product.id else { return }
-        await performMutation(successMessage: String(localized: "alert.product_deleted")) {
+        CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
+        await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
             try await self.repository.deleteProduct(id: id)
         }
     }
 
     func completePurchasedItems(_ list: ShoppingListEntity) async {
         guard let id = list.id else { return }
-        await performMutation(successMessage: String(localized: "alert.purchase_completed")) {
+        CartSyncLog.action.info("completePurchase start list=\(id.uuidString, privacy: .public)")
+        await performMutation(action: "completePurchase", successMessage: String(localized: "alert.purchase_completed")) {
             _ = try await self.repository.completePurchased(listID: id)
         }
     }
 
     func deleteHistory(_ entry: PurchaseHistoryEntity) async {
         guard let id = entry.id else { return }
-        await performMutation(successMessage: String(localized: "alert.history_deleted")) {
+        CartSyncLog.action.info("deleteHistory start id=\(id.uuidString, privacy: .public)")
+        await performMutation(action: "deleteHistory", successMessage: String(localized: "alert.history_deleted")) {
             try await self.repository.deleteHistory(id: id)
         }
     }
@@ -495,9 +539,11 @@ final class AppSession: ObservableObject {
               let familyID = family.id,
               access?.isOwner == true
         else {
+            CartSyncLog.action.error("shareInvite denied notOwner")
             throw InviteLinkError.notOwner
         }
         guard online else {
+            CartSyncLog.action.error("shareInvite denied offline")
             throw InviteLinkError.offline
         }
 
@@ -505,12 +551,17 @@ final class AppSession: ObservableObject {
            preparedInviteFamilyID == familyID,
            preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
         {
+            CartSyncLog.action.info("shareInvite cacheHit")
             return preparedInviteLink
         }
 
+        CartSyncLog.action.info("shareInvite start family=\(familyID.uuidString, privacy: .public)")
         let link = try await fetchFamilyInviteLink(for: family)
         preparedInviteLink = link
         preparedInviteFamilyID = familyID
+        CartSyncLog.action.info(
+            "shareInvite done host=\(link.url.host ?? "-", privacy: .public)"
+        )
         return link
     }
 
@@ -594,12 +645,17 @@ final class AppSession: ObservableObject {
             return
         }
 
+        CartSyncLog.action.info("removeMember start id=\(member.id.uuidString, privacy: .public)")
         isBusy = true
         defer { isBusy = false }
         do {
             try await backend.removeMember(member, from: family)
             await refreshFamilyMetadata(showErrors: false)
+            CartSyncLog.action.info("removeMember done")
         } catch {
+            CartSyncLog.action.error(
+                "removeMember fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -613,12 +669,19 @@ final class AppSession: ObservableObject {
             return
         }
 
+        CartSyncLog.action.info(
+            "leaveFamily start family=\(family.id?.uuidString ?? "-", privacy: .public)"
+        )
         isBusy = true
         defer { isBusy = false }
         do {
             try await backend.leaveFamily(family)
             cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
+            CartSyncLog.action.info("leaveFamily done")
         } catch {
+            CartSyncLog.action.error(
+                "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -661,7 +724,7 @@ final class AppSession: ObservableObject {
         try reload()
         if familySpaces.isEmpty {
             _ = try await repository.createFamilySpace(
-                name: Self.defaultFamilyName,
+                name: Self.householdCartName(for: account),
                 cachedForUserID: account.id,
                 isHouseholdDefault: true
             )
@@ -720,11 +783,13 @@ final class AppSession: ObservableObject {
     }
 
     private func performMutation(
+        action: String,
         successMessage: String?,
         operation: @escaping () async throws -> Void
     ) async {
         _ = successMessage
         guard canEdit else {
+            CartSyncLog.action.error("\(action) denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
             return
         }
@@ -736,7 +801,11 @@ final class AppSession: ObservableObject {
             }
             try reload()
             cartSync.bumpRevisionAfterLocalChange()
+            CartSyncLog.action.info("\(action) done")
         } catch {
+            CartSyncLog.action.error(
+                "\(action) fail error=\(error.localizedDescription, privacy: .public)"
+            )
             show(error)
         }
     }
@@ -836,7 +905,7 @@ final class AppSession: ObservableObject {
         } else if activeFamilySpace == nil {
             do {
                 let newID = try await repository.createFamilySpace(
-                    name: Self.defaultFamilyName,
+                    name: Self.householdCartName(for: account),
                     cachedForUserID: account.id,
                     isHouseholdDefault: true
                 )

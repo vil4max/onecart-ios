@@ -9,6 +9,7 @@ enum OneCartCloudKitError: LocalizedError {
     case participantNotFound
     case stillSyncing
     case shareTimedOut
+    case shareEnvironmentMismatch
 
     var errorDescription: String? {
         switch self {
@@ -33,6 +34,8 @@ enum OneCartCloudKitError: LocalizedError {
             String(localized: "sync.still_syncing")
         case .shareTimedOut:
             String(localized: "sync.share_timed_out")
+        case .shareEnvironmentMismatch:
+            String(localized: "sync.share_access_denied")
         }
     }
 }
@@ -108,16 +111,17 @@ enum CloudKitUserFacingError {
     private static func productionSchemaMessage(in error: Error) -> String? {
         let text = diagnosticText(for: error)
         if text.contains("production schema")
+            || text.contains("cannot create or modify field")
             || text.contains("cannot create new type cd_")
             || (text.contains("cannot create new type") && text.contains("schema"))
             || (text.contains("cd_shoppinglist") && text.contains("schema"))
+            || (text.contains("cd_deletedat") && text.contains("schema"))
         {
             return productionSchemaMissing
         }
         return nil
     }
 
-    /// Collects localized + userInfo string crumbs — CK nesting often hides the real reason.
     private static func diagnosticText(for error: Error) -> String {
         let nsError = error as NSError
         var parts: [String] = [
@@ -128,8 +132,23 @@ enum CloudKitUserFacingError {
         for value in nsError.userInfo.values {
             if let string = value as? String {
                 parts.append(string)
+            } else if let nested = value as? NSError {
+                parts.append(nested.localizedDescription)
+                if let reason = nested.localizedFailureReason {
+                    parts.append(reason)
+                }
+                for nestedValue in nested.userInfo.values {
+                    if let string = nestedValue as? String {
+                        parts.append(string)
+                    }
+                }
             } else if let nested = value as? Error {
                 parts.append(nested.localizedDescription)
+            }
+        }
+        if let ckError = error as? CKError, let partial = ckError.partialErrorsByItemID {
+            for nested in partial.values {
+                parts.append(diagnosticText(for: nested))
             }
         }
         return parts.joined(separator: "\n").lowercased()

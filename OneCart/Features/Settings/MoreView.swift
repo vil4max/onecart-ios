@@ -55,10 +55,10 @@ struct AccountView: View {
                         }
                         .disabled(isSharing || !model.isOnline)
 
-                        Button(role: .destructive) {
+                        Button {
                             confirmingDeleteCart = true
                         } label: {
-                            Label("account.delete_cart", systemImage: "trash")
+                            Label("account.delete_cart", systemImage: "arrow.triangle.2.circlepath")
                         }
                         .disabled(model.isBusy || !model.isOnline)
                     }
@@ -192,6 +192,7 @@ struct AccountView: View {
     private func shareCart() {
         guard !isSharing else { return }
         isSharing = true
+        CartSyncLog.action.info("shareCart UI start")
         let work = Task { @MainActor in
             defer { isSharing = false }
             do {
@@ -204,11 +205,21 @@ struct AccountView: View {
                 }
                 guard !Task.isCancelled else { return }
                 sharePayload = CartSharePayload(link: link)
+                CartSyncLog.action.info(
+                    "shareCart UI done host=\(link.url.host ?? "-", privacy: .public)"
+                )
             } catch is CancellationError {
+                CartSyncLog.action.info("shareCart UI cancelled")
                 return
             } catch {
-                shareAlert = (error as? LocalizedError)?.errorDescription
-                    ?? error.localizedDescription
+                CartSyncLog.action.error(
+                    "shareCart UI fail error=\(error.localizedDescription, privacy: .public)"
+                )
+                if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+                    shareAlert = CloudKitUserFacingError.productionSchemaMissing
+                } else {
+                    shareAlert = model.userFacingMessage(for: error)
+                }
             }
         }
         Task { @MainActor in
@@ -217,6 +228,7 @@ struct AccountView: View {
             if isSharing {
                 work.cancel()
                 isSharing = false
+                CartSyncLog.action.error("shareCart UI timeout")
                 shareAlert = OneCartCloudKitError.shareTimedOut.errorDescription
             }
         }

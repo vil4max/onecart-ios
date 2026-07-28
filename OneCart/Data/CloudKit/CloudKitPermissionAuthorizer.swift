@@ -5,6 +5,7 @@ import OSLog
 enum CartSyncLog {
     static let cart = Logger(subsystem: "com.vil555tim.onecart", category: "CartSync")
     static let shareACL = Logger(subsystem: "com.vil555tim.onecart", category: "ShareACL")
+    static let action = Logger(subsystem: "com.vil555tim.onecart", category: "Action")
 }
 
 final class CloudKitPermissionAuthorizer: PermissionAuthorizing {

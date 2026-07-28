@@ -139,6 +139,12 @@ final class CloudKitBackendService {
         guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
+        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
+            CartSyncLog.shareACL.error(
+                "removeMember skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
+            )
+            throw OneCartCloudKitError.shareEnvironmentMismatch
+        }
         guard let participant = share.participants.first(where: {
             let recordName = $0.userIdentity.userRecordID?.recordName
                 ?? $0.userIdentity.lookupInfo?.emailAddress
@@ -156,6 +162,9 @@ final class CloudKitBackendService {
         guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
+        CartSyncLog.shareACL.info(
+            "leaveFamily begin record=\(share.recordID.recordName, privacy: .public) env=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
+        )
         let sharedStore = try persistence.store(for: .shared)
         try await withCheckedThrowingContinuation { (
             continuation: CheckedContinuation<Void, Error>
@@ -176,6 +185,12 @@ final class CloudKitBackendService {
     @discardableResult
     func ensureReadWriteACL(for family: FamilySpace) async throws -> Bool {
         guard let share = try share(for: family) else { return false }
+        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
+            CartSyncLog.shareACL.error(
+                "ensureReadWriteACL skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
+            )
+            return false
+        }
         var needsPersist = false
         if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
             needsPersist = true
@@ -190,24 +205,37 @@ final class CloudKitBackendService {
     }
 
     func stopSharing(_ family: FamilySpace) async throws {
+        try await stopSharing(objectID: family.objectID)
+    }
+
+    func stopSharing(objectID: NSManagedObjectID) async throws {
         if persistence.inMemory { return }
-        guard let share = try share(for: family) else { return }
+        guard let share = try share(forObjectID: objectID) else {
+            CartSyncLog.shareACL.info("stopSharing skip no-share")
+            return
+        }
+        let shareEnv = CloudKitShareEnvironment.of(share)
+        CartSyncLog.shareACL.info(
+            "stopSharing begin record=\(share.recordID.recordName, privacy: .public) shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public) hasURL=\(share.url != nil) diagnostic=\(CloudKitShareEnvironment.diagnostic(for: share), privacy: .public)"
+        )
+        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
+            CartSyncLog.shareACL.error(
+                "stopSharing skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
+            )
+            return
+        }
         share.publicPermission = .none
         for participant in share.participants where participant.role != .owner {
             share.removeParticipant(participant)
         }
         let store = try persistence.store(for: .private)
-        _ = try? await persist(share, in: store)
-        try await withCheckedThrowingContinuation { (
-            continuation: CheckedContinuation<Void, Error>
-        ) in
-            cloudContainer.privateCloudDatabase.delete(withRecordID: share.recordID) { _, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
+        do {
+            _ = try await persist(share, in: store, timeoutNanoseconds: 8_000_000_000)
+            CartSyncLog.shareACL.info("stopSharing persist done")
+        } catch {
+            CartSyncLog.shareACL.error(
+                "stopSharing persist soft-fail error=\(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
@@ -219,7 +247,34 @@ final class CloudKitBackendService {
         try persistence.container.fetchShares(matching: [objectID])[objectID]
     }
 
-    private func persist(_ share: CKShare, in store: NSPersistentStore) async throws -> CKShare {
+    private func persist(
+        _ share: CKShare,
+        in store: NSPersistentStore,
+        timeoutNanoseconds: UInt64 = 22_000_000_000
+    ) async throws -> CKShare {
+        try await withThrowingTaskGroup(of: CKShare.self) { group in
+            group.addTask {
+                try await self.persistWithoutTimeout(share, in: store)
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                throw OneCartCloudKitError.shareTimedOut
+            }
+            do {
+                let saved = try await group.next()!
+                group.cancelAll()
+                return saved
+            } catch {
+                group.cancelAll()
+                throw error
+            }
+        }
+    }
+
+    private func persistWithoutTimeout(
+        _ share: CKShare,
+        in store: NSPersistentStore
+    ) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
             persistence.container.persistUpdatedShare(share, in: store) { savedShare, error in
                 if let error {

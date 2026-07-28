@@ -87,13 +87,17 @@ final class PersistenceController: @unchecked Sendable {
         )
     }
 
+    private static let cloudKitLocalEnvironmentKey = "onecart.cloudkit-local-environment"
+
     func load() async throws {
         if isLoaded {
             return
         }
 
         do {
+            try reconcileCloudKitEnvironmentBeforeLoad()
             try await loadPersistentStoresOnce()
+            stampCloudKitEnvironmentAfterSuccessfulLoad()
         } catch {
             logger.error(
                 "Persistent store load failed; preserving store files: \(error.localizedDescription, privacy: .public)"
@@ -448,6 +452,69 @@ final class PersistenceController: @unchecked Sendable {
         }
 
         return description
+    }
+
+    static func shouldWipeLocalStoresForCloudKitEnvironment(
+        previous: String?,
+        current: String,
+        storeFilesExist: Bool,
+        isDebugProcess: Bool
+    ) -> Bool {
+        _ = storeFilesExist
+        _ = isDebugProcess
+        guard let previous else { return false }
+        return previous != current
+    }
+
+    private func reconcileCloudKitEnvironmentBeforeLoad() throws {
+        guard !inMemory, cloudKitEnabled else { return }
+
+        let current = CloudKitShareEnvironment.process.rawValue
+        let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
+        let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
+        #if DEBUG
+        let isDebugProcess = true
+        #else
+        let isDebugProcess = false
+        #endif
+
+        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(
+            previous: previous,
+            current: current,
+            storeFilesExist: storeFilesExist,
+            isDebugProcess: isDebugProcess
+        ) else { return }
+
+        logger.error(
+            "CloudKit env mismatch wipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public) storeFilesExist=\(storeFilesExist)"
+        )
+        CartSyncLog.action.error(
+            "cloudKitEnvWipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public)"
+        )
+        _ = try? copyStoreFilesForDiagnostics()
+        Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
+        UserDefaults.standard.removeObject(forKey: Self.cloudKitLocalEnvironmentKey)
+    }
+
+    private func stampCloudKitEnvironmentAfterSuccessfulLoad() {
+        guard !inMemory, cloudKitEnabled else { return }
+        UserDefaults.standard.set(
+            CloudKitShareEnvironment.process.rawValue,
+            forKey: Self.cloudKitLocalEnvironmentKey
+        )
+    }
+
+    private static func oneCartStoreFilesExist(in directory: URL) -> Bool {
+        let fileManager = FileManager.default
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        ) else { return false }
+        return contents.contains { url in
+            let name = url.lastPathComponent.lowercased()
+            guard name.hasPrefix("onecart-") else { return false }
+            return !name.hasPrefix("onecart-diagnostics")
+        }
     }
 
     private static func removeAllOneCartStoreFiles(in directory: URL) {

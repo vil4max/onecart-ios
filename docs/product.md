@@ -54,11 +54,11 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add); pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Purchase sessions (month sections, last 30 + show more) |
-| **Аккаунт** | Participants, share cart (owner), **Delete cart** (owner), leave (member), sign out |
+| **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
 
-Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Delete cart rotates the invite link.
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Recreate cart rotates the invite link.
 
-Nav titles: `🛒 Моя корзина` when alone; `👨‍👩‍👧‍👦 Общая корзина` when `familyMembers.count >= 2`.
+Nav title is the cart name (e.g. `Tim's Cart`) — set from the owner's display name when the household cart is created.
 
 ## User flow
 
@@ -88,12 +88,12 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 - Display name, avatar, banner: **device-local** — not in CloudKit.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
-- Owner **Delete cart**: stop share → archive local family → create a new household cart; invitees whose shared cart disappears fall back to a private cart with an alert.
+- Owner **Recreate cart**: stop share → archive local family → create a new household cart; success alert confirms the new cart name; invitees whose shared cart disappears fall back to a private cart with an alert.
 - Failures use a system alert (`OK`), not toast/banner chrome.
 
 ## Default cart identity
 
-- Nav display: `cart.mine_title` / `cart.shared_title` (computed from member count).
+- Nav / invite name: `cart.owner_title %@` (e.g. `Tim's Cart`) from the owner's display name at create time; title reads `FamilySpace.displayName`.
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app or Delete cart for a clean TestFlight start — see [legacy.md](legacy.md).
 - `cart.default_title` remains for defaults/tests.
