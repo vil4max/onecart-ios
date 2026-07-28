@@ -114,11 +114,10 @@ enum FamilyInviteLinkBuilder {
             try Task.checkCancellation()
             if attempt > 0 {
                 try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
-                let delayNanoseconds: UInt64
-                if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
-                    delayNanoseconds = UInt64(seconds * 1_000_000_000)
+                let delayNanoseconds = if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
+                    UInt64(seconds * 1_000_000_000)
                 } else {
-                    delayNanoseconds = UInt64(800_000_000 * attempt)
+                    UInt64(800_000_000 * attempt)
                 }
                 try await Task.sleep(nanoseconds: delayNanoseconds)
             }

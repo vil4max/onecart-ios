@@ -5,16 +5,18 @@ import XCTest
 
 final class CartItemsTests: XCTestCase {
     func testTogglePurchasedSetsAndClearsBuyer() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
+        let (persistence, repository) = try await makeInMemoryRepository()
         let (_, listID, productID) = try await seedCart(repository: repository)
 
         try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
+        persistence.container.viewContext.refreshAllObjects()
         var product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.purchasedByName, "Анна")
         XCTAssertNotNil(product.purchasedAt)
 
         try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
+        persistence.container.viewContext.refreshAllObjects()
         product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
         XCTAssertFalse(product.isPurchasedValue)
         XCTAssertNil(product.purchasedByName)

@@ -64,7 +64,8 @@ final class CartSyncService: ObservableObject {
             }
             contentRevision &+= 1
             await onInviteeSharedGone?()
-            CartSyncLog.cart.info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(self.contentRevision)")
+            CartSyncLog.cart
+                .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(self.contentRevision)")
         } catch {
             CartSyncLog.cart.error(
                 "syncCart failed reason=\(reason.rawValue, privacy: .public) error=\(error.localizedDescription, privacy: .public)"

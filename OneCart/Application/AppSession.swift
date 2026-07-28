@@ -182,15 +182,15 @@ final class AppSession: ObservableObject {
         }
         cartSync.onHardRefresh = { [weak self] in
             guard let self else { return }
-            try CartSyncService.resetViewContextAndRefetch(persistence: self.persistence) {
+            try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {
                 try self.reload()
             }
         }
         cartSync.onOwnerACLHeal = { [weak self] in
-            guard let self, let family = self.activeFamilySpace else { return }
-            await self.shareOrchestrator.ensureOwnerReadWriteACL(
+            guard let self, let family = activeFamilySpace else { return }
+            await shareOrchestrator.ensureOwnerReadWriteACL(
                 for: family,
-                isOwner: self.access?.isOwner == true
+                isOwner: access?.isOwner == true
             )
         }
         cartSync.onInviteeSharedGone = { [weak self] in
@@ -198,8 +198,8 @@ final class AppSession: ObservableObject {
         }
         cartSync.purchasedCountProvider = { [weak self] in
             guard let self else { return (0, 0) }
-            let total = self.products.count
-            let purchased = self.products.filter(\.isPurchasedValue).count
+            let total = products.count
+            let purchased = products.filter(\.isPurchasedValue).count
             return (purchased, total)
         }
     }

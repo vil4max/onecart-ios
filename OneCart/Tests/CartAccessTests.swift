@@ -101,7 +101,7 @@ final class CartAccessTests: XCTestCase {
 
         persistence.container.viewContext.processPendingChanges()
 
-        let memberIDs = Set(try repository.fetchFamilySpaces(for: memberID).compactMap(\.id))
+        let memberIDs = try Set(repository.fetchFamilySpaces(for: memberID).compactMap(\.id))
         XCTAssertEqual(memberIDs, [privateID, sharedID])
 
         let ownerIDs = try repository.fetchFamilySpaces(for: ownerID).compactMap(\.id)

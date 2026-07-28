@@ -62,7 +62,7 @@ final class PersistenceController: @unchecked Sendable {
         self.storeDirectoryURL = storeDirectoryURL
             ?? (inMemory
                 ? FileManager.default.temporaryDirectory
-                    .appendingPathComponent("OneCartInMemory-\(UUID().uuidString)", isDirectory: true)
+                .appendingPathComponent("OneCartInMemory-\(UUID().uuidString)", isDirectory: true)
                 : NSPersistentContainer.defaultDirectoryURL())
 
         do {

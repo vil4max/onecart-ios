@@ -26,10 +26,10 @@ final class PersistenceRoutingTests: XCTestCase {
         persistence.container.viewContext.processPendingChanges()
 
         let privateScope = try XCTUnwrap(
-            persistence.scope(for: try XCTUnwrap(repository.fetchFamilySpace(id: privateID)))
+            try persistence.scope(for: XCTUnwrap(repository.fetchFamilySpace(id: privateID)))
         )
         let sharedScope = try XCTUnwrap(
-            persistence.scope(for: try XCTUnwrap(repository.fetchFamilySpace(id: sharedID)))
+            try persistence.scope(for: XCTUnwrap(repository.fetchFamilySpace(id: sharedID)))
         )
         XCTAssertEqual(privateScope, .private)
         XCTAssertEqual(sharedScope, .shared)
