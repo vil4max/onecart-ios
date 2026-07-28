@@ -4,7 +4,7 @@
 
 Default locale shots are **English** (app `developmentRegion = en`), light + dark.
 
-Upload order (first 3 = install sheet):
+Upload order (first 3 = install sheet). **One theme is enough** — current set is dark only:
 
 | # | File in `asc-6.5/` | Theme | Screen |
 |---|--------------------|-------|--------|
@@ -12,11 +12,9 @@ Upload order (first 3 = install sheet):
 | 2 | `02-cart-dark.png` | dark | Cart |
 | 3 | `03-history-dark.png` | dark | History |
 | 4 | `04-account-dark.png` | dark | Account |
-| 5 | `05-welcome-light.png` | light | Welcome |
-| 6 | `06-cart-light.png` | light | Cart |
-| 7 | `07-history-light.png` | light | History |
-| 8 | `08-account-light.png` | light | Account |
+
+Optional light set (`05`–`08`) can be added later.
 
 Folders: [`asc-6.5/dark/`](asc-6.5/dark/), [`asc-6.5/light/`](asc-6.5/light/). Raw: [`raw/`](raw/) (`en-*`).
 
-Captured with sim language `en`, status bar 09:41, ~2.8s after launch. Demo: `-oneCartDemoUI` / `-oneCartDemoTab`.
+Captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**. Demo: `-oneCartDemoUI` / `-oneCartDemoTab`.

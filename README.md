@@ -8,6 +8,17 @@ This is a **father–son pet project**: we build and ship a real iOS app togethe
 
 Keep that framing **here** (README / contributor docs). Do **not** put “learning project”, “demo for my kid”, classroom, or similar wording in App Store Connect metadata, review notes, screenshots, or in-app marketing copy — describe OneCart as a normal family shopping cart product so Review does not treat the listing as incomplete or non-app content.
 
+## Screenshots
+
+<p>
+  <img src="assets/store/screenshots/asc-6.5/01-welcome-dark.png" alt="Welcome" width="180" />
+  <img src="assets/store/screenshots/asc-6.5/02-cart-dark.png" alt="Cart" width="180" />
+  <img src="assets/store/screenshots/asc-6.5/03-history-dark.png" alt="History" width="180" />
+  <img src="assets/store/screenshots/asc-6.5/04-account-dark.png" alt="Account" width="180" />
+</p>
+
+Store masters and ASC sizes: [`assets/store/`](assets/store/).
+
 ## Stack
 
 - SwiftUI, iOS 26+
