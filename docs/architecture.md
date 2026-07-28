@@ -26,7 +26,11 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 | Type | Role |
 |------|------|
-| `CartSyncService` | `syncCart(reason:)`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
+| `SessionBootstrapper` | SIWA restore / welcome retry; Core Data wipe only on typed store failure |
+| `CartContentStore` | lists / products / history pages; reload after viewContext reset |
+| `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
+| `CloudSyncCoordinator` | CloudKit observers, connectivity, scheduled reload, maps sync outcome → `syncState` / alerts |
+| `ProfileStore` | device-local avatar/banner via `ProfileMediaStore` (not CloudKit) |
 | `FamilyShareOrchestrator` | invite link creation, owner ACL heal, delete cart + recreate |
 | `FamilySpaceRepository` | local CRUD / purchase sessions |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
@@ -37,23 +41,52 @@ Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/AppSession.swift` | Composition root: auth, published cart state, CloudKit observers, alerts |
+| `OneCart/Application/AppSession.swift` | Composition root: published session + View wrappers |
+| `OneCart/Application/SessionBootstrapper.swift` | Welcome / prepare / explicit wipe gate |
+| `OneCart/Application/CartContentStore.swift` | Cart content + history page size 30 / loadMore |
 | `OneCart/Application/CartSyncService.swift` | Hard cart refresh / sync chrome state |
+| `OneCart/Application/CloudSyncCoordinator.swift` | Observers, connectivity, sync outcome application |
+| `OneCart/Application/ProfileStore.swift` | Device-local profile media |
 | `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / delete-and-recreate |
 | `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
 | `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
 | `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert |
 | `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
-| `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; viewContext StoreTrump merge |
+| `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; non-destructive `load()` |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `completePurchased` (checked items → session) |
 | `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
 | `OneCart/Features/Shopping/ShoppingViews.swift` | Cart home, list, toggle, quick add, nav sync title |
-| `OneCart/Features/Shopping/HistoryViews.swift` | History list + detail |
+| `OneCart/Features/Shopping/HistoryViews.swift` | History list + detail (`historyHasMore` / load more) |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
 | `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / delete cart / sign out |
 | `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart (sheet helpers) |
+
+## Trade-offs (recovery / sync)
+
+| Choice | Why |
+|--------|-----|
+| `load()` never auto-wipes | Offline SQLite must survive transient open failures; wipe only from welcome retry after Core Data failure + diagnostics copy |
+| `CartSyncOutcome` + failed ≠ synchronized | UI must not show “ok” after hard-refresh throws |
+| History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
+| Profile media device-local | Photos stay off CloudKit; shopping data syncs separately |
+| NC09: no pre-merge GitHub Actions | Xcode Cloud release-only for this personal train |
+
+## Fragile-test matrix (living checklist)
+
+| ID | Invariant | Tests |
+|----|-----------|-------|
+| F1 | Failed `load()` does not destroy store files | `FragileStoreLoadTests.testLoadFailureDoesNotDestroyStoreFiles` |
+| F2 | Explicit wipe only on Core Data welcome failure | `testIsUserFacingCoreDataFailureIgnoresCloudKit`, `testRetryWelcomeDoesNotWipeUnlessCoreDataFailure`, `testShouldHardResetStoresOnlyForCoreDataWelcomeFailure` |
+| F3 | Diagnostics snapshot before explicit hard reset | `testDiagnosticsSnapshotCreatedBeforeExplicitHardReset` |
+| F4 | Sync failure → `.failed`, not fake synchronized | `FragileSyncOutcomeTests.testSyncCartPullFailureSetsFailedState` (+ appear no alert) |
+| F5 | After `viewContext.reset`, products republish | `SharedCartJoinTests.testRefreshFromServerPicksUpToggledPurchasedState`, `testCartContentStorePublishesAfterReload` |
+| F6 | Shared join/adopt order | `SharedCartJoinTests` (hard gate) |
+| F7 | Permission deny ≠ sync fail message | Fragile sync + `CartAccessTests` selective permission |
+| F8 | CartContentStore publish after reload | `testCartContentStorePublishesAfterReload` |
+| F9 | History default page 30 + loadMore appends | `HistoryPaginationTests` |
+| F10 | New Application files in Sources | Stage DoD via `test_sim` compile |
 
 ## Purchase completion
 

@@ -127,6 +127,9 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - FU09 Catalog-first add / WebKit price refresh as optional path (not blocking quick name add)
 - FU10 Rich product editor fields (qty/unit/price/notes) behind a secondary “details” action
 - FU11 Optional Settings surface (appearance) only if system appearance proves insufficient
+- FU12 Pre-merge GitHub Actions (blocked by NC09 for this train; Xcode Cloud release-only)
+- FU13 Swift 6 language mode / strict concurrency across targets
+- FU14 MetricKit / XCUITest smoke beyond unit fragile suite
 
 ### RC16 — Stability-first minimal shell (docs + UX)
 - Status: done (this train)
@@ -217,6 +220,13 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: unit tests green; Max check → Tim pull/appear sees trolley counts; Tim edits without permission alert; Max Delete cart → Tim fallback alert + new Share URL; files under CloudKit/ and Shopping/ are smaller than pre-split monoliths
 - Do not invent scope: no GitHub Actions / Xcode Cloud config change (see NC09); no MetricKit/XCUITest/Swift 6 strict; no revert of link-join `.readWrite`
 
+### RC30 — Recovery sync safety + session split + history pages
+- Status: done (this train)
+- Paths: `PersistenceController.swift`, `CartSyncService.swift`, `CartContentStore.swift`, `SessionBootstrapper.swift`, `CloudSyncCoordinator.swift`, `ProfileStore.swift`, `AppSession.swift`, `HistoryViews.swift`, `FragileStoreLoadTests.swift`, `FragileSyncOutcomeTests.swift`, `HistoryPaginationTests.swift`, `ProfileStoreTests.swift`, `docs/architecture.md`, `docs/review-changelog.md`
+- What changed: non-destructive store `load()` + diagnostics before explicit wipe; `CartSyncOutcome` so failed hard-refresh ≠ synchronized; extracted bootstrap / content / cloud sync / profile stores; history fetch page size 30 + `loadMoreHistory`; fragile-test matrix documented
+- How to verify: F1–F10 green via `test_sim`; grep checklist — no `hardReset` in `load()` / `prepare`; sync failure leaves `.failed`
+- Do not invent scope: NC09 still no pre-merge GitHub Actions; Swift 6 strict and MetricKit remain FU
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
@@ -226,4 +236,5 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; invitee can add/check items (not readOnly); errors via system alert
 - Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
 - Manual (RC29): Max marks items → Tim appear/pull sees Updating + matching trolley counts; owner Delete cart rotates link
+- Manual (RC30): failed sync shows failed state (not “synced”); welcome network retry does not wipe SQLite; History “show more” loads next page
 - See also [release.md](release.md) § Preflight + §3

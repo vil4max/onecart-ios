@@ -2,7 +2,7 @@
 
 | Doc | Audience | Contents |
 |-----|----------|----------|
-| [architecture.md](architecture.md) | agents / contributors | MVVM layout, owner files (incl. CartSync / CloudKit split), Core Data + CloudKit stores, three-tab shell |
+| [architecture.md](architecture.md) | agents / contributors | MVVM layout, owner files (CartSync / bootstrap / content / cloud sync split), fragile-test matrix F1–F10, Core Data + CloudKit stores |
 | [product.md](product.md) | product + agents | **Thesis**, living cart, trolley metaphor, sessions, Household vs Apple Family |
 | [release.md](release.md) | owner | Apple Developer, CloudKit Production, TestFlight / Xcode Cloud, two-device QA |
 | [legacy.md](legacy.md) | owner | Pre-ASC wipe / Delete cart; SQLite reuse; Supabase cleanup |
