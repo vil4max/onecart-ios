@@ -32,31 +32,34 @@
 
         @MainActor
         static func seed(_ model: AppModel) async {
-            guard let list = model.activeLists.first else { return }
+            guard let listID = model.activeLists.first?.id else { return }
 
-            for name in ["Молоко", "Хлеб", "Яблоки", "Кофе"] {
+            for name in ["Milk", "Bread", "Apples", "Coffee"] {
+                guard let list = model.activeLists.first(where: { $0.id == listID }) else { return }
                 await model.addProduct(to: list, draft: draft(named: name))
             }
-            for product in purchasable(in: list, from: model).prefix(3) {
+            for product in purchasable(listID: listID, from: model).prefix(3) {
                 await model.togglePurchased(product)
             }
-            await model.completePurchasedItems(list)
+            if let list = model.activeLists.first(where: { $0.id == listID }) {
+                await model.completePurchasedItems(list)
+            }
 
-            for name in ["Сыр", "Помидоры", "Стиральный порошок", "Апельсиновый сок"] {
+            for name in ["Cheese", "Tomatoes", "Laundry detergent", "Orange juice"] {
+                guard let list = model.activeLists.first(where: { $0.id == listID }) else { return }
                 await model.addProduct(to: list, draft: draft(named: name))
             }
-            for product in purchasable(in: list, from: model).prefix(2) {
+            for product in purchasable(listID: listID, from: model).prefix(2) {
                 await model.togglePurchased(product)
             }
         }
 
         @MainActor
         private static func purchasable(
-            in list: ShoppingListEntity,
+            listID: UUID,
             from model: AppModel
         ) -> [ProductEntity] {
-            guard let id = list.id else { return [] }
-            return model.products(inListID: id).filter { !$0.isPurchasedValue }
+            model.products(inListID: listID).filter { !$0.isPurchasedValue }
         }
 
         private static func draft(named name: String) -> ProductDraft {
@@ -87,7 +90,7 @@
         private var credential = AppleSignInCredential(
             userID: "onecart-demo-user",
             email: nil,
-            givenName: "Максим",
+            givenName: "Max",
             familyName: nil
         )
 

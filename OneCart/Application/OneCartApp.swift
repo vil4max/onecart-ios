@@ -35,12 +35,17 @@ private struct OneCartScene: View {
             .preferredColorScheme(nil)
             .task {
                 guard !Self.isRunningUnitTests else { return }
-                await model.start()
-                #if DEBUG
-                    if DemoUIMode.isEnabled {
-                        await DemoUIMode.seed(model)
+                if Self.bootstrapTask == nil {
+                    Self.bootstrapTask = Task { @MainActor in
+                        await model.start()
+                        #if DEBUG
+                            if DemoUIMode.isEnabled {
+                                await DemoUIMode.seed(model)
+                            }
+                        #endif
                     }
-                #endif
+                }
+                await Self.bootstrapTask?.value
             }
             .onChange(of: scenePhase) { _, newPhase in
                 guard !Self.isRunningUnitTests else { return }
@@ -56,4 +61,7 @@ private struct OneCartScene: View {
     private static var isRunningUnitTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
+
+    @MainActor
+    private static var bootstrapTask: Task<Void, Never>?
 }
