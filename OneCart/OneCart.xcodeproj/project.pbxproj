@@ -25,7 +25,6 @@
 		A20000000000000000000040 /* LaunchChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* LaunchChrome.swift */; };
 		A2000000000000000000000A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* HomeView.swift */; };
 		A20000000000000000000036 /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* ShoppingListView.swift */; };
-		A20000000000000000000037 /* QuickAddProductSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* QuickAddProductSheet.swift */; };
 		A2000000000000000000000E /* ProductMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* ProductMedia.swift */; };
 		A20000000000000000000010 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* ProfileView.swift */; };
 		A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* FamilyCartMergeTests.swift */; };
@@ -120,7 +119,6 @@
 		A10000000000000000000040 /* LaunchChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchChrome.swift; sourceTree = "<group>"; };
 		A1000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A10000000000000000000036 /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
-		A10000000000000000000037 /* QuickAddProductSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddProductSheet.swift; sourceTree = "<group>"; };
 		A1000000000000000000000E /* OneCartTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneCartTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000000000000000000F /* OneCartDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OneCartDebug.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000010 /* ProductMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductMedia.swift; sourceTree = "<group>"; };
@@ -172,7 +170,6 @@
 		A10000000000000000000039 /* HouseholdEnsureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdEnsureTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000008 /* FamilyShareOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyShareOrchestrator.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
-		A10000000000000000000043 /* HistoryDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailViews.swift; sourceTree = "<group>"; };
 		A10000000000000000000043 /* HistoryDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailViews.swift; sourceTree = "<group>"; };
 		D1000000000000000000000A /* CartChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartChromeViews.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* OneCartStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartStableID.swift; sourceTree = "<group>"; };
@@ -344,7 +341,6 @@
 			children = (
 				A1000000000000000000000A /* HomeView.swift */,
 				A10000000000000000000036 /* ShoppingListView.swift */,
-				A10000000000000000000037 /* QuickAddProductSheet.swift */,
 				D10000000000000000000009 /* HistoryViews.swift */,
 				A10000000000000000000043 /* HistoryDetailViews.swift */,
 				D1000000000000000000000A /* CartChromeViews.swift */,
@@ -598,7 +594,6 @@
 				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
 				A2000000000000000000000A /* HomeView.swift in Sources */,
 				A20000000000000000000036 /* ShoppingListView.swift in Sources */,
-				A20000000000000000000037 /* QuickAddProductSheet.swift in Sources */,
 				A20000000000000000000016 /* CartManagementSheet.swift in Sources */,
 				A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */,
 				A20000000000000000000017 /* CartShareViewModel.swift in Sources */,

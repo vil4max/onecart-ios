@@ -2,57 +2,43 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var pendingDelete: PurchaseHistoryEntity?
+    @State private var pendingDeleteDay: HistoryDayGroup?
 
-    private var groupedHistory: [(month: Date, entries: [PurchaseHistoryEntity])] {
-        let grouped = Dictionary(grouping: model.history) { entry in
-            let components = Calendar.current.dateComponents(
-                [.year, .month],
-                from: entry.purchaseDate
-            )
-            return Calendar.current.date(from: components) ?? entry.purchaseDate
-        }
-        return grouped
-            .map { (month: $0.key, entries: $0.value) }
-            .sorted { $0.month > $1.month }
+    private var dayGroups: [HistoryDayGroup] {
+        HistoryDayGroup.groups(from: model.history)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if model.history.isEmpty {
+                    Text("history.how_it_works")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isStaticText)
+
+                    if dayGroups.isEmpty {
                         EmptyCard(
                             image: "clock",
                             title: String(localized: "history.empty_title"),
                             message: String(localized: "history.empty_message")
                         )
                     } else {
-                        ForEach(groupedHistory, id: \.month) { group in
-                            Section {
-                                VStack(spacing: 12) {
-                                    ForEach(group.entries, id: \.objectID) { entry in
-                                        NavigationLink {
-                                            HistoryDetailView(entry: entry)
-                                        } label: {
-                                            HistoryEntryCard(entry: entry)
-                                        }
-                                        .buttonStyle(HomePressButtonStyle())
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                pendingDelete = entry
-                                            } label: {
-                                                Label("history.delete_entry", systemImage: "trash")
-                                            }
-                                            .disabled(!model.canEdit)
-                                        }
-                                    }
+                        ForEach(dayGroups) { group in
+                            NavigationLink {
+                                HistoryDayDetailView(group: group)
+                            } label: {
+                                HistoryDayCard(group: group)
+                            }
+                            .buttonStyle(HomePressButtonStyle())
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    pendingDeleteDay = group
+                                } label: {
+                                    Label("history.delete_day", systemImage: "trash")
                                 }
-                            } header: {
-                                Text(group.month.formatted(.dateTime.month(.wide).year()))
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                    .textCase(nil)
+                                .disabled(!model.canEdit)
                             }
                         }
 
@@ -75,69 +61,103 @@ struct HistoryView: View {
             .navigationTitle("history.nav_title")
             .navigationBarTitleDisplayMode(.inline)
             .alert(
-                "history.delete_title",
+                "history.delete_day_title",
                 isPresented: Binding(
-                    get: { pendingDelete != nil },
-                    set: { if !$0 { pendingDelete = nil } }
+                    get: { pendingDeleteDay != nil },
+                    set: { if !$0 { pendingDeleteDay = nil } }
                 )
             ) {
-                Button("common.cancel", role: .cancel) { pendingDelete = nil }
+                Button("common.cancel", role: .cancel) { pendingDeleteDay = nil }
                 Button("common.delete", role: .destructive) {
-                    if let pendingDelete {
-                        Task { await model.deleteHistory(pendingDelete) }
+                    if let pendingDeleteDay {
+                        Task { await model.deleteHistoryItems(pendingDeleteDay.items) }
                     }
-                    pendingDelete = nil
+                    pendingDeleteDay = nil
                 }
+            } message: {
+                Text("history.delete_day_message")
             }
         }
     }
 }
 
-private struct HistoryEntryCard: View {
-    let entry: PurchaseHistoryEntity
+struct HistoryDayGroup: Identifiable {
+    let dayStart: Date
+    let items: [HistoryItemEntity]
+
+    var id: Date { dayStart }
+
+    var title: String {
+        HistoryDayFormatting.title(for: dayStart)
+    }
+
+    static func groups(
+        from entries: [PurchaseHistoryEntity],
+        calendar: Calendar = .current
+    ) -> [HistoryDayGroup] {
+        let items = entries.flatMap(\.sortedItems)
+        let grouped = Dictionary(grouping: items) { item in
+            calendar.startOfDay(for: item.purchaseMoment)
+        }
+        return grouped
+            .map { dayStart, dayItems in
+                HistoryDayGroup(
+                    dayStart: dayStart,
+                    items: dayItems.sorted {
+                        $0.displayName.localizedCaseInsensitiveCompare($1.displayName)
+                            == .orderedAscending
+                    }
+                )
+            }
+            .sorted { $0.dayStart > $1.dayStart }
+    }
+}
+
+enum HistoryDayFormatting {
+    static func title(for dayStart: Date, calendar: Calendar = .current, now: Date = Date()) -> String {
+        if calendar.isDate(dayStart, inSameDayAs: now) {
+            return String(localized: "history.day_today")
+        }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)),
+           calendar.isDate(dayStart, inSameDayAs: yesterday)
+        {
+            return String(localized: "history.day_yesterday")
+        }
+        return dayStart.formatted(.dateTime.weekday(.wide).day().month(.wide))
+    }
+}
+
+private struct HistoryDayCard: View {
+    let group: HistoryDayGroup
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(entry.purchaseDate.formatted(date: .omitted, time: .shortened))
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(OneCartPalette.primaryAccent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        OneCartPalette.primarySoft,
-                        in: Capsule(style: .continuous)
-                    )
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(group.title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text("history.items_count \(group.items.count)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
                 Spacer(minLength: 8)
+
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
 
-            HStack(spacing: 12) {
-                Image(systemName: "cart.fill")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(OneCartPalette.primaryAccent)
-                    .frame(width: 48, height: 48)
-                    .background(
-                        OneCartPalette.primarySoft,
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.membersDisplay)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                    Text("history.items_count \(entry.sortedItems.count)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 8)
-            }
+            Text(productNamesLine)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             OneCartPalette.surface,
@@ -149,5 +169,9 @@ private struct HistoryEntryCard: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    private var productNamesLine: String {
+        group.items.map(\.displayName).joined(separator: ", ")
     }
 }

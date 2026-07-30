@@ -1,16 +1,21 @@
 import SwiftUI
 
+private enum CartNameFocus: Hashable {
+    case compose
+    case edit
+}
+
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppModel
     let listID: UUID
 
     @State private var isComposingNewItem = false
     @State private var draftName = ""
-    @FocusState private var draftFocused: Bool
-    @State private var editingProduct: ProductEntity?
-    @State private var isCompletingPurchase = false
+    @State private var editingProductID: UUID?
+    @State private var editName = ""
+    @FocusState private var focusedField: CartNameFocus?
     @State private var isAddingDraft = false
-    @State private var toastMessage: String?
+    @State private var isSavingEdit = false
 
     init(listID: UUID) {
         self.listID = listID
@@ -40,6 +45,10 @@ struct ShoppingListView: View {
         draftName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var trimmedEditName: String {
+        editName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var showsEmptyCard: Bool {
         products.isEmpty && !isComposingNewItem
     }
@@ -49,6 +58,10 @@ struct ShoppingListView: View {
             return "\(String(localized: "home.empty_hint")) \(String(localized: "home.empty_hint_share"))"
         }
         return String(localized: "home.empty_hint")
+    }
+
+    private var isInlineBusy: Bool {
+        isAddingDraft || isSavingEdit || isComposingNewItem || editingProductID != nil
     }
 
     var body: some View {
@@ -83,8 +96,14 @@ struct ShoppingListView: View {
                         }
 
                         if !inTrolleyProducts.isEmpty {
-                            Section("cart.section_in_trolley") {
+                            Section {
                                 productRows(inTrolleyProducts)
+                            } header: {
+                                Text("cart.section_in_trolley")
+                            } footer: {
+                                Text("cart.trolley_history_hint")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                     }
@@ -99,37 +118,29 @@ struct ShoppingListView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    cartPeerActions
+                    if model.canEdit {
+                        Color.clear.frame(height: 72)
+                    }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if model.canEdit {
+                        CartAddFAB {
+                            Task { await beginNewItem() }
+                        }
+                        .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 12)
+                    }
                 }
                 .refreshable {
                     await model.syncCart(reason: .pull)
                 }
-                .disabled(model.isBusy && !isAddingDraft && !isComposingNewItem)
+                .disabled(model.isBusy && !isInlineBusy)
                 .overlay {
-                    if model.isBusy, !isAddingDraft, !isComposingNewItem {
-                        CartBusyOverlay(
-                            messageKey: isCompletingPurchase ? "cart.completing" : "cart.updating"
-                        )
+                    if model.isBusy, !isInlineBusy {
+                        CartBusyOverlay(messageKey: "cart.updating")
                     }
                 }
-                .overlay(alignment: .top) {
-                    if let toastMessage {
-                        Text(toastMessage)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                OneCartPalette.surface,
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            )
-                            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-                            .padding(.top, 8)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                            .accessibilityAddTraits(.isStaticText)
-                    }
-                }
-                .animation(.easeInOut(duration: 0.2), value: toastMessage)
                 .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -153,9 +164,6 @@ struct ShoppingListView: View {
                 } message: {
                     Text(model.sharedCartRemovedMessage ?? "")
                 }
-                .sheet(item: $editingProduct) { product in
-                    QuickAddProductSheet(listID: listID, product: product)
-                }
             } else {
                 ContentUnavailableViewCompat(
                     image: "questionmark.folder",
@@ -168,13 +176,16 @@ struct ShoppingListView: View {
 
     private var newItemComposerRow: some View {
         HStack(spacing: 12) {
-            CartCategoryThumbnail(category: .other, isDimmed: false)
+            CartCategoryThumbnail(
+                category: ProductCategory.inferred(from: draftName),
+                isDimmed: false
+            )
 
             TextField("cart.add_placeholder", text: $draftName)
                 .font(.body)
-                .focused($draftFocused)
+                .focused($focusedField, equals: .compose)
                 .submitLabel(.done)
-                .onSubmit { Task { await commitDraftProduct(startAnother: true) } }
+                .onSubmit { Task { await commitDraftProduct(startAnother: false) } }
                 .disabled(isAddingDraft)
                 .accessibilityLabel(String(localized: "cart.add_a11y"))
         }
@@ -185,22 +196,30 @@ struct ShoppingListView: View {
             ProductRow(
                 product: product,
                 canEdit: model.canEdit,
+                isEditing: product.id == editingProductID,
+                editName: $editName,
+                editFocused: $focusedField,
+                isSavingEdit: isSavingEdit,
                 onToggle: {
                     Task {
                         await model.togglePurchased(product)
                     }
                 },
-                onEdit: {
-                    editingProduct = product
+                onBeginEdit: {
+                    beginEditing(product)
+                },
+                onSubmitEdit: {
+                    Task { await commitEdit() }
                 }
             )
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                if model.canEdit {
+                if model.canEdit, !product.isPurchasedValue {
                     Button(role: .destructive) {
                         Task { await model.deleteProduct(product) }
                     } label: {
                         Label("common.delete", systemImage: "trash")
                     }
+                    .tint(OneCartPalette.danger)
                 }
             }
         }
@@ -242,46 +261,19 @@ struct ShoppingListView: View {
         .background(OneCartPalette.background.opacity(0.96))
     }
 
-    private var cartPeerActions: some View {
-        HStack(spacing: 16) {
-            if purchasedCount > 0, model.canEdit {
-                CartPeerActionButton(
-                    systemName: "checkmark",
-                    accessibilityLabel: String(localized: "cart.complete_button")
-                ) {
-                    Task { await runCompletePurchase() }
-                }
-                .disabled(model.isBusy && !isComposingNewItem)
-            }
-
-            Spacer(minLength: 0)
-
-            if model.canEdit {
-                CartPeerActionButton(
-                    systemName: "plus",
-                    accessibilityLabel: String(localized: "cart.add_a11y")
-                ) {
-                    Task { await beginNewItem() }
-                }
-                .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 16)
-        .frame(maxWidth: .infinity)
-        .background(OneCartPalette.background.opacity(0.96))
-    }
-
     @MainActor
     private func beginNewItem() async {
-        guard model.canEdit, !isAddingDraft else { return }
+        guard model.canEdit, !isAddingDraft, !isSavingEdit else { return }
+
+        if editingProductID != nil {
+            await commitEdit()
+        }
 
         if isComposingNewItem {
             if !trimmedDraft.isEmpty {
                 await commitDraftProduct(startAnother: true)
             } else {
-                draftFocused = true
+                focusedField = .compose
             }
             return
         }
@@ -289,14 +281,27 @@ struct ShoppingListView: View {
         draftName = ""
         isComposingNewItem = true
         await Task.yield()
-        draftFocused = true
+        focusedField = .compose
+    }
+
+    @MainActor
+    private func beginEditing(_ product: ProductEntity) {
+        guard model.canEdit, let productID = product.id, !isAddingDraft, !isSavingEdit else { return }
+        isComposingNewItem = false
+        draftName = ""
+        editingProductID = productID
+        editName = product.displayName
+        Task { @MainActor in
+            await Task.yield()
+            focusedField = .edit
+        }
     }
 
     @MainActor
     private func commitDraftProduct(startAnother: Bool) async {
         guard model.canEdit, !isAddingDraft else { return }
         guard !trimmedDraft.isEmpty else {
-            draftFocused = true
+            focusedField = .compose
             return
         }
         guard let list = model.lists.first(where: { $0.id == listID }) else { return }
@@ -317,7 +322,7 @@ struct ShoppingListView: View {
 
         let after = Set(model.products(inListID: listID).compactMap(\.id))
         guard !after.subtracting(before).isEmpty else {
-            draftFocused = true
+            focusedField = .compose
             return
         }
 
@@ -325,46 +330,70 @@ struct ShoppingListView: View {
         if startAnother {
             isComposingNewItem = true
             await Task.yield()
-            draftFocused = true
+            focusedField = .compose
         } else {
             isComposingNewItem = false
-            draftFocused = false
+            focusedField = nil
         }
     }
 
     @MainActor
-    private func runCompletePurchase() async {
-        let movingCount = purchasedCount
-        guard movingCount > 0 else { return }
-        isCompletingPurchase = true
-        defer { isCompletingPurchase = false }
-        guard let list = model.lists.first(where: { $0.id == listID }) else { return }
-        await model.completePurchasedItems(list)
-        guard purchasedCount == 0 else { return }
-        let message = String(localized: "cart.moved_to_history \(movingCount)")
-        toastMessage = message
-        try? await Task.sleep(nanoseconds: 2_200_000_000)
-        if toastMessage == message {
-            toastMessage = nil
+    private func commitEdit() async {
+        guard model.canEdit, !isSavingEdit else { return }
+        guard let productID = editingProductID,
+              let product = products.first(where: { $0.id == productID })
+        else {
+            editingProductID = nil
+            focusedField = nil
+            return
         }
+        guard !trimmedEditName.isEmpty else {
+            focusedField = .edit
+            return
+        }
+
+        if trimmedEditName == product.displayName {
+            editingProductID = nil
+            focusedField = nil
+            return
+        }
+
+        isSavingEdit = true
+        let draft = ProductDraft(
+            name: trimmedEditName,
+            quantity: product.quantityValue,
+            unit: product.unitValue,
+            category: ProductCategory.inferred(from: trimmedEditName),
+            estimatedPrice: product.estimatedPriceValue,
+            note: product.noteValue,
+            imageURL: product.imageURL,
+            sourceURL: product.sourceURL,
+            originalPrice: product.originalPrice?.doubleValue,
+            loyaltyPrice: product.loyaltyPrice?.doubleValue,
+            catalogFetchedAt: product.catalogFetchedAt,
+            promotionEndsAt: product.promotionEndsAt
+        )
+        await model.updateProduct(product, draft: draft)
+        isSavingEdit = false
+        editingProductID = nil
+        focusedField = nil
     }
 }
 
-private struct CartPeerActionButton: View {
-    let systemName: String
-    let accessibilityLabel: String
+private struct CartAddFAB: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemName)
+            Image(systemName: "plus")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 56, height: 56)
                 .background(OneCartPalette.primary, in: Circle())
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(String(localized: "cart.add_a11y"))
     }
 }
 
@@ -410,18 +439,23 @@ private struct CartCategoryThumbnail: View {
 }
 
 private struct ProductRow: View {
-    @EnvironmentObject private var model: AppModel
     let product: ProductEntity
     let canEdit: Bool
+    let isEditing: Bool
+    @Binding var editName: String
+    var editFocused: FocusState<CartNameFocus?>.Binding
+    let isSavingEdit: Bool
     let onToggle: () -> Void
-    let onEdit: () -> Void
+    let onBeginEdit: () -> Void
+    let onSubmitEdit: () -> Void
 
     private var resolvedCategory: ProductCategory {
-        let raw = product.category?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !raw.isEmpty, let value = ProductCategory(rawValue: raw) {
-            return value
+        let name = isEditing ? editName : product.displayName
+        let inferred = ProductCategory.inferred(from: name)
+        if inferred != .other {
+            return inferred
         }
-        return ProductCategory.inferred(from: product.displayName)
+        return product.categoryValue
     }
 
     var body: some View {
@@ -431,32 +465,55 @@ private struct ProductRow: View {
                 isDimmed: product.isPurchasedValue
             )
 
-            Button(action: onEdit) {
+            if isEditing {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(product.displayName)
+                    TextField("cart.add_placeholder", text: $editName)
                         .font(.body)
-                        .strikethrough(product.isPurchasedValue)
-                        .foregroundStyle(product.isPurchasedValue ? .secondary : .primary)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .focused(editFocused, equals: .edit)
+                        .submitLabel(.done)
+                        .onSubmit(onSubmitEdit)
+                        .disabled(isSavingEdit)
 
-                    if !productSubtitle.isEmpty {
-                        Text(productSubtitle)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    Text(resolvedCategory.localizedName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+            } else {
+                Button(action: onBeginEdit) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(product.displayName)
+                            .font(.body)
+                            .strikethrough(product.isPurchasedValue)
+                            .foregroundStyle(product.isPurchasedValue ? .secondary : .primary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(resolvedCategory.localizedName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+
+                        if !productSubtitle.isEmpty {
+                            Text(productSubtitle)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!canEdit)
             }
-            .buttonStyle(.plain)
-            .disabled(!canEdit)
 
             ProductPurchaseToggle(
                 isPurchased: product.isPurchasedValue,
-                canEdit: canEdit,
+                canEdit: canEdit && !isEditing,
                 action: onToggle
             )
         }
@@ -465,17 +522,17 @@ private struct ProductRow: View {
 
     private var productSubtitle: String {
         if product.isPurchasedValue {
-            if model.familyMembers.count >= 2,
-               let purchasedByName = product.purchasedByName,
-               !purchasedByName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if let purchasedByName = product.purchasedByName?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+               !purchasedByName.isEmpty
             {
                 return String(localized: "cart.in_trolley_by \(purchasedByName)")
             }
             return String(localized: "cart.in_trolley")
         }
-        if model.familyMembers.count >= 2,
-           let createdByName = product.createdByName,
-           !createdByName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if let createdByName = product.createdByName?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !createdByName.isEmpty
         {
             return String(localized: "cart.added_by \(createdByName)")
         }

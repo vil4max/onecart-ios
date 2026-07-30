@@ -1,71 +1,31 @@
 import SwiftUI
 
-struct HistoryDetailView: View {
+struct HistoryDayDetailView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
-    let entry: PurchaseHistoryEntity
+    let group: HistoryDayGroup
     @State private var confirmingDelete = false
+
+    private var liveGroup: HistoryDayGroup {
+        HistoryDayGroup.groups(from: model.history)
+            .first { calendar.isDate($0.dayStart, inSameDayAs: group.dayStart) }
+            ?? group
+    }
+
+    private var calendar: Calendar { .current }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("history.date")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                        Text(entry.purchaseDate.formatted(date: .long, time: .shortened))
-                            .font(.body.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("history.members")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                        Text(entry.membersDisplay)
-                            .font(.body.weight(.medium))
-                    }
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    OneCartPalette.surface,
-                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-                )
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("history.items")
-                            .font(.title3.bold())
-                        Spacer()
-                        Text("\(entry.sortedItems.count)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(
-                                Color(.tertiarySystemFill),
-                                in: Capsule(style: .continuous)
-                            )
-                    }
-
-                    ForEach(entry.sortedItems, id: \.objectID) { item in
-                        HistoryProductRow(item: item)
-                    }
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(liveGroup.items, id: \.objectID) { item in
+                    HistoryProductRow(item: item)
                 }
 
-                if model.canEdit {
+                if model.canEdit, !liveGroup.items.isEmpty {
                     Button(role: .destructive) {
                         confirmingDelete = true
                     } label: {
-                        Label("history.delete_entry", systemImage: "trash")
+                        Label("history.delete_day", systemImage: "trash")
                             .font(.headline)
                             .foregroundColor(OneCartPalette.danger)
                             .frame(maxWidth: .infinity)
@@ -77,6 +37,7 @@ struct HistoryDetailView: View {
                             )
                     }
                     .buttonStyle(HomePressButtonStyle())
+                    .padding(.top, 6)
                 }
             }
             .padding(.horizontal, 20)
@@ -84,18 +45,18 @@ struct HistoryDetailView: View {
             .padding(.bottom, 28)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle("history.session_title")
+        .navigationTitle(liveGroup.title)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("history.delete_title", isPresented: $confirmingDelete) {
+        .alert("history.delete_day_title", isPresented: $confirmingDelete) {
             Button("common.cancel", role: .cancel) {}
             Button("common.delete", role: .destructive) {
                 Task {
-                    await model.deleteHistory(entry)
+                    await model.deleteHistoryItems(liveGroup.items)
                     dismiss()
                 }
             }
         } message: {
-            Text("history.delete_message")
+            Text("history.delete_day_message")
         }
     }
 }
@@ -110,13 +71,25 @@ struct HistoryProductRow: View {
                 size: 52
             )
 
-            Text(item.displayName)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.leading)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.displayName)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let boughtBy = item.purchasedByName?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !boughtBy.isEmpty
+                {
+                    Text(String(localized: "history.bought_by \(boughtBy)"))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)

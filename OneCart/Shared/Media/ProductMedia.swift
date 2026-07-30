@@ -22,19 +22,6 @@ struct OfficialProductThumbnail: View {
 
 extension ProductCategory {
     var systemImage: String {
-        switch self {
-        case .produce:
-            "leaf.fill"
-        case .dairy:
-            "drop.fill"
-        case .meat:
-            "fork.knife"
-        case .drinks:
-            "waterbottle.fill"
-        case .household:
-            "sparkles"
-        case .other:
-            "shippingbox.fill"
-        }
+        symbolName
     }
 }

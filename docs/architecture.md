@@ -65,14 +65,13 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile |
 | `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
 | `OneCart/Data/Persistence/ManagedObjects.swift` | Core Data entity subclasses |
-| `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `completePurchased` (checked items → session) |
+| `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `archivePurchasedBefore` / `completePurchased` (Completed → history) |
 | `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Merge / dedupe / product mutation slices |
 | `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
-| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + toggle / complete |
-| `OneCart/Features/Shopping/QuickAddProductSheet.swift` | Name-only edit sheet (add is inline in cart) |
+| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + inline name add/edit |
 | `OneCart/Features/Shopping/HistoryViews.swift` | History list (`historyHasMore` / load more) |
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | History session detail |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
@@ -105,9 +104,13 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | F9 | History default page 30 + loadMore appends | `HistoryPaginationTests` |
 | F10 | New Application files in Sources | Stage DoD via `test_sim` compile |
 
-## Purchase completion
+## Purchase completion / History
 
-`completePurchased(listID:)` soft-deletes **checked** products into a `PurchaseHistory` session and leaves the active list in place. Unchecked items stay. The cart list is never marked `.completed` and never replaced.
+Checked items stay on the living cart under **Completed**. There is no manual finish-shopping action in the UI.
+
+On cart sync (`.appear` / `.foreground`), `archivePurchasedBefore` moves products with `isPurchased` and `purchasedAt` before the start of today into `PurchaseHistory` / `HistoryItem` (soft-delete from the list). Today’s Completed items stay. History UI groups items by purchase day (`purchasedAt`).
+
+`completePurchased(listID:)` remains for demo/tests (archives all currently checked items at once). The cart list is never marked `.completed` and never replaced.
 
 ## Stores and sync
 

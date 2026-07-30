@@ -14,31 +14,32 @@ Four entities, one loop:
 |--------|------|
 | **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner deletes the cart or removes the member. |
 | **Cart** | One per family; lives forever; never “closes” |
-| **Item** | A name plus trolley state: still needed, or already in the physical cart |
-| **Session** | Snapshot of what was paid for in one trip: when, who, how many items |
+| **Item** | A name plus state: still needed, or **Completed** (checked) |
+| **History day** | Purchases grouped by the calendar day they were marked completed |
 
 ```text
-Family → living cart → items (needed / in trolley)
-                         ↓ «Завершить покупки»
-                    purchase session → history
+Family → living cart → items (to buy / Completed)
+                         ↓ next calendar day, on app open / foreground
+                    history by day
 ```
 
-### Trolley metaphor
+### Completed vs History
 
-The app mirrors the store floor:
+The cart mirrors the shopping trip:
 
-1. Family piles items into the shared cart.
-2. Shopper walks the aisle, picks from the shelf into a real trolley, taps the checkbox.
-3. Home sees “in the trolley” immediately over CloudKit.
-4. At checkout, **Завершить покупки** moves checked items into history as bought; unchecked items stay for the next trip.
+1. Family adds name-only items to the shared cart.
+2. Shopper checks items as they pick them — they move to **Completed** (strikethrough), still on the living cart.
+3. Everyone sees Completed updates live over CloudKit.
+4. There is **no** manual «Finish shopping» / Done CTA. When the app opens or returns to foreground on a **later calendar day**, items Completed before the start of today move into **History**, grouped by purchase day.
+5. Completed items cannot be swipe-deleted; uncheck first if the mark was a mistake. To-buy items can still be deleted.
 
-Checkbox means **in the trolley**, not paid. “Bought” happens at session complete.
+Checkbox means **Completed for this trip**, not yet archived. History is the overnight (calendar-day) archive.
 
 ### Product promises
 
 1. **Sync** — added at home, visible in the store at once.
-2. **Transparency** — who put what in the trolley, without calls.
-3. **Memory** — sessions answer what the family buys regularly.
+2. **Transparency** — who added / who completed an item, without calls.
+3. **Memory** — History by day answers what the family bought.
 
 Money is not a promise on this train: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
 
@@ -52,8 +53,8 @@ Three tabs after Welcome:
 
 | Tab | Contents |
 |-----|----------|
-| **Корзина** | Living list, trolley progress, `+` inserts an empty name row with keyboard (Done saves); pull-to-refresh / appear hard sync; nav may show «Updating…» |
-| **История** | Purchase sessions (month sections, last 30 + show more) |
+| **Корзина** | Living list; sections To Buy / Completed; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon + label; pull-to-refresh / appear hard sync; nav may show «Updating…» |
+| **История** | Days (newest first); tap a day for its products; small caption explains overnight archive; last 30 history sessions + show more |
 | **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
 
 Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Recreate cart rotates the invite link.
@@ -62,7 +63,7 @@ Nav title is the cart name — fixed brand default `Tim's Cart` when the househo
 
 ## User flow
 
-1. Install → Welcome: Sign in with Apple + three-step trolley metaphor + iCloud errors / Retry.
+1. Install → Welcome: Sign in with Apple + three-step cart metaphor + iCloud errors / Retry.
 2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, Done to save.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
@@ -85,7 +86,7 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 - **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
 - **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
-- Display name, avatar, banner: **device-local** — not in CloudKit. Set your cart nickname on **Account → Your name in the cart** (e.g. Папа / Мама). That name is stamped on items you add (`createdByName`) and when you check them into the trolley (`purchasedByName`). Other members see those item attributions via sync; the Participants list still uses each person’s iCloud / SIWA identity when available, not your private nicknames for them.
+- Display name, avatar, banner: **device-local** — not in CloudKit. Set your cart nickname on **Account → Your name in the cart** (e.g. Папа / Мама). That name is stamped on items you add (`createdByName`) and when you mark them Completed (`purchasedByName`). Other members see those item attributions via sync; the Participants list still uses each person’s iCloud / SIWA identity when available, not your private nicknames for them.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
 - Owner **Recreate cart**: stop share → archive local family → create a new household cart; success alert confirms the new cart name; invitees whose shared cart disappears fall back to a private cart with an alert.

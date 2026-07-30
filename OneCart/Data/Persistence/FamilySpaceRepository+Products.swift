@@ -97,6 +97,7 @@ extension FamilySpaceRepository {
                 throw RepositoryError.productNotFound
             }
             try self.requireDeletePermission(for: product)
+            guard !product.isPurchasedValue else { return }
             let now = Date()
             product.deletedAt = now
             product.updatedAt = now
@@ -107,6 +108,16 @@ extension FamilySpaceRepository {
 
     @discardableResult
     func completePurchased(listID: UUID) async throws -> UUID? {
+        try await archivePurchased(listID: listID, purchasedBefore: nil)
+    }
+
+    @discardableResult
+    func archivePurchasedBefore(listID: UUID, cutoff: Date) async throws -> UUID? {
+        try await archivePurchased(listID: listID, purchasedBefore: cutoff)
+    }
+
+    @discardableResult
+    private func archivePurchased(listID: UUID, purchasedBefore cutoff: Date?) async throws -> UUID? {
         try await persistence.performBackgroundTask { context in
             guard let list = try Self.fetchList(id: listID, in: context) else {
                 throw RepositoryError.listNotFound
@@ -116,7 +127,12 @@ extension FamilySpaceRepository {
                 throw RepositoryError.familySpaceNotFound
             }
 
-            let purchased = list.sortedProducts.filter(\.isPurchasedValue)
+            let purchased = list.sortedProducts.filter { product in
+                guard product.isPurchasedValue else { return false }
+                guard let cutoff else { return true }
+                let purchasedAt = product.purchasedAt ?? product.updatedAt ?? .distantPast
+                return purchasedAt < cutoff
+            }
             guard !purchased.isEmpty else { return nil }
 
             let now = Date()
@@ -184,6 +200,40 @@ extension FamilySpaceRepository {
                 item.updatedAt = now
             }
             history.familySpace?.updatedAt = now
+        }
+    }
+
+    func deleteHistoryItems(ids: [UUID]) async throws {
+        guard !ids.isEmpty else { return }
+        try await persistence.performBackgroundTask { context in
+            let request = HistoryItemEntity.fetchRequest()
+            request.predicate = NSPredicate(
+                format: "id IN %@",
+                ids.map { $0 as NSUUID }
+            )
+            let items = try context.fetch(request)
+            guard let first = items.first else { return }
+            try self.requireDeletePermission(for: first)
+            let now = Date()
+            var parentHistories = Set<NSManagedObjectID>()
+            for item in items {
+                item.deletedAt = now
+                item.updatedAt = now
+                if let history = item.history {
+                    parentHistories.insert(history.objectID)
+                    history.familySpace?.updatedAt = now
+                }
+            }
+            for objectID in parentHistories {
+                guard let history = try context.existingObject(with: objectID) as? PurchaseHistoryEntity
+                else { continue }
+                let liveItems = (history.items?.allObjects as? [HistoryItemEntity] ?? [])
+                    .filter { !$0.isDeletedValue }
+                if liveItems.isEmpty {
+                    history.deletedAt = now
+                    history.updatedAt = now
+                }
+            }
         }
     }
 

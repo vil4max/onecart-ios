@@ -9,7 +9,7 @@ final class AppSession: ObservableObject {
 
     nonisolated static let defaultFamilyName = String(
         localized: "cart.default_title",
-        defaultValue: "Shopping list"
+        defaultValue: "Tim's Cart"
     )
 
     @Published var isReady = false
@@ -89,10 +89,8 @@ final class AppSession: ObservableObject {
             ?? Self.defaultFamilyName
     }
 
-    static func householdCartName(for account: OneCartAccount) -> String {
-        let name = account.displayName.nilIfBlank
-            ?? String(localized: "common.default_user")
-        return String(localized: "cart.owner_title \(name)")
+    static func householdCartName(for _: OneCartAccount) -> String {
+        defaultFamilyName
     }
 
     let repository: FamilySpaceRepository
@@ -200,6 +198,12 @@ final class AppSession: ObservableObject {
 
     func syncCart(reason: CartSyncReason) async {
         await cloudSync.syncCart(reason: reason)
+        switch reason {
+        case .appear, .foreground:
+            await archiveStalePurchasedIfNeeded()
+        case .pull, .cloudImport, .afterToggle, .afterMutation:
+            break
+        }
     }
 
     func dismissSharedCartRemovedMessage() {

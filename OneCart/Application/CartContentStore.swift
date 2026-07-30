@@ -117,7 +117,7 @@ final class CartContentStore: ObservableObject {
         ])
         request.sortDescriptors = [
             NSSortDescriptor(key: "isPurchased", ascending: true),
-            NSSortDescriptor(key: "createdAt", ascending: true),
+            NSSortDescriptor(key: "createdAt", ascending: false),
         ]
         return try context.fetch(request)
     }

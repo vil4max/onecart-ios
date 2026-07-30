@@ -116,6 +116,10 @@ extension AppSession {
 
     func deleteProduct(_ product: ProductEntity) async {
         guard let id = product.id else { return }
+        guard !product.isPurchasedValue else {
+            CartSyncLog.action.info("deleteProduct skipped purchased id=\(id.uuidString, privacy: .public)")
+            return
+        }
         CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
             try await self.repository.deleteProduct(id: id)
@@ -133,11 +137,56 @@ extension AppSession {
         }
     }
 
+    func archiveStalePurchasedIfNeeded(
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) async {
+        guard canEdit else { return }
+        let cutoff = calendar.startOfDay(for: now)
+        var didArchive = false
+
+        for list in activeLists {
+            guard let id = list.id else { continue }
+            do {
+                if try await repository.archivePurchasedBefore(listID: id, cutoff: cutoff) != nil {
+                    didArchive = true
+                    CartSyncLog.action.info(
+                        "archiveStalePurchased list=\(id.uuidString, privacy: .public)"
+                    )
+                }
+            } catch {
+                CartSyncLog.action.error(
+                    "archiveStalePurchased fail list=\(id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
+
+        guard didArchive else { return }
+        await persistence.container.viewContext.perform {
+            self.persistence.container.viewContext.processPendingChanges()
+        }
+        do {
+            try reload()
+            cartSync.bumpRevisionAfterLocalChange()
+        } catch {
+            show(error)
+        }
+    }
+
     func deleteHistory(_ entry: PurchaseHistoryEntity) async {
         guard let id = entry.id else { return }
         CartSyncLog.action.info("deleteHistory start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "deleteHistory", successMessage: String(localized: "alert.history_deleted")) {
             try await self.repository.deleteHistory(id: id)
+        }
+    }
+
+    func deleteHistoryItems(_ items: [HistoryItemEntity]) async {
+        let ids = items.compactMap(\.id)
+        guard !ids.isEmpty else { return }
+        CartSyncLog.action.info("deleteHistoryItems count=\(ids.count)")
+        await performMutation(action: "deleteHistoryItems", successMessage: String(localized: "alert.history_deleted")) {
+            try await self.repository.deleteHistoryItems(ids: ids)
         }
     }
 

@@ -24,6 +24,23 @@ final class CartItemsTests: XCTestCase {
         _ = listID
     }
 
+    func testDeleteProductSkipsPurchasedItems() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let (familyID, _, productID) = try await seedCart(repository: repository)
+
+        try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
+        try await repository.deleteProduct(id: productID)
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(space.sortedProducts.count, 1)
+        XCTAssertEqual(space.sortedProducts.first?.id, productID)
+        XCTAssertTrue(space.sortedProducts.first?.isPurchasedValue == true)
+        XCTAssertNil(space.sortedProducts.first?.deletedAt)
+    }
+
     func testUpdateProductRewritesFields() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let (_, _, productID) = try await seedCart(
@@ -79,7 +96,7 @@ final class CartItemsTests: XCTestCase {
             name: "Молоко",
             quantity: 1,
             unit: .piece,
-            category: .dairy,
+            category: .dairyEggs,
             estimatedPrice: 40,
             note: "",
             sourceURL: "https://shop.example.com/milk"
@@ -88,12 +105,12 @@ final class CartItemsTests: XCTestCase {
         let firstID = try await repository.addProduct(
             to: listID,
             draft: draft,
-            purchasedByName: "Анна"
+            createdByName: "Анна"
         )
         let secondID = try await repository.addProduct(
             to: listID,
             draft: draft,
-            purchasedByName: "Игорь"
+            createdByName: "Игорь"
         )
 
         XCTAssertNotEqual(firstID, secondID)
@@ -156,7 +173,7 @@ final class CartItemsTests: XCTestCase {
                 name: "Молоко",
                 quantity: 2,
                 unit: .piece,
-                category: .dairy,
+                category: .dairyEggs,
                 estimatedPrice: 42,
                 note: "2.5%"
             )
@@ -194,7 +211,7 @@ final class CartItemsTests: XCTestCase {
                 name: "Яйца",
                 quantity: 10,
                 unit: .piece,
-                category: .dairy,
+                category: .dairyEggs,
                 estimatedPrice: 65,
                 note: ""
             )
