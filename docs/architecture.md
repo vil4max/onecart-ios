@@ -13,7 +13,7 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
 | Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
-| Name-only inline add via `+` empty row + keyboard | Rich product editor / money UI |
+| Name-only inline add via `+` empty row + keyboard; category SF Symbol from keywords, optional on-device FM refine | Rich product editor / money UI |
 | Invite + Delete cart from Аккаунт; members on the same screen | Multi-cart switcher |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |

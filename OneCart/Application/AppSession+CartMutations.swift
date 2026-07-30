@@ -5,6 +5,7 @@ import OSLog
 extension AppSession {
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
         guard let listID = list.id else { return }
+        let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
         CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
         await performMutation(action: "addProduct", successMessage: String(localized: "alert.product_added")) {
             try await self.repository.addProduct(
@@ -16,6 +17,11 @@ extension AppSession {
                 )
             )
         }
+        let addedIDs = Set(products(inListID: listID).compactMap(\.id)).subtracting(beforeIDs)
+        if let productID = addedIDs.first {
+            let name = draft.name
+            Task { await self.refineProductCategory(productID: productID, name: name) }
+        }
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
@@ -23,6 +29,45 @@ extension AppSession {
         CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
             try await self.repository.updateProduct(id: id, draft: draft)
+        }
+        let name = draft.name
+        Task { await self.refineProductCategory(productID: id, name: name) }
+    }
+
+    private func refineProductCategory(productID: UUID, name: String) async {
+        let classified = await ProductCategoryClassifier.shared.classify(name)
+        guard let product = products.first(where: { $0.id == productID }) else { return }
+        guard product.categoryValue != classified else { return }
+
+        let draft = ProductDraft(
+            name: product.displayName,
+            quantity: product.quantityValue,
+            unit: product.unitValue,
+            category: classified,
+            estimatedPrice: product.estimatedPriceValue,
+            note: product.noteValue,
+            imageURL: product.imageURL,
+            sourceURL: product.sourceURL,
+            originalPrice: product.originalPrice?.doubleValue,
+            loyaltyPrice: product.loyaltyPrice?.doubleValue,
+            catalogFetchedAt: product.catalogFetchedAt,
+            promotionEndsAt: product.promotionEndsAt
+        )
+
+        do {
+            try await repository.updateProduct(id: productID, draft: draft)
+            await persistence.container.viewContext.perform {
+                self.persistence.container.viewContext.processPendingChanges()
+            }
+            try refreshProducts()
+            cartSync.bumpRevisionAfterLocalChange()
+            CartSyncLog.action.info(
+                "refineProductCategory id=\(productID.uuidString, privacy: .public) category=\(classified.rawValue, privacy: .public)"
+            )
+        } catch {
+            CartSyncLog.action.error(
+                "refineProductCategory fail error=\(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
