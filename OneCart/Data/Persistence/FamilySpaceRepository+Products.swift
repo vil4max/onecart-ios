@@ -185,58 +185,6 @@ extension FamilySpaceRepository {
         }
     }
 
-    func deleteHistory(id: UUID) async throws {
-        try await persistence.performBackgroundTask { context in
-            let request = PurchaseHistoryEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
-            request.fetchLimit = 1
-            guard let history = try context.fetch(request).first else { return }
-            try self.requireDeletePermission(for: history)
-            let now = Date()
-            history.deletedAt = now
-            history.updatedAt = now
-            for item in history.items?.allObjects as? [HistoryItemEntity] ?? [] {
-                item.deletedAt = now
-                item.updatedAt = now
-            }
-            history.familySpace?.updatedAt = now
-        }
-    }
-
-    func deleteHistoryItems(ids: [UUID]) async throws {
-        guard !ids.isEmpty else { return }
-        try await persistence.performBackgroundTask { context in
-            let request = HistoryItemEntity.fetchRequest()
-            request.predicate = NSPredicate(
-                format: "id IN %@",
-                ids.map { $0 as NSUUID }
-            )
-            let items = try context.fetch(request)
-            guard let first = items.first else { return }
-            try self.requireDeletePermission(for: first)
-            let now = Date()
-            var parentHistories = Set<NSManagedObjectID>()
-            for item in items {
-                item.deletedAt = now
-                item.updatedAt = now
-                if let history = item.history {
-                    parentHistories.insert(history.objectID)
-                    history.familySpace?.updatedAt = now
-                }
-            }
-            for objectID in parentHistories {
-                guard let history = try context.existingObject(with: objectID) as? PurchaseHistoryEntity
-                else { continue }
-                let liveItems = (history.items?.allObjects as? [HistoryItemEntity] ?? [])
-                    .filter { !$0.isDeletedValue }
-                if liveItems.isEmpty {
-                    history.deletedAt = now
-                    history.updatedAt = now
-                }
-            }
-        }
-    }
-
     static func apply(draft: ProductDraft, to product: ProductEntity) {
         product.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         product.quantity = NSNumber(value: max(draft.quantity, 0.001))

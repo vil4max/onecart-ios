@@ -173,23 +173,6 @@ extension AppSession {
         }
     }
 
-    func deleteHistory(_ entry: PurchaseHistoryEntity) async {
-        guard let id = entry.id else { return }
-        CartSyncLog.action.info("deleteHistory start id=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "deleteHistory", successMessage: String(localized: "alert.history_deleted")) {
-            try await self.repository.deleteHistory(id: id)
-        }
-    }
-
-    func deleteHistoryItems(_ items: [HistoryItemEntity]) async {
-        let ids = items.compactMap(\.id)
-        guard !ids.isEmpty else { return }
-        CartSyncLog.action.info("deleteHistoryItems count=\(ids.count)")
-        await performMutation(action: "deleteHistoryItems", successMessage: String(localized: "alert.history_deleted")) {
-            try await self.repository.deleteHistoryItems(ids: ids)
-        }
-    }
-
     func loadMoreHistory() {
         guard let familySpaceID = activeFamilySpace?.id else { return }
         do {

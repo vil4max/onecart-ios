@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var pendingDeleteDay: HistoryDayGroup?
 
     private var dayGroups: [HistoryDayGroup] {
         HistoryDayGroup.groups(from: model.history)
@@ -32,14 +31,6 @@ struct HistoryView: View {
                                 HistoryDayCard(group: group)
                             }
                             .buttonStyle(HomePressButtonStyle())
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    pendingDeleteDay = group
-                                } label: {
-                                    Label("history.delete_day", systemImage: "trash")
-                                }
-                                .disabled(!model.canEdit)
-                            }
                         }
 
                         if model.historyHasMore {
@@ -60,23 +51,6 @@ struct HistoryView: View {
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("history.nav_title")
             .navigationBarTitleDisplayMode(.inline)
-            .alert(
-                "history.delete_day_title",
-                isPresented: Binding(
-                    get: { pendingDeleteDay != nil },
-                    set: { if !$0 { pendingDeleteDay = nil } }
-                )
-            ) {
-                Button("common.cancel", role: .cancel) { pendingDeleteDay = nil }
-                Button("common.delete", role: .destructive) {
-                    if let pendingDeleteDay {
-                        Task { await model.deleteHistoryItems(pendingDeleteDay.items) }
-                    }
-                    pendingDeleteDay = nil
-                }
-            } message: {
-                Text("history.delete_day_message")
-            }
         }
     }
 }
@@ -85,7 +59,9 @@ struct HistoryDayGroup: Identifiable {
     let dayStart: Date
     let items: [HistoryItemEntity]
 
-    var id: Date { dayStart }
+    var id: Date {
+        dayStart
+    }
 
     var title: String {
         HistoryDayFormatting.title(for: dayStart)
