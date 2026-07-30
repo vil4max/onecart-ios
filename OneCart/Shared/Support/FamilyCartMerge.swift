@@ -8,6 +8,8 @@ enum FamilyCartMerge {
         "Наши покупки",
         "Our shopping",
         "Наші покупки",
+        "Shopping list",
+        "Список покупок",
         AppSession.defaultFamilyName,
     ]
 

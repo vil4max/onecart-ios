@@ -3,15 +3,18 @@ import UIKit
 
 enum LaunchChromeLayout {
     static let cartSize: CGFloat = 112
-    static let peekLeading: CGFloat = -68
     static let titleTopPadding: CGFloat = 28
     static let titleFontSize: CGFloat = 22
     static let minimumPeekDuration: Double = 0.45
     static let driveOutDuration: Double = 0.85
 
+    static var offscreenLeading: CGFloat {
+        -cartSize
+    }
+
     static func cartLeading(width: CGFloat, progress: CGFloat) -> CGFloat {
-        let start = peekLeading
-        let end = width + 24
+        let start = offscreenLeading
+        let end = width
         return start + (end - start) * progress
     }
 }
@@ -109,7 +112,7 @@ private final class LaunchRideView: UIView {
         isUserInteractionEnabled = false
         insetsLayoutMarginsFromSafeArea = false
 
-        titleLabel.text = "OneCart"
+        titleLabel.text = "Tim's Cart"
         titleLabel.textColor = .white
         titleLabel.textAlignment = .center
         titleLabel.font = .systemFont(ofSize: LaunchChromeLayout.titleFontSize, weight: .semibold)
@@ -125,7 +128,7 @@ private final class LaunchRideView: UIView {
 
         let cartLeading = cartView.leadingAnchor.constraint(
             equalTo: leadingAnchor,
-            constant: LaunchChromeLayout.peekLeading
+            constant: LaunchChromeLayout.offscreenLeading
         )
         cartLeadingConstraint = cartLeading
 
@@ -184,11 +187,10 @@ private final class LaunchRideView: UIView {
     }
 
     private func syncCartCenterYToScreen() {
-        let screenMidY: CGFloat
-        if let window {
-            screenMidY = convert(CGPoint(x: 0, y: window.bounds.midY), from: window).y
+        let screenMidY: CGFloat = if let window {
+            convert(CGPoint(x: 0, y: window.bounds.midY), from: window).y
         } else {
-            screenMidY = Self.screenBounds.midY
+            Self.screenBounds.midY
         }
         if cartCenterYConstraint?.constant != screenMidY {
             cartCenterYConstraint?.constant = screenMidY
@@ -253,12 +255,12 @@ struct OneCartMark: View {
                     OneCartPalette.primary,
                     in: RoundedRectangle(cornerRadius: compact ? 11 : 12, style: .continuous)
                 )
-            Text("OneCart")
+            Text("Tim's Cart")
                 .font(compact ? .title3.bold() : .title2.bold())
                 .foregroundStyle(.primary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("OneCart")
+        .accessibilityLabel("Tim's Cart")
     }
 }
 

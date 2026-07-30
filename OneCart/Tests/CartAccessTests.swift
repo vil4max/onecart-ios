@@ -76,11 +76,11 @@ final class CartAccessTests: XCTestCase {
         await session.deleteCurrentCartAndStartFresh()
         XCTAssertNotEqual(session.activeFamilySpace?.id, familyID)
         XCTAssertNotNil(session.activeFamilySpace?.id)
-        XCTAssertEqual(session.activeFamilySpace?.name, "Max's Cart")
-        XCTAssertEqual(session.cartTitle, "Max's Cart")
+        XCTAssertEqual(session.activeFamilySpace?.name, "Tim's Cart")
+        XCTAssertEqual(session.cartTitle, "Tim's Cart")
         XCTAssertEqual(
             session.alertMessage,
-            String(localized: "account.recreate_cart_done \("Max's Cart")")
+            String(localized: "account.recreate_cart_done \("Tim's Cart")")
         )
     }
 

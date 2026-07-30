@@ -1158,19 +1158,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shopping list"
+            "value": "Tim's Cart"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Список покупок"
+            "value": "Tim's Cart"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Список покупок"
+            "value": "Tim's Cart"
           }
         }
       }
@@ -1944,19 +1944,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart"
+            "value": "Tim's Cart"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart"
+            "value": "Tim's Cart"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart"
+            "value": "Tim's Cart"
           }
         }
       }
@@ -3420,19 +3420,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart\nJoin the «%@» cart\n\n%@"
+            "value": "Tim's Cart\nJoin the «%@» cart\n\n%@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart\nПрисоединяйтесь к корзине «%@»\n\n%@"
+            "value": "Tim's Cart\nПрисоединяйтесь к корзине «%@»\n\n%@"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "OneCart\nПриєднуйтесь до кошика «%@»\n\n%@"
+            "value": "Tim's Cart\nПриєднуйтесь до кошика «%@»\n\n%@"
           }
         }
       }

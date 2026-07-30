@@ -119,6 +119,8 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Наша группа"))
         XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Наши покупки"))
         XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Our shopping"))
+        XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Shopping list"))
+        XCTAssertTrue(FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault("Список покупок"))
         XCTAssertTrue(
             FamilyCartMerge.shouldMigrateLegacyNameToHouseholdDefault(AppSession.defaultFamilyName)
         )

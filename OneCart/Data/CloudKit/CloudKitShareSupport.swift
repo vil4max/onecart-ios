@@ -52,7 +52,7 @@ enum CloudKitShareEnvironment: String {
 }
 
 enum OneCartShareBranding {
-    static let title = "OneCart"
+    static let title = "Tim's Cart"
 
     @discardableResult
     static func apply(to share: CKShare) -> Bool {
@@ -69,6 +69,9 @@ enum OneCartShareBranding {
     }
 
     static let thumbnailImage: UIImage = {
+        if let mark = UIImage(named: "LaunchIcon") {
+            return mark
+        }
         let size = CGSize(width: 512, height: 512)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
