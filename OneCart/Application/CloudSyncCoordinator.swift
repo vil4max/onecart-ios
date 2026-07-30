@@ -209,6 +209,7 @@ final class CloudSyncCoordinator {
                 if changed["isPurchased"] != nil
                     || changed["purchasedAt"] != nil
                     || changed["purchasedByName"] != nil
+                    || changed["createdByName"] != nil
                 {
                     return true
                 }

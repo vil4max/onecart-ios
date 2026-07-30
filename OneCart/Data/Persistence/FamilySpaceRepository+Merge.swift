@@ -65,6 +65,7 @@ extension FamilySpaceRepository {
                 copied.isPurchased = product.isPurchased
                 copied.purchasedAt = product.purchasedAt
                 copied.purchasedByName = product.purchasedByName
+                copied.createdByName = product.createdByName
                 copied.createdAt = product.createdAt ?? now
                 copied.updatedAt = now
                 copied.familySpace = destination
