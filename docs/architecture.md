@@ -69,12 +69,13 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Merge / dedupe / product mutation slices |
 | `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
-| `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
+| `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
-| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + inline name add/edit |
-| `OneCart/Features/Shopping/HistoryViews.swift` | History list (`historyHasMore` / load more) |
-| `OneCart/Features/Shopping/HistoryDetailViews.swift` | History session detail |
+| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + inline name add/edit; To Buy / Completed; FAB `+` |
+| `OneCart/Features/Shopping/HistoryViews.swift` | History by day (`historyHasMore` / load more); read-only |
+| `OneCart/Features/Shopping/HistoryDetailViews.swift` | Day detail product list |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
+| `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
 | `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / delete cart / sign out |
 | `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart (sheet helpers) |
 | `OneCart/Features/Settings/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
@@ -106,7 +107,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 
 ## Purchase completion / History
 
-Checked items stay on the living cart under **Completed**. There is no manual finish-shopping action in the UI.
+Checked items stay on the living cart under **Completed**. There is no manual finish-shopping action in the UI. History is **read-only** (no delete day / delete entry in the UI).
 
 On cart sync (`.appear` / `.foreground`), `archivePurchasedBefore` moves products with `isPurchased` and `purchasedAt` before the start of today into `PurchaseHistory` / `HistoryItem` (soft-delete from the list). Today’s Completed items stay. History UI groups items by purchase day (`purchasedAt`).
 

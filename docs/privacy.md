@@ -1,12 +1,12 @@
-# Privacy Policy — OneCart Family
+# Privacy Policy — Tim's Cart
 
-**Last updated:** July 28, 2026  
+**Last updated:** July 30, 2026  
 **Developer:** Maksim Vilchevskiy  
 **Contact:** vil4max@gmail.com
 
 ## Overview
 
-OneCart Family (“the App”) is a shared shopping cart for households. This policy describes what data the App uses and why.
+Tim's Cart (“the App”; engineering module name OneCart) is a shared shopping cart for households. This policy describes what data the App uses and why.
 
 ## Data we process
 
@@ -15,7 +15,7 @@ OneCart Family (“the App”) is a shared shopping cart for households. This po
 | Sign in with Apple identity | Account / session | Apple; local Keychain session |
 | Display name, avatar, banner | Profile in the App | On device only (not synced via CloudKit) |
 | Shopping lists and cart items | Core app functionality | iCloud / CloudKit (private and shared databases) |
-| Purchase history sessions | Show what the household bought | iCloud / CloudKit |
+| Purchase history (by day) | Show what the household bought | iCloud / CloudKit |
 | Participants on a shared cart | Family sharing via CKShare | iCloud / CloudKit |
 
 We do **not** sell personal data. We do **not** use tracking for advertising. We do **not** run our own backend server for shopping data — sync uses Apple iCloud / CloudKit.

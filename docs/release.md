@@ -66,13 +66,14 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 
 1. Signed Debug / TestFlight build on A and B (version 1.4 / build ≥ 1). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK).
-3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and trolley counts should match.
+3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
 4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
-5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways (including checkboxes).
+5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways (including Completed checkboxes).
 6. Same product name added by A and B → two separate cart rows (not summed).
-7. Remove member on A → B loses access.
-8. On A (owner): **Delete cart** → confirm → new empty cart; old invite link stops working; B falls back to a private cart with an alert; A can share again (new URL).
-9. Relaunch offline: local data opens; queued changes upload when back online.
+7. Mark items Completed on A → visible on B; next calendar day, open/foreground on either device → yesterday’s Completed move to History by day (read-only).
+8. Remove member on A → B loses access.
+9. On A (owner): **Delete cart** → confirm → new empty cart; old invite link stops working; B falls back to a private cart with an alert; A can share again (new URL).
+10. Relaunch offline: local data opens; queued changes upload when back online.
 
 ### Code-level verification (no devices)
 
@@ -89,7 +90,11 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Shared replaces private (merge/archive) | `testMergeFamilyContentCopiesProducts`, `testMergeFamilyContentRejectsSharedSource`, `testArchiveFamilySpaceHidesCartAndSoftDeletesChildren` (`FamilyCartMergeTests`) |
 | Claim unassigned private carts / skip shared | `testClaimUnassignedFamilySpacesStampsPrivateOnly` |
 | Complete purchased → history, cart keeps the rest | `testCompletePurchasedMovesOnlyCheckedItems`, `testCompletePurchasedWithoutChecksDoesNothing` (`PurchaseSessionTests`) |
-| Toggle in trolley / edit / delete tombstone | `testTogglePurchasedSetsAndClearsBuyer`, `testUpdateProductRewritesFields`, `testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI` (`CartItemsTests`) |
+| Overnight archive (yesterday Completed → History) | `testArchivePurchasedBeforeMovesOnlyStaleCheckedItems`, `testArchivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `testArchiveStalePurchasedIfNeededViaSession` (`PurchaseSessionTests`) |
+| History UI groups by purchase day | `testHistoryDayGroupsByPurchasedAt`, `testHistoryDayFormattingTodayAndYesterday` (`PurchaseSessionTests`) |
+| Completed items cannot be deleted | `testDeleteProductSkipsPurchasedItems` (`CartItemsTests`) |
+| Newest cart lines first | `testSortedProductsPutsNewestToBuyFirstThenCompleted` (`CartItemsTests`) |
+| Toggle Completed / edit / delete tombstone (to-buy only) | `testTogglePurchasedSetsAndClearsBuyer`, `testUpdateProductRewritesFields`, `testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI` (`CartItemsTests`) |
 | Deduplicate stable IDs / Core Data vs CK errors | `testDeduplicateStableIDsKeepsNewerProduct`, `testIsUserFacingCoreDataFailureIgnoresCloudKit` |
 | Invite does not block forever on mirror | `FamilyInviteLinkBuilder`: brief wait + `share()` retry; outer `shareTimedOut` |
 | Invite link warm-up after cart create | `AppSession.scheduleInviteLinkPreparation` / `preparedInviteLink` |

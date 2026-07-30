@@ -234,15 +234,23 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: F1–F10 + `just verify`; `AppSession.swift` ≤ ~200; former ≥400 owners under 400 (entity subclasses in `ManagedObjects.swift` remain data-model density)
 - Do not invent scope: no product feature restore (stores/catalog/price UI); no silent/soft-fail policy changes; NC09 unchanged
 
+### RC32 — Completed + overnight History by day (Metro categories)
+- Status: done (this train)
+- Paths: `ShoppingListView.swift`, `HistoryViews.swift`, `HistoryDetailViews.swift`, `FamilySpaceRepository+Products.swift`, `AppSession+CartMutations.swift`, `AppSession.swift`, `ManagedObjects.swift`, `CategoryClassifier.swift`, `Localizable.xcstrings`, `PurchaseSessionTests.swift`, `CartItemsTests.swift`, `ProductCategoryInferenceTests.swift`, `docs/product.md`, `docs/architecture.md`, `docs/release.md`, `README.md`, `AGENTS.md`
+- What changed: no manual «Finish shopping»; section **Completed**; FAB `+` without bottom plate; overnight `archivePurchasedBefore` on appear/foreground; History grouped by purchase day (read-only); Metro-style categories + icons; Completed cannot swipe-delete; dead QuickAdd sheet / history-delete UI removed
+- How to verify: `just verify`; PurchaseSession / CartItems / ProductCategory suites; manual: check → Completed → next day open → History day cell → product list; no Delete day
+- Do not invent scope: no restore of Done CTA, history delete, stores/catalog/price UI
+
 ## Verification
 - `just doctor`
 - `just lint` (0 serious)
 - `just build`
-- `xcodebuild test -project OneCart/OneCart.xcodeproj -scheme OneCart -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:OneCartTests`
-- Manual: Welcome → Sign in with Apple → Корзина (empty household cart) → thumb + → name → Add → check the row → «Завершить покупки» → checked items in История, unchecked still in the cart
+- `just test` / `just verify`
+- Manual: Welcome → SIWA → Корзина → `+` → name → keyboard Done → check row → **Completed** → next calendar day open app → item in **History** by day (read-only)
 - Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; invitee can add/check items (not readOnly); errors via system alert
 - Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
-- Manual (RC29): Max marks items → Tim appear/pull sees Updating + matching trolley counts; owner Delete cart rotates link
+- Manual (RC29): Max marks Completed → Tim appear/pull sees Updating + matching counts; owner Delete cart rotates link
 - Manual (RC30): failed sync shows failed state (not “synced”); welcome network retry does not wipe SQLite; History “show more” loads next page
-- Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; history detail delete still works; connectivity offline→online still schedules reload
+- Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; connectivity offline→online still schedules reload
+- Manual (RC32): no Finish shopping / Delete day; History caption explains overnight archive; category icon + label on cart rows
 - See also [release.md](release.md) § Preflight + §3

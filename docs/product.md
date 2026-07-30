@@ -2,7 +2,7 @@
 
 ## Thesis
 
-**OneCart is one shared family cart and a single place to see every purchase.**
+**OneCart** (user-facing **Tim's Cart**) is one shared family cart and a single place to see every purchase.
 
 One person adds items, another shops, everyone sees progress live. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
 
@@ -54,7 +54,7 @@ Three tabs after Welcome:
 | Tab | Contents |
 |-----|----------|
 | **Корзина** | Living list; sections To Buy / Completed; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon + label; pull-to-refresh / appear hard sync; nav may show «Updating…» |
-| **История** | Days (newest first); tap a day for its products; small caption explains overnight archive; last 30 history sessions + show more |
+| **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
 | **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
 
 Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Recreate cart rotates the invite link.
@@ -63,11 +63,12 @@ Nav title is the cart name — fixed brand default `Tim's Cart` when the househo
 
 ## User flow
 
-1. Install → Welcome: Sign in with Apple + three-step cart metaphor + iCloud errors / Retry.
-2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, Done to save.
+1. Install → Welcome: Sign in with Apple + short cart pitch + iCloud errors / Retry.
+2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, keyboard Done to save.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
-4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
-5. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No join alert.
+4. Check items into **Completed**; they stay on the living cart until the next calendar day, then move to **History** on app open / foreground.
+5. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
+6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No join alert.
 
 Up to four people share one cart; changes sync via CloudKit.
 
@@ -114,7 +115,7 @@ Apple Family does **not** merge carts by itself — participants need an in-app 
 
 ## Stability context (engineering)
 
-Ship a reliable SIWA → one cart → add/check → invite/sync loop before re-expanding surface area.
+Ship a reliable SIWA → one cart → name-only add → Completed → overnight History → invite/sync loop before re-expanding surface area.
 
 | Kept out of UX | Why |
 |----------------|-----|
@@ -128,11 +129,11 @@ Deferred until core is solid on real devices: multi-cart, store locator as prima
 
 ## Idea: history assistant (not this train)
 
-History sessions are a dataset of family habits (what, how often, who). Possible later:
+History days are a dataset of family habits (what, how often, who). Possible later:
 
 - Autocomplete while typing (“мол…” → “Молоко”)
 - Reminders for regularly forgotten items
-- Sort cart by category / aisle
+- Sort cart by Metro-style category / aisle
 - Rough trip total once prices exist
 
-Prefer on-device, no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.
+Prefer on-device (including optional Foundation Models for category refine), no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.
