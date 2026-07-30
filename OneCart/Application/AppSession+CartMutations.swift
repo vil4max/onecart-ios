@@ -10,7 +10,7 @@ extension AppSession {
             try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
-                purchasedByName: Self.participantName(
+                createdByName: Self.participantName(
                     preferences: self.preferences,
                     account: self.account
                 )
@@ -140,8 +140,43 @@ extension AppSession {
         preferences: DevicePreferences,
         account: OneCartAccount?
     ) -> String? {
-        let trimmed = preferences.participantDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { return trimmed }
-        return account?.displayName
+        ParticipantDisplayName.resolved(preferences: preferences, account: account)
+    }
+
+    func updateParticipantDisplayName(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if ParticipantDisplayName.isPlaceholder(trimmed) {
+            preferences.participantDisplayName = ""
+            if let account {
+                self.account = OneCartAccount(
+                    id: account.id,
+                    displayName: ParticipantDisplayName.placeholder,
+                    avatarURL: account.avatarURL,
+                    bannerURL: account.bannerURL
+                )
+            }
+            return
+        }
+        preferences.participantDisplayName = trimmed
+        if let account {
+            self.account = OneCartAccount(
+                id: account.id,
+                displayName: trimmed,
+                avatarURL: account.avatarURL,
+                bannerURL: account.bannerURL
+            )
+        }
+        if let index = familyMembers.firstIndex(where: \.isCurrentUser) {
+            let member = familyMembers[index]
+            familyMembers[index] = FamilyMember(
+                id: member.id,
+                displayName: trimmed,
+                access: member.access,
+                joinedAt: member.joinedAt,
+                isCurrentUser: true,
+                avatarURL: member.avatarURL,
+                bannerURL: member.bannerURL
+            )
+        }
     }
 }

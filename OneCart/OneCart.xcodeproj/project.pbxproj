@@ -46,6 +46,7 @@
 		A20000000000000000000033 /* HistoryPaginationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* HistoryPaginationTests.swift */; };
 		A20000000000000000000021 /* AppleSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* AppleSignInTests.swift */; };
 		A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* SharedCartJoinTests.swift */; };
+		A20000000000000000000050 /* ProductCategoryInferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000050 /* ProductCategoryInferenceTests.swift */; };
 		D20000000000000000000002 /* CloudKitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* CloudKitModels.swift */; };
 		D20000000000000000000003 /* CloudKitErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000002 /* CloudKitErrors.swift */; };
 		D20000000000000000000004 /* CloudKitShareSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000003 /* CloudKitShareSupport.swift */; };
@@ -144,6 +145,7 @@
 		A10000000000000000000033 /* HistoryPaginationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryPaginationTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000026 /* AppleSignInTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000027 /* SharedCartJoinTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedCartJoinTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000050 /* ProductCategoryInferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCategoryInferenceTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000001 /* CloudKitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitModels.swift; sourceTree = "<group>"; };
 		D10000000000000000000002 /* CloudKitErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrors.swift; sourceTree = "<group>"; };
 		D10000000000000000000003 /* CloudKitShareSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareSupport.swift; sourceTree = "<group>"; };
@@ -247,6 +249,7 @@
 				A10000000000000000000039 /* HouseholdEnsureTests.swift */,
 				A10000000000000000000026 /* AppleSignInTests.swift */,
 				A10000000000000000000027 /* SharedCartJoinTests.swift */,
+				A10000000000000000000050 /* ProductCategoryInferenceTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -625,6 +628,7 @@
 				A20000000000000000000039 /* HouseholdEnsureTests.swift in Sources */,
 				A20000000000000000000021 /* AppleSignInTests.swift in Sources */,
 				A20000000000000000000022 /* SharedCartJoinTests.swift in Sources */,
+				A20000000000000000000050 /* ProductCategoryInferenceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

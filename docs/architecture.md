@@ -13,7 +13,7 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
 | Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
-| Name-only quick add (medium sheet) | Rich product editor / money UI |
+| Name-only inline add via `+` empty row + keyboard | Rich product editor / money UI |
 | Invite + Delete cart from Аккаунт; members on the same screen | Multi-cart switcher |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |
@@ -72,7 +72,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + trolley metaphor + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
 | `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + toggle / complete |
-| `OneCart/Features/Shopping/QuickAddProductSheet.swift` | Name-only quick add |
+| `OneCart/Features/Shopping/QuickAddProductSheet.swift` | Name-only edit sheet (add is inline in cart) |
 | `OneCart/Features/Shopping/HistoryViews.swift` | History list (`historyHasMore` / load more) |
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | History session detail |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |

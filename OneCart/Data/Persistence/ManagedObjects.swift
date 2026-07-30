@@ -279,31 +279,60 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    var symbolName: String {
+        switch self {
+        case .produce: "leaf.fill"
+        case .dairy: "cup.and.saucer.fill"
+        case .meat: "fork.knife"
+        case .drinks: "waterbottle.fill"
+        case .household: "bubbles.and.sparkles"
+        case .other: "cart.fill"
+        }
+    }
+
     /// Lightweight fallback after catalog UI removal — prefer explicit category when editing.
     static func inferred(from productName: String) -> ProductCategory {
         let value = productName.lowercased()
         if value.contains("молоко") || value.contains("йогурт") || value.contains("сыр")
             || value.contains("сир") || value.contains("кефир") || value.contains("кефір")
+            || value.contains("ряженк") || value.contains("сметан")
+            || value.contains("milk") || value.contains("yogurt") || value.contains("yoghurt")
+            || value.contains("cheese") || value.contains("butter") || value.contains("kefir")
+            || value.contains("cream")
         {
             return .dairy
         }
         if value.contains("мясо") || value.contains("мʼясо") || value.contains("курица")
-            || value.contains("курка") || value.contains("фарш")
+            || value.contains("курка") || value.contains("фарш") || value.contains("колбас")
+            || value.contains("ковбас") || value.contains("сосис")
+            || value.contains("meat") || value.contains("chicken") || value.contains("beef")
+            || value.contains("pork") || value.contains("turkey") || value.contains("sausage")
+            || value.contains("bacon")
         {
             return .meat
         }
         if value.contains("сок") || value.contains("вода") || value.contains("кола")
-            || value.contains("пиво")
+            || value.contains("пиво") || value.contains("кава") || value.contains("кофе")
+            || value.contains("чай") || value.contains("juice") || value.contains("water")
+            || value.contains("coffee") || value.contains("cola") || value.contains("beer")
+            || value.contains("tea") || value.contains("soda") || value.contains("drink")
         {
             return .drinks
         }
         if value.contains("мыло") || value.contains("мило") || value.contains("порошок")
-            || value.contains("шампун")
+            || value.contains("шампун") || value.contains("средств") || value.contains("засіб")
+            || value.contains("soap") || value.contains("detergent") || value.contains("shampoo")
+            || value.contains("laundry") || value.contains("cleaner") || value.contains("bleach")
         {
             return .household
         }
         if value.contains("яблок") || value.contains("банан") || value.contains("овощ")
             || value.contains("фрукт") || value.contains("помидор") || value.contains("огірок")
+            || value.contains("томат")
+            || value.contains("apple") || value.contains("banana") || value.contains("tomato")
+            || value.contains("fruit") || value.contains("vegetable") || value.contains("salad")
+            || value.contains("cucumber") || value.contains("lemon")
+            || value.contains("potato") || value.contains("onion") || value.contains("carrot")
         {
             return .produce
         }
@@ -331,6 +360,7 @@ final class ProductEntity: NSManagedObject {
     @NSManaged var updatedAt: Date?
     @NSManaged var purchasedAt: Date?
     @NSManaged var purchasedByName: String?
+    @NSManaged var createdByName: String?
     @NSManaged var deletedAt: Date?
     @NSManaged var familySpace: FamilySpace?
     @NSManaged var list: ShoppingListEntity?

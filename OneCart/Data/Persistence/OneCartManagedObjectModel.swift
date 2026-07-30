@@ -18,7 +18,7 @@ enum OneCartManagedObjectModel {
 
     private static func buildModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
-        model.versionIdentifiers = ["OneCartCoreDataV6"]
+        model.versionIdentifiers = ["OneCartCoreDataV7"]
 
         let familySpace = entity("FamilySpace", FamilySpace.self)
         let store = entity("Store", StoreEntity.self)
@@ -134,6 +134,7 @@ enum OneCartManagedObjectModel {
             attribute("updatedAt", .dateAttributeType),
             attribute("purchasedAt", .dateAttributeType),
             attribute("purchasedByName", .stringAttributeType),
+            attribute("createdByName", .stringAttributeType),
             attribute("deletedAt", .dateAttributeType),
             productFamily,
             productList,

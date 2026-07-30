@@ -66,10 +66,7 @@ struct QuickAddProductSheet: View {
                     Button("common.close") { dismiss() }
                 }
             }
-            .task {
-                try? await Task.sleep(nanoseconds: 150_000_000)
-                nameFocused = true
-            }
+            .defaultFocus($nameFocused, true)
         }
         .oneCartMediumSheet()
     }

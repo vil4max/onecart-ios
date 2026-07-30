@@ -3,6 +3,46 @@ import Foundation
 
 typealias AppModel = AppSession
 
+enum ParticipantDisplayName {
+    static var placeholder: String {
+        String(localized: "common.default_user")
+    }
+
+    static func isPlaceholder(_ raw: String?) -> Bool {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return true }
+        let known: Set<String> = [
+            placeholder,
+            "User",
+            "Пользователь",
+            "Користувач",
+            "Family member",
+            "Участник семьи",
+            "Учасник родини",
+        ]
+        return known.contains(trimmed)
+    }
+
+    static func resolved(
+        preferences: DevicePreferences,
+        account: OneCartAccount?
+    ) -> String? {
+        let preferred = preferences.participantDisplayName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !isPlaceholder(preferred) { return preferred }
+        let accountName = account?.displayName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !isPlaceholder(accountName) { return accountName }
+        return nil
+    }
+
+    static func displayOrPlaceholder(
+        preferences: DevicePreferences,
+        account: OneCartAccount?
+    ) -> String {
+        resolved(preferences: preferences, account: account) ?? placeholder
+    }
+}
+
 final class DevicePreferences: ObservableObject {
     @Published var participantDisplayName: String {
         didSet {
@@ -17,15 +57,13 @@ final class DevicePreferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        participantDisplayName = defaults.string(
-            forKey: Keys.participantDisplayName
-        ) ?? ""
+        let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
+        participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     func reloadFromDefaults() {
-        participantDisplayName = defaults.string(
-            forKey: Keys.participantDisplayName
-        ) ?? ""
+        let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
+        participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     private enum Keys {

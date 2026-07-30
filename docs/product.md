@@ -52,18 +52,18 @@ Three tabs after Welcome:
 
 | Tab | Contents |
 |-----|----------|
-| **Корзина** | Living list, trolley progress, `+` quick add (name only, medium sheet, dismiss after one add); pull-to-refresh / appear hard sync; nav may show «Updating…» |
+| **Корзина** | Living list, trolley progress, `+` inserts an empty name row with keyboard (Done saves); pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Purchase sessions (month sections, last 30 + show more) |
 | **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
 
 Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Recreate cart rotates the invite link.
 
-Nav title is the cart name (e.g. `Tim's Cart`) — set from the owner's display name when the household cart is created.
+Nav title is the cart name — fixed brand default `Tim's Cart` when the household cart is created (not derived from the owner's SIWA display name).
 
 ## User flow
 
 1. Install → Welcome: Sign in with Apple + three-step trolley metaphor + iCloud errors / Retry.
-2. After sign-in → one household cart (`isHouseholdDefault`). `+` opens name-only quick add.
+2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, Done to save.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
 5. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No join alert.
@@ -85,7 +85,7 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 - **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
 - **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
-- Display name, avatar, banner: **device-local** — not in CloudKit.
+- Display name, avatar, banner: **device-local** — not in CloudKit. Set your cart nickname on **Account → Your name in the cart** (e.g. Папа / Мама). That name is stamped on items you add (`createdByName`) and when you check them into the trolley (`purchasedByName`). Other members see those item attributions via sync; the Participants list still uses each person’s iCloud / SIWA identity when available, not your private nicknames for them.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
 - Owner **Recreate cart**: stop share → archive local family → create a new household cart; success alert confirms the new cart name; invitees whose shared cart disappears fall back to a private cart with an alert.
@@ -93,10 +93,11 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 ## Default cart identity
 
-- Nav / invite name: `cart.owner_title %@` (e.g. `Tim's Cart`) from the owner's display name at create time; title reads `FamilySpace.displayName`.
+- Nav / invite name: fixed `cart.default_title` → **Tim's Cart** at create / Recreate; title reads `FamilySpace.displayName`.
+- App display name / Welcome / share branding: **Tim's Cart** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app or Delete cart for a clean TestFlight start — see [legacy.md](legacy.md).
-- `cart.default_title` remains for defaults/tests.
+- Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
 
 ## Positioning vs Apple Family
 

@@ -96,7 +96,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Hard cart sync / product snapshot reload | `CartSyncService`, `CloudKitProductReloadPolicy`, `testRefreshFromServerPicksUpToggledPurchasedState` |
 | Permission deny on shared mutations | `DenyAllPermissionAuthorizer` + `CartAccessTests` |
 | Owner delete cart recreates private family | `testDeleteCartRecreatesPrivateFamily` |
-| Quick add is name-only | `QuickAddProductSheet` |
+| Quick add is name-only via `+` empty cart row | `ShoppingListView` composer row; edit still uses `QuickAddProductSheet` |
 
 ## 4. TestFlight
 

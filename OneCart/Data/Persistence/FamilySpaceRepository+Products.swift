@@ -9,7 +9,7 @@ extension FamilySpaceRepository {
         to listID: UUID,
         id: UUID = UUID(),
         draft: ProductDraft,
-        purchasedByName: String? = nil
+        createdByName: String? = nil
     ) async throws -> UUID {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
@@ -41,7 +41,8 @@ extension FamilySpaceRepository {
             product.createdAt = now
             product.updatedAt = now
             product.purchasedAt = nil
-            product.purchasedByName = purchasedByName?.trimmedNilIfEmpty
+            product.purchasedByName = nil
+            product.createdByName = createdByName?.trimmedNilIfEmpty
             product.familySpace = space
             product.list = list
             product.store = list.store
