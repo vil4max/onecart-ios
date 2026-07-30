@@ -9,18 +9,28 @@ final class CartItemsTests: XCTestCase {
         let (_, listID, productID) = try await seedCart(repository: repository)
 
         try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
-        persistence.container.viewContext.refreshAllObjects()
-        var product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
-        XCTAssertTrue(product.isPurchasedValue)
-        XCTAssertEqual(product.purchasedByName, "Анна")
-        XCTAssertNotNil(product.purchasedAt)
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+        var snapshot = try await purchasedBuyerSnapshot(
+            productID: productID,
+            in: persistence.container.viewContext
+        )
+        XCTAssertTrue(snapshot.isPurchased)
+        XCTAssertEqual(snapshot.purchasedByName, "Анна")
+        XCTAssertNotNil(snapshot.purchasedAt)
 
         try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
-        persistence.container.viewContext.refreshAllObjects()
-        product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
-        XCTAssertFalse(product.isPurchasedValue)
-        XCTAssertNil(product.purchasedByName)
-        XCTAssertNil(product.purchasedAt)
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+        snapshot = try await purchasedBuyerSnapshot(
+            productID: productID,
+            in: persistence.container.viewContext
+        )
+        XCTAssertFalse(snapshot.isPurchased)
+        XCTAssertNil(snapshot.purchasedByName)
+        XCTAssertNil(snapshot.purchasedAt)
         _ = listID
     }
 
@@ -265,5 +275,22 @@ final class CartItemsTests: XCTestCase {
             .filter { $0.familySpace?.id == familyID && $0.deletedAt == nil }
         XCTAssertEqual(products.count, 1)
         XCTAssertEqual(products.first?.displayName, "Яйца")
+    }
+
+    private func purchasedBuyerSnapshot(
+        productID: UUID,
+        in context: NSManagedObjectContext
+    ) async throws -> (isPurchased: Bool, purchasedByName: String?, purchasedAt: Date?) {
+        try await context.perform {
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)
+            request.fetchLimit = 1
+            let product = try XCTUnwrap(context.fetch(request).first)
+            return (
+                product.isPurchasedValue,
+                product.purchasedByName,
+                product.purchasedAt
+            )
+        }
     }
 }
