@@ -57,7 +57,7 @@ struct CompositeCategoryClassifier: CategoryClassifying {
         }
     }
 
-    struct FoundationModelsCategoryClassifier: Sendable {
+    struct FoundationModelsCategoryClassifier {
         private let timeoutNanoseconds: UInt64 = 3_000_000_000
 
         func classifyIfAvailable(_ productName: String) async -> ProductCategory? {

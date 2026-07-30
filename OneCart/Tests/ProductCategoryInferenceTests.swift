@@ -1,5 +1,5 @@
-import XCTest
 @testable import OneCart
+import XCTest
 
 final class ProductCategoryInferenceTests: XCTestCase {
     func testMetroStyleRussianUkrainian() {
@@ -51,5 +51,12 @@ final class ProductCategoryInferenceTests: XCTestCase {
     func testUnknownFallsBackToOther() {
         XCTAssertEqual(ProductCategory.inferred(from: "xyz"), .other)
         XCTAssertEqual(ProductCategory.inferred(from: ""), .other)
+    }
+
+    func testKeywordClassifierMatchesInferred() async {
+        let classifier = KeywordCategoryClassifier()
+        let category = await classifier.classify("Хлеб")
+        XCTAssertEqual(category, .bakery)
+        XCTAssertEqual(category.symbolName, "birthday.cake.fill")
     }
 }

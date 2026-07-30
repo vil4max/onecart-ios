@@ -41,6 +41,46 @@ final class CartItemsTests: XCTestCase {
         XCTAssertNil(space.sortedProducts.first?.deletedAt)
     }
 
+    func testSortedProductsPutsNewestToBuyFirstThenCompleted() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let (familyID, listID, olderID) = try await seedCart(
+            repository: repository,
+            draft: productDraft(name: "Старое")
+        )
+        let newerID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Новое")
+        )
+        try await repository.togglePurchased(id: olderID, participantDisplayName: "Анна")
+
+        let calendar = Calendar(identifier: .gregorian)
+        let olderDate = try XCTUnwrap(calendar.date(byAdding: .hour, value: -2, to: Date()))
+        let newerDate = try XCTUnwrap(calendar.date(byAdding: .hour, value: -1, to: Date()))
+
+        try await persistence.performBackgroundTask { context in
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(
+                format: "id IN %@",
+                [olderID, newerID].map { $0 as NSUUID }
+            )
+            for product in try context.fetch(request) {
+                if product.id == olderID {
+                    product.createdAt = olderDate
+                } else {
+                    product.createdAt = newerDate
+                }
+            }
+        }
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(space.sortedProducts.map(\.displayName), ["Новое", "Старое"])
+        XCTAssertFalse(space.sortedProducts[0].isPurchasedValue)
+        XCTAssertTrue(space.sortedProducts[1].isPurchasedValue)
+    }
+
     func testUpdateProductRewritesFields() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let (_, _, productID) = try await seedCart(
