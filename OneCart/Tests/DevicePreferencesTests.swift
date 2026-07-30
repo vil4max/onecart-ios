@@ -18,6 +18,13 @@ final class DevicePreferencesTests: XCTestCase {
         defaults.set("Tim", forKey: "onecart.participant-display-name")
         reloaded.reloadFromDefaults()
         XCTAssertEqual(reloaded.participantDisplayName, "Tim")
+
+        defaults.set("User", forKey: "onecart.participant-display-name")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.participantDisplayName, "")
+        XCTAssertTrue(ParticipantDisplayName.isPlaceholder("User"))
+        XCTAssertTrue(ParticipantDisplayName.isPlaceholder("Family member"))
+        XCTAssertFalse(ParticipantDisplayName.isPlaceholder("Папа"))
     }
 
     func testInviteLinkErrorDescriptionsAreNonEmpty() {

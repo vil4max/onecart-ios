@@ -104,9 +104,16 @@ final class SessionBootstrapper {
             try await repository.deduplicateStableIDs()
             host.preferences.reloadFromDefaults()
 
-            let preferredName = appleCredential.providedDisplayName
-                ?? host.preferences.participantDisplayName.nilIfBlank
-                ?? appleCredential.displayName
+            if let appleName = appleCredential.providedDisplayName {
+                host.preferences.participantDisplayName = appleName
+            } else if ParticipantDisplayName.isPlaceholder(host.preferences.participantDisplayName) {
+                host.preferences.participantDisplayName = ""
+            }
+
+            let preferredName = ParticipantDisplayName.resolved(
+                preferences: host.preferences,
+                account: nil
+            )
             host.installConnectivityMonitor()
             host.installCloudObservers()
 
@@ -114,12 +121,16 @@ final class SessionBootstrapper {
                 appleUserID: appleCredential.userID,
                 displayName: preferredName
             )
-            host.applyBootstrapAccount(restoredAccount)
-            if let appleName = appleCredential.providedDisplayName {
-                host.preferences.participantDisplayName = appleName
-            } else if host.preferences.participantDisplayName.nilIfBlank == nil {
-                host.preferences.participantDisplayName = restoredAccount.displayName
-            }
+            let account = OneCartAccount(
+                id: restoredAccount.id,
+                displayName: ParticipantDisplayName.displayOrPlaceholder(
+                    preferences: host.preferences,
+                    account: restoredAccount
+                ),
+                avatarURL: restoredAccount.avatarURL,
+                bannerURL: restoredAccount.bannerURL
+            )
+            host.applyBootstrapAccount(account)
             try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
             try host.reloadAfterBootstrap()
             await host.acceptPendingCloudKitShares()

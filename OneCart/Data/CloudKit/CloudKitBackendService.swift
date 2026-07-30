@@ -118,9 +118,14 @@ final class CloudKitBackendService {
                 )
             }?.nilIfBlank
             let isCurrent = recordName == currentRecordName
+            let displayName: String = if isCurrent {
+                account.displayName
+            } else {
+                name ?? String(localized: "common.default_member")
+            }
             return FamilyMember(
                 id: FamilyInviteLinkBuilder.stableUUID(for: recordName),
-                displayName: name ?? (isCurrent ? account.displayName : String(localized: "common.default_member")),
+                displayName: displayName,
                 access: participant.role == .owner ? .owner : .member,
                 joinedAt: family.createdDate,
                 isCurrentUser: isCurrent,

@@ -10,6 +10,8 @@ struct AccountView: View {
     @State private var memberToRemove: FamilyMember?
     @State private var confirmingSignOut = false
     @State private var confirmingDeleteCart = false
+    @State private var isEditingDisplayName = false
+    @State private var draftDisplayName = ""
 
     init(model: AppModel) {
         _viewModel = StateObject(wrappedValue: CartShareViewModel(session: model))
@@ -28,74 +30,139 @@ struct AccountView: View {
                         }
                     } else {
                         ForEach(displayedMembers) { member in
-                            AccountMemberRow(member: member)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if model.access?.isOwner == true, !member.isCurrentUser {
-                                        Button(role: .destructive) {
-                                            memberToRemove = member
-                                        } label: {
-                                            Label("common.delete", systemImage: "person.fill.xmark")
+                            if member.isCurrentUser {
+                                Button {
+                                    beginEditingDisplayName()
+                                } label: {
+                                    AccountMemberRow(
+                                        member: member,
+                                        showsEditHint: true,
+                                        signedInCaption: model.account.map {
+                                            String(localized: "account.signed_in_as \($0.displayName)")
+                                        }
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                AccountMemberRow(member: member, showsEditHint: false)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        if model.access?.isOwner == true {
+                                            Button(role: .destructive) {
+                                                memberToRemove = member
+                                            } label: {
+                                                Label("common.delete", systemImage: "person.fill.xmark")
+                                            }
                                         }
                                     }
-                                }
+                            }
                         }
                     }
+                } header: {
+                    Text(memberCountText(displayedMembers.count))
+                }
 
-                    if model.access?.isOwner == true {
+                if model.access?.isOwner == true {
+                    Section {
                         Button {
                             shareCart()
                         } label: {
-                            HStack {
-                                Label("account.share_cart", systemImage: "square.and.arrow.up")
-                                Spacer()
-                                if isSharing {
-                                    ProgressView()
+                            AccountActionRow(
+                                titleKey: "account.share_cart",
+                                systemImage: "square.and.arrow.up",
+                                trailing: {
+                                    if isSharing {
+                                        ProgressView()
+                                            .tint(OneCartPalette.primary)
+                                    }
                                 }
-                            }
+                            )
                         }
+                        .buttonStyle(.plain)
                         .disabled(isSharing || !model.isOnline)
 
                         Button {
                             confirmingDeleteCart = true
                         } label: {
-                            Label("account.delete_cart", systemImage: "arrow.triangle.2.circlepath")
+                            AccountActionRow(
+                                titleKey: "account.delete_cart",
+                                systemImage: "arrow.triangle.2.circlepath"
+                            )
                         }
+                        .buttonStyle(.plain)
                         .disabled(model.isBusy || !model.isOnline)
-                    }
-                } header: {
-                    Text("account.members_section")
-                } footer: {
-                    Text(accountShareFooter)
-                }
 
-                if model.access?.isParticipant == true {
-                    Section {
-                        Button(role: .destructive) {
-                            confirmingLeave = true
-                        } label: {
-                            Label("account.leave_cart", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
+                        AccountInfoRow(
+                            systemImage: "link.circle.fill",
+                            textKey: "account.share_link_warning"
+                        )
+                    } header: {
+                        Text("account.sharing_section")
                     }
                 }
 
                 Section {
-                    Button(role: .destructive) {
+                    if model.access?.isParticipant == true {
+                        Button {
+                            confirmingLeave = true
+                        } label: {
+                            AccountActionRow(
+                                titleKey: "account.leave_cart",
+                                systemImage: "rectangle.portrait.and.arrow.right",
+                                style: .destructive
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
                         confirmingSignOut = true
                     } label: {
-                        Label("account.sign_out", systemImage: "rectangle.portrait.and.arrow.right")
+                        AccountActionRow(
+                            titleKey: "account.sign_out",
+                            systemImage: "rectangle.portrait.and.arrow.right",
+                            style: .destructive
+                        )
                     }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("account.section")
-                } footer: {
-                    if let account = model.account {
-                        Text("account.signed_in_as \(account.displayName)")
-                    }
                 }
             }
             .listStyle(.insetGrouped)
+            .tint(OneCartPalette.primary)
             .navigationTitle("account.nav_title")
             .task {
                 await model.refreshAccountSharing()
+            }
+            .sheet(isPresented: $isEditingDisplayName) {
+                NavigationStack {
+                    Form {
+                        Section {
+                            TextField(
+                                String(localized: "account.display_name_placeholder"),
+                                text: $draftDisplayName
+                            )
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                        } footer: {
+                            Text("account.display_name_prompt")
+                        }
+                    }
+                    .navigationTitle("account.edit_display_name")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("common.cancel") { isEditingDisplayName = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("account.display_name_save") {
+                                model.updateParticipantDisplayName(draftDisplayName)
+                                isEditingDisplayName = false
+                            }
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
             }
             .sheet(item: $sharePayload) { payload in
                 CartActivityViewController(
@@ -173,16 +240,17 @@ struct AccountView: View {
         ]
     }
 
-    private var accountShareFooter: String {
-        let count = memberCountText(displayedMembers.count)
-        if model.access?.isOwner == true {
-            return "\(count)\n\(String(localized: "account.share_link_warning"))"
-        }
-        return count
-    }
-
     private func memberCountText(_ count: Int) -> String {
         String(localized: "account.members_count \(count)")
+    }
+
+    private func beginEditingDisplayName() {
+        draftDisplayName = model.preferences.participantDisplayName.isEmpty
+            ? (ParticipantDisplayName.isPlaceholder(model.account?.displayName)
+                ? ""
+                : (model.account?.displayName ?? ""))
+            : model.preferences.participantDisplayName
+        isEditingDisplayName = true
     }
 
     private func shareCart() {
@@ -231,33 +299,139 @@ struct AccountView: View {
     }
 }
 
+private enum AccountActionStyle {
+    case regular
+    case destructive
+}
+
+private struct AccountActionRow<Trailing: View>: View {
+    let titleKey: LocalizedStringKey
+    let systemImage: String
+    var style: AccountActionStyle = .regular
+    @ViewBuilder var trailing: () -> Trailing
+
+    init(
+        titleKey: LocalizedStringKey,
+        systemImage: String,
+        style: AccountActionStyle = .regular,
+        @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
+    ) {
+        self.titleKey = titleKey
+        self.systemImage = systemImage
+        self.style = style
+        self.trailing = trailing
+    }
+
+    private var accent: Color {
+        style == .destructive ? OneCartPalette.danger : OneCartPalette.primaryAccent
+    }
+
+    private var softFill: Color {
+        style == .destructive
+            ? OneCartPalette.danger.opacity(0.14)
+            : OneCartPalette.primarySoft
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(accent)
+                .frame(width: 28, height: 28)
+                .background(softFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Text(titleKey)
+                .font(.body)
+                .foregroundStyle(style == .destructive ? OneCartPalette.danger : .primary)
+
+            Spacer(minLength: 0)
+
+            trailing()
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+private struct AccountInfoRow: View {
+    let systemImage: String
+    let textKey: LocalizedStringKey
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .frame(width: 28, height: 28)
+                .background(
+                    OneCartPalette.primarySoft,
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+
+            Text(textKey)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct AccountMemberRow: View {
     let member: FamilyMember
+    var showsEditHint: Bool = false
+    var signedInCaption: String?
 
     var body: some View {
         HStack(spacing: 12) {
             ProfileAvatarView(
                 name: member.displayName,
                 remoteURL: member.avatarURL,
-                size: 40
+                size: 44
             )
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(member.displayName)
                         .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
                     if member.isCurrentUser {
                         Text("common.you")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(OneCartPalette.primaryAccent)
                     }
                 }
-                Text(member.access
-                    .isOwner ? String(localized: "cart.owner_role") : String(localized: "cart.member_role"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text(
+                    member.access.isOwner
+                        ? String(localized: "cart.owner_role")
+                        : String(localized: "cart.member_role")
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+                if let signedInCaption, !signedInCaption.isEmpty {
+                    Text(signedInCaption)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                } else if showsEditHint {
+                    Text("account.edit_display_name")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if showsEditHint {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
         }
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityHint(
+            showsEditHint ? String(localized: "account.edit_display_name") : ""
+        )
     }
 }

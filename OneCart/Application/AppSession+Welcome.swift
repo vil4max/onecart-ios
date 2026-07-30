@@ -48,6 +48,8 @@ extension AppSession {
             appleSignIn.save(credential)
             if let providedName = credential.providedDisplayName {
                 preferences.participantDisplayName = providedName
+            } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
+                preferences.participantDisplayName = ""
             }
             await bootstrapper.prepare(appleCredential: credential)
         } catch {
