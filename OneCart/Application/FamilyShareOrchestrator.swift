@@ -54,46 +54,16 @@ final class FamilyShareOrchestrator {
         return link
     }
 
-    func deleteCurrentCartAndStartFresh(
-        family: FamilySpace,
-        accountID: UUID,
-        defaultFamilyName: String
-    ) async throws -> UUID {
+    func revokeInviteLink(for family: FamilySpace) async throws {
         let familyID = family.id
         let objectID = family.objectID
         CartSyncLog.action.info(
-            "deleteCart start family=\(familyID?.uuidString ?? "-", privacy: .public) name=\(family.displayName, privacy: .public)"
+            "revokeInvite start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
-        CartSyncLog.shareACL.info("delete cart start rotating share URL")
-
         let backend = backend
-        do {
-            try await Task.detached(priority: .userInitiated) {
-                try await backend.stopSharing(objectID: objectID)
-            }.value
-            CartSyncLog.action.info("deleteCart stopSharing done")
-        } catch {
-            CartSyncLog.shareACL.error(
-                "stopSharing soft-fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            CartSyncLog.action.error(
-                "deleteCart stopSharing soft-fail error=\(error.localizedDescription, privacy: .public)"
-            )
-        }
-
-        if let familyID {
-            CartSyncLog.action.info("deleteCart archive family=\(familyID.uuidString, privacy: .public)")
-            try await repository.archiveFamilySpace(id: familyID)
-        }
-        let newID = try await repository.createFamilySpace(
-            name: defaultFamilyName,
-            cachedForUserID: accountID,
-            isHouseholdDefault: true
-        )
-        CartSyncLog.shareACL.info("delete cart done newFamily created")
-        CartSyncLog.action.info(
-            "deleteCart done newFamily=\(newID.uuidString, privacy: .public) name=\(defaultFamilyName, privacy: .public)"
-        )
-        return newID
+        try await Task.detached(priority: .userInitiated) {
+            try await backend.revokeInviteLink(objectID: objectID)
+        }.value
+        CartSyncLog.action.info("revokeInvite done")
     }
 }

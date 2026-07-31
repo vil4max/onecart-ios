@@ -577,19 +577,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anyone with the invite link can join and edit this cart. Delete the cart to revoke the link."
+            "value": "Anyone with the invite link can join and edit this cart. Revoke the link to stop new joins."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "У кого есть ссылка, может присоединиться и править корзину. Удалите корзину, чтобы отозвать ссылку."
+            "value": "Любой по ссылке может присоединиться и редактировать корзину. Отозовите ссылку, чтобы закрыть вход для новых."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Хто має посилання, може приєднатися й редагувати кошик. Видаліть кошик, щоб відкликати посилання."
+            "value": "Будь-хто за посиланням може приєднатися і редагувати кошик. Відкличте посилання, щоб закрити вхід для нових."
           }
         }
       }
@@ -5018,6 +5018,328 @@
           "stringUnit": {
             "state": "translated",
             "value": "Купив(ла) %@"
+          }
+        }
+      }
+    },
+    "account.revoke_invite": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke invite link"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать ссылку"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкликати посилання"
+          }
+        }
+      }
+    },
+    "account.revoke_invite_confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкликати"
+          }
+        }
+      }
+    },
+    "account.revoke_invite_message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New people cannot join with the old link. Current members stay. Share again to reopen joining."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "По старой ссылке новые люди не смогут войти. Текущие участники остаются. Поделитесь снова, чтобы открыть вход."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "За старим посиланням нові люди не зможуть увійти. Поточні учасники залишаються. Поділіться знову, щоб відкрити вхід."
+          }
+        }
+      }
+    },
+    "account.revoke_invite_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revoke invite link?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать ссылку-приглашение?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкликати посилання-запрошення?"
+          }
+        }
+      }
+    },
+    "account.revoke_invite_done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite link revoked. Share again when you want new people to join."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка отозвана. Поделитесь снова, когда захотите пригласить новых."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Посилання відкликано. Поділіться знову, коли захочете запросити нових."
+          }
+        }
+      }
+    },
+    "alert.revoke_invite_need_network": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network required to revoke the invite link."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужен интернет, чтобы отозвать ссылку."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Потрібен інтернет, щоб відкликати посилання."
+          }
+        }
+      }
+    },
+    "account.rename_cart": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переименовать корзину"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейменувати кошик"
+          }
+        }
+      }
+    },
+    "account.cart_name_placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cart name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название корзины"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Назва кошика"
+          }
+        }
+      }
+    },
+    "account.cart_name_prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone in this cart sees this name."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это имя видят все участники корзины."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цю назву бачать усі учасники кошика."
+          }
+        }
+      }
+    },
+    "account.cart_name_save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти"
+          }
+        }
+      }
+    },
+    "account.share_link_member_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anyone with the invite link can join and edit this cart."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Любой по ссылке-приглашению может присоединиться и редактировать корзину."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Будь-хто за посиланням-запрошенням може приєднатися і редагувати кошик."
+          }
+        }
+      }
+    },
+    "cart.personal_title %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s Cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Корзина — %@"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кошик — %@"
+          }
+        }
+      }
+    },
+    "notify.member_joined_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New member"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый участник"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новий учасник"
+          }
+        }
+      }
+    },
+    "notify.member_joined_body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ joined the cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ присоединился к корзине"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ приєднався до кошика"
           }
         }
       }

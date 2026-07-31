@@ -58,8 +58,6 @@ final class HouseholdCartCoordinator {
             return
         }
 
-        // Already on a cart: still consolidate when a shared invite cart is present
-        // (private starter, or leftover guest membership next to a newer share).
         if host.activeFamilySpace != nil {
             host.applyHouseholdCartBootstrapFailed(false)
             if needsSharedCartConsolidation(for: account) {
@@ -82,11 +80,18 @@ final class HouseholdCartCoordinator {
             await host.acceptPendingCloudKitShares()
             guard !Task.isCancelled else { return }
             try host.reloadHousehold(preferredFamilySpaceID: nil)
+            try await adoptSharedFamilyCartIfNeeded(for: account)
+            guard !Task.isCancelled else { return }
+
             if host.activeFamilySpace != nil {
                 if needsSharedCartConsolidation(for: account) {
                     try await adoptSharedFamilyCartIfNeeded(for: account)
                 }
-                CartSyncLog.action.info("ensureHousehold done afterAccept")
+                await host.refreshFamilyMetadata(showErrors: false)
+                host.scheduleInviteLinkPreparation()
+                CartSyncLog.action.info(
+                    "ensureHousehold done family=\(host.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
+                )
                 return
             }
 
@@ -99,10 +104,6 @@ final class HouseholdCartCoordinator {
                 )
                 guard !Task.isCancelled else { return }
                 try host.reloadHousehold(preferredFamilySpaceID: nil)
-            } else {
-                CartSyncLog.action.info("ensureHousehold offerSharedJoin count=\(host.familySpaces.count)")
-                try await adoptSharedFamilyCartIfNeeded(for: account)
-                guard !Task.isCancelled else { return }
             }
 
             if host.activeFamilySpace == nil {
@@ -149,30 +150,39 @@ final class HouseholdCartCoordinator {
         try await adoptSharedFamilyCartIfNeeded(for: account)
     }
 
+    func reactivatePersonalCartIfNeeded(for account: OneCartAccount) async throws {
+        guard let host else { return }
+        try host.reloadHousehold(preferredFamilySpaceID: nil)
+        let hasShared = host.familySpaces.contains { persistence.scope(for: $0) == .shared }
+        guard !hasShared else { return }
+
+        if let privateID = host.familySpaces.first(where: {
+            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
+        })?.id {
+            defaults.set(privateID.uuidString, forKey: host.activeFamilyKey(accountID: account.id))
+            try host.reloadHousehold(preferredFamilySpaceID: privateID)
+            return
+        }
+
+        let newID = try await repository.createFamilySpace(
+            name: host.householdDisplayName(for: account),
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(newID.uuidString, forKey: host.activeFamilyKey(accountID: account.id))
+        try host.reloadHousehold(preferredFamilySpaceID: newID)
+    }
+
     func handleInviteeSharedCartGoneIfNeeded() async {
         guard let host, let account = host.account else { return }
         let hasShared = host.familySpaces.contains { persistence.scope(for: $0) == .shared }
         guard !hasShared, host.lastActiveFamilyWasShared || host.access?.isParticipant == true else { return }
 
-        let privateFamily = host.familySpaces.first {
-            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
-        }
-        if let privateID = privateFamily?.id {
-            defaults.set(privateID.uuidString, forKey: host.activeFamilyKey(accountID: account.id))
-            try? host.reloadHousehold(preferredFamilySpaceID: privateID)
-        } else if host.activeFamilySpace == nil {
-            do {
-                let newID = try await repository.createFamilySpace(
-                    name: host.householdDisplayName(for: account),
-                    cachedForUserID: account.id,
-                    isHouseholdDefault: true
-                )
-                defaults.set(newID.uuidString, forKey: host.activeFamilyKey(accountID: account.id))
-                try host.reloadHousehold(preferredFamilySpaceID: newID)
-            } catch {
-                host.presentHouseholdError(error)
-                return
-            }
+        do {
+            try await reactivatePersonalCartIfNeeded(for: account)
+        } catch {
+            host.presentHouseholdError(error)
+            return
         }
         host.lastActiveFamilyWasShared = false
         if host.sharedCartRemovedMessage == nil {
@@ -191,26 +201,21 @@ final class HouseholdCartCoordinator {
         {
             return true
         }
-        let hasPrivate = host.familySpaces.contains {
+        return host.familySpaces.contains {
             persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
         }
-        return hasPrivate
     }
 
     private func adoptSharedFamilyCartIfNeeded(for account: OneCartAccount) async throws {
         guard let host else { return }
         try host.reloadHousehold(preferredFamilySpaceID: nil)
 
-        // Newest shared cart wins (accept/import bumps updatedAt). One living cart only.
         guard let sharedFamily = host.familySpaces.first(where: {
             persistence.scope(for: $0) == .shared
         }), let sharedID = sharedFamily.id else {
             return
         }
 
-        // Capture cleanup before selecting shared. Join must not depend on merge
-        // succeeding — invitees were stuck on private/old guest carts when the new
-        // shared destination was still read-only or lists had not imported yet.
         var privateCleanups: [(id: UUID, isEmpty: Bool)] = []
         var staleSharedIDs: [UUID] = []
         for space in host.familySpaces {
@@ -236,8 +241,6 @@ final class HouseholdCartCoordinator {
         )
         try host.reloadHousehold(preferredFamilySpaceID: sharedID)
 
-        // Drop leftover guest memberships from previous cart versions so Account
-        // cannot keep showing participant UI (no Share) against a dead share.
         for staleID in staleSharedIDs {
             do {
                 try await repository.archiveFamilySpace(id: staleID)
@@ -254,11 +257,13 @@ final class HouseholdCartCoordinator {
         for cleanup in privateCleanups {
             do {
                 if cleanup.isEmpty {
-                    try await repository.archiveFamilySpace(id: cleanup.id)
-                } else {
-                    // Always merge private content into the accepted shared cart.
-                    try await repository.mergeFamilyContent(from: cleanup.id, into: sharedID)
+                    continue
                 }
+                try await repository.mergeFamilyContent(
+                    from: cleanup.id,
+                    into: sharedID,
+                    archiveSource: false
+                )
             } catch {
                 CartSyncLog.cart.error(
                     "adoptShared private cleanup failed id=\(cleanup.id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"

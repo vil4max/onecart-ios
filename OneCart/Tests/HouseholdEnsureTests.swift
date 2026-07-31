@@ -97,7 +97,7 @@ final class HouseholdEnsureTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(
-            session.persistence.scope(for: try XCTUnwrap(session.activeFamilySpace)),
+            try session.persistence.scope(for: XCTUnwrap(session.activeFamilySpace)),
             .shared
         )
     }
@@ -110,7 +110,7 @@ final class HouseholdEnsureTests: XCTestCase {
 
         let oldSharedID = UUID()
         let newSharedID = UUID()
-        let older = Date().addingTimeInterval(-3_600)
+        let older = Date().addingTimeInterval(-3600)
         let newer = Date()
         try await persistence.performBackgroundTask { context in
             for (id, name, stamp) in [

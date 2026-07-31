@@ -89,8 +89,14 @@ final class AppSession: ObservableObject {
             ?? Self.defaultFamilyName
     }
 
-    static func householdCartName(for _: OneCartAccount) -> String {
-        defaultFamilyName
+    static func householdCartName(for account: OneCartAccount) -> String {
+        let trimmed = account.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !ParticipantDisplayName.isPlaceholder(trimmed)
+        else {
+            return defaultFamilyName
+        }
+        return String(localized: "cart.personal_title \(trimmed)")
     }
 
     let repository: FamilySpaceRepository

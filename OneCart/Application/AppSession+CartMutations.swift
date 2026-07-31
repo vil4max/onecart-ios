@@ -3,11 +3,15 @@ import Foundation
 import OSLog
 
 extension AppSession {
-    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async {
-        guard let listID = list.id else { return }
+    @discardableResult
+    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> Bool {
+        guard let listID = list.id else { return false }
         let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
         CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
-        await performMutation(action: "addProduct", successMessage: String(localized: "alert.product_added")) {
+        let succeeded = await performMutation(
+            action: "addProduct",
+            successMessage: String(localized: "alert.product_added")
+        ) {
             try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
@@ -17,11 +21,13 @@ extension AppSession {
                 )
             )
         }
+        guard succeeded else { return false }
         let addedIDs = Set(products(inListID: listID).compactMap(\.id)).subtracting(beforeIDs)
         if let productID = addedIDs.first {
             let name = draft.name
             Task { await self.refineProductCategory(productID: productID, name: name) }
         }
+        return true
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
@@ -101,11 +107,13 @@ extension AppSession {
                 "togglePurchased done purchased=\(purchasedCount)/\(totalCount)"
             )
             CartSyncLog.action.info("togglePurchased done")
+            CartHaptics.light()
         } catch {
             CartSyncLog.cart.error("togglePurchased failed error=\(error.localizedDescription, privacy: .public)")
             CartSyncLog.action.error(
                 "togglePurchased fail error=\(error.localizedDescription, privacy: .public)"
             )
+            CartHaptics.error()
             show(error)
         }
     }
@@ -182,16 +190,17 @@ extension AppSession {
         }
     }
 
+    @discardableResult
     private func performMutation(
         action: String,
         successMessage: String?,
         operation: @escaping () async throws -> Void
-    ) async {
+    ) async -> Bool {
         _ = successMessage
         guard canEdit else {
             CartSyncLog.action.error("\(action) denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
-            return
+            return false
         }
 
         isBusy = true
@@ -204,12 +213,16 @@ extension AppSession {
             }
             try reload()
             cartSync.bumpRevisionAfterLocalChange()
+            CartHaptics.success()
             CartSyncLog.action.info("\(action) done")
+            return true
         } catch {
             CartSyncLog.action.error(
                 "\(action) fail error=\(error.localizedDescription, privacy: .public)"
             )
+            CartHaptics.error()
             show(error)
+            return false
         }
     }
 
@@ -220,7 +233,7 @@ extension AppSession {
         ParticipantDisplayName.resolved(preferences: preferences, account: account)
     }
 
-    func updateParticipantDisplayName(_ raw: String) {
+    func updateParticipantDisplayName(_ raw: String) async {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if ParticipantDisplayName.isPlaceholder(trimmed) {
             preferences.participantDisplayName = ""
@@ -232,28 +245,54 @@ extension AppSession {
                     bannerURL: account.bannerURL
                 )
             }
-            return
+        } else {
+            preferences.participantDisplayName = trimmed
+            if let account {
+                self.account = OneCartAccount(
+                    id: account.id,
+                    displayName: trimmed,
+                    avatarURL: account.avatarURL,
+                    bannerURL: account.bannerURL
+                )
+            }
+            if let index = familyMembers.firstIndex(where: \.isCurrentUser) {
+                let member = familyMembers[index]
+                familyMembers[index] = FamilyMember(
+                    id: member.id,
+                    displayName: trimmed,
+                    access: member.access,
+                    joinedAt: member.joinedAt,
+                    isCurrentUser: true,
+                    avatarURL: member.avatarURL,
+                    bannerURL: member.bannerURL
+                )
+            }
         }
-        preferences.participantDisplayName = trimmed
-        if let account {
-            self.account = OneCartAccount(
-                id: account.id,
-                displayName: trimmed,
-                avatarURL: account.avatarURL,
-                bannerURL: account.bannerURL
-            )
+        await syncPersonalCartNameWithParticipant()
+    }
+
+    private func syncPersonalCartNameWithParticipant() async {
+        guard let account else { return }
+        let personalSpaces = familySpaces.filter {
+            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
         }
-        if let index = familyMembers.firstIndex(where: \.isCurrentUser) {
-            let member = familyMembers[index]
-            familyMembers[index] = FamilyMember(
-                id: member.id,
-                displayName: trimmed,
-                access: member.access,
-                joinedAt: member.joinedAt,
-                isCurrentUser: true,
-                avatarURL: member.avatarURL,
-                bannerURL: member.bannerURL
-            )
+        guard let personal = personalSpaces.first(where: \.isHouseholdDefaultValue)
+            ?? personalSpaces.first,
+            let familyID = personal.id
+        else { return }
+
+        let newName = Self.householdCartName(for: account)
+        guard personal.displayName != newName else { return }
+
+        do {
+            try await repository.renameFamilySpace(id: familyID, name: newName)
+            try reload(preferredFamilySpaceID: activeFamilySpace?.id ?? familyID)
+            if activeFamilySpace?.id == familyID {
+                clearPreparedInviteLink()
+                scheduleInviteLinkPreparation()
+            }
+        } catch {
+            show(error)
         }
     }
 }

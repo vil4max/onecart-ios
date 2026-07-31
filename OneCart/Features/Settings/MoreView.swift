@@ -9,9 +9,11 @@ struct AccountView: View {
     @State private var confirmingLeave = false
     @State private var memberToRemove: FamilyMember?
     @State private var confirmingSignOut = false
-    @State private var confirmingDeleteCart = false
+    @State private var confirmingRevokeInvite = false
     @State private var isEditingDisplayName = false
+    @State private var isEditingCartName = false
     @State private var draftDisplayName = ""
+    @State private var draftCartName = ""
 
     init(model: AppModel) {
         _viewModel = StateObject(wrappedValue: CartShareViewModel(session: model))
@@ -61,8 +63,8 @@ struct AccountView: View {
                     Text(memberCountText(displayedMembers.count))
                 }
 
-                if model.activeFamilySpace != nil {
-                    Section {
+                Section {
+                    if model.activeFamilySpace != nil {
                         Button {
                             shareCart()
                         } label: {
@@ -82,11 +84,21 @@ struct AccountView: View {
 
                         if model.access?.isOwner == true {
                             Button {
-                                confirmingDeleteCart = true
+                                beginEditingCartName()
                             } label: {
                                 AccountActionRow(
-                                    titleKey: "account.delete_cart",
-                                    systemImage: "arrow.triangle.2.circlepath"
+                                    titleKey: "account.rename_cart",
+                                    systemImage: "pencil"
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                confirmingRevokeInvite = true
+                            } label: {
+                                AccountActionRow(
+                                    titleKey: "account.revoke_invite",
+                                    systemImage: "person.badge.minus"
                                 )
                             }
                             .buttonStyle(.plain)
@@ -95,11 +107,13 @@ struct AccountView: View {
 
                         AccountInfoRow(
                             systemImage: "link.circle.fill",
-                            textKey: "account.share_link_warning"
+                            textKey: model.access?.isOwner == true
+                                ? "account.share_link_warning"
+                                : "account.share_link_member_hint"
                         )
-                    } header: {
-                        Text("account.sharing_section")
                     }
+                } header: {
+                    Text("account.sharing_section")
                 }
 
                 Section {
@@ -134,6 +148,7 @@ struct AccountView: View {
             .tint(OneCartPalette.primary)
             .navigationTitle("account.nav_title")
             .task {
+                MemberJoinNotifier.requestAuthorizationIfNeeded()
                 await model.refreshAccountSharing()
             }
             .sheet(isPresented: $isEditingDisplayName) {
@@ -158,9 +173,42 @@ struct AccountView: View {
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("account.display_name_save") {
-                                model.updateParticipantDisplayName(draftDisplayName)
+                                let name = draftDisplayName
                                 isEditingDisplayName = false
+                                Task { await model.updateParticipantDisplayName(name) }
                             }
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $isEditingCartName) {
+                NavigationStack {
+                    Form {
+                        Section {
+                            TextField(
+                                String(localized: "account.cart_name_placeholder"),
+                                text: $draftCartName
+                            )
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                        } footer: {
+                            Text("account.cart_name_prompt")
+                        }
+                    }
+                    .navigationTitle("account.rename_cart")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("common.cancel") { isEditingCartName = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("account.cart_name_save") {
+                                let name = draftCartName
+                                isEditingCartName = false
+                                Task { await model.renameActiveCart(name) }
+                            }
+                            .disabled(draftCartName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                 }
@@ -190,13 +238,13 @@ struct AccountView: View {
             } message: {
                 Text("account.leave_confirm_message")
             }
-            .alert("account.delete_cart_title", isPresented: $confirmingDeleteCart) {
+            .alert("account.revoke_invite_title", isPresented: $confirmingRevokeInvite) {
                 Button("common.cancel", role: .cancel) {}
-                Button("account.delete_cart_confirm", role: .destructive) {
-                    Task { await model.deleteCurrentCartAndStartFresh() }
+                Button("account.revoke_invite_confirm", role: .destructive) {
+                    Task { await model.revokeInviteLink() }
                 }
             } message: {
-                Text("account.delete_cart_message")
+                Text("account.revoke_invite_message")
             }
             .alert(
                 "account.remove_member_title",
@@ -255,9 +303,15 @@ struct AccountView: View {
         isEditingDisplayName = true
     }
 
+    private func beginEditingCartName() {
+        draftCartName = model.activeFamilySpace?.displayName ?? model.cartTitle
+        isEditingCartName = true
+    }
+
     private func shareCart() {
         guard !isSharing else { return }
         isSharing = true
+        CartHaptics.light()
         CartSyncLog.action.info("shareCart UI start")
         let work = Task { @MainActor in
             defer { isSharing = false }
@@ -271,6 +325,7 @@ struct AccountView: View {
                 }
                 guard !Task.isCancelled else { return }
                 sharePayload = CartSharePayload(link: link)
+                CartHaptics.success()
                 CartSyncLog.action.info(
                     "shareCart UI done host=\(link.url.host ?? "-", privacy: .public)"
                 )
@@ -281,6 +336,7 @@ struct AccountView: View {
                 CartSyncLog.action.error(
                     "shareCart UI fail error=\(error.localizedDescription, privacy: .public)"
                 )
+                CartHaptics.error()
                 if CloudKitUserFacingError.isProductionSchemaFailure(error) {
                     shareAlert = CloudKitUserFacingError.productionSchemaMissing
                 } else {

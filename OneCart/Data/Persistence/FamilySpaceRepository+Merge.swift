@@ -2,7 +2,11 @@ import CoreData
 import Foundation
 
 extension FamilySpaceRepository {
-    func mergeFamilyContent(from sourceID: UUID, into destinationID: UUID) async throws {
+    func mergeFamilyContent(
+        from sourceID: UUID,
+        into destinationID: UUID,
+        archiveSource: Bool = true
+    ) async throws {
         try await persistence.performBackgroundTask(author: "OneCartFamilyMerge") { context in
             let source = try Self.requireFamilySpace(id: sourceID, in: context)
             let destination = try Self.requireFamilySpace(id: destinationID, in: context)
@@ -46,38 +50,91 @@ extension FamilySpaceRepository {
                 }
             }
 
+            var destinationByName: [String: ProductEntity] = [:]
+            for product in destination.sortedProducts {
+                let key = FamilyCartMerge.normalizedProductName(product.displayName)
+                guard !key.isEmpty else { continue }
+                if let existing = destinationByName[key] {
+                    let preferNew = FamilyCartMerge.shouldPreferSourceProduct(
+                        sourceUpdatedAt: product.updatedAt,
+                        destinationUpdatedAt: existing.updatedAt
+                    )
+                    if preferNew {
+                        destinationByName[key] = product
+                    }
+                } else {
+                    destinationByName[key] = product
+                }
+            }
+
             for product in source.sortedProducts {
+                let key = FamilyCartMerge.normalizedProductName(product.displayName)
+                if let existing = destinationByName[key],
+                   FamilyCartMerge.shouldPreferSourceProduct(
+                       sourceUpdatedAt: product.updatedAt,
+                       destinationUpdatedAt: existing.updatedAt
+                   )
+                {
+                    Self.applyProductFields(from: product, onto: existing, now: now)
+                    if let storeID = product.store?.id {
+                        existing.store = storeMap[storeID]
+                    }
+                    existing.list = targetList
+                    existing.updatedAt = product.updatedAt ?? now
+                    continue
+                }
+
+                if destinationByName[key] != nil {
+                    continue
+                }
+
                 let copied = ProductEntity(context: context)
                 try self.persistence.assign(copied, toSameStoreAs: destination, in: context)
                 copied.id = UUID()
-                copied.name = product.name
-                copied.quantity = product.quantity
-                copied.unit = product.unit
-                copied.category = product.category
-                copied.estimatedPrice = product.estimatedPrice
-                copied.originalPrice = product.originalPrice
-                copied.loyaltyPrice = product.loyaltyPrice
-                copied.note = product.note
-                copied.imageURL = product.imageURL
-                copied.sourceURL = product.sourceURL
-                copied.catalogFetchedAt = product.catalogFetchedAt
-                copied.promotionEndsAt = product.promotionEndsAt
-                copied.isPurchased = product.isPurchased
-                copied.purchasedAt = product.purchasedAt
-                copied.purchasedByName = product.purchasedByName
-                copied.createdByName = product.createdByName
+                Self.applyProductFields(from: product, onto: copied, now: now)
                 copied.createdAt = product.createdAt ?? now
-                copied.updatedAt = now
+                copied.updatedAt = product.updatedAt ?? now
                 copied.familySpace = destination
                 copied.list = targetList
                 if let storeID = product.store?.id {
                     copied.store = storeMap[storeID]
+                }
+                if !key.isEmpty {
+                    destinationByName[key] = copied
                 }
             }
 
             destination.updatedAt = now
             targetList.updatedAt = now
         }
-        try await archiveFamilySpace(id: sourceID)
+        if archiveSource {
+            try await archiveFamilySpace(id: sourceID)
+        }
+    }
+
+    private static func applyProductFields(
+        from source: ProductEntity,
+        onto destination: ProductEntity,
+        now: Date
+    ) {
+        destination.name = source.name
+        destination.quantity = source.quantity
+        destination.unit = source.unit
+        destination.category = source.category
+        destination.estimatedPrice = source.estimatedPrice
+        destination.originalPrice = source.originalPrice
+        destination.loyaltyPrice = source.loyaltyPrice
+        destination.note = source.note
+        destination.imageURL = source.imageURL
+        destination.sourceURL = source.sourceURL
+        destination.catalogFetchedAt = source.catalogFetchedAt
+        destination.promotionEndsAt = source.promotionEndsAt
+        destination.isPurchased = source.isPurchased
+        destination.purchasedAt = source.purchasedAt
+        destination.purchasedByName = source.purchasedByName
+        destination.createdByName = source.createdByName
+        if destination.createdAt == nil {
+            destination.createdAt = source.createdAt ?? now
+        }
     }
 }

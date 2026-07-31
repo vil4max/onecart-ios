@@ -54,6 +54,22 @@ enum FamilyCartMerge {
         legacyStarterFamilyNames.contains(name.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
+    static func normalizedProductName(_ name: String) -> String {
+        name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    static func shouldPreferSourceProduct(
+        sourceUpdatedAt: Date?,
+        destinationUpdatedAt: Date?
+    ) -> Bool {
+        let sourceDate = sourceUpdatedAt ?? .distantPast
+        let destinationDate = destinationUpdatedAt ?? .distantPast
+        return sourceDate > destinationDate
+    }
+
     private static func count(
         entityName: String,
         familySpaceID: UUID,

@@ -51,7 +51,7 @@ final class CartAccessTests: XCTestCase {
         }
     }
 
-    func testDeleteCartRecreatesPrivateFamily() async throws {
+    func testRevokeInviteKeepsFamilySpaceIdentity() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -73,15 +73,82 @@ final class CartAccessTests: XCTestCase {
         )
         try session.bootstrapTestingSession(account: account)
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
-        await session.deleteCurrentCartAndStartFresh()
-        XCTAssertNotEqual(session.activeFamilySpace?.id, familyID)
-        XCTAssertNotNil(session.activeFamilySpace?.id)
-        XCTAssertEqual(session.activeFamilySpace?.name, "Tim's Cart")
-        XCTAssertEqual(session.cartTitle, "Tim's Cart")
+        await session.revokeInviteLink()
+        XCTAssertEqual(session.activeFamilySpace?.id, familyID)
         XCTAssertEqual(
             session.alertMessage,
-            String(localized: "account.recreate_cart_done \("Tim's Cart")")
+            String(localized: "account.revoke_invite_done")
         )
+    }
+
+    func testRenameActiveCartUpdatesDisplayName() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: "Old",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        await session.renameActiveCart("Дом")
+        XCTAssertEqual(session.activeFamilySpace?.id, familyID)
+        XCTAssertEqual(session.cartTitle, "Дом")
+    }
+
+    func testPersonalCartNameUsesAccountDisplayName() {
+        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        XCTAssertEqual(
+            AppSession.householdCartName(for: account),
+            String(localized: "cart.personal_title \("Алекс")")
+        )
+    }
+
+    func testRenamingParticipantUpdatesPersonalCartTitle() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "User")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: AppSession.householdCartName(for: account),
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        XCTAssertEqual(
+            session.cartTitle,
+            String(localized: "cart.personal_title \("User")")
+        )
+
+        await session.updateParticipantDisplayName("Папа")
+
+        XCTAssertEqual(session.account?.displayName, "Папа")
+        XCTAssertEqual(
+            session.cartTitle,
+            String(localized: "cart.personal_title \("Папа")")
+        )
+        XCTAssertEqual(session.activeFamilySpace?.id, familyID)
     }
 
     func testSharedCartVisibleAlongsideOwnPrivateCart() async throws {

@@ -15,7 +15,7 @@ final class SharedCartJoinTests: XCTestCase {
         try await session.offerSharedCartJoinIfNeededForTesting()
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
-        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: privateID)
         ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
@@ -32,10 +32,24 @@ final class SharedCartJoinTests: XCTestCase {
         try await session.offerSharedCartJoinIfNeededForTesting()
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
-        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: privateID)
         ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Мой хлеб", "Test 1"])
+    }
+
+    func testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive() async throws {
+        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+            privateName: "Моя",
+            sharedName: "Семейная",
+            sharedProduct: "Test 1"
+        )
+        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
+
+        await session.ensureHouseholdCartIfNeeded()
+
+        XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
+        XCTAssertEqual(session.access, .member)
     }
 
     func testAlreadyOnSharedStaysShared() async throws {
@@ -115,7 +129,7 @@ final class SharedCartJoinTests: XCTestCase {
             persistence: persistence,
             name: "Старая семейная",
             productName: "Old",
-            updatedAt: Date().addingTimeInterval(-3_600)
+            updatedAt: Date().addingTimeInterval(-3600)
         )
         let newSharedID = try await seedSharedCart(
             persistence: persistence,
@@ -141,7 +155,7 @@ final class SharedCartJoinTests: XCTestCase {
         XCTAssertNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: oldSharedID)
         ).first)
-        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: privateID)
         ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Мой хлеб", "New"])

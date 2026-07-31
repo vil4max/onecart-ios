@@ -4,40 +4,55 @@ import Foundation
 import OSLog
 
 extension AppSession {
-    func deleteCurrentCartAndStartFresh() async {
-        guard let account,
+    func revokeInviteLink() async {
+        guard account != nil,
               let family = activeFamilySpace,
               access?.isOwner == true
         else {
-            CartSyncLog.action.error("deleteCart denied missingOwnerOrFamily")
+            CartSyncLog.action.error("revokeInvite denied missingOwnerOrFamily")
             return
         }
         guard online else {
-            CartSyncLog.action.error("deleteCart denied offline")
-            presentAlert(String(localized: "alert.delete_cart_need_network"))
+            CartSyncLog.action.error("revokeInvite denied offline")
+            presentAlert(String(localized: "alert.revoke_invite_need_network"))
             return
         }
-        CartSyncLog.action.info("deleteCart session begin")
+        CartSyncLog.action.info("revokeInvite session begin")
         isBusy = true
         defer { isBusy = false }
         do {
-            let cartName = Self.householdCartName(for: account)
-            let newID = try await shareOrchestrator.deleteCurrentCartAndStartFresh(
-                family: family,
-                accountID: account.id,
-                defaultFamilyName: cartName
-            )
+            try await shareOrchestrator.revokeInviteLink(for: family)
             clearPreparedInviteLink()
-            defaults.set(newID.uuidString, forKey: activeFamilyKey(accountID: account.id))
-            try reload(preferredFamilySpaceID: newID)
             await refreshFamilyMetadata(showErrors: false)
-            scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
-            CartSyncLog.action.info("deleteCart session done")
-            presentAlert(String(localized: "account.recreate_cart_done \(cartName)"))
+            CartHaptics.success()
+            CartSyncLog.action.info("revokeInvite session done")
+            presentAlert(String(localized: "account.revoke_invite_done"))
         } catch {
             CartSyncLog.action.error(
-                "deleteCart session fail error=\(error.localizedDescription, privacy: .public)"
+                "revokeInvite session fail error=\(error.localizedDescription, privacy: .public)"
             )
+            CartHaptics.error()
+            show(error)
+        }
+    }
+
+    func renameActiveCart(_ rawName: String) async {
+        guard let family = activeFamilySpace,
+              let familyID = family.id,
+              access?.isOwner == true
+        else { return }
+        let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await repository.renameFamilySpace(id: familyID, name: trimmed)
+            try reload(preferredFamilySpaceID: familyID)
+            clearPreparedInviteLink()
+            scheduleInviteLinkPreparation()
+            CartHaptics.success()
+        } catch {
+            CartHaptics.error()
             show(error)
         }
     }
@@ -55,14 +70,11 @@ extension AppSession {
             AppDelegate.requeue(metadata)
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
+            CartHaptics.error()
             show(error)
             return
         }
 
-        // Share accept already succeeded — do not requeue metadata if local adopt/reload
-        // races (shared lists still importing, temporary merge permission deny).
-        // Always consolidate into the accepted/newest shared cart (merge private +
-        // archive stale guest shares from previous cart versions).
         syncState = .synchronized
         do {
             try reload()
@@ -71,9 +83,11 @@ extension AppSession {
                 await refreshFamilyMetadata(showErrors: false)
                 scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
             }
+            CartHaptics.success()
         } catch {
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
+            CartHaptics.error()
             show(error)
         }
         cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
@@ -94,17 +108,19 @@ extension AppSession {
         do {
             try await backend.removeMember(member, from: family)
             await refreshFamilyMetadata(showErrors: false)
+            CartHaptics.success()
             CartSyncLog.action.info("removeMember done")
         } catch {
             CartSyncLog.action.error(
                 "removeMember fail error=\(error.localizedDescription, privacy: .public)"
             )
+            CartHaptics.error()
             show(error)
         }
     }
 
     func leaveCurrentFamily() async {
-        guard account != nil,
+        guard let account,
               let family = activeFamilySpace,
               access?.isParticipant == true else { return }
         guard online else {
@@ -119,12 +135,15 @@ extension AppSession {
         defer { isBusy = false }
         do {
             try await backend.leaveFamily(family)
-            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
+            try await household.reactivatePersonalCartIfNeeded(for: account)
+            await refreshFamilyMetadata(showErrors: false)
+            CartHaptics.success()
             CartSyncLog.action.info("leaveFamily done")
         } catch {
             CartSyncLog.action.error(
                 "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
             )
+            CartHaptics.error()
             show(error)
         }
     }
@@ -148,7 +167,14 @@ extension AppSession {
         defer { isFamilyMetadataLoading = false }
         do {
             if let family = activeFamilySpace {
+                let previousIDs = Set(familyMembers.map(\.id))
                 familyMembers = try backend.familyMembers(for: family, account: account)
+                MemberJoinNotifier.notifyNewMembersIfNeeded(
+                    previousIDs: previousIDs,
+                    current: familyMembers,
+                    accountID: account.id,
+                    defaults: defaults
+                )
             } else {
                 familyMembers = []
             }

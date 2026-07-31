@@ -209,39 +209,49 @@ final class CloudKitBackendService {
         return true
     }
 
+    func revokeInviteLink(_ family: FamilySpace) async throws {
+        try await revokeInviteLink(objectID: family.objectID)
+    }
+
+    func revokeInviteLink(objectID: NSManagedObjectID) async throws {
+        if persistence.inMemory { return }
+        guard let share = try share(forObjectID: objectID) else {
+            CartSyncLog.shareACL.info("revokeInvite skip no-share")
+            return
+        }
+        let shareEnv = CloudKitShareEnvironment.of(share)
+        CartSyncLog.shareACL.info(
+            "revokeInvite begin record=\(share.recordID.recordName, privacy: .public) shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public) hasURL=\(share.url != nil)"
+        )
+        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
+            CartSyncLog.shareACL.error(
+                "revokeInvite skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
+            )
+            return
+        }
+        guard share.publicPermission != .none else {
+            CartSyncLog.shareACL.info("revokeInvite already closed")
+            return
+        }
+        share.publicPermission = .none
+        let store = try persistence.store(for: .private)
+        do {
+            _ = try await persist(share, in: store, timeoutNanoseconds: 8_000_000_000)
+            CartSyncLog.shareACL.info("revokeInvite persist done")
+        } catch {
+            CartSyncLog.shareACL.error(
+                "revokeInvite persist soft-fail error=\(error.localizedDescription, privacy: .public)"
+            )
+            throw error
+        }
+    }
+
     func stopSharing(_ family: FamilySpace) async throws {
         try await stopSharing(objectID: family.objectID)
     }
 
     func stopSharing(objectID: NSManagedObjectID) async throws {
-        if persistence.inMemory { return }
-        guard let share = try share(forObjectID: objectID) else {
-            CartSyncLog.shareACL.info("stopSharing skip no-share")
-            return
-        }
-        let shareEnv = CloudKitShareEnvironment.of(share)
-        CartSyncLog.shareACL.info(
-            "stopSharing begin record=\(share.recordID.recordName, privacy: .public) shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public) hasURL=\(share.url != nil) diagnostic=\(CloudKitShareEnvironment.diagnostic(for: share), privacy: .public)"
-        )
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                "stopSharing skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
-            )
-            return
-        }
-        share.publicPermission = .none
-        for participant in share.participants where participant.role != .owner {
-            share.removeParticipant(participant)
-        }
-        let store = try persistence.store(for: .private)
-        do {
-            _ = try await persist(share, in: store, timeoutNanoseconds: 8_000_000_000)
-            CartSyncLog.shareACL.info("stopSharing persist done")
-        } catch {
-            CartSyncLog.shareACL.error(
-                "stopSharing persist soft-fail error=\(error.localizedDescription, privacy: .public)"
-            )
-        }
+        try await revokeInviteLink(objectID: objectID)
     }
 
     private func share(for family: FamilySpace) throws -> CKShare? {
