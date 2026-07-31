@@ -217,7 +217,7 @@ final class CloudKitBackendService {
         if persistence.inMemory { return }
         guard let share = try share(forObjectID: objectID) else {
             CartSyncLog.shareACL.info("revokeInvite skip no-share")
-            return
+            throw OneCartCloudKitError.familyNotShared
         }
         let shareEnv = CloudKitShareEnvironment.of(share)
         CartSyncLog.shareACL.info(
@@ -227,7 +227,7 @@ final class CloudKitBackendService {
             CartSyncLog.shareACL.error(
                 "revokeInvite skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
-            return
+            throw OneCartCloudKitError.shareEnvironmentMismatch
         }
         guard share.publicPermission != .none else {
             CartSyncLog.shareACL.info("revokeInvite already closed")
@@ -240,7 +240,7 @@ final class CloudKitBackendService {
             CartSyncLog.shareACL.info("revokeInvite persist done")
         } catch {
             CartSyncLog.shareACL.error(
-                "revokeInvite persist soft-fail error=\(error.localizedDescription, privacy: .public)"
+                "revokeInvite persist fail error=\(error.localizedDescription, privacy: .public)"
             )
             throw error
         }

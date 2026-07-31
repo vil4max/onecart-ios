@@ -33,7 +33,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator |
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
-| `FamilyShareOrchestrator` | invite link creation, owner ACL heal, revoke invite (close door) |
+| `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
 | `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
 
@@ -76,7 +76,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | Day detail product list |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
 | `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
-| `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / delete cart / sign out |
+| `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / revoke invite / sign out |
 | `OneCart/Features/Settings/CartManagementSheet.swift` | Members / leave cart (sheet helpers) |
 | `OneCart/Features/Settings/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
 
@@ -126,7 +126,7 @@ New household spaces and children go to the private store. After `CKShare` accep
 
 There is **no public API to force** a CloudKit import/export mirror ([TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) / [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)). The app schedules best-effort hard refresh after import events, pull-to-refresh, cart appear, and foreground. ViewContext uses `NSMergeByPropertyStoreTrumpMergePolicy` so remote store wins over stale in-memory values. User-facing failures use a system alert; transient share create retries honor `CKError.retryAfterSeconds` when present.
 
-`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Personal cart stays durable on disk when active is shared. Join merge uses LWW by normalized product name + newer `updatedAt`. See [product.md](product.md) and [privacy.md](privacy.md).
+`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. Personal cart stays durable on disk when active is shared. Join merge uses LWW by normalized product name + newer `updatedAt`. See [product.md](product.md) and [privacy.md](privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 

@@ -59,7 +59,7 @@ Three tabs after Welcome:
 
 Share is a secondary action in **Аккаунт**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart.
 
-Nav title is the cart name — fixed brand default `Tim's Cart` when the household cart is created (not derived from the owner's SIWA display name).
+Nav title is the cart name. Personal cart title always follows the participant nickname (`cart.personal_title`); shared cart title is owner-editable via Rename.
 
 ## User flow
 
@@ -96,8 +96,8 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 ## Default cart identity
 
-- Personal cart default title: `cart.personal_title` from the user’s display name (fallback `cart.default_title` / Tim's Cart).
-- Owner can rename the active cart (`FamilySpace.name`); invitees see that title.
+- Personal cart title: always `cart.personal_title` from the participant nickname (fallback `cart.default_title` / Tim's Cart). Changing nickname retitles the personal cart; Rename on a personal cart edits the nickname (same pattern).
+- Owner can rename a **shared** active cart (`FamilySpace.name`); invitees see that title.
 - App display name / Welcome / share branding: **Tim's Cart** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](legacy.md).

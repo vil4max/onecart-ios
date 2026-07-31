@@ -24,7 +24,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - NC07 No Apple Family member-list / same-family / share-to-all-family APIs
 - NC08 No IAP / Family Sharing subscriptions in this PR
 - NC09 CI stays Xcode Cloud release-only (no pre-merge GitHub Actions in this train)
-- NC10 Keep CKShare link-join `publicPermission = .readWrite` (revoke via Revoke invite / remove member)
+- NC10 Keep CKShare link-join `publicPermission = .readWrite` while the invite door is open; owner **Revoke invite** sets `.none` until Share again (ACL heal must not reopen)
 
 ## Changes
 
@@ -276,3 +276,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - What changed: living cart To Buy groups into Metro category sections; Completed and History stay flat lists; row category caption hidden under section headers
 - How to verify: unit test grouping order; device — milk/bread/other land in separate To Buy sections; mark Completed → flat Completed list; History unchanged
 - Do not invent scope: no category grouping in History or Completed
+
+### RC34 — Revoke door vs ACL heal + notify seed
+- Status: done (this train)
+- Paths: CloudKitShareSupport.applyReadWriteACL, CloudKitBackendService.revokeInviteLink, MemberJoinDiff, AppSession+Membership rename personal, docs/product.md, SharedCartJoinTests
+- What changed: ACL heal no longer reopens `publicPermission = .none`; invite create passes `reopenInviteDoor`; revoke no-share/env mismatch throws; member-join first snapshot seeds without notify; personal Rename edits nickname (one title pattern)
+- How to verify: ShareLinkJoinACLTests preserve/reopen; MemberJoinDiffTests seed; rename personal → `cart.personal_title`; device revoke then syncCart leave door closed until Share again
+- Do not invent scope: Production schema deploy remains ops

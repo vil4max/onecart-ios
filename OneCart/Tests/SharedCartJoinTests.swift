@@ -327,16 +327,30 @@ final class SharedCartJoinTests: XCTestCase {
 }
 
 final class ShareLinkJoinACLTests: XCTestCase {
-    func testApplyReadWriteACLUpgradesNonePermission() {
+    func testApplyReadWriteACLPreservesRevokedPublicPermission() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        XCTAssertNotEqual(share.publicPermission, .readWrite)
+        share.publicPermission = .none
+        XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+        XCTAssertEqual(share.publicPermission, .none)
+    }
+
+    func testApplyReadWriteACLReopensDoorWhenRequested() {
+        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        share.publicPermission = .none
+        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true))
+        XCTAssertEqual(share.publicPermission, .readWrite)
+    }
+
+    func testApplyReadWriteACLUpgradesUnknownOrReadOnlyPublicPermission() {
+        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        share.publicPermission = .readOnly
         XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
         XCTAssertEqual(share.publicPermission, .readWrite)
     }
 
     func testApplyReadWriteACLIsIdempotent() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+        share.publicPermission = .readWrite
         XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
     }
 
@@ -347,8 +361,6 @@ final class ShareLinkJoinACLTests: XCTestCase {
         let readOnlyMembers = share.participants.filter {
             $0.role != .owner && $0.permission != .readWrite
         }
-        // Fresh shares may only contain the owner; still assert public ACL stays put
-        // and a second apply is a no-op when everyone already has write.
         if readOnlyMembers.isEmpty {
             XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
             XCTAssertEqual(share.publicPermission, .readWrite)
@@ -363,5 +375,58 @@ final class ShareLinkJoinACLTests: XCTestCase {
             XCTAssertEqual(participant.permission, .readWrite)
         }
         XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+    }
+}
+
+final class MemberJoinDiffTests: XCTestCase {
+    func testFirstSnapshotSeedsWithoutNotify() {
+        let member = FamilyMember(
+            id: UUID(),
+            displayName: "Tim",
+            access: .member,
+            joinedAt: Date(),
+            isCurrentUser: false,
+            avatarURL: nil,
+            bannerURL: nil
+        )
+        let diff = MemberJoinDiff.evaluate(
+            previousIDs: [],
+            storedIDs: [],
+            current: [member]
+        )
+        XCTAssertFalse(diff.shouldNotify)
+        XCTAssertTrue(diff.newcomerIDs.isEmpty)
+        XCTAssertEqual(diff.nextStoredIDs, [member.id])
+    }
+
+    func testNewMemberAfterBaselineNotifies() {
+        let existingID = UUID()
+        let newID = UUID()
+        let existing = FamilyMember(
+            id: existingID,
+            displayName: "Max",
+            access: .owner,
+            joinedAt: Date(),
+            isCurrentUser: true,
+            avatarURL: nil,
+            bannerURL: nil
+        )
+        let joined = FamilyMember(
+            id: newID,
+            displayName: "Tim",
+            access: .member,
+            joinedAt: Date(),
+            isCurrentUser: false,
+            avatarURL: nil,
+            bannerURL: nil
+        )
+        let diff = MemberJoinDiff.evaluate(
+            previousIDs: [existingID],
+            storedIDs: [existingID],
+            current: [existing, joined]
+        )
+        XCTAssertTrue(diff.shouldNotify)
+        XCTAssertEqual(diff.newcomerIDs, [newID])
+        XCTAssertEqual(diff.nextStoredIDs, [existingID, newID])
     }
 }

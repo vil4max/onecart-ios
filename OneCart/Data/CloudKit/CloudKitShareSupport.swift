@@ -96,9 +96,10 @@ enum OneCartShareBranding {
 
 enum OneCartShareLinkJoin {
     @discardableResult
-    static func applyReadWriteACL(to share: CKShare) -> Bool {
+    static func applyReadWriteACL(to share: CKShare, reopenInviteDoor: Bool = false) -> Bool {
         var changed = false
-        if share.publicPermission != .readWrite {
+        let mayTouchPublicPermission = reopenInviteDoor || share.publicPermission != .none
+        if mayTouchPublicPermission, share.publicPermission != .readWrite {
             share.publicPermission = .readWrite
             changed = true
         }

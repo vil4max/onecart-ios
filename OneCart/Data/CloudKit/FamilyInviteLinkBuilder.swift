@@ -252,7 +252,7 @@ enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        OneCartShareLinkJoin.applyReadWriteACL(to: share)
+        OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true)
         OneCartShareBranding.apply(to: share)
 
         // Prefer awaiting ACL persist so the published URL grants write access.
@@ -297,7 +297,7 @@ enum FamilyInviteLinkBuilder {
             return
         }
         var needsPersist = false
-        if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
+        if OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true) {
             needsPersist = true
         }
         if OneCartShareBranding.apply(to: share) {

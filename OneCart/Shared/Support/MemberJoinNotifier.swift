@@ -12,16 +12,16 @@ enum MemberJoinNotifier {
         accountID: UUID,
         defaults: UserDefaults
     ) {
-        let currentIDs = Set(current.map(\.id))
-        let stored = Set(
-            (defaults.array(forKey: seenKey(accountID: accountID)) as? [String] ?? [])
-                .compactMap(UUID.init(uuidString:))
+        let stored = storedIDs(accountID: accountID, defaults: defaults)
+        let diff = MemberJoinDiff.evaluate(
+            previousIDs: previousIDs,
+            storedIDs: stored,
+            current: current
         )
-        let baseline = previousIDs.isEmpty ? stored : previousIDs.union(stored)
-        let newcomers = current.filter { !baseline.contains($0.id) && !$0.isCurrentUser }
-        defaults.set(currentIDs.map(\.uuidString), forKey: seenKey(accountID: accountID))
-        guard !newcomers.isEmpty else { return }
+        defaults.set(diff.nextStoredIDs.map(\.uuidString), forKey: seenKey(accountID: accountID))
+        guard diff.shouldNotify, !diff.newcomerIDs.isEmpty else { return }
 
+        let newcomers = current.filter { diff.newcomerIDs.contains($0.id) }
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized
@@ -50,5 +50,40 @@ enum MemberJoinNotifier {
             guard settings.authorizationStatus == .notDetermined else { return }
             center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }
+    }
+
+    private static func storedIDs(accountID: UUID, defaults: UserDefaults) -> Set<UUID> {
+        Set(
+            (defaults.array(forKey: seenKey(accountID: accountID)) as? [String] ?? [])
+                .compactMap(UUID.init(uuidString:))
+        )
+    }
+}
+
+enum MemberJoinDiff {
+    struct Result {
+        var newcomerIDs: [UUID]
+        var nextStoredIDs: Set<UUID>
+        var shouldNotify: Bool
+    }
+
+    static func evaluate(
+        previousIDs: Set<UUID>,
+        storedIDs: Set<UUID>,
+        current: [FamilyMember]
+    ) -> Result {
+        let currentIDs = Set(current.map(\.id))
+        if previousIDs.isEmpty, storedIDs.isEmpty {
+            return Result(newcomerIDs: [], nextStoredIDs: currentIDs, shouldNotify: false)
+        }
+        let baseline = previousIDs.isEmpty ? storedIDs : previousIDs.union(storedIDs)
+        let newcomerIDs = current
+            .filter { !baseline.contains($0.id) && !$0.isCurrentUser }
+            .map(\.id)
+        return Result(
+            newcomerIDs: newcomerIDs,
+            nextStoredIDs: currentIDs,
+            shouldNotify: true
+        )
     }
 }

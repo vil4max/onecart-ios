@@ -41,6 +41,13 @@ extension AppSession {
         else { return }
         let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
+        if persistence.scope(for: family) == .private {
+            await updateParticipantDisplayName(trimmed)
+            CartHaptics.success()
+            return
+        }
+
         isBusy = true
         defer { isBusy = false }
         do {

@@ -1,6 +1,6 @@
 # Privacy Policy — Tim's Cart
 
-**Last updated:** July 30, 2026  
+**Last updated:** July 31, 2026  
 **Developer:** Maksim Vilchevskiy  
 **Contact:** vil4max@gmail.com
 
@@ -22,7 +22,7 @@ We do **not** sell personal data. We do **not** use tracking for advertising. We
 
 ## Sharing
 
-Cart data is shared only with people you invite through Apple’s CloudKit share (for example Messages, Mail, or a share link). Anyone who has the invite link can join and edit the cart until you remove them or delete the cart (which stops the old link). Apple processes iCloud data under [Apple’s Privacy Policy](https://www.apple.com/privacy/).
+Cart data is shared only with people you invite through Apple’s CloudKit share (for example Messages, Mail, or a share link). Anyone who has the invite link can join and edit the cart until you remove them or **Revoke invite** (which closes the door for new joins; current members stay). Apple processes iCloud data under [Apple’s Privacy Policy](https://www.apple.com/privacy/).
 
 ## Children’s privacy
 

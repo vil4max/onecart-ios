@@ -105,7 +105,11 @@ final class CartAccessTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         await session.renameActiveCart("Дом")
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
-        XCTAssertEqual(session.cartTitle, "Дом")
+        XCTAssertEqual(session.account?.displayName, "Дом")
+        XCTAssertEqual(
+            session.cartTitle,
+            String(localized: "cart.personal_title \("Дом")")
+        )
     }
 
     func testPersonalCartNameUsesAccountDisplayName() {
