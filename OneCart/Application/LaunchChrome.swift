@@ -112,7 +112,7 @@ private final class LaunchRideView: UIView {
         isUserInteractionEnabled = false
         insetsLayoutMarginsFromSafeArea = false
 
-        titleLabel.text = "Tim's Cart"
+        titleLabel.text = String(localized: "common.app_name")
         titleLabel.textColor = .white
         titleLabel.textAlignment = .center
         titleLabel.font = .systemFont(ofSize: LaunchChromeLayout.titleFontSize, weight: .semibold)
@@ -255,12 +255,12 @@ struct OneCartMark: View {
                     OneCartPalette.primary,
                     in: RoundedRectangle(cornerRadius: compact ? 11 : 12, style: .continuous)
                 )
-            Text("Tim's Cart")
+            Text("common.app_name")
                 .font(compact ? .title3.bold() : .title2.bold())
                 .foregroundStyle(.primary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Tim's Cart")
+        .accessibilityLabel(String(localized: "common.app_name"))
     }
 }
 

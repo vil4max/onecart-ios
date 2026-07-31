@@ -77,7 +77,7 @@ struct WelcomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .accessibilityHidden(true)
 
-            Text("Tim's Cart")
+            Text("common.app_name")
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.primary)
 
