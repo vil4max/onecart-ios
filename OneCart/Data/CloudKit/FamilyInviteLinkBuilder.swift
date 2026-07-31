@@ -17,12 +17,12 @@ enum FamilyInviteLinkBuilder {
     ) async throws -> FamilyInviteLink {
         try Task.checkCancellation()
 
-        // Fast path: reuse an existing share URL. Persist write ACL first when needed
-        // so invitees (and already-joined readOnly members) get edit rights.
+        // Fast path: reuse an existing share URL only after the invite door is
+        // confirmed open (Revoke sets publicPermission=.none; Share must reopen it).
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            await ensureReadWriteACLPersisted(existing, persistence: persistence)
+            try await ensureInviteDoorOpen(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -42,7 +42,7 @@ enum FamilyInviteLinkBuilder {
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
            let url = existing.url
         {
-            await ensureReadWriteACLPersisted(existing, persistence: persistence)
+            try await ensureInviteDoorOpen(existing, persistence: persistence)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -252,21 +252,9 @@ enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true)
-        OneCartShareBranding.apply(to: share)
+        try await ensureInviteDoorOpen(share, persistence: persistence)
 
-        // Prefer awaiting ACL persist so the published URL grants write access.
-        // `persistUpdatedShare` can stall — fall back to the minted URL and keep
-        // trying in the background rather than blocking Invite forever.
         if let url = share.url {
-            let persisted = await persistShareBestEffort(share, persistence: persistence)
-            if persisted == nil {
-                let shareToPersist = share
-                let persistence = persistence
-                Task.detached(priority: .utility) {
-                    _ = try? await persistShare(shareToPersist, persistence: persistence)
-                }
-            }
             return FamilyInviteLink(
                 id: stableUUID(for: share.recordID.recordName),
                 familyName: displayName,
@@ -274,7 +262,7 @@ enum FamilyInviteLinkBuilder {
             )
         }
 
-        let saved = try await persistShare(share, persistence: persistence)
+        let saved = try await persistShareRequired(share, persistence: persistence)
         guard let url = saved.url ?? share.url else {
             throw OneCartCloudKitError.shareURLUnavailable
         }
@@ -286,58 +274,72 @@ enum FamilyInviteLinkBuilder {
         )
     }
 
-    private static func ensureReadWriteACLPersisted(
+    /// Revoke only closes the link door (`publicPermission = .none`). It is not a
+    /// guest ban. Share must reopen and persist `.readWrite` before handing out URL.
+    private static func ensureInviteDoorOpen(
         _ share: CKShare,
         persistence: PersistenceController
-    ) async {
+    ) async throws {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
-                "invite ACL skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
+                "invite door skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
+            throw OneCartCloudKitError.shareEnvironmentMismatch
+        }
+
+        let doorWasClosed = share.publicPermission == .none
+        let aclChanged = OneCartShareLinkJoin.applyReadWriteACL(
+            to: share,
+            reopenInviteDoor: true
+        )
+        let brandingChanged = OneCartShareBranding.apply(to: share)
+
+        if aclChanged || brandingChanged || doorWasClosed {
+            CartSyncLog.shareACL.info(
+                "invite door persist reopen=\(doorWasClosed, privacy: .public) aclChanged=\(aclChanged, privacy: .public)"
+            )
+            let saved = try await persistShareRequired(share, persistence: persistence)
+            guard saved.publicPermission == .readWrite else {
+                CartSyncLog.shareACL.error(
+                    "invite door persist returned closed permission=\(String(describing: saved.publicPermission), privacy: .public)"
+                )
+                throw OneCartCloudKitError.inviteDoorClosed
+            }
             return
         }
-        var needsPersist = false
-        if OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true) {
-            needsPersist = true
-        }
-        if OneCartShareBranding.apply(to: share) {
-            needsPersist = true
-        }
-        guard needsPersist else { return }
 
-        if await persistShareBestEffort(share, persistence: persistence) == nil {
-            Task.detached(priority: .utility) {
-                _ = try? await persistShare(share, persistence: persistence)
-            }
+        guard share.publicPermission == .readWrite else {
+            CartSyncLog.shareACL.error(
+                "invite door still closed permission=\(String(describing: share.publicPermission), privacy: .public)"
+            )
+            throw OneCartCloudKitError.inviteDoorClosed
         }
     }
 
-    private static func persistShareBestEffort(
+    private static func persistShareRequired(
         _ share: CKShare,
         persistence: PersistenceController,
-        timeoutNanoseconds: UInt64 = 8_000_000_000
-    ) async -> CKShare? {
+        timeoutNanoseconds: UInt64 = 22_000_000_000
+    ) async throws -> CKShare {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                "persistShareBestEffort skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
-            )
-            return nil
+            throw OneCartCloudKitError.shareEnvironmentMismatch
         }
-        do {
-            return try await withThrowingTaskGroup(of: CKShare.self) { group in
-                group.addTask {
-                    try await persistShare(share, persistence: persistence)
-                }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
-                    throw OneCartCloudKitError.shareTimedOut
-                }
+        return try await withThrowingTaskGroup(of: CKShare.self) { group in
+            group.addTask {
+                try await persistShare(share, persistence: persistence)
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                throw OneCartCloudKitError.shareTimedOut
+            }
+            do {
                 let saved = try await group.next()!
                 group.cancelAll()
                 return saved
+            } catch {
+                group.cancelAll()
+                throw error
             }
-        } catch {
-            return nil
         }
     }
 

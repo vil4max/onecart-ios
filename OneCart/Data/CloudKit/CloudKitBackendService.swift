@@ -157,9 +157,22 @@ final class CloudKitBackendService {
         }) else {
             throw OneCartCloudKitError.participantNotFound
         }
+        let doorBefore = share.publicPermission
+        CartSyncLog.shareACL.info(
+            "removeMember kick (not ban) doorBefore=\(String(describing: doorBefore), privacy: .public)"
+        )
         share.removeParticipant(participant)
         let store = try persistence.store(for: .private)
-        _ = try await persist(share, in: store)
+        let saved = try await persist(share, in: store)
+        let doorAfter = saved.publicPermission
+        CartSyncLog.shareACL.info(
+            "removeMember done doorAfter=\(String(describing: doorAfter), privacy: .public)"
+        )
+        if doorBefore == .readWrite, doorAfter == .none {
+            CartSyncLog.shareACL.error(
+                "removeMember unexpected invite door closed after kick; not auto-reopening"
+            )
+        }
     }
 
     @discardableResult

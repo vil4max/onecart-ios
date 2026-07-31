@@ -69,7 +69,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         }
     }
 
-    func testCacheHitSkipsFetch() async throws {
+    func testCreateInviteLinkAlwaysRefetches() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -97,12 +97,11 @@ final class InviteLinkPreparerTests: XCTestCase {
             isOnline: true,
             fetch: {
                 fetchCount += 1
-                XCTFail("cache should skip fetch")
                 return link
             }
         )
         XCTAssertEqual(second, link)
-        XCTAssertEqual(fetchCount, 1)
+        XCTAssertEqual(fetchCount, 2)
     }
 
     func testClearEmptiesCache() async throws {

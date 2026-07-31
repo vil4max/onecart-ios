@@ -10,6 +10,7 @@ enum OneCartCloudKitError: LocalizedError {
     case stillSyncing
     case shareTimedOut
     case leaveTimedOut
+    case inviteDoorClosed
     case shareEnvironmentMismatch
 
     var errorDescription: String? {
@@ -37,6 +38,8 @@ enum OneCartCloudKitError: LocalizedError {
             String(localized: "sync.share_timed_out")
         case .leaveTimedOut:
             String(localized: "sync.leave_timed_out")
+        case .inviteDoorClosed:
+            String(localized: "sync.invite_door_closed")
         case .shareEnvironmentMismatch:
             String(localized: "sync.share_access_denied")
         }

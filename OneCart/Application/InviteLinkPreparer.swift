@@ -22,14 +22,6 @@ final class InviteLinkPreparer: ObservableObject {
             throw InviteLinkError.offline
         }
 
-        if let preparedInviteLink,
-           preparedInviteFamilyID == familyID,
-           preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
-        {
-            CartSyncLog.action.info("shareInvite cacheHit")
-            return preparedInviteLink
-        }
-
         CartSyncLog.action.info("shareInvite start family=\(familyID.uuidString, privacy: .public)")
         let link = try await fetch()
         preparedInviteLink = link

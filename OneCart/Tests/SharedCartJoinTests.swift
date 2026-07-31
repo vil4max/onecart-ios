@@ -395,6 +395,15 @@ final class ShareLinkJoinACLTests: XCTestCase {
         XCTAssertEqual(share.publicPermission, .readWrite)
     }
 
+    func testRevokeIsDoorCloseNotGuestBan() {
+        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        share.publicPermission = .readWrite
+        share.publicPermission = .none
+        XCTAssertEqual(share.publicPermission, .none)
+        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true))
+        XCTAssertEqual(share.publicPermission, .readWrite)
+    }
+
     func testApplyReadWriteACLUpgradesUnknownOrReadOnlyPublicPermission() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
         share.publicPermission = .readOnly

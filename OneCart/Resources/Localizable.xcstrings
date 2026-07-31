@@ -145,19 +145,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The list will disappear from your account. Other members’ data will not change."
+            "value": "You return to your personal cart. Others keep the shared list. You can join again later with an open invite link."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Список исчезнет из вашего аккаунта. Данные остальных участников не изменятся."
+            "value": "Вы вернётесь в личную корзину. Общий список у остальных останется. Позже можно снова войти по открытой ссылке-приглашению."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Список зникне з вашого акаунта. Дані інших учасників не зміняться."
+            "value": "Ви повернетесь до особистого кошика. Спільний список у інших залишиться. Пізніше можна знову увійти за відкритим посиланням-запрошенням."
           }
         }
       }
@@ -366,19 +366,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ will lose access to this cart."
+            "value": "%@ will leave this cart now. They can join again later with an open invite link — this is not a ban."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ потеряет доступ к этой корзине."
+            "value": "%@ сейчас выйдет из этой корзины. Позже можно снова войти по открытой ссылке — это не запрет."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ втратить доступ до цього кошика."
+            "value": "%@ зараз вийде з цього кошика. Пізніше можна знову увійти за відкритим посиланням — це не заборона."
           }
         }
       }
@@ -2890,6 +2890,29 @@
         }
       }
     },
+    "sync.invite_door_closed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reopen the invite link. Check network and iCloud, then tap Share again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось снова открыть ссылку-приглашение. Проверьте сеть и iCloud, затем нажмите «Поделиться» ещё раз."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося знову відкрити посилання-запрошення. Перевірте мережу і iCloud, потім натисніть «Поділитися» ще раз."
+          }
+        }
+      }
+    },
     "sync.share_url_unavailable": {
       "extractionState": "manual",
       "localizations": {
@@ -4184,19 +4207,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You keep your account and return to your personal cart."
+            "value": "You keep your account and return to your personal cart. You can rejoin later with an open invite link."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Аккаунт останется; откроется ваша личная корзина."
+            "value": "Аккаунт останется; откроется личная корзина. Позже можно снова войти по открытой ссылке."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Акаунт залишиться; відкриється ваш особистий кошик."
+            "value": "Акаунт залишиться; відкриється особистий кошик. Пізніше можна знову увійти за відкритим посиланням."
           }
         }
       }

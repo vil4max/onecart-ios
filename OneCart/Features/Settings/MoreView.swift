@@ -23,13 +23,6 @@ struct AccountView: View {
         NavigationStack {
             List {
                 Section {
-                    if model.activeFamilySpace != nil {
-                        AccountCartStatusRow(
-                            cartTitle: model.cartTitle,
-                            roleLine: cartRoleLine
-                        )
-                    }
-
                     if model.isFamilyMetadataLoading, displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
@@ -109,7 +102,20 @@ struct AccountView: View {
                         }
                     }
                 } header: {
-                    Text("settings.cart_section")
+                    if model.activeFamilySpace != nil {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(model.cartTitle)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                                .textCase(nil)
+                            Text(cartRoleLine)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .textCase(nil)
+                        }
+                    } else {
+                        Text("settings.cart_section")
+                    }
                 } footer: {
                     Text(cartSectionFooter)
                 }
@@ -367,13 +373,7 @@ struct AccountView: View {
         let work = Task { @MainActor in
             defer { isSharing = false }
             do {
-                let link: FamilyInviteLink = if let cached = model.preparedInviteLink,
-                                                cached.expiresAt > Date().addingTimeInterval(30)
-                {
-                    cached
-                } else {
-                    try await model.createFamilyInviteLink()
-                }
+                let link = try await model.createFamilyInviteLink()
                 guard !Task.isCancelled else { return }
                 sharePayload = CartSharePayload(link: link)
                 CartHaptics.success()
@@ -407,37 +407,6 @@ struct AccountView: View {
                 }
             }
         }
-    }
-}
-
-private struct AccountCartStatusRow: View {
-    let cartTitle: String
-    let roleLine: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "cart.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-                .frame(width: 36, height: 36)
-                .background(
-                    OneCartPalette.primarySoft,
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(cartTitle)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(roleLine)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
     }
 }
 

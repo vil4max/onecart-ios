@@ -57,7 +57,7 @@ Three tabs after Welcome:
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
 | **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave) then **Аккаунт Apple** (SIWA / sign out) |
 
-Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart.
+Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
 
 Nav title is the cart name. Personal cart starts as `cart.personal_title` from the nickname; after the owner renames the cart, the title no longer follows nickname changes. Shared cart title is owner-editable via Rename.
 
@@ -81,7 +81,18 @@ Create household cart → warm-start CKShare (publicPermission = .readWrite)
   → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
 ```
 
-Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Owner **Account → Revoke invite** sets `publicPermission = .none` (no new joins; members stay). Remove member kicks one person back to their durable personal cart. Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
+Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
+
+### Membership (no ban list)
+
+| Action | Effect | Rejoin |
+|--------|--------|--------|
+| **Remove member** | Kick (`CKShare.removeParticipant`). Invite door unchanged. | Yes, while door is `.readWrite` |
+| **Leave cart** | Guest purges local shared zone; returns to personal cart. | Yes, with an open invite link |
+| **Revoke invite** | Closes door only (`publicPermission = .none`). Not a guest ban. Current members stay. | No, until owner **Share** again |
+| **Share** | Must persist door `.readWrite` before handing out the URL (repairs a closed CloudKit invite door without wiping the cart). | Opens joining |
+
+Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — use **Share** to reopen the door.
 
 ## Account and profile
 
