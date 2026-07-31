@@ -313,7 +313,6 @@ struct ShoppingListView: View {
 
         isAddingDraft = true
         let name = trimmedDraft
-        let before = Set(model.products(inListID: listID).compactMap(\.id))
         let draft = ProductDraft(
             name: name,
             quantity: 1,
@@ -322,11 +321,10 @@ struct ShoppingListView: View {
             estimatedPrice: 0,
             note: ""
         )
-        await model.addProduct(to: list, draft: draft)
+        let succeeded = await model.addProduct(to: list, draft: draft)
         isAddingDraft = false
 
-        let after = Set(model.products(inListID: listID).compactMap(\.id))
-        guard !after.subtracting(before).isEmpty else {
+        guard succeeded else {
             focusedField = .compose
             return
         }
@@ -531,7 +529,7 @@ private struct ProductRow: View {
         if product.isPurchasedValue {
             if let purchasedByName = product.purchasedByName?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
-               !purchasedByName.isEmpty
+                !purchasedByName.isEmpty
             {
                 return String(localized: "cart.in_trolley_by \(purchasedByName)")
             }
@@ -539,7 +537,7 @@ private struct ProductRow: View {
         }
         if let createdByName = product.createdByName?
             .trimmingCharacters(in: .whitespacesAndNewlines),
-           !createdByName.isEmpty
+            !createdByName.isEmpty
         {
             return String(localized: "cart.added_by \(createdByName)")
         }
