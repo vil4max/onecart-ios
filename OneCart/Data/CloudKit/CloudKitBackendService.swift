@@ -63,8 +63,8 @@ final class CloudKitBackendService {
         }
 
         let persistence = persistence
-        // Builder is nonisolated; keep a hard ceiling so Invite UI cannot spin forever
-        // if `share` / `persistUpdatedShare` never calls back.
+        // Ceiling must cover mirror wait (~8s) + share create (~12s) + door persist (~22s).
+        // Nested persistShareRequired also uses 22s; outer must not cancel a mandatory reopen.
         return try await withThrowingTaskGroup(of: FamilyInviteLink.self) { group in
             group.addTask {
                 try await FamilyInviteLinkBuilder.makeInviteLink(
@@ -74,7 +74,7 @@ final class CloudKitBackendService {
                 )
             }
             group.addTask {
-                try await Task.sleep(nanoseconds: 22_000_000_000)
+                try await Task.sleep(nanoseconds: 45_000_000_000)
                 throw OneCartCloudKitError.shareTimedOut
             }
             do {

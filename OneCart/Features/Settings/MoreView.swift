@@ -396,7 +396,7 @@ struct AccountView: View {
             }
         }
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 24_000_000_000)
+            try? await Task.sleep(nanoseconds: 48_000_000_000)
             guard !work.isCancelled else { return }
             if isSharing {
                 work.cancel()

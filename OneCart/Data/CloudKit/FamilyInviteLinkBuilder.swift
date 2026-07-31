@@ -296,7 +296,7 @@ enum FamilyInviteLinkBuilder {
 
         if aclChanged || brandingChanged || doorWasClosed {
             CartSyncLog.shareACL.info(
-                "invite door persist reopen=\(doorWasClosed, privacy: .public) aclChanged=\(aclChanged, privacy: .public)"
+                "invite door persist reopen=\(doorWasClosed, privacy: .public) aclChanged=\(aclChanged, privacy: .public) brandingChanged=\(brandingChanged, privacy: .public)"
             )
             let saved = try await persistShareRequired(share, persistence: persistence)
             guard saved.publicPermission == .readWrite else {
@@ -304,6 +304,9 @@ enum FamilyInviteLinkBuilder {
                     "invite door persist returned closed permission=\(String(describing: saved.publicPermission), privacy: .public)"
                 )
                 throw OneCartCloudKitError.inviteDoorClosed
+            }
+            if doorWasClosed {
+                CartSyncLog.shareACL.info("invite door repaired to readWrite")
             }
             return
         }

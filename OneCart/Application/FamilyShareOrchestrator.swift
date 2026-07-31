@@ -49,7 +49,7 @@ final class FamilyShareOrchestrator {
             )
         }.value
         CartSyncLog.shareACL.info(
-            "invite door repaired hasURL=true host=\(link.url.host ?? "-", privacy: .public)"
+            "invite link ready hasURL=true host=\(link.url.host ?? "-", privacy: .public)"
         )
         return link
     }
