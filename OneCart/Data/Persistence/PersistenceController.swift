@@ -273,8 +273,6 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
-        // CloudKit / network failures must not be treated as corrupt local stores
-        // (Welcome Retry only hard-resets on true Core Data failures).
         if error is CKError {
             return false
         }
@@ -282,10 +280,21 @@ final class PersistenceController: @unchecked Sendable {
         if nsError.domain == CKError.errorDomain {
             return false
         }
+        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+            return false
+        }
+        let text = nsError.localizedDescription.lowercased()
+        if text.contains("mirroring delegate")
+            || text.contains("production schema")
+            || text.contains("cannot create or modify field")
+            || text.contains("ckerror")
+            || text.contains("partial failure")
+        {
+            return false
+        }
         if nsError.domain == NSCocoaErrorDomain {
             return true
         }
-        let text = nsError.localizedDescription.lowercased()
         return text.contains("core data")
             || text.contains("incompatible")
             || text.contains("migration")

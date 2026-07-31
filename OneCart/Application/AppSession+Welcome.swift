@@ -174,6 +174,9 @@ extension AppSession {
         if error is OneCartCloudKitError {
             return CloudKitUserFacingError.message(for: error)
         }
+        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+            return CloudKitUserFacingError.productionSchemaMissing
+        }
         if CloudKitUserFacingError.isNetworkError(error) {
             return String(localized: "sync.network_deferred")
         }

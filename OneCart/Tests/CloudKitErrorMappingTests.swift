@@ -243,6 +243,40 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(migrationText))
     }
 
+    func testMirroringAbortWithCreatedByNameIsSchemaNotLocalDatabase() {
+        let nested = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.invalidArguments.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Cannot create or modify field 'CD_createdByName' in record 'CD_Product' in production schema",
+            ]
+        )
+        let partial = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Failed to modify some records",
+                CKPartialErrorsByItemIDKey: ["product-1": nested],
+            ]
+        )
+        let mirroring = NSError(
+            domain: NSCocoaErrorDomain,
+            code: 134_400,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "The operation couldn’t be completed. Request was aborted because the mirroring delegate never successfully initialized due to error: Partial Failure",
+                NSUnderlyingErrorKey: partial,
+            ]
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isProductionSchemaFailure(mirroring))
+        XCTAssertFalse(PersistenceController.isUserFacingCoreDataFailure(mirroring))
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: mirroring),
+            CloudKitUserFacingError.productionSchemaMissing
+        )
+    }
+
     func testProductReloadPolicyTriggersOnlyOnSuccessfulImport() {
         XCTAssertTrue(
             CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
