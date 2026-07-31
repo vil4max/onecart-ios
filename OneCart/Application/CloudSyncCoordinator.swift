@@ -181,11 +181,12 @@ final class CloudSyncCoordinator {
                 host.softRefreshCartProducts()
                 do {
                     try await host.offerSharedCartJoinIfNeeded(for: account)
-                    await syncCart(reason: .cloudImport)
                 } catch {
+                    // Keep importing CloudKit changes even if adopt/merge races.
                     host.applySyncState(.failed)
                     host.applyLastSyncError(host.userFacingMessage(for: error))
                 }
+                await syncCart(reason: .cloudImport)
             }
         }
     }

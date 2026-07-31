@@ -84,12 +84,11 @@ extension AppSession {
 
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
         guard let family = activeFamilySpace else {
-            CartSyncLog.action.error("shareInvite denied notOwner")
+            CartSyncLog.action.error("shareInvite denied noFamily")
             throw InviteLinkError.notOwner
         }
         return try await invitePreparer.createInviteLink(
             family: family,
-            isOwner: access?.isOwner == true,
             isOnline: online,
             fetch: { [shareOrchestrator] in
                 try await shareOrchestrator.createInviteLink(for: family)
@@ -102,10 +101,6 @@ extension AppSession {
             delayNanoseconds: delayNanoseconds,
             isOnline: { [weak self] in self?.online == true },
             family: { [weak self] in self?.activeFamilySpace },
-            isOwner: { [weak self] in self?.access?.isOwner == true },
-            scopeIsPrivate: { [weak self] family in
-                self?.persistence.scope(for: family) == .private
-            },
             familyStillActive: { [weak self] familyID in
                 self?.activeFamilySpace?.id == familyID
             },

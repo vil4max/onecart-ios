@@ -51,18 +51,32 @@ extension AppSession {
         defer { isBusy = false }
         do {
             try await persistence.acceptShareInvitations(from: metadata)
-            syncState = .synchronized
-            try reload()
-            if let account {
-                try await offerSharedCartJoinIfNeeded(for: account)
-            }
-            cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
         } catch {
             AppDelegate.requeue(metadata)
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
             show(error)
+            return
         }
+
+        // Share accept already succeeded — do not requeue metadata if local adopt/reload
+        // races (shared lists still importing, temporary merge permission deny).
+        // Always consolidate into the accepted/newest shared cart (merge private +
+        // archive stale guest shares from previous cart versions).
+        syncState = .synchronized
+        do {
+            try reload()
+            if let account {
+                try await offerSharedCartJoinIfNeeded(for: account)
+                await refreshFamilyMetadata(showErrors: false)
+                scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
+            }
+        } catch {
+            syncState = .failed
+            lastSyncError = userFacingMessage(for: error)
+            show(error)
+        }
+        cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
     }
 
     func removeMember(_ member: FamilyMember) async {

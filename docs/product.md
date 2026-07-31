@@ -57,7 +57,7 @@ Three tabs after Welcome:
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
 | **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
 
-Share is a secondary action in **Аккаунт**, not a primary cart CTA. Invite once; shop every day. Owner Recreate cart rotates the invite link.
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link; Owner Recreate cart rotates the invite link.
 
 Nav title is the cart name — fixed brand default `Tim's Cart` when the household cart is created (not derived from the owner's SIWA display name).
 

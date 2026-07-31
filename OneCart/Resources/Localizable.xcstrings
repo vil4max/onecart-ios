@@ -3920,19 +3920,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only the cart owner can invite members."
+            "value": "No cart to share yet."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Приглашать участников может только владелец корзины."
+            "value": "Пока нет корзины, которой можно поделиться."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Запрошувати учасників може лише власник кошика."
+            "value": "Поки немає кошика, яким можна поділитися."
           }
         }
       }

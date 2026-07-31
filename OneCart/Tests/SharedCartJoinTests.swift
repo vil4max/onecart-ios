@@ -62,6 +62,91 @@ final class SharedCartJoinTests: XCTestCase {
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
+    func testAdoptSelectsSharedEvenWhenPrivateMergeFails() async throws {
+        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+            privateName: "Моя",
+            sharedName: "Семейная",
+            privateProduct: "Мой хлеб",
+            sharedProduct: nil,
+            includeSharedList: false
+        )
+
+        try await session.offerSharedCartJoinIfNeededForTesting()
+
+        XCTAssertEqual(
+            session.activeFamilySpace?.id,
+            sharedID,
+            "Invitee must join shared cart even if private→shared merge cannot run yet"
+        )
+        XCTAssertEqual(
+            persistenceScope(for: session.activeFamilySpace, in: session.persistence),
+            .shared
+        )
+        // Private content stays until a later successful merge retry.
+        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
+            familySpaceRequest(id: privateID)
+        ).first)
+    }
+
+    func testAcceptConsolidatesOntoNewestSharedAndArchivesStaleGuestShare() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+
+        let privateID = try await repository.createFamilySpace(
+            name: "Моя",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        let privateListID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: privateID)?.activeLists.first?.id
+        )
+        _ = try await repository.addProduct(
+            to: privateListID,
+            draft: productDraft(name: "Мой хлеб")
+        )
+
+        let oldSharedID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Старая семейная",
+            productName: "Old",
+            updatedAt: Date().addingTimeInterval(-3_600)
+        )
+        let newSharedID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Новая семейная",
+            productName: "New",
+            updatedAt: Date()
+        )
+        defaults.set(oldSharedID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        XCTAssertEqual(session.activeFamilySpace?.id, oldSharedID)
+        XCTAssertEqual(session.access, .member)
+
+        try await session.offerSharedCartJoinIfNeededForTesting()
+
+        XCTAssertEqual(session.activeFamilySpace?.id, newSharedID)
+        XCTAssertEqual(session.access, .member)
+        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+            familySpaceRequest(id: oldSharedID)
+        ).first)
+        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+            familySpaceRequest(id: privateID)
+        ).first)
+        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Мой хлеб", "New"])
+    }
+
     func testRefreshFromServerPicksUpToggledPurchasedState() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
@@ -110,7 +195,8 @@ final class SharedCartJoinTests: XCTestCase {
         privateName: String,
         sharedName: String,
         privateProduct: String? = nil,
-        sharedProduct: String? = nil
+        sharedProduct: String? = nil,
+        includeSharedList: Bool = true
     ) async throws -> (AppSession, OneCartAccount, UUID, UUID) {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
@@ -139,7 +225,8 @@ final class SharedCartJoinTests: XCTestCase {
         let sharedID = try await seedSharedCart(
             persistence: persistence,
             name: sharedName,
-            productName: sharedProduct
+            productName: sharedProduct,
+            includeList: includeSharedList
         )
         defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
@@ -156,7 +243,9 @@ final class SharedCartJoinTests: XCTestCase {
     private func seedSharedCart(
         persistence: PersistenceController,
         name: String,
-        productName: String?
+        productName: String?,
+        includeList: Bool = true,
+        updatedAt: Date = Date()
     ) async throws -> UUID {
         let sharedID = UUID()
         let listID = UUID()
@@ -165,17 +254,19 @@ final class SharedCartJoinTests: XCTestCase {
             try persistence.assign(space, to: .shared, in: context)
             space.id = sharedID
             space.name = name
-            space.createdAt = Date()
-            space.updatedAt = Date()
+            space.createdAt = updatedAt
+            space.updatedAt = updatedAt
             space.isHouseholdDefault = NSNumber(value: true)
+
+            guard includeList else { return }
 
             let list = ShoppingListEntity(context: context)
             try persistence.assign(list, toSameStoreAs: space, in: context)
             list.id = listID
             list.title = String(localized: "common.default_list")
             list.status = ShoppingListStatus.active.rawValue
-            list.createdAt = Date()
-            list.updatedAt = Date()
+            list.createdAt = updatedAt
+            list.updatedAt = updatedAt
             list.familySpace = space
 
             if let productName {
@@ -188,8 +279,8 @@ final class SharedCartJoinTests: XCTestCase {
                 product.category = ProductCategory.other.rawValue
                 product.estimatedPrice = NSNumber(value: 0)
                 product.isPurchased = NSNumber(value: false)
-                product.createdAt = Date()
-                product.updatedAt = Date()
+                product.createdAt = updatedAt
+                product.updatedAt = updatedAt
                 product.familySpace = space
                 product.list = list
             }
@@ -210,6 +301,14 @@ final class SharedCartJoinTests: XCTestCase {
         ])
         request.fetchLimit = 1
         return request
+    }
+
+    private func persistenceScope(
+        for space: FamilySpace?,
+        in persistence: PersistenceController
+    ) -> PersistentStoreScope? {
+        guard let space else { return nil }
+        return persistence.scope(for: space)
     }
 }
 

@@ -10,12 +10,11 @@ final class InviteLinkPreparer: ObservableObject {
 
     func createInviteLink(
         family: FamilySpace,
-        isOwner: Bool,
         isOnline: Bool,
         fetch: () async throws -> FamilyInviteLink
     ) async throws -> FamilyInviteLink {
-        guard let familyID = family.id, isOwner else {
-            CartSyncLog.action.error("shareInvite denied notOwner")
+        guard let familyID = family.id else {
+            CartSyncLog.action.error("shareInvite denied noFamily")
             throw InviteLinkError.notOwner
         }
         guard isOnline else {
@@ -45,8 +44,6 @@ final class InviteLinkPreparer: ObservableObject {
         delayNanoseconds: UInt64 = 1_500_000_000,
         isOnline: @escaping () -> Bool,
         family: @escaping () -> FamilySpace?,
-        isOwner: @escaping () -> Bool,
-        scopeIsPrivate: @escaping (FamilySpace) -> Bool,
         familyStillActive: @escaping (UUID) -> Bool,
         fetch: @escaping (FamilySpace) async throws -> FamilyInviteLink
     ) {
@@ -57,8 +54,6 @@ final class InviteLinkPreparer: ObservableObject {
             await prepareInBackground(
                 isOnline: isOnline(),
                 family: family(),
-                isOwner: isOwner(),
-                scopeIsPrivate: scopeIsPrivate,
                 familyStillActive: familyStillActive,
                 fetch: fetch
             )
@@ -72,12 +67,9 @@ final class InviteLinkPreparer: ObservableObject {
         preparedInviteFamilyID = nil
     }
 
-    func shouldClearCache(forSelectedFamilyID selectedID: UUID?, isOwner: Bool, scopeIsPrivate: Bool) -> Bool {
+    func shouldClearCache(forSelectedFamilyID selectedID: UUID?) -> Bool {
         guard preparedInviteLink != nil else { return false }
         if let preparedInviteFamilyID, preparedInviteFamilyID != selectedID {
-            return true
-        }
-        if !isOwner || !scopeIsPrivate {
             return true
         }
         return false
@@ -86,19 +78,11 @@ final class InviteLinkPreparer: ObservableObject {
     private func prepareInBackground(
         isOnline: Bool,
         family: FamilySpace?,
-        isOwner: Bool,
-        scopeIsPrivate: (FamilySpace) -> Bool,
         familyStillActive: (UUID) -> Bool,
         fetch: (FamilySpace) async throws -> FamilyInviteLink
     ) async {
         guard isOnline else { return }
-        guard let family,
-              let familyID = family.id,
-              isOwner,
-              scopeIsPrivate(family)
-        else {
-            return
-        }
+        guard let family, let familyID = family.id else { return }
         if let preparedInviteLink,
            preparedInviteFamilyID == familyID,
            preparedInviteLink.expiresAt > Date().addingTimeInterval(30)

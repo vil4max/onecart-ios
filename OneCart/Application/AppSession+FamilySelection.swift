@@ -82,11 +82,7 @@ extension AppSession {
             if previousID != selectedID {
                 familyMembers = []
             }
-            if invitePreparer.shouldClearCache(
-                forSelectedFamilyID: selectedID,
-                isOwner: access?.isOwner == true,
-                scopeIsPrivate: selected.map { persistence.scope(for: $0) } == .private
-            ) {
+            if invitePreparer.shouldClearCache(forSelectedFamilyID: selectedID) {
                 clearPreparedInviteLink()
             }
         } else {

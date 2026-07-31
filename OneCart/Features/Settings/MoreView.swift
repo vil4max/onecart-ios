@@ -61,7 +61,7 @@ struct AccountView: View {
                     Text(memberCountText(displayedMembers.count))
                 }
 
-                if model.access?.isOwner == true {
+                if model.activeFamilySpace != nil {
                     Section {
                         Button {
                             shareCart()
@@ -80,16 +80,18 @@ struct AccountView: View {
                         .buttonStyle(.plain)
                         .disabled(isSharing || !model.isOnline)
 
-                        Button {
-                            confirmingDeleteCart = true
-                        } label: {
-                            AccountActionRow(
-                                titleKey: "account.delete_cart",
-                                systemImage: "arrow.triangle.2.circlepath"
-                            )
+                        if model.access?.isOwner == true {
+                            Button {
+                                confirmingDeleteCart = true
+                            } label: {
+                                AccountActionRow(
+                                    titleKey: "account.delete_cart",
+                                    systemImage: "arrow.triangle.2.circlepath"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.isBusy || !model.isOnline)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(model.isBusy || !model.isOnline)
 
                         AccountInfoRow(
                             systemImage: "link.circle.fill",

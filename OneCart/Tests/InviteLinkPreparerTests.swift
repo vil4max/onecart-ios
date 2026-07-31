@@ -4,16 +4,16 @@ import XCTest
 
 @MainActor
 final class InviteLinkPreparerTests: XCTestCase {
-    func testNotOwnerThrows() async throws {
+    func testMissingFamilyIDThrows() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        family.id = nil
         let preparer = InviteLinkPreparer()
 
         do {
             _ = try await preparer.createInviteLink(
                 family: family,
-                isOwner: false,
                 isOnline: true,
                 fetch: {
                     XCTFail("fetch must not run")
@@ -27,6 +27,26 @@ final class InviteLinkPreparerTests: XCTestCase {
         XCTAssertNil(preparer.preparedInviteLink)
     }
 
+    func testMemberCanCreateInviteLink() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Cart")
+        let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let preparer = InviteLinkPreparer()
+        let link = try FamilyInviteLink(
+            id: UUID(),
+            familyName: "Cart",
+            url: XCTUnwrap(URL(string: "https://www.icloud.com/share/test"))
+        )
+
+        let result = try await preparer.createInviteLink(
+            family: family,
+            isOnline: true,
+            fetch: { link }
+        )
+        XCTAssertEqual(result, link)
+        XCTAssertEqual(preparer.preparedInviteLink, link)
+    }
+
     func testOfflineThrows() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         _ = persistence
@@ -37,7 +57,6 @@ final class InviteLinkPreparerTests: XCTestCase {
         do {
             _ = try await preparer.createInviteLink(
                 family: family,
-                isOwner: true,
                 isOnline: false,
                 fetch: {
                     XCTFail("fetch must not run")
@@ -64,7 +83,6 @@ final class InviteLinkPreparerTests: XCTestCase {
 
         let first = try await preparer.createInviteLink(
             family: family,
-            isOwner: true,
             isOnline: true,
             fetch: {
                 fetchCount += 1
@@ -76,7 +94,6 @@ final class InviteLinkPreparerTests: XCTestCase {
 
         let second = try await preparer.createInviteLink(
             family: family,
-            isOwner: true,
             isOnline: true,
             fetch: {
                 fetchCount += 1
@@ -100,13 +117,32 @@ final class InviteLinkPreparerTests: XCTestCase {
         )
         _ = try await preparer.createInviteLink(
             family: family,
-            isOwner: true,
             isOnline: true,
             fetch: { link }
         )
         preparer.clear()
         XCTAssertNil(preparer.preparedInviteLink)
         XCTAssertNil(preparer.preparedInviteFamilyID)
+    }
+
+    func testShouldClearCacheOnlyWhenFamilyChanges() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Cart")
+        let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let preparer = InviteLinkPreparer()
+        let link = try FamilyInviteLink(
+            id: UUID(),
+            familyName: "Cart",
+            url: XCTUnwrap(URL(string: "https://www.icloud.com/share/test"))
+        )
+        _ = try await preparer.createInviteLink(
+            family: family,
+            isOnline: true,
+            fetch: { link }
+        )
+
+        XCTAssertFalse(preparer.shouldClearCache(forSelectedFamilyID: familyID))
+        XCTAssertTrue(preparer.shouldClearCache(forSelectedFamilyID: UUID()))
     }
 
     func testWarmUpFailureLeavesCacheNil() async throws {
@@ -118,8 +154,6 @@ final class InviteLinkPreparerTests: XCTestCase {
             delayNanoseconds: 5_000_000,
             isOnline: { true },
             family: { family },
-            isOwner: { true },
-            scopeIsPrivate: { _ in true },
             familyStillActive: { $0 == familyID },
             fetch: { _ in throw InviteLinkError.offline }
         )
