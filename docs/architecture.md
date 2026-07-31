@@ -126,7 +126,7 @@ New household spaces and children go to the private store. After `CKShare` accep
 
 There is **no public API to force** a CloudKit import/export mirror ([TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) / [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)). The app schedules best-effort hard refresh after import events, pull-to-refresh, cart appear, and foreground. ViewContext uses `NSMergeByPropertyStoreTrumpMergePolicy` so remote store wins over stale in-memory values. User-facing failures use a system alert; transient share create retries honor `CKError.retryAfterSeconds` when present.
 
-`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. Personal cart stays durable on disk when active is shared. Join merge uses LWW by normalized product name + newer `updatedAt`. See [product.md](product.md) and [privacy.md](privacy.md).
+`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. Join product merge is deferred. See [product.md](product.md) and [privacy.md](privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 
@@ -147,5 +147,5 @@ Full tree and commands: [README.md](../README.md).
 ## Cart merge (LWW)
 
 - Within one cart: duplicate `Product.id` → soft-delete loser via launch dedupe; prefer non-deleted, else newer `updatedAt`.
-- On invite join (private → shared): match destination by normalized name; if source `updatedAt` is newer, copy field values onto the existing destination row; else skip; if no match, insert with a new UUID. Source personal space is **not** archived (durable personal).
+- On invite join: switch active to shared and hide personal from the session list — **no** private→shared product copy yet (deferred; `mergeFamilyContent` remains for later).
 - Quantities are last-write-wins, never summed.

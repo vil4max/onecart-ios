@@ -82,7 +82,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertEqual(session.userAlert?.kind, .success)
     }
 
-    func testRenameActiveCartUpdatesDisplayName() async throws {
+    func testRenameActiveCartUpdatesFamilySpaceName() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -92,7 +92,7 @@ final class CartAccessTests: XCTestCase {
             permissionAuthorizer: AllowAllPermissionAuthorizer()
         )
         let familyID = try await repository.createFamilySpace(
-            name: "Old",
+            name: AppSession.householdCartName(for: account),
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
@@ -105,11 +105,8 @@ final class CartAccessTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         await session.renameActiveCart("Дом")
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
-        XCTAssertEqual(session.account?.displayName, "Дом")
-        XCTAssertEqual(
-            session.cartTitle,
-            String(localized: "cart.personal_title \("Дом")")
-        )
+        XCTAssertEqual(session.account?.displayName, "Max")
+        XCTAssertEqual(session.cartTitle, "Дом")
     }
 
     func testPersonalCartNameUsesAccountDisplayName() {
@@ -120,7 +117,7 @@ final class CartAccessTests: XCTestCase {
         )
     }
 
-    func testRenamingParticipantUpdatesPersonalCartTitle() async throws {
+    func testRenamingParticipantUpdatesPersonalCartTitleWhileAutoNamed() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -153,6 +150,36 @@ final class CartAccessTests: XCTestCase {
             session.cartTitle,
             String(localized: "cart.personal_title \("Папа")")
         )
+        XCTAssertEqual(session.activeFamilySpace?.id, familyID)
+    }
+
+    func testCustomCartNameStopsFollowingParticipantNickname() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: AppSession.householdCartName(for: account),
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+
+        await session.renameActiveCart("Дом")
+        await session.updateParticipantDisplayName("Папа")
+
+        XCTAssertEqual(session.account?.displayName, "Папа")
+        XCTAssertEqual(session.cartTitle, "Дом")
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
     }
 

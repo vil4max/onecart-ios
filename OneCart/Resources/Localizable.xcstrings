@@ -30,19 +30,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shown to other people in this cart."
+            "value": "Used when Sign in with Apple did not provide a name. The same name appears in the cart member list and on items you add."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Так вас видят другие участники корзины."
+            "value": "Нужно, если Sign in with Apple не отдал имя. То же имя видно в списке участников корзины и на товарах, которые вы добавляете."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Так вас бачать інші учасники кошика."
+            "value": "Потрібно, якщо Sign in with Apple не віддав ім’я. Те саме ім’я видно в списку учасників кошика і на товарах, які ви додаєте."
           }
         }
       }
@@ -320,19 +320,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account"
+            "value": "Settings"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Аккаунт"
+            "value": "Настройки"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Акаунт"
+            "value": "Налаштування"
           }
         }
       }
@@ -596,19 +596,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account"
+            "value": "Settings"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Аккаунт"
+            "value": "Настройки"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Акаунт"
+            "value": "Налаштування"
           }
         }
       }
@@ -1161,29 +1161,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Власник кошика"
-          }
-        }
-      }
-    },
-    "cart.progress_collected %lld %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld of %2$lld collected"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld из %2$lld собрано"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld з %2$lld зібрано"
           }
         }
       }
@@ -3931,19 +3908,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anyone with the invite link can join and edit this cart."
+            "value": "You can forward the same invite. Only the owner can revoke it."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Любой по ссылке-приглашению может присоединиться и редактировать корзину."
+            "value": "Можете переслать ту же ссылку. Отозвать её может только владелец."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Будь-хто за посиланням-запрошенням може приєднатися і редагувати кошик."
+            "value": "Можете переслати те саме посилання. Відкликати його може лише власник."
           }
         }
       }
@@ -4013,6 +3990,420 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ приєднався до кошика"
+          }
+        }
+      }
+    },
+    "account.cart_status_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта корзина"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цей кошик"
+          }
+        }
+      }
+    },
+    "account.role_member_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are a member of this shared cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы участник этой общей корзины"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви учасник цього спільного кошика"
+          }
+        }
+      }
+    },
+    "account.role_owner_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You own this cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы владелец этой корзины"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви власник цього кошика"
+          }
+        }
+      }
+    },
+    "account.cart_status_member_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cart and History show this shared list. Leave to return to your personal cart."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Корзина и История показывают этот общий список. «Покинуть» вернёт вашу личную корзину."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кошик і Історія показують цей спільний список. «Залишити» поверне ваш особистий кошик."
+          }
+        }
+      }
+    },
+    "account.cart_status_owner_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite family from below. You control the invite link."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приглашайте семью ниже. Ссылку-приглашение контролируете вы."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрошуйте родину нижче. Посилання-запрошення контролюєте ви."
+          }
+        }
+      }
+    },
+    "account.invite_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приглашение"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрошення"
+          }
+        }
+      }
+    },
+    "account.leave_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave shared cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Покинуть общую корзину"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Залишити спільний кошик"
+          }
+        }
+      }
+    },
+    "account.leave_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You keep your account and return to your personal cart."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккаунт останется; откроется ваша личная корзина."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Акаунт залишиться; відкриється ваш особистий кошик."
+          }
+        }
+      }
+    },
+    "account.session_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сесія"
+          }
+        }
+      }
+    },
+    "settings.nav_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройки"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування"
+          }
+        }
+      }
+    },
+    "settings.apple_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход выполнен"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вхід виконано"
+          }
+        }
+      }
+    },
+    "settings.apple_siwa_caption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with Apple"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход через Apple"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вхід через Apple"
+          }
+        }
+      }
+    },
+    "settings.cart_section": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cart"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Корзина"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кошик"
+          }
+        }
+      }
+    },
+    "account.cart_name_prompt_personal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renaming detaches the cart title from your nickname. Your name in the cart stays separate."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После переименования название корзины больше не следует за ником. Имя в корзине остаётся отдельным."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після перейменування назва кошика більше не йде за ніком. Ім’я в кошику лишається окремим."
+          }
+        }
+      }
+    },
+    "settings.apple_set_name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set your name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Указать имя"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вказати ім’я"
+          }
+        }
+      }
+    },
+    "settings.apple_edit_name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить имя"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Змінити ім’я"
+          }
+        }
+      }
+    },
+    "settings.apple_name_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One name for Apple Account and how you appear in the cart. Sign out clears the local Apple session and returns to Welcome; it does not sign out of iCloud on the device."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одно имя для аккаунта Apple и того, как вас видят в корзине. Выход очищает локальную сессию Apple и возвращает на Welcome; из iCloud на устройстве вы не выходите."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одне ім’я для акаунта Apple і того, як вас бачать у кошику. Вихід очищає локальну сесію Apple і повертає на Welcome; з iCloud на пристрої ви не виходите."
+          }
+        }
+      }
+    },
+    "cart.progress_completed %lld %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld completed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld из %2$lld куплено"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld з %2$lld куплено"
           }
         }
       }

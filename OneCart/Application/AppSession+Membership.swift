@@ -42,12 +42,6 @@ extension AppSession {
         let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        if persistence.scope(for: family) == .private {
-            await updateParticipantDisplayName(trimmed)
-            CartHaptics.success()
-            return
-        }
-
         isBusy = true
         defer { isBusy = false }
         do {
@@ -163,6 +157,11 @@ extension AppSession {
 
     func refreshFamilyMetadata(showErrors: Bool) async {
         guard let account, online else { return }
+        #if DEBUG
+            if DemoUIMode.isEnabled, DemoUIMode.role == .member, !familyMembers.isEmpty {
+                return
+            }
+        #endif
         isFamilyMetadataLoading = true
         defer { isFamilyMetadataLoading = false }
         do {

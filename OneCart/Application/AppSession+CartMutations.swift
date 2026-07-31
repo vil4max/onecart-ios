@@ -233,6 +233,7 @@ extension AppSession {
 
     func updateParticipantDisplayName(_ raw: String) async {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldRetitlePersonalCart = personalCartStillFollowsParticipantName()
         if ParticipantDisplayName.isPlaceholder(trimmed) {
             preferences.participantDisplayName = ""
             if let account {
@@ -266,17 +267,29 @@ extension AppSession {
                 )
             }
         }
-        await syncPersonalCartNameWithParticipant()
+        if shouldRetitlePersonalCart {
+            await syncPersonalCartNameWithParticipant()
+        }
+    }
+
+    private func personalCartStillFollowsParticipantName() -> Bool {
+        guard let account else { return false }
+        guard let personal = personalFamilySpace(for: account) else { return false }
+        return personal.displayName == Self.householdCartName(for: account)
+    }
+
+    private func personalFamilySpace(for account: OneCartAccount) -> FamilySpace? {
+        let spaces = (try? repository.fetchFamilySpaces(for: account.id)) ?? []
+        let personalSpaces = spaces.filter {
+            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
+        }
+        return personalSpaces.first(where: \.isHouseholdDefaultValue) ?? personalSpaces.first
     }
 
     private func syncPersonalCartNameWithParticipant() async {
-        guard let account else { return }
-        let personalSpaces = familySpaces.filter {
-            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
-        }
-        guard let personal = personalSpaces.first(where: \.isHouseholdDefaultValue)
-            ?? personalSpaces.first,
-            let familyID = personal.id
+        guard let account,
+              let personal = personalFamilySpace(for: account),
+              let familyID = personal.id
         else { return }
 
         let newName = Self.householdCartName(for: account)

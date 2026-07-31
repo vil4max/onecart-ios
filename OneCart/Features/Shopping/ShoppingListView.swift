@@ -154,8 +154,12 @@ struct ShoppingListView: View {
                 .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        CartNavSyncTitle(title: model.cartTitle, isSyncing: model.isCartSyncing)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if model.isCartSyncing {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .accessibilityLabel(Text("cart.updating"))
+                        }
                     }
                 }
                 .task {
@@ -243,7 +247,7 @@ struct ShoppingListView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(
-                    String(localized: "cart.progress_collected \(purchasedCount) \(products.count)")
+                    String(localized: "cart.progress_completed \(purchasedCount) \(products.count)")
                 )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -269,10 +273,10 @@ struct ShoppingListView: View {
             .tint(OneCartPalette.primary)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .padding(.top, 8)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OneCartPalette.background.opacity(0.96))
+        .background(.bar)
     }
 
     @MainActor

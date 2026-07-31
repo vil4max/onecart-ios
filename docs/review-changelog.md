@@ -283,3 +283,17 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - What changed: ACL heal no longer reopens `publicPermission = .none`; invite create passes `reopenInviteDoor`; revoke no-share/env mismatch throws; member-join first snapshot seeds without notify; personal Rename edits nickname (one title pattern)
 - How to verify: ShareLinkJoinACLTests preserve/reopen; MemberJoinDiffTests seed; rename personal → `cart.personal_title`; device revoke then syncCart leave door closed until Share again
 - Do not invent scope: Production schema deploy remains ops
+
+### RC35 — Accept = shared only; defer join merge
+- Status: done (this train)
+- Paths: AppSession+FamilySelection.reload, HouseholdCartCoordinator.adoptSharedFamilyCartIfNeeded, MoreView Account cart title, SharedCartJoinTests, docs/product.md
+- What changed: while any shared cart exists, session list/active cart are shared only (personal stays on disk for Leave); join no longer merges private products into shared; Account shows active cart title
+- How to verify: accept/ensure → active shared, `familySpaces` has no personal; private products absent from living list; leave → personal returns
+- Do not invent scope: restore LWW join merge later (FU / backlog)
+
+### RC36 — Guest/member DemoUI + session tests
+- Status: done (this train)
+- Paths: DemoUISupport (`-oneCartDemoRole member`), GuestMemberSessionTests, CloudKitBackendService.familyMembers fallback access
+- What changed: separate demo state for participant on shared cart; unit tests for member access, no owner rename/revoke, return to personal; no-share metadata fallback uses `access(for:)` (member on shared)
+- How to verify: `GuestMemberSessionTests`; sim `-oneCartDemoUI -oneCartDemoRole member -oneCartDemoTab account` → Leave, no Rename for member; owner still sees Revoke on private-store cart
+- Do not invent scope: real CKShare participant list still requires CloudKit share record

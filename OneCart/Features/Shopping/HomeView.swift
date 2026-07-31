@@ -53,8 +53,12 @@ struct HomeView: View {
                     .navigationTitle(model.cartTitle)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            CartNavSyncTitle(title: model.cartTitle, isSyncing: model.isCartSyncing)
+                        ToolbarItem(placement: .topBarTrailing) {
+                            if model.isCartSyncing {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                    .accessibilityLabel(Text("cart.updating"))
+                            }
                         }
                     }
                 }

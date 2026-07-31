@@ -37,6 +37,7 @@
 		A2000000000000000000001A /* PurchaseSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001F /* PurchaseSessionTests.swift */; };
 		A2000000000000000000001B /* FamilyCartLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000020 /* FamilyCartLifecycleTests.swift */; };
 		A2000000000000000000001C /* CartAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021 /* CartAccessTests.swift */; };
+		A20000000000000000000051 /* GuestMemberSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000051 /* GuestMemberSessionTests.swift */; };
 		A2000000000000000000001D /* StableIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* StableIDTests.swift */; };
 		A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023 /* PersistenceRoutingTests.swift */; };
 		A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* CloudKitErrorMappingTests.swift */; };
@@ -138,6 +139,7 @@
 		A1000000000000000000001F /* PurchaseSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseSessionTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000020 /* FamilyCartLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartLifecycleTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000021 /* CartAccessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartAccessTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000051 /* GuestMemberSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestMemberSessionTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000022 /* StableIDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableIDTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000023 /* PersistenceRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceRoutingTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000024 /* CloudKitErrorMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitErrorMappingTests.swift; sourceTree = "<group>"; };
@@ -241,6 +243,7 @@
 				A1000000000000000000001F /* PurchaseSessionTests.swift */,
 				A10000000000000000000020 /* FamilyCartLifecycleTests.swift */,
 				A10000000000000000000021 /* CartAccessTests.swift */,
+				A10000000000000000000051 /* GuestMemberSessionTests.swift */,
 				A10000000000000000000022 /* StableIDTests.swift */,
 				A10000000000000000000023 /* PersistenceRoutingTests.swift */,
 				A10000000000000000000024 /* CloudKitErrorMappingTests.swift */,
@@ -624,6 +627,7 @@
 				A2000000000000000000001A /* PurchaseSessionTests.swift in Sources */,
 				A2000000000000000000001B /* FamilyCartLifecycleTests.swift in Sources */,
 				A2000000000000000000001C /* CartAccessTests.swift in Sources */,
+				A20000000000000000000051 /* GuestMemberSessionTests.swift in Sources */,
 				A2000000000000000000001D /* StableIDTests.swift in Sources */,
 				A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */,
 				A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */,

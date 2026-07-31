@@ -18,7 +18,7 @@ struct MainTabView: View {
             Tab("history.tab", systemImage: "clock", value: .history) {
                 HistoryView()
             }
-            Tab("account.tab", systemImage: "person.crop.circle.fill", value: .account) {
+            Tab("account.tab", systemImage: "gearshape.fill", value: .account) {
                 AccountView(model: model)
             }
         }

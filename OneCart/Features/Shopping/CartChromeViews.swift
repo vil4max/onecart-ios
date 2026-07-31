@@ -1,33 +1,5 @@
 import SwiftUI
 
-struct CartNavSyncTitle: View {
-    let title: String
-    let isSyncing: Bool
-
-    var body: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 6) {
-                ZStack {
-                    if isSyncing {
-                        ProgressView()
-                            .controlSize(.mini)
-                    }
-                }
-                .frame(width: 12, height: 12)
-                Text(title)
-                    .font(.headline)
-                    .lineLimit(1)
-            }
-            Text("cart.updating")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .opacity(isSyncing ? 1 : 0)
-                .accessibilityHidden(!isSyncing)
-        }
-        .animation(.easeInOut(duration: 0.15), value: isSyncing)
-    }
-}
-
 struct CartBusyOverlay: View {
     var messageKey: LocalizedStringKey = "cart.updating"
 

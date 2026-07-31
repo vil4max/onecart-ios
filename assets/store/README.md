@@ -17,4 +17,9 @@ Optional light set (`05`–`08`) can be added later.
 
 Folders: [`asc-6.5/dark/`](asc-6.5/dark/), [`asc-6.5/light/`](asc-6.5/light/). Raw: [`raw/`](raw/) (`en-*`).
 
-Captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**. Demo: `-oneCartDemoUI` / `-oneCartDemoTab`.
+Captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**.
+
+Demo launch args:
+
+- Owner (default): `-oneCartDemoUI` and optional `-oneCartDemoTab cart|history|account`
+- Guest / member of someone else’s cart: `-oneCartDemoUI -oneCartDemoRole member` (Tim on **Max's Cart**, Leave / no Rename / no Revoke)

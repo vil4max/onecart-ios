@@ -51,16 +51,23 @@ extension AppSession {
         let context = persistence.container.viewContext
         context.processPendingChanges()
         let previousID = activeFamilySpace?.id
-        familySpaces = try repository.fetchFamilySpaces(for: account.id)
+        let fetchedSpaces = try repository.fetchFamilySpaces(for: account.id)
+        let sharedSpaces = fetchedSpaces.filter { persistence.scope(for: $0) == .shared }
+        familySpaces = sharedSpaces.isEmpty ? fetchedSpaces : sharedSpaces
 
         let storedID = preferredFamilySpaceID
             ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
             .flatMap(UUID.init(uuidString:))
-        let selected = storedID.flatMap { id in
-            familySpaces.first { $0.id == id }
-        } ?? familySpaces.first(where: {
-            persistence.scope(for: $0) == .shared
-        }) ?? familySpaces.first
+        let selected: FamilySpace?
+        if sharedSpaces.isEmpty {
+            selected = storedID.flatMap { id in
+                fetchedSpaces.first { $0.id == id }
+            } ?? fetchedSpaces.first
+        } else {
+            selected = storedID.flatMap { id in
+                sharedSpaces.first { $0.id == id }
+            } ?? sharedSpaces.first
+        }
 
         activeFamilySpace = selected
         if let selected {

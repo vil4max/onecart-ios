@@ -60,13 +60,10 @@ final class HouseholdCartCoordinator {
 
         if host.activeFamilySpace != nil {
             host.applyHouseholdCartBootstrapFailed(false)
-            if needsSharedCartConsolidation(for: account) {
-                CartSyncLog.action.info("ensureHousehold consolidateShared")
-                do {
-                    try await adoptSharedFamilyCartIfNeeded(for: account)
-                } catch {
-                    host.presentHouseholdError(error)
-                }
+            do {
+                try await adoptSharedFamilyCartIfNeeded(for: account)
+            } catch {
+                host.presentHouseholdError(error)
             }
             return
         }
@@ -84,9 +81,7 @@ final class HouseholdCartCoordinator {
             guard !Task.isCancelled else { return }
 
             if host.activeFamilySpace != nil {
-                if needsSharedCartConsolidation(for: account) {
-                    try await adoptSharedFamilyCartIfNeeded(for: account)
-                }
+                try await adoptSharedFamilyCartIfNeeded(for: account)
                 await host.refreshFamilyMetadata(showErrors: false)
                 host.scheduleInviteLinkPreparation()
                 CartSyncLog.action.info(
@@ -191,21 +186,6 @@ final class HouseholdCartCoordinator {
         CartSyncLog.cart.info("invitee shared cart gone; fell back to private")
     }
 
-    private func needsSharedCartConsolidation(for account: OneCartAccount) -> Bool {
-        guard let host else { return false }
-        let shared = host.familySpaces.filter { persistence.scope(for: $0) == .shared }
-        guard !shared.isEmpty else { return false }
-        if shared.count > 1 { return true }
-        if let active = host.activeFamilySpace,
-           persistence.scope(for: active) == .private
-        {
-            return true
-        }
-        return host.familySpaces.contains {
-            persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
-        }
-    }
-
     private func adoptSharedFamilyCartIfNeeded(for account: OneCartAccount) async throws {
         guard let host else { return }
         try host.reloadHousehold(preferredFamilySpaceID: nil)
@@ -216,23 +196,13 @@ final class HouseholdCartCoordinator {
             return
         }
 
-        var privateCleanups: [(id: UUID, isEmpty: Bool)] = []
         var staleSharedIDs: [UUID] = []
         for space in host.familySpaces {
             guard let spaceID = space.id,
-                  let scope = persistence.scope(for: space)
+                  persistence.scope(for: space) == .shared,
+                  spaceID != sharedID
             else { continue }
-            switch scope {
-            case .private:
-                guard space.cachedForUserID == account.id else { continue }
-                privateCleanups.append(
-                    (spaceID, FamilyCartMerge.summary(for: space).isEmpty)
-                )
-            case .shared:
-                if spaceID != sharedID {
-                    staleSharedIDs.append(spaceID)
-                }
-            }
+            staleSharedIDs.append(spaceID)
         }
 
         defaults.set(
@@ -254,27 +224,10 @@ final class HouseholdCartCoordinator {
             }
         }
 
-        for cleanup in privateCleanups {
-            do {
-                if cleanup.isEmpty {
-                    continue
-                }
-                try await repository.mergeFamilyContent(
-                    from: cleanup.id,
-                    into: sharedID,
-                    archiveSource: false
-                )
-            } catch {
-                CartSyncLog.cart.error(
-                    "adoptShared private cleanup failed id=\(cleanup.id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
-                )
-                CartSyncLog.action.error(
-                    "adoptShared privateCleanupFail error=\(error.localizedDescription, privacy: .public)"
-                )
-            }
-        }
-
         try host.reloadHousehold(preferredFamilySpaceID: sharedID)
         await host.refreshFamilyMetadata(showErrors: false)
+        CartSyncLog.cart.info(
+            "adoptShared active=\(sharedID.uuidString, privacy: .public) personalKeptHidden"
+        )
     }
 }

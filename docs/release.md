@@ -68,7 +68,7 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK).
 3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
 4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
-5. On B: SIWA → accept share → shared cart replaces empty private starter (or private content is auto-merged into shared, then private archived); edits sync both ways (including Completed checkboxes).
+5. On B: SIWA → accept share → shared cart becomes the only active cart (personal stays on disk, hidden); edits sync both ways (including Completed checkboxes).
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Mark items Completed on A → visible on B; next calendar day, open/foreground on either device → yesterday’s Completed move to History by day (read-only).
 8. Remove member on A → B loses access.
@@ -87,7 +87,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Offline local persist | `testOfflineRepositorySaveSurvivesContextReset` |
 | Private carts scoped per SIWA account | `testFamilyCacheIsScopedToAuthenticatedUser`, `testSharedCartVisibleAlongsideOwnPrivateCart` |
 | Same product from several members = separate lines | `testSameNamedProductsStayAsSeparateCartLines` |
-| Shared replaces private (merge/archive) | `testMergeFamilyContentCopiesProducts`, `testMergeFamilyContentRejectsSharedSource`, `testArchiveFamilySpaceHidesCartAndSoftDeletesChildren` (`FamilyCartMergeTests`) |
+| Shared replaces private (no join merge) | `testEmptyPrivateAutoAdoptsShared`, `testPrivateContentIsNotMergedIntoSharedOnAdopt`, `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` (`SharedCartJoinTests`) |
 | Claim unassigned private carts / skip shared | `testClaimUnassignedFamilySpacesStampsPrivateOnly` |
 | Complete purchased → history, cart keeps the rest | `testCompletePurchasedMovesOnlyCheckedItems`, `testCompletePurchasedWithoutChecksDoesNothing` (`PurchaseSessionTests`) |
 | Overnight archive (yesterday Completed → History) | `testArchivePurchasedBeforeMovesOnlyStaleCheckedItems`, `testArchivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `testArchiveStalePurchasedIfNeededViaSession` (`PurchaseSessionTests`) |
@@ -102,7 +102,8 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Permission deny on shared mutations | `DenyAllPermissionAuthorizer` + `CartAccessTests` |
 | Owner revoke invite keeps family identity | `testRevokeInviteKeepsFamilySpaceIdentity` |
 | Join adopt switches active to shared | `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` |
-| Join LWW merge by name | `testMergeFamilyContentLWWSameNormalizedName` |
+| Guest / member session (shared active) | `GuestMemberSessionTests` |
+| Join LWW merge by name | deferred — `FamilyCartMergeTests` keep API coverage; join path does not call merge |
 | Quick add/edit is name-only inline in cart | `ShoppingListView` composer / inline row edit |
 
 ## 4. TestFlight

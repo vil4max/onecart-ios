@@ -55,11 +55,11 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Аккаунт** | Participants, share cart (owner and members), rename cart / revoke invite (owner), leave (member), sign out |
+| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave) then **Аккаунт Apple** (SIWA / sign out) |
 
-Share is a secondary action in **Аккаунт**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart.
+Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart.
 
-Nav title is the cart name. Personal cart title always follows the participant nickname (`cart.personal_title`); shared cart title is owner-editable via Rename.
+Nav title is the cart name. Personal cart starts as `cart.personal_title` from the nickname; after the owner renames the cart, the title no longer follows nickname changes. Shared cart title is owner-editable via Rename.
 
 ## User flow
 
@@ -67,12 +67,12 @@ Nav title is the cart name. Personal cart title always follows the participant n
 2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, keyboard Done to save.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. Check items into **Completed**; they stay on the living cart until the next calendar day, then move to **History** on app open / foreground.
-5. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
-6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk (hidden); non-empty personal lines merge into shared with LWW by normalized name + newer `updatedAt`. No join alert.
+5. After cart create, warm-start a private `CKShare` in the background. Invite from **Настройки → Корзина**.
+6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
 
 Up to four people share one cart; changes sync via CloudKit.
 
-**Identical cart lines merge (LWW).** Same `Product.id` within one cart, or same normalized name on join: keep one row; field values from the newer `updatedAt`. Quantities are not summed.
+**Identical cart lines (same cart).** Same `Product.id` within one cart: keep one row. Cross-cart join merge (private → shared LWW) is deferred — accept switches to the shared cart only.
 
 ## Technical invite path
 
@@ -87,7 +87,7 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 - **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
 - **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
-- Display name, avatar, banner: **device-local** — not in CloudKit. Set your cart nickname on **Account → Your name in the cart** (e.g. Папа / Мама). That name is stamped on items you add (`createdByName`) and when you mark them Completed (`purchasedByName`). Other members see those item attributions via sync; the Participants list still uses each person’s iCloud / SIWA identity when available, not your private nicknames for them.
+- Display name: **device-local** account name (set when Sign in with Apple did not provide one). The same name appears in the cart members list and on items you add (`createdByName`) / mark Completed (`purchasedByName`). Avatar and banner stay device-local.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
 - Owner **Revoke invite**: close door for new joins; cart UUID unchanged. No Recreate / delete-entity in UX.
@@ -96,8 +96,8 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 
 ## Default cart identity
 
-- Personal cart title: always `cart.personal_title` from the participant nickname (fallback `cart.default_title` / Tim's Cart). Changing nickname retitles the personal cart; Rename on a personal cart edits the nickname (same pattern).
-- Owner can rename a **shared** active cart (`FamilySpace.name`); invitees see that title.
+- Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / Tim's Cart). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
+- Owner can rename the active cart (`FamilySpace.name`) — personal or shared; invitees see the shared title.
 - App display name / Welcome / share branding: **Tim's Cart** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](legacy.md).
@@ -152,4 +152,4 @@ Scope when greenlit:
 - Account share/members bound to the **selected** cart
 - App brand vs per-cart titles stay separate layers
 
-v1 until then: one **active** cart on screen; personal `FamilySpace` remains on disk when joined to a shared cart.
+v1 until then: one **active** cart on screen; after Accept the shared cart is the only cart in the session list; personal stays on disk for Leave (join merge deferred).

@@ -23,6 +23,13 @@ struct AccountView: View {
         NavigationStack {
             List {
                 Section {
+                    if model.activeFamilySpace != nil {
+                        AccountCartStatusRow(
+                            cartTitle: model.cartTitle,
+                            roleLine: cartRoleLine
+                        )
+                    }
+
                     if model.isFamilyMetadataLoading, displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
@@ -32,38 +39,19 @@ struct AccountView: View {
                         }
                     } else {
                         ForEach(displayedMembers) { member in
-                            if member.isCurrentUser {
-                                Button {
-                                    beginEditingDisplayName()
-                                } label: {
-                                    AccountMemberRow(
-                                        member: member,
-                                        showsEditHint: true,
-                                        signedInCaption: model.account.map {
-                                            String(localized: "account.signed_in_as \($0.displayName)")
-                                        }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                AccountMemberRow(member: member, showsEditHint: false)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        if model.access?.isOwner == true {
-                                            Button(role: .destructive) {
-                                                memberToRemove = member
-                                            } label: {
-                                                Label("common.delete", systemImage: "person.fill.xmark")
-                                            }
+                            AccountMemberRow(member: member)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    if model.access?.isOwner == true, !member.isCurrentUser {
+                                        Button(role: .destructive) {
+                                            memberToRemove = member
+                                        } label: {
+                                            Label("common.delete", systemImage: "person.fill.xmark")
                                         }
                                     }
-                            }
+                                }
                         }
                     }
-                } header: {
-                    Text(memberCountText(displayedMembers.count))
-                }
 
-                Section {
                     if model.activeFamilySpace != nil {
                         Button {
                             shareCart()
@@ -92,7 +80,9 @@ struct AccountView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                        }
 
+                        if model.access?.isOwner == true {
                             Button {
                                 confirmingRevokeInvite = true
                             } label: {
@@ -105,29 +95,60 @@ struct AccountView: View {
                             .disabled(model.isBusy || !model.isOnline)
                         }
 
-                        AccountInfoRow(
-                            systemImage: "link.circle.fill",
-                            textKey: model.access?.isOwner == true
-                                ? "account.share_link_warning"
-                                : "account.share_link_member_hint"
-                        )
+                        if model.access?.isParticipant == true {
+                            Button {
+                                confirmingLeave = true
+                            } label: {
+                                AccountActionRow(
+                                    titleKey: "account.leave_cart",
+                                    systemImage: "rectangle.portrait.and.arrow.right",
+                                    style: .destructive
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 } header: {
-                    Text("account.sharing_section")
+                    Text("settings.cart_section")
+                } footer: {
+                    Text(cartSectionFooter)
                 }
 
                 Section {
-                    if model.access?.isParticipant == true {
+                    if let account = model.account {
                         Button {
-                            confirmingLeave = true
+                            beginEditingDisplayName()
                         } label: {
-                            AccountActionRow(
-                                titleKey: "account.leave_cart",
-                                systemImage: "rectangle.portrait.and.arrow.right",
-                                style: .destructive
-                            )
+                            HStack(spacing: 12) {
+                                ProfileAvatarView(
+                                    name: account.displayName,
+                                    remoteURL: account.avatarURL,
+                                    size: 44
+                                )
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(account.displayName)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Text("settings.apple_siwa_caption")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    Text(
+                                        needsAccountName
+                                            ? String(localized: "settings.apple_set_name")
+                                            : String(localized: "settings.apple_edit_name")
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityHint(Text("account.edit_display_name"))
                     }
 
                     Button {
@@ -141,12 +162,15 @@ struct AccountView: View {
                     }
                     .buttonStyle(.plain)
                 } header: {
-                    Text("account.section")
+                    Text("settings.apple_section")
+                } footer: {
+                    Text("settings.apple_name_footer")
                 }
             }
             .listStyle(.insetGrouped)
             .tint(OneCartPalette.primary)
-            .navigationTitle("account.nav_title")
+            .navigationTitle("settings.nav_title")
+            .navigationBarTitleDisplayMode(.inline)
             .task {
                 MemberJoinNotifier.requestAuthorizationIfNeeded()
                 await model.refreshAccountSharing()
@@ -193,7 +217,16 @@ struct AccountView: View {
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                         } footer: {
-                            Text("account.cart_name_prompt")
+                            Text(
+                                {
+                                    if let family = model.activeFamilySpace,
+                                       model.persistence.scope(for: family) == .private
+                                    {
+                                        return String(localized: "account.cart_name_prompt_personal")
+                                    }
+                                    return String(localized: "account.cart_name_prompt")
+                                }()
+                            )
                         }
                     }
                     .navigationTitle("account.rename_cart")
@@ -272,6 +305,28 @@ struct AccountView: View {
         }
     }
 
+    private var needsAccountName: Bool {
+        ParticipantDisplayName.isPlaceholder(model.account?.displayName)
+    }
+
+    private var cartRoleLine: String {
+        if model.access?.isParticipant == true {
+            String(localized: "account.role_member_status")
+        } else {
+            String(localized: "account.role_owner_status")
+        }
+    }
+
+    private var cartSectionFooter: String {
+        if model.access?.isParticipant == true {
+            String(localized: "account.cart_status_member_footer")
+        } else if model.access?.isOwner == true {
+            String(localized: "account.share_link_warning")
+        } else {
+            String(localized: "account.cart_status_owner_footer")
+        }
+    }
+
     private var displayedMembers: [FamilyMember] {
         if !model.familyMembers.isEmpty {
             return model.familyMembers
@@ -288,10 +343,6 @@ struct AccountView: View {
                 bannerURL: account.bannerURL
             ),
         ]
-    }
-
-    private func memberCountText(_ count: Int) -> String {
-        String(localized: "account.members_count \(count)")
     }
 
     private func beginEditingDisplayName() {
@@ -359,6 +410,37 @@ struct AccountView: View {
     }
 }
 
+private struct AccountCartStatusRow: View {
+    let cartTitle: String
+    let roleLine: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "cart.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .frame(width: 36, height: 36)
+                .background(
+                    OneCartPalette.primarySoft,
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(cartTitle)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(roleLine)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private enum AccountActionStyle {
     case regular
     case destructive
@@ -412,35 +494,8 @@ private struct AccountActionRow<Trailing: View>: View {
     }
 }
 
-private struct AccountInfoRow: View {
-    let systemImage: String
-    let textKey: LocalizedStringKey
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-                .frame(width: 28, height: 28)
-                .background(
-                    OneCartPalette.primarySoft,
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                )
-
-            Text(textKey)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct AccountMemberRow: View {
     let member: FamilyMember
-    var showsEditHint: Bool = false
-    var signedInCaption: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -468,30 +523,11 @@ private struct AccountMemberRow: View {
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-
-                if let signedInCaption, !signedInCaption.isEmpty {
-                    Text(signedInCaption)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else if showsEditHint {
-                    Text("account.edit_display_name")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
             }
 
             Spacer(minLength: 0)
-
-            if showsEditHint {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityHint(
-            showsEditHint ? String(localized: "account.edit_display_name") : ""
-        )
     }
 }

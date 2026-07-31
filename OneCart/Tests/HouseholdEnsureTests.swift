@@ -68,6 +68,18 @@ final class HouseholdEnsureTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
+        defaults.set(
+            privateID.uuidString,
+            forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
+        )
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
+
         let sharedID = UUID()
         try await persistence.performBackgroundTask { context in
             let space = FamilySpace(context: context)
@@ -81,17 +93,6 @@ final class HouseholdEnsureTests: XCTestCase {
         await persistence.container.viewContext.perform {
             persistence.container.viewContext.processPendingChanges()
         }
-        defaults.set(
-            privateID.uuidString,
-            forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
-        )
-        let session = AppSession(
-            persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
-            defaults: defaults
-        )
-        try session.bootstrapTestingSession(account: account)
-        XCTAssertEqual(session.activeFamilySpace?.id, privateID)
 
         await session.ensureHouseholdCartIfNeeded()
 
@@ -100,6 +101,7 @@ final class HouseholdEnsureTests: XCTestCase {
             try session.persistence.scope(for: XCTUnwrap(session.activeFamilySpace)),
             .shared
         )
+        XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
     }
 
     func testEnsureHouseholdConsolidatesStaleGuestShareOntoNewest() async throws {

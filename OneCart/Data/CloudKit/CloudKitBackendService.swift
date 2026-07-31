@@ -94,7 +94,7 @@ final class CloudKitBackendService {
                 FamilyMember(
                     id: account.id,
                     displayName: account.displayName,
-                    access: .owner,
+                    access: access(for: family),
                     joinedAt: family.createdDate,
                     isCurrentUser: true,
                     avatarURL: nil,
