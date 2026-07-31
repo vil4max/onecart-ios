@@ -14,7 +14,7 @@ extension AppSession {
         }
         guard online else {
             CartSyncLog.action.error("revokeInvite denied offline")
-            presentAlert(String(localized: "alert.revoke_invite_need_network"))
+            presentAlert(String(localized: "alert.revoke_invite_need_network"), kind: .error)
             return
         }
         CartSyncLog.action.info("revokeInvite session begin")
@@ -24,14 +24,12 @@ extension AppSession {
             try await shareOrchestrator.revokeInviteLink(for: family)
             clearPreparedInviteLink()
             await refreshFamilyMetadata(showErrors: false)
-            CartHaptics.success()
             CartSyncLog.action.info("revokeInvite session done")
-            presentAlert(String(localized: "account.revoke_invite_done"))
+            presentAlert(String(localized: "account.revoke_invite_done"), kind: .success)
         } catch {
             CartSyncLog.action.error(
                 "revokeInvite session fail error=\(error.localizedDescription, privacy: .public)"
             )
-            CartHaptics.error()
             show(error)
         }
     }
@@ -52,7 +50,6 @@ extension AppSession {
             scheduleInviteLinkPreparation()
             CartHaptics.success()
         } catch {
-            CartHaptics.error()
             show(error)
         }
     }
@@ -70,7 +67,6 @@ extension AppSession {
             AppDelegate.requeue(metadata)
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
-            CartHaptics.error()
             show(error)
             return
         }
@@ -87,7 +83,6 @@ extension AppSession {
         } catch {
             syncState = .failed
             lastSyncError = userFacingMessage(for: error)
-            CartHaptics.error()
             show(error)
         }
         cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
@@ -98,7 +93,7 @@ extension AppSession {
               access?.isOwner == true,
               !member.isCurrentUser else { return }
         guard online else {
-            presentAlert(String(localized: "alert.members_need_network"))
+            presentAlert(String(localized: "alert.members_need_network"), kind: .error)
             return
         }
 
@@ -114,7 +109,6 @@ extension AppSession {
             CartSyncLog.action.error(
                 "removeMember fail error=\(error.localizedDescription, privacy: .public)"
             )
-            CartHaptics.error()
             show(error)
         }
     }
@@ -124,7 +118,7 @@ extension AppSession {
               let family = activeFamilySpace,
               access?.isParticipant == true else { return }
         guard online else {
-            presentAlert(String(localized: "alert.leave_need_network"))
+            presentAlert(String(localized: "alert.leave_need_network"), kind: .error)
             return
         }
 
@@ -143,7 +137,6 @@ extension AppSession {
             CartSyncLog.action.error(
                 "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
             )
-            CartHaptics.error()
             show(error)
         }
     }

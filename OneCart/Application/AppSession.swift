@@ -27,8 +27,12 @@ final class AppSession: ObservableObject {
     @Published var isEnsuringHouseholdCart = false
     @Published var householdCartBootstrapFailed = false
     @Published var preferredMainTab: MainTab?
-    @Published var alertMessage: String?
+    @Published var userAlert: UserAlert?
     @Published var sharedCartRemovedMessage: String?
+
+    var alertMessage: String? {
+        userAlert?.message
+    }
 
     let preferences: DevicePreferences
     let persistence: PersistenceController

@@ -269,3 +269,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - What changed: accept/ensure always adopts shared as active; personal FamilySpace kept on join; LWW join merge; Recreate removed; Revoke invite closes door; participants can share link; owner rename cart; personal default title; local notify on new member; haptics on primary actions; history never cleared (FU15)
 - How to verify: unit tests above; two-device accept → Tim sees Max cart as member; leave → same personal UUID; revoke → new joins blocked
 - Do not invent scope: multi-cart UI is FU01 only
+
+### RC33 — Cart To Buy by category sections
+- Status: done (this train)
+- Paths: ShoppingListView, ProductCategory.groupedSections, ProductCategoryInferenceTests, docs/product.md
+- What changed: living cart To Buy groups into Metro category sections; Completed and History stay flat lists; row category caption hidden under section headers
+- How to verify: unit test grouping order; device — milk/bread/other land in separate To Buy sections; mark Completed → flat Completed list; History unchanged
+- Do not invent scope: no category grouping in History or Completed

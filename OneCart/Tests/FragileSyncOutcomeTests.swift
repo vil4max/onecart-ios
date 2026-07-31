@@ -29,6 +29,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(session.syncState, .failed)
         XCTAssertEqual(session.lastSyncError, "refresh exploded")
         XCTAssertEqual(session.alertMessage, "refresh exploded")
+        XCTAssertEqual(session.userAlert?.kind, .error)
         XCTAssertNotEqual(
             session.alertMessage,
             RepositoryError.permissionDenied.localizedDescription

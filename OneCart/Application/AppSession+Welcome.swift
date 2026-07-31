@@ -71,7 +71,7 @@ extension AppSession {
         appleSignIn.clearCredential()
         clearAccountData()
         account = nil
-        alertMessage = nil
+        userAlert = nil
         needsWelcome = true
         welcomePhase = .signIn
         isReady = true
@@ -115,14 +115,21 @@ extension AppSession {
         invitePreparer.clear()
     }
 
-    func presentAlert(_ message: String) {
+    func presentAlert(_ message: String, kind: UserAlertKind = .error, playHaptic: Bool = true) {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        alertMessage = trimmed
+        userAlert = UserAlert(kind: kind, message: trimmed)
+        guard playHaptic else { return }
+        switch kind {
+        case .success:
+            CartHaptics.success()
+        case .error:
+            CartHaptics.error()
+        }
     }
 
     func dismissAlert() {
-        alertMessage = nil
+        userAlert = nil
     }
 
     func bootstrapTestingSession(account: OneCartAccount) throws {
@@ -161,13 +168,16 @@ extension AppSession {
             presentProductionSchemaAlertIfNeeded(message)
             return
         }
-        presentAlert(message)
+        presentAlert(message, kind: .error)
     }
 
     func presentProductionSchemaAlertIfNeeded(_ message: String) {
-        guard !didPresentProductionSchemaAlert else { return }
+        guard !didPresentProductionSchemaAlert else {
+            CartHaptics.error()
+            return
+        }
         didPresentProductionSchemaAlert = true
-        presentAlert(message)
+        presentAlert(message, kind: .error)
     }
 
     func userFacingMessage(for error: Error) -> String {

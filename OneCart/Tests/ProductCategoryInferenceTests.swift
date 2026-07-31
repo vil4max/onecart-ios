@@ -53,6 +53,20 @@ final class ProductCategoryInferenceTests: XCTestCase {
         XCTAssertEqual(ProductCategory.inferred(from: ""), .other)
     }
 
+    func testGroupedSectionsKeepsMetroOrderAndSkipsEmpty() {
+        let items: [(name: String, category: ProductCategory)] = [
+            ("Дыня", .other),
+            ("Молоко", .dairyEggs),
+            ("Арбуз", .other),
+            ("Хлеб", .bakery),
+        ]
+        let sections = ProductCategory.groupedSections(from: items) { $0.category }
+        XCTAssertEqual(sections.map(\.category), [.dairyEggs, .bakery, .other])
+        XCTAssertEqual(sections[0].items.map(\.name), ["Молоко"])
+        XCTAssertEqual(sections[1].items.map(\.name), ["Хлеб"])
+        XCTAssertEqual(sections[2].items.map(\.name), ["Дыня", "Арбуз"])
+    }
+
     func testKeywordClassifierMatchesInferred() async {
         let classifier = KeywordCategoryClassifier()
         let category = await classifier.classify("Хлеб")

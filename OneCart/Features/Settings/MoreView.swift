@@ -5,7 +5,7 @@ struct AccountView: View {
     @StateObject private var viewModel: CartShareViewModel
     @State private var sharePayload: CartSharePayload?
     @State private var isSharing = false
-    @State private var shareAlert: String?
+    @State private var shareAlert: UserAlert?
     @State private var confirmingLeave = false
     @State private var memberToRemove: FamilyMember?
     @State private var confirmingSignOut = false
@@ -220,7 +220,7 @@ struct AccountView: View {
                 )
             }
             .alert(
-                "common.app_name",
+                shareAlert?.kind.title ?? "",
                 isPresented: Binding(
                     get: { shareAlert != nil },
                     set: { if !$0 { shareAlert = nil } }
@@ -228,7 +228,7 @@ struct AccountView: View {
             ) {
                 Button("common.ok", role: .cancel) { shareAlert = nil }
             } message: {
-                Text(shareAlert ?? "")
+                Text(shareAlert?.message ?? "")
             }
             .alert("account.leave_confirm_title", isPresented: $confirmingLeave) {
                 Button("common.cancel", role: .cancel) {}
@@ -338,9 +338,9 @@ struct AccountView: View {
                 )
                 CartHaptics.error()
                 if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                    shareAlert = CloudKitUserFacingError.productionSchemaMissing
+                    shareAlert = .error(CloudKitUserFacingError.productionSchemaMissing)
                 } else {
-                    shareAlert = model.userFacingMessage(for: error)
+                    shareAlert = .error(model.userFacingMessage(for: error))
                 }
             }
         }
@@ -351,7 +351,9 @@ struct AccountView: View {
                 work.cancel()
                 isSharing = false
                 CartSyncLog.action.error("shareCart UI timeout")
-                shareAlert = OneCartCloudKitError.shareTimedOut.errorDescription
+                if let message = OneCartCloudKitError.shareTimedOut.errorDescription {
+                    shareAlert = .error(message)
+                }
             }
         }
     }

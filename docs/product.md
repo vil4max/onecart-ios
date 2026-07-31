@@ -53,7 +53,7 @@ Three tabs after Welcome:
 
 | Tab | Contents |
 |-----|----------|
-| **Корзина** | Living list; sections To Buy / Completed; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon + label; pull-to-refresh / appear hard sync; nav may show «Updating…» |
+| **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
 | **Аккаунт** | Participants, share cart (owner and members), rename cart / revoke invite (owner), leave (member), sign out |
 
@@ -135,7 +135,6 @@ History days are a dataset of family habits (what, how often, who). Possible lat
 
 - Autocomplete while typing (“мол…” → “Молоко”)
 - Reminders for regularly forgotten items
-- Sort cart by Metro-style category / aisle
 - Rough trip total once prices exist
 
 Prefer on-device (including optional Foundation Models for category refine), no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.

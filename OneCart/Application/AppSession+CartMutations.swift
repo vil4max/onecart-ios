@@ -113,7 +113,6 @@ extension AppSession {
             CartSyncLog.action.error(
                 "togglePurchased fail error=\(error.localizedDescription, privacy: .public)"
             )
-            CartHaptics.error()
             show(error)
         }
     }
@@ -220,7 +219,6 @@ extension AppSession {
             CartSyncLog.action.error(
                 "\(action) fail error=\(error.localizedDescription, privacy: .public)"
             )
-            CartHaptics.error()
             show(error)
             return false
         }

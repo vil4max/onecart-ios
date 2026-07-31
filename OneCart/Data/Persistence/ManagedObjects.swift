@@ -339,6 +339,21 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    static func groupedSections<Item>(
+        from items: [Item],
+        category: (Item) -> ProductCategory
+    ) -> [(category: ProductCategory, items: [Item])] {
+        var buckets: [ProductCategory: [Item]] = [:]
+        for item in items {
+            let key = category(item)
+            buckets[key, default: []].append(item)
+        }
+        return allCases.compactMap { key in
+            guard let group = buckets[key], !group.isEmpty else { return nil }
+            return (key, group)
+        }
+    }
+
     static func inferred(from productName: String) -> ProductCategory {
         let value = productName.lowercased()
 

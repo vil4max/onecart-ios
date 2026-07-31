@@ -755,6 +755,52 @@
         }
       }
     },
+    "alert.title.error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "❌ Error"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "❌ Ошибка"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "❌ Помилка"
+          }
+        }
+      }
+    },
+    "alert.title.success": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ Success"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ Успех"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✅ Успіх"
+          }
+        }
+      }
+    },
     "alert.delete_cart_need_network": {
       "extractionState": "manual",
       "localizations": {

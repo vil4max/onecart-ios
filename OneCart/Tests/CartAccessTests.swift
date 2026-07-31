@@ -79,6 +79,7 @@ final class CartAccessTests: XCTestCase {
             session.alertMessage,
             String(localized: "account.revoke_invite_done")
         )
+        XCTAssertEqual(session.userAlert?.kind, .success)
     }
 
     func testRenameActiveCartUpdatesDisplayName() async throws {
@@ -119,7 +120,7 @@ final class CartAccessTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "User")
+        let account = OneCartAccount(id: UUID(), displayName: "Max")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -138,7 +139,7 @@ final class CartAccessTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         XCTAssertEqual(
             session.cartTitle,
-            String(localized: "cart.personal_title \("User")")
+            String(localized: "cart.personal_title \("Max")")
         )
 
         await session.updateParticipantDisplayName("Папа")

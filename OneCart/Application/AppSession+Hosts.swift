@@ -36,7 +36,7 @@ extension AppSession: CloudSyncHost {
     }
 
     func presentSyncAlert(_ message: String) {
-        presentAlert(message)
+        presentAlert(message, kind: .error)
     }
 
     func softRefreshCartProducts() {

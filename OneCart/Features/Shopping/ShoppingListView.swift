@@ -33,6 +33,10 @@ struct ShoppingListView: View {
         products.filter { !$0.isPurchasedValue }
     }
 
+    private var toBuyCategorySections: [(category: ProductCategory, items: [ProductEntity])] {
+        ProductCategory.groupedSections(from: toBuyProducts) { $0.categoryValue }
+    }
+
     private var inTrolleyProducts: [ProductEntity] {
         products.filter(\.isPurchasedValue)
     }
@@ -83,18 +87,27 @@ struct ShoppingListView: View {
                             .listRowSeparator(.hidden)
                         }
                     } else {
-                        if isComposingNewItem || !toBuyProducts.isEmpty {
-                            Section("cart.section_to_buy") {
-                                if isComposingNewItem {
-                                    newItemComposerRow
+                        if isComposingNewItem {
+                            Section {
+                                newItemComposerRow
+                            } header: {
+                                if toBuyProducts.isEmpty {
+                                    Text("cart.section_to_buy")
                                 }
-                                productRows(toBuyProducts)
+                            }
+                        }
+
+                        ForEach(toBuyCategorySections, id: \.category) { section in
+                            Section {
+                                productRows(section.items, showsCategoryLabel: false)
+                            } header: {
+                                Label(section.category.localizedName, systemImage: section.category.symbolName)
                             }
                         }
 
                         if !inTrolleyProducts.isEmpty {
                             Section {
-                                productRows(inTrolleyProducts)
+                                productRows(inTrolleyProducts, showsCategoryLabel: true)
                             } header: {
                                 Text("cart.section_in_trolley")
                             } footer: {
@@ -149,7 +162,7 @@ struct ShoppingListView: View {
                     await model.syncCart(reason: .appear)
                 }
                 .alert(
-                    "common.app_name",
+                    UserAlertKind.error.title,
                     isPresented: Binding(
                         get: { model.sharedCartRemovedMessage != nil },
                         set: { if !$0 { model.dismissSharedCartRemovedMessage() } }
@@ -188,7 +201,10 @@ struct ShoppingListView: View {
         }
     }
 
-    private func productRows(_ items: [ProductEntity]) -> some View {
+    private func productRows(
+        _ items: [ProductEntity],
+        showsCategoryLabel: Bool
+    ) -> some View {
         ForEach(items, id: \.objectID) { product in
             ProductRow(
                 product: product,
@@ -197,6 +213,7 @@ struct ShoppingListView: View {
                 editName: $editName,
                 editFocused: $focusedField,
                 isSavingEdit: isSavingEdit,
+                showsCategoryLabel: showsCategoryLabel,
                 onToggle: {
                     Task {
                         await model.togglePurchased(product)
@@ -450,6 +467,7 @@ private struct ProductRow: View {
     @Binding var editName: String
     var editFocused: FocusState<CartNameFocus?>.Binding
     let isSavingEdit: Bool
+    var showsCategoryLabel: Bool = true
     let onToggle: () -> Void
     let onBeginEdit: () -> Void
     let onSubmitEdit: () -> Void
@@ -496,10 +514,12 @@ private struct ProductRow: View {
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(resolvedCategory.localizedName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        if showsCategoryLabel {
+                            Text(resolvedCategory.localizedName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
 
                         if !productSubtitle.isEmpty {
                             Text(productSubtitle)

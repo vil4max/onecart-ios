@@ -80,9 +80,9 @@ struct RootView: View {
             }
         }
         .alert(
-            "common.app_name",
+            model.userAlert?.kind.title ?? "",
             isPresented: Binding(
-                get: { model.alertMessage != nil },
+                get: { model.userAlert != nil },
                 set: { if !$0 { model.dismissAlert() } }
             )
         ) {
@@ -90,7 +90,7 @@ struct RootView: View {
                 model.dismissAlert()
             }
         } message: {
-            Text(model.alertMessage ?? "")
+            Text(model.userAlert?.message ?? "")
         }
     }
 
