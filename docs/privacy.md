@@ -31,7 +31,7 @@ The App is not directed at children under 13. Do not use the App to collect data
 ## Your choices
 
 - Sign out in the App to clear the local Sign in with Apple session.
-- Leave a shared cart (member) or **Delete cart** (owner) to stop an invite link and start fresh; CloudKit data remains subject to your Apple ID and share settings.
+- Leave a shared cart (member) to return to your personal cart, or **Revoke invite** (owner) to stop new joins while keeping the cart and current members; CloudKit data remains subject to your Apple ID and share settings.
 - You can request deletion of app-related CloudKit data by contacting us; we will guide you through Apple ID / iCloud controls where applicable.
 
 ## Changes

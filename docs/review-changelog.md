@@ -24,7 +24,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - NC07 No Apple Family member-list / same-family / share-to-all-family APIs
 - NC08 No IAP / Family Sharing subscriptions in this PR
 - NC09 CI stays Xcode Cloud release-only (no pre-merge GitHub Actions in this train)
-- NC10 Keep CKShare link-join `publicPermission = .readWrite` (revoke via Delete cart / remove member)
+- NC10 Keep CKShare link-join `publicPermission = .readWrite` (revoke via Revoke invite / remove member)
 
 ## Changes
 
@@ -116,7 +116,15 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: open `OneCart/OneCart.xcodeproj`; `just doctor`; `just build`; `just test`
 
 ## Follow-ups (explicitly not in this PR)
-- FU01 Multi-cart
+- FU01 Multi-cart UI (personal + N invited)
+  - One durable personal cart + N invited shared carts in a switcher
+  - Personal accent color vs invited/family chrome (readable without reading labels)
+  - Move items between personal and invited
+  - Account share/members bound to selected cart
+  - Naming: app brand vs personal title vs owner-set shared title
+  - Board: https://github.com/orgs/vil4engineering/projects/2 (App=OneCart)
+  - Not in cart-as-core v1 (one active UX; personal hidden while on shared)
+- FU15 History size / retention (no Clear History UI; pagination/optimize later)
 - FU02 iOS 17 @Observable migration for ViewModels
 - FU03 Expand String Catalog beyond Welcome/cart title (full UI)
 - FU04 IAP + Family Sharing subscriptions
@@ -254,3 +262,10 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; connectivity offline→online still schedules reload
 - Manual (RC32): no Finish shopping / Delete day; History caption explains overnight archive; category icon + label on cart rows
 - See also [release.md](release.md) § Preflight + §3
+
+### RC30 — Cart-as-core (durable cart, no Recreate)
+- Status: done (this train)
+- Paths: HouseholdCartCoordinator, FamilySpaceRepository+Merge, FamilyShareOrchestrator, AppSession+Membership, MoreView, FamilyCartMerge, CartHaptics, MemberJoinNotifier, docs
+- What changed: accept/ensure always adopts shared as active; personal FamilySpace kept on join; LWW join merge; Recreate removed; Revoke invite closes door; participants can share link; owner rename cart; personal default title; local notify on new member; haptics on primary actions; history never cleared (FU15)
+- How to verify: unit tests above; two-device accept → Tim sees Max cart as member; leave → same personal UUID; revoke → new joins blocked
+- Do not invent scope: multi-cart UI is FU01 only

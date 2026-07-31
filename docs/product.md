@@ -12,7 +12,7 @@ Four entities, one loop:
 
 | Entity | Role |
 |--------|------|
-| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner deletes the cart or removes the member. |
+| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner revokes the link or removes the member. The cart entity is durable — never deleted/recreated. |
 | **Cart** | One per family; lives forever; never “closes” |
 | **Item** | A name plus state: still needed, or **Completed** (checked) |
 | **History day** | Purchases grouped by the calendar day they were marked completed |
@@ -55,9 +55,9 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list; sections To Buy / Completed; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon + label; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Аккаунт** | Participants, share cart (owner), **Recreate cart** (owner), leave (member), sign out |
+| **Аккаунт** | Participants, share cart (owner and members), rename cart / revoke invite (owner), leave (member), sign out |
 
-Share is a secondary action in **Аккаунт**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link; Owner Recreate cart rotates the invite link.
+Share is a secondary action in **Аккаунт**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart.
 
 Nav title is the cart name — fixed brand default `Tim's Cart` when the household cart is created (not derived from the owner's SIWA display name).
 
@@ -68,11 +68,11 @@ Nav title is the cart name — fixed brand default `Tim's Cart` when the househo
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. Check items into **Completed**; they stay on the living cart until the next calendar day, then move to **History** on app open / foreground.
 5. After cart create, warm-start a private `CKShare` in the background. Invite from **Аккаунт**.
-6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart (empty private starter archived; private items with content merged, then archived). No join alert.
+6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk (hidden); non-empty personal lines merge into shared with LWW by normalized name + newer `updatedAt`. No join alert.
 
 Up to four people share one cart; changes sync via CloudKit.
 
-**Cart lines are unique.** Same product name from several members stays as separate rows — quantities are never merged.
+**Identical cart lines merge (LWW).** Same `Product.id` within one cart, or same normalized name on join: keep one row; field values from the newer `updatedAt`. Quantities are not summed.
 
 ## Technical invite path
 
@@ -81,7 +81,7 @@ Create household cart → warm-start CKShare (publicPermission = .readWrite)
   → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
 ```
 
-Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Revoke by removing a member or **Account → Delete cart** (stops the old link and starts a new empty cart). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
+Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Owner **Account → Revoke invite** sets `publicPermission = .none` (no new joins; members stay). Remove member kicks one person back to their durable personal cart. Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
 
 ## Account and profile
 
@@ -90,15 +90,17 @@ Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and f
 - Display name, avatar, banner: **device-local** — not in CloudKit. Set your cart nickname on **Account → Your name in the cart** (e.g. Папа / Мама). That name is stamped on items you add (`createdByName`) and when you mark them Completed (`purchasedByName`). Other members see those item attributions via sync; the Participants list still uses each person’s iCloud / SIWA identity when available, not your private nicknames for them.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
-- Owner **Recreate cart**: stop share → archive local family → create a new household cart; success alert confirms the new cart name; invitees whose shared cart disappears fall back to a private cart with an alert.
+- Owner **Revoke invite**: close door for new joins; cart UUID unchanged. No Recreate / delete-entity in UX.
+- History is never user-cleared; retention/size optimization is a later backlog item.
 - Failures use a system alert (`OK`), not toast/banner chrome.
 
 ## Default cart identity
 
-- Nav / invite name: fixed `cart.default_title` → **Tim's Cart** at create / Recreate; title reads `FamilySpace.displayName`.
+- Personal cart default title: `cart.personal_title` from the user’s display name (fallback `cart.default_title` / Tim's Cart).
+- Owner can rename the active cart (`FamilySpace.name`); invitees see that title.
 - App display name / Welcome / share branding: **Tim's Cart** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
-- JSON / rename-legacy-name import path was removed (pre–App Store); wipe app or Delete cart for a clean TestFlight start — see [legacy.md](legacy.md).
+- JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](legacy.md).
 - Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
 
 ## Positioning vs Apple Family
@@ -122,10 +124,10 @@ Ship a reliable SIWA → one cart → name-only add → Completed → overnight 
 | Theme / unit prefs | System appearance; name-only add |
 | Stores / catalog scrapers | Enlarged CK surface; blocked simple add |
 | Rich product editor (qty / unit / price / notes) | Friction; add fields later on a working core |
-| Multi-cart switcher / audience sheets | Unreliable “which cart?” paths |
+| Multi-cart switcher / audience sheets | Deferred — see FU01; v1 keeps one active cart with durable hidden personal |
 | Toast / sync banner chrome | Prefer system alert; cart nav shows short «Updating…» only while hard-refreshing |
 
-Deferred until core is solid on real devices: multi-cart, store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, public join links, price input.
+Deferred until core is solid on real devices: multi-cart UI (personal + N invited, accent colors, move items — FU01 + Tasks & Ideas board), store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, price input. History size/retention optimization without a Clear History button.
 
 ## Idea: history assistant (not this train)
 
@@ -137,3 +139,18 @@ History days are a dataset of family habits (what, how often, who). Possible lat
 - Rough trip total once prices exist
 
 Prefer on-device (including optional Foundation Models for category refine), no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.
+
+
+## Future: multi-cart UI (not this train)
+
+Tracked as **FU01** and on [Tasks & Ideas](https://github.com/orgs/vil4engineering/projects/2) (App=OneCart).
+
+Scope when greenlit:
+
+- One durable **personal** cart + **N invited** shared carts visible in a switcher
+- Personal accent color distinct from invited/family chrome
+- Move items between personal and invited
+- Account share/members bound to the **selected** cart
+- App brand vs per-cart titles stay separate layers
+
+v1 until then: one **active** cart on screen; personal `FamilySpace` remains on disk when joined to a shared cart.

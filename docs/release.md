@@ -6,7 +6,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 Version: **1.4 (1)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.4; reset to **1** when bumping `MARKETING_VERSION`.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Delete cart. Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md). Do not block release on restoring those features.
+**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md). Do not block release on restoring those features.
 
 On a Mac with Xcode:
 
@@ -72,7 +72,7 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Mark items Completed on A → visible on B; next calendar day, open/foreground on either device → yesterday’s Completed move to History by day (read-only).
 8. Remove member on A → B loses access.
-9. On A (owner): **Delete cart** → confirm → new empty cart; old invite link stops working; B falls back to a private cart with an alert; A can share again (new URL).
+9. On A (owner): **Revoke invite** → confirm → same cart UUID; new joins blocked; B stays on shared cart; A can **Share** again to reopen joining.
 10. Relaunch offline: local data opens; queued changes upload when back online.
 
 ### Code-level verification (no devices)
@@ -100,7 +100,9 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Invite link warm-up after cart create | `AppSession.scheduleInviteLinkPreparation` / `preparedInviteLink` |
 | Hard cart sync / product snapshot reload | `CartSyncService`, `CloudKitProductReloadPolicy`, `testRefreshFromServerPicksUpToggledPurchasedState` |
 | Permission deny on shared mutations | `DenyAllPermissionAuthorizer` + `CartAccessTests` |
-| Owner delete cart recreates private family | `testDeleteCartRecreatesPrivateFamily` |
+| Owner revoke invite keeps family identity | `testRevokeInviteKeepsFamilySpaceIdentity` |
+| Join adopt switches active to shared | `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` |
+| Join LWW merge by name | `testMergeFamilyContentLWWSameNormalizedName` |
 | Quick add/edit is name-only inline in cart | `ShoppingListView` composer / inline row edit |
 
 ## 4. TestFlight

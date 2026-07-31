@@ -4,7 +4,7 @@
 
 There is no App Store install base yet. JSON / `onecart.app-state` legacy import and rename of «Наша семья» were removed.
 
-For a clean start on TestFlight devices: delete the app, or use **Account → Delete cart** (owner) so the old invite link stops working and a new empty cart is created.
+For a clean start on TestFlight devices: delete the app (there is no Recreate/Delete cart in UX). Owner **Revoke invite** only closes the door for new joins on the same durable cart.
 
 ## Local SQLite
 

@@ -14,7 +14,7 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 |------------------|----------------------------------|
 | Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
 | Name-only inline add via `+` empty row + keyboard; category SF Symbol from keywords, optional on-device FM refine | Rich product editor / money UI |
-| Invite + Delete cart from Аккаунт; members on the same screen | Multi-cart switcher |
+| Invite + Revoke invite + leave from Аккаунт; members on the same screen | Multi-cart switcher (FU01) |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |
 
@@ -33,7 +33,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator |
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
-| `FamilyShareOrchestrator` | invite link creation, owner ACL heal, delete cart + recreate |
+| `FamilyShareOrchestrator` | invite link creation, owner ACL heal, revoke invite (close door) |
 | `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
 
@@ -126,7 +126,7 @@ New household spaces and children go to the private store. After `CKShare` accep
 
 There is **no public API to force** a CloudKit import/export mirror ([TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) / [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)). The app schedules best-effort hard refresh after import events, pull-to-refresh, cart appear, and foreground. ViewContext uses `NSMergeByPropertyStoreTrumpMergePolicy` so remote store wins over stale in-memory values. User-facing failures use a system alert; transient share create retries honor `CKError.retryAfterSeconds` when present.
 
-`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Delete cart** stops the share (old URL dies) and creates a fresh private cart. See [product.md](product.md) and [privacy.md](privacy.md).
+`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Personal cart stays durable on disk when active is shared. Join merge uses LWW by normalized product name + newer `updatedAt`. See [product.md](product.md) and [privacy.md](privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 
@@ -142,3 +142,10 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `
 ```
 
 Full tree and commands: [README.md](../README.md).
+
+
+## Cart merge (LWW)
+
+- Within one cart: duplicate `Product.id` → soft-delete loser via launch dedupe; prefer non-deleted, else newer `updatedAt`.
+- On invite join (private → shared): match destination by normalized name; if source `updatedAt` is newer, copy field values onto the existing destination row; else skip; if no match, insert with a new UUID. Source personal space is **not** archived (durable personal).
+- Quantities are last-write-wins, never summed.
