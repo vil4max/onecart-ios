@@ -162,22 +162,79 @@ final class CloudKitBackendService {
         _ = try await persist(share, in: store)
     }
 
-    func leaveFamily(_ family: FamilySpace) async throws {
+    @discardableResult
+    func leaveFamily(_ family: FamilySpace) async throws -> Bool {
+        if persistence.inMemory {
+            return true
+        }
+
         let objectID = family.objectID
-        guard let share = try share(forObjectID: objectID) else {
+        let zoneID: CKRecordZone.ID
+        if let share = try share(forObjectID: objectID) {
+            CartSyncLog.shareACL.info(
+                "leaveFamily begin record=\(share.recordID.recordName, privacy: .public) env=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
+            )
+            zoneID = share.recordID.zoneID
+        } else if let recordID = persistence.container.recordID(for: objectID) {
+            CartSyncLog.shareACL.info(
+                "leaveFamily begin via record zone=\(recordID.zoneID.zoneName, privacy: .public)"
+            )
+            zoneID = recordID.zoneID
+        } else {
+            CartSyncLog.shareACL.error("leaveFamily no share or record zone")
             throw OneCartCloudKitError.familyNotShared
         }
-        CartSyncLog.shareACL.info(
-            "leaveFamily begin record=\(share.recordID.recordName, privacy: .public) env=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
-        )
+
         let sharedStore = try persistence.store(for: .shared)
+        do {
+            try await purgeSharedZone(zoneID, in: sharedStore)
+            return true
+        } catch {
+            if CloudKitUserFacingError.isBenignShareLeaveFailure(error) {
+                CartSyncLog.shareACL.info(
+                    "leaveFamily treat zone-gone error=\(error.localizedDescription, privacy: .public)"
+                )
+                return true
+            }
+            throw error
+        }
+    }
+
+    private func purgeSharedZone(
+        _ zoneID: CKRecordZone.ID,
+        in store: NSPersistentStore,
+        timeoutNanoseconds: UInt64 = 22_000_000_000
+    ) async throws {
         try await withCheckedThrowingContinuation { (
             continuation: CheckedContinuation<Void, Error>
         ) in
+            let gate = LeavePurgeSettleGate()
+
+            let timeoutTask = Task {
+                do {
+                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
+                } catch {
+                    return
+                }
+                guard gate.trySettle() else { return }
+                continuation.resume(throwing: OneCartCloudKitError.leaveTimedOut)
+            }
+
             persistence.container.purgeObjectsAndRecordsInZone(
-                with: share.recordID.zoneID,
-                in: sharedStore
+                with: zoneID,
+                in: store
             ) { _, error in
+                let shouldResume = gate.trySettle()
+                timeoutTask.cancel()
+
+                guard shouldResume else {
+                    CartSyncLog.shareACL.info("leaveFamily late purge finished after timeout")
+                    NotificationCenter.default.post(
+                        name: .oneCartDidFinishLateLeavePurge,
+                        object: nil
+                    )
+                    return
+                }
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
@@ -313,6 +370,20 @@ final class CloudKitBackendService {
                 }
             }
         }
+    }
+}
+
+
+private final class LeavePurgeSettleGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var settled = false
+
+    func trySettle() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !settled else { return false }
+        settled = true
+        return true
     }
 }
 

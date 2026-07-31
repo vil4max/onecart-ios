@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 @testable import OneCart
 import XCTest
@@ -73,6 +74,53 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertTrue(fixture.session.familySpaces.allSatisfy {
             fixture.session.persistence.scope(for: $0) == .private
         })
+    }
+
+    func testGuestLeaveCartReturnsToPersonal() async throws {
+        let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
+        XCTAssertEqual(fixture.session.access, .member)
+
+        await fixture.session.leaveCurrentFamily()
+
+        XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.privateID)
+        XCTAssertEqual(fixture.session.access, .owner)
+        XCTAssertTrue(fixture.session.familySpaces.allSatisfy {
+            fixture.session.persistence.scope(for: $0) == .private
+        })
+        XCTAssertNil(fixture.session.userAlert)
+        XCTAssertEqual(Set(fixture.session.products.map(\.displayName)), ["Private bread"])
+    }
+
+    func testBenignShareLeaveFailures() {
+        let zoneGone = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.zoneNotFound.rawValue
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isBenignShareLeaveFailure(zoneGone))
+
+        let unavailable = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.unknownItem.rawValue,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission.",
+            ]
+        )
+        XCTAssertTrue(CloudKitUserFacingError.isBenignShareLeaveFailure(unavailable))
+        XCTAssertTrue(CloudKitUserFacingError.isBenignShareAcceptFailure(unavailable))
+
+        let permission = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.permissionFailure.rawValue
+        )
+        XCTAssertFalse(CloudKitUserFacingError.isBenignShareLeaveFailure(permission))
+        XCTAssertTrue(CloudKitUserFacingError.isBenignShareAcceptFailure(permission))
+
+        let network = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.networkFailure.rawValue
+        )
+        XCTAssertFalse(CloudKitUserFacingError.isBenignShareLeaveFailure(network))
     }
 
     private struct GuestFixture {

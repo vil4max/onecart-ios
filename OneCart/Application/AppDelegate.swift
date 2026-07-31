@@ -5,6 +5,9 @@ extension Notification.Name {
     static let oneCartDidReceiveCloudKitShare = Notification.Name(
         "OneCartDidReceiveCloudKitShare"
     )
+    static let oneCartDidFinishLateLeavePurge = Notification.Name(
+        "OneCartDidFinishLateLeavePurge"
+    )
 }
 
 final class AppDelegate: UIResponder, UIApplicationDelegate {

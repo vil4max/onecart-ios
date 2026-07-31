@@ -2867,6 +2867,29 @@
         }
       }
     },
+    "sync.leave_timed_out": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't leave the cart in time. Check network and iCloud sync, then try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось выйти из корзины вовремя. Проверьте сеть и синхронизацию iCloud, затем повторите."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося вийти з кошика вчасно. Перевірте мережу і синхронізацію iCloud, потім повторіть."
+          }
+        }
+      }
+    },
     "sync.share_url_unavailable": {
       "extractionState": "manual",
       "localizations": {

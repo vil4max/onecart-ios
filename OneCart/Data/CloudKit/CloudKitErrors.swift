@@ -9,6 +9,7 @@ enum OneCartCloudKitError: LocalizedError {
     case participantNotFound
     case stillSyncing
     case shareTimedOut
+    case leaveTimedOut
     case shareEnvironmentMismatch
 
     var errorDescription: String? {
@@ -34,6 +35,8 @@ enum OneCartCloudKitError: LocalizedError {
             String(localized: "sync.still_syncing")
         case .shareTimedOut:
             String(localized: "sync.share_timed_out")
+        case .leaveTimedOut:
+            String(localized: "sync.leave_timed_out")
         case .shareEnvironmentMismatch:
             String(localized: "sync.share_access_denied")
         }
@@ -182,6 +185,48 @@ enum CloudKitUserFacingError {
         return false
     }
 
+    static func isBenignShareLeaveFailure(_ error: Error) -> Bool {
+        for candidate in flattened(error) {
+            if let ckError = candidate as? CKError {
+                switch ckError.code {
+                case .zoneNotFound, .userDeletedZone, .unknownItem:
+                    return true
+                default:
+                    break
+                }
+            }
+            let text = diagnosticText(for: candidate)
+            if text.contains("item unavailable")
+                || text.contains("owner stopped sharing")
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    static func isBenignShareAcceptFailure(_ error: Error) -> Bool {
+        for candidate in flattened(error) {
+            if let ckError = candidate as? CKError {
+                switch ckError.code {
+                case .unknownItem, .permissionFailure, .alreadyShared:
+                    return true
+                default:
+                    break
+                }
+            }
+            let text = diagnosticText(for: candidate)
+            if text.contains("item unavailable")
+                || text.contains("owner stopped sharing")
+                || text.contains("already accepted")
+                || text.contains("already shared")
+            {
+                return true
+            }
+        }
+        return false
+    }
+
     private static func message(forCKError error: Error) -> String? {
         guard let ckError = error as? CKError else { return nil }
         switch ckError.code {
@@ -193,18 +238,15 @@ enum CloudKitUserFacingError {
             return String(localized: "sync.quota_exceeded")
         case .accountTemporarilyUnavailable:
             return String(localized: "sync.temporarily_unavailable")
-        case .permissionFailure:
+        case .permissionFailure, .unknownItem, .alreadyShared:
             return String(localized: "sync.share_access_denied")
         case .serverRejectedRequest, .invalidArguments, .incompatibleVersion:
-            // Schema / argument detail may still be in userInfo — checked earlier via
-            // productionSchemaMessage. Fall back only when no specific mapping matched.
             return genericSyncFailure
         case .zoneNotFound, .userDeletedZone:
             return String(localized: "sync.zone_unavailable")
         case .limitExceeded, .requestRateLimited, .zoneBusy, .serviceUnavailable:
             return String(localized: "sync.icloud_overloaded")
         case .partialFailure:
-            // Nested item errors carry the real reason; outer code 2 is opaque.
             return nil
         default:
             return nil

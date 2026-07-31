@@ -209,6 +209,16 @@ final class CloudKitErrorMappingTests: XCTestCase {
             String(localized: "sync.share_access_denied")
         )
 
+        let unknownItem = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.unknownItem.rawValue,
+            userInfo: nil
+        )
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: unknownItem),
+            String(localized: "sync.share_access_denied")
+        )
+
         let constraint = NSError(
             domain: NSCocoaErrorDomain,
             code: NSManagedObjectConstraintMergeError,

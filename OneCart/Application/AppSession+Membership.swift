@@ -62,14 +62,30 @@ extension AppSession {
         isBusy = true
         syncState = .syncing
         defer { isBusy = false }
-        do {
-            try await persistence.acceptShareInvitations(from: metadata)
-        } catch {
-            AppDelegate.requeue(metadata)
-            syncState = .failed
-            lastSyncError = userFacingMessage(for: error)
-            show(error)
-            return
+
+        let alreadyAccepted = metadata.allSatisfy { $0.participantStatus == .accepted }
+        let toAccept = metadata.filter { $0.participantStatus != .accepted }
+
+        if !alreadyAccepted, !toAccept.isEmpty {
+            do {
+                try await persistence.acceptShareInvitations(from: toAccept)
+            } catch {
+                if alreadyJoinedMatchingShare(in: metadata),
+                   CloudKitUserFacingError.isBenignShareAcceptFailure(error)
+                {
+                    CartSyncLog.action.info(
+                        "acceptShare soft-success matchingShare error=\(error.localizedDescription, privacy: .public)"
+                    )
+                } else {
+                    AppDelegate.requeue(metadata)
+                    syncState = .failed
+                    lastSyncError = userFacingMessage(for: error)
+                    show(error)
+                    return
+                }
+            }
+        } else if alreadyAccepted {
+            CartSyncLog.action.info("acceptShare skip alreadyAccepted")
         }
 
         syncState = .synchronized
@@ -118,19 +134,24 @@ extension AppSession {
         guard let account,
               let family = activeFamilySpace,
               access?.isParticipant == true else { return }
-        guard online else {
-            presentAlert(String(localized: "alert.leave_need_network"), kind: .error)
-            return
-        }
+        let familyID = family.id
 
         CartSyncLog.action.info(
-            "leaveFamily start family=\(family.id?.uuidString ?? "-", privacy: .public)"
+            "leaveFamily start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
         isBusy = true
         defer { isBusy = false }
         do {
-            try await backend.leaveFamily(family)
+            let discardLeftovers = try await backend.leaveFamily(family)
+            if discardLeftovers, let familyID {
+                do {
+                    try await repository.discardLocalSharedFamilySpace(id: familyID)
+                } catch let error as RepositoryError where error == .familySpaceNotFound {
+                    CartSyncLog.action.info("leaveFamily local shared already gone")
+                }
+            }
             try await household.reactivatePersonalCartIfNeeded(for: account)
+            lastActiveFamilyWasShared = false
             await refreshFamilyMetadata(showErrors: false)
             CartHaptics.success()
             CartSyncLog.action.info("leaveFamily done")
@@ -139,7 +160,71 @@ extension AppSession {
                 "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
             )
             show(error)
+            if case OneCartCloudKitError.leaveTimedOut = error {
+                lastActiveFamilyWasShared = true
+                Task { await recoverAfterLeaveTimeout() }
+            }
         }
+    }
+
+    private func alreadyJoinedMatchingShare(in metadata: [CKShare.Metadata]) -> Bool {
+        let pendingShareNames = Set(metadata.map(\.share.recordID.recordName))
+        let pendingRootIDs = Set(metadata.compactMap(\.hierarchicalRootRecordID))
+        for family in familySpaces where persistence.scope(for: family) == .shared {
+            if let share = try? persistence.container.fetchShares(matching: [family.objectID])[family.objectID],
+               pendingShareNames.contains(share.recordID.recordName)
+            {
+                return true
+            }
+            if let recordID = persistence.container.recordID(for: family.objectID),
+               pendingRootIDs.contains(recordID)
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func recoverAfterLeaveTimeout() async {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                for _ in 0 ..< 8 {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    if await self.attemptLeaveRecoveryPass() {
+                        return true
+                    }
+                }
+                return false
+            }
+            group.addTask {
+                for await _ in NotificationCenter.default.notifications(
+                    named: .oneCartDidFinishLateLeavePurge
+                ) {
+                    if await self.attemptLeaveRecoveryPass() {
+                        return true
+                    }
+                }
+                return false
+            }
+            _ = await group.next()
+            group.cancelAll()
+        }
+    }
+
+    private func attemptLeaveRecoveryPass() async -> Bool {
+        do {
+            try reload()
+            await household.handleInviteeSharedCartGoneIfNeeded()
+        } catch {
+            CartSyncLog.action.error(
+                "leaveFamily recovery reload fail error=\(error.localizedDescription, privacy: .public)"
+            )
+        }
+        let hasShared = familySpaces.contains { persistence.scope(for: $0) == .shared }
+        if !hasShared {
+            CartSyncLog.action.info("leaveFamily recovery shared gone")
+        }
+        return !hasShared
     }
 
     func refreshFromServer() async {

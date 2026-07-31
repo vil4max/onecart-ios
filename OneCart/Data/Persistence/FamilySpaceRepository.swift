@@ -226,6 +226,14 @@ final class FamilySpaceRepository {
         }
     }
 
+    func discardLocalSharedFamilySpace(id: UUID) async throws {
+        try await persistence.performBackgroundTask(author: "OneCartLeaveShared") { context in
+            let space = try Self.requireFamilySpace(id: id, in: context)
+            guard self.persistence.scope(for: space) == .shared else { return }
+            context.delete(space)
+        }
+    }
+
     func requireUpdatePermission(for object: NSManagedObject) throws {
         guard permissionAuthorizer.canUpdate(object.objectID) else {
             throw RepositoryError.permissionDenied
