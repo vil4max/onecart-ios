@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F20000000000000000000017 /* AccountViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* AccountViewModelTests.swift */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -30,7 +31,8 @@
 		A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* FamilyCartMergeTests.swift */; };
 		A20000000000000000000014 /* ManagedObjectModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* ManagedObjectModelTests.swift */; };
 		A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* CartShareActivityBridge.swift */; };
-		A20000000000000000000017 /* CartShareViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* CartShareViewModel.swift */; };
+		A20000000000000000000017 /* AccountViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* AccountViewModel.swift */; };
+		F20000000000000000000016 /* AccountRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* AccountRows.swift */; };
 		A20000000000000000000018 /* CartTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* CartTestSupport.swift */; };
 		A20000000000000000000019 /* CartItemsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001E /* CartItemsTests.swift */; };
 		A2000000000000000000001A /* PurchaseSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001F /* PurchaseSessionTests.swift */; };
@@ -134,7 +136,9 @@
 		A10000000000000000000019 /* ManagedObjectModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjectModelTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000042 /* CartShareActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareActivityBridge.swift; sourceTree = "<group>"; };
 		A10000000000000000000042 /* CartShareActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareActivityBridge.swift; sourceTree = "<group>"; };
-		A1000000000000000000001C /* CartShareViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareViewModel.swift; sourceTree = "<group>"; };
+		A1000000000000000000001C /* AccountViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountViewModel.swift; sourceTree = "<group>"; };
+		F10000000000000000000016 /* AccountRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountRows.swift; sourceTree = "<group>"; };
+		F10000000000000000000017 /* AccountViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountViewModelTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001D /* CartTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartTestSupport.swift; sourceTree = "<group>"; };
 		A1000000000000000000001E /* CartItemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartItemsTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001F /* PurchaseSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseSessionTests.swift; sourceTree = "<group>"; };
@@ -244,6 +248,7 @@
 				A10000000000000000000019 /* ManagedObjectModelTests.swift */,
 				A1000000000000000000001D /* CartTestSupport.swift */,
 				A1000000000000000000001E /* CartItemsTests.swift */,
+				F10000000000000000000017 /* AccountViewModelTests.swift */,
 				A1000000000000000000001F /* PurchaseSessionTests.swift */,
 				A10000000000000000000020 /* FamilyCartLifecycleTests.swift */,
 				A10000000000000000000021 /* CartAccessTests.swift */,
@@ -366,7 +371,8 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000042 /* CartShareActivityBridge.swift */,
-				A1000000000000000000001C /* CartShareViewModel.swift */,
+				A1000000000000000000001C /* AccountViewModel.swift */,
+				F10000000000000000000016 /* AccountRows.swift */,
 				F10000000000000000000003 /* AccountView.swift */,
 			);
 			path = Account;
@@ -615,7 +621,8 @@
 				F20000000000000000000014 /* CartProductRow.swift in Sources */,
 				F20000000000000000000015 /* CartAddFAB.swift in Sources */,
 				A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */,
-				A20000000000000000000017 /* CartShareViewModel.swift in Sources */,
+				A20000000000000000000017 /* AccountViewModel.swift in Sources */,
+				F20000000000000000000016 /* AccountRows.swift in Sources */,
 				A2000000000000000000000E /* ProductMedia.swift in Sources */,
 				A20000000000000000000010 /* ProfileView.swift in Sources */,
 				F20000000000000000000002 /* MainTabView.swift in Sources */,
@@ -632,6 +639,7 @@
 				A20000000000000000000014 /* ManagedObjectModelTests.swift in Sources */,
 				A20000000000000000000018 /* CartTestSupport.swift in Sources */,
 				A20000000000000000000019 /* CartItemsTests.swift in Sources */,
+				F20000000000000000000017 /* AccountViewModelTests.swift in Sources */,
 				A2000000000000000000001A /* PurchaseSessionTests.swift in Sources */,
 				A2000000000000000000001B /* FamilyCartLifecycleTests.swift in Sources */,
 				A2000000000000000000001C /* CartAccessTests.swift in Sources */,

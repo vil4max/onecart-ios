@@ -2,28 +2,17 @@ import SwiftUI
 
 struct AccountView: View {
     @EnvironmentObject private var model: AppSession
-    @StateObject private var viewModel: CartShareViewModel
-    @State private var sharePayload: CartSharePayload?
-    @State private var isSharing = false
-    @State private var shareAlert: UserAlert?
-    @State private var confirmingLeave = false
-    @State private var memberToRemove: FamilyMember?
-    @State private var confirmingSignOut = false
-    @State private var confirmingRevokeInvite = false
-    @State private var isEditingDisplayName = false
-    @State private var isEditingCartName = false
-    @State private var draftDisplayName = ""
-    @State private var draftCartName = ""
+    @StateObject private var viewModel: AccountViewModel
 
     init(model: AppSession) {
-        _viewModel = StateObject(wrappedValue: CartShareViewModel(session: model))
+        _viewModel = StateObject(wrappedValue: AccountViewModel(session: model))
     }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    if model.isFamilyMetadataLoading, displayedMembers.isEmpty {
+                    if model.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
                                 .tint(OneCartPalette.primary)
@@ -31,12 +20,12 @@ struct AccountView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        ForEach(displayedMembers) { member in
+                        ForEach(viewModel.displayedMembers) { member in
                             AccountMemberRow(member: member)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if model.access?.isOwner == true, !member.isCurrentUser {
+                                    if viewModel.canOwnerManageMembers, !member.isCurrentUser {
                                         Button(role: .destructive) {
-                                            memberToRemove = member
+                                            viewModel.memberToRemove = member
                                         } label: {
                                             Label("common.delete", systemImage: "person.fill.xmark")
                                         }
@@ -47,13 +36,13 @@ struct AccountView: View {
 
                     if model.activeFamilySpace != nil {
                         Button {
-                            shareCart()
+                            viewModel.shareCart()
                         } label: {
                             AccountActionRow(
                                 titleKey: "account.share_cart",
                                 systemImage: "square.and.arrow.up",
                                 trailing: {
-                                    if isSharing {
+                                    if viewModel.isSharing {
                                         ProgressView()
                                             .tint(OneCartPalette.primary)
                                     }
@@ -61,11 +50,11 @@ struct AccountView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .disabled(isSharing || !model.isOnline)
+                        .disabled(viewModel.isSharing || !model.isOnline)
 
-                        if model.access?.isOwner == true {
+                        if viewModel.canRenameCart {
                             Button {
-                                beginEditingCartName()
+                                viewModel.beginEditingCartName()
                             } label: {
                                 AccountActionRow(
                                     titleKey: "account.rename_cart",
@@ -75,9 +64,9 @@ struct AccountView: View {
                             .buttonStyle(.plain)
                         }
 
-                        if model.access?.isOwner == true {
+                        if viewModel.canRevokeInvite {
                             Button {
-                                confirmingRevokeInvite = true
+                                viewModel.confirmingRevokeInvite = true
                             } label: {
                                 AccountActionRow(
                                     titleKey: "account.revoke_invite",
@@ -88,9 +77,9 @@ struct AccountView: View {
                             .disabled(model.isBusy || !model.isOnline)
                         }
 
-                        if model.access?.isParticipant == true {
+                        if viewModel.canLeaveCart {
                             Button {
-                                confirmingLeave = true
+                                viewModel.confirmingLeave = true
                             } label: {
                                 AccountActionRow(
                                     titleKey: "account.leave_cart",
@@ -108,7 +97,7 @@ struct AccountView: View {
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                                 .textCase(nil)
-                            Text(cartRoleLine)
+                            Text(viewModel.cartRoleLine)
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .textCase(nil)
@@ -117,13 +106,13 @@ struct AccountView: View {
                         Text("settings.cart_section")
                     }
                 } footer: {
-                    Text(cartSectionFooter)
+                    Text(viewModel.cartSectionFooter)
                 }
 
                 Section {
                     if let account = model.account {
                         Button {
-                            beginEditingDisplayName()
+                            viewModel.beginEditingDisplayName()
                         } label: {
                             HStack(spacing: 12) {
                                 ProfileAvatarView(
@@ -139,7 +128,7 @@ struct AccountView: View {
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                     Text(
-                                        needsAccountName
+                                        viewModel.needsAccountName
                                             ? String(localized: "settings.apple_set_name")
                                             : String(localized: "settings.apple_edit_name")
                                     )
@@ -158,7 +147,7 @@ struct AccountView: View {
                     }
 
                     Button {
-                        confirmingSignOut = true
+                        viewModel.confirmingSignOut = true
                     } label: {
                         AccountActionRow(
                             titleKey: "account.sign_out",
@@ -181,13 +170,13 @@ struct AccountView: View {
                 MemberJoinNotifier.requestAuthorizationIfNeeded()
                 await model.refreshAccountSharing()
             }
-            .sheet(isPresented: $isEditingDisplayName) {
+            .sheet(isPresented: $viewModel.isEditingDisplayName) {
                 NavigationStack {
                     Form {
                         Section {
                             TextField(
                                 String(localized: "account.display_name_placeholder"),
-                                text: $draftDisplayName
+                                text: $viewModel.draftDisplayName
                             )
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
@@ -199,81 +188,72 @@ struct AccountView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("common.cancel") { isEditingDisplayName = false }
+                            Button("common.cancel") { viewModel.isEditingDisplayName = false }
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("account.display_name_save") {
-                                let name = draftDisplayName
-                                isEditingDisplayName = false
-                                Task { await model.updateParticipantDisplayName(name) }
+                                Task { await viewModel.saveDisplayName() }
                             }
                         }
                     }
                 }
                 .presentationDetents([.medium])
             }
-            .sheet(isPresented: $isEditingCartName) {
+            .sheet(isPresented: $viewModel.isEditingCartName) {
                 NavigationStack {
                     Form {
                         Section {
                             TextField(
                                 String(localized: "account.cart_name_placeholder"),
-                                text: $draftCartName
+                                text: $viewModel.draftCartName
                             )
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                         } footer: {
-                            Text(
-                                {
-                                    if let family = model.activeFamilySpace,
-                                       model.persistence.scope(for: family) == .private
-                                    {
-                                        return String(localized: "account.cart_name_prompt_personal")
-                                    }
-                                    return String(localized: "account.cart_name_prompt")
-                                }()
-                            )
+                            Text(viewModel.cartNamePrompt)
                         }
                     }
                     .navigationTitle("account.rename_cart")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("common.cancel") { isEditingCartName = false }
+                            Button("common.cancel") { viewModel.isEditingCartName = false }
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("account.cart_name_save") {
-                                let name = draftCartName
-                                isEditingCartName = false
-                                Task { await model.renameActiveCart(name) }
+                                Task { await viewModel.saveCartName() }
                             }
-                            .disabled(draftCartName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(
+                                viewModel.draftCartName
+                                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    .isEmpty
+                            )
                         }
                     }
                 }
                 .presentationDetents([.medium])
             }
-            .sheet(item: $sharePayload) { payload in
+            .sheet(item: $viewModel.sharePayload) { payload in
                 CartActivityViewController(
                     activityItems: [CartInviteActivityItem(link: payload.link)]
                 )
             }
             .alert(
-                shareAlert?.kind.title ?? "",
+                viewModel.shareAlert?.kind.title ?? "",
                 isPresented: Binding(
-                    get: { shareAlert != nil },
+                    get: { viewModel.shareAlert != nil },
                     set: {
                         if !$0 {
-                            shareAlert = nil
+                            viewModel.shareAlert = nil
                         }
                     }
                 )
             ) {
-                Button("common.ok", role: .cancel) { shareAlert = nil }
+                Button("common.ok", role: .cancel) { viewModel.shareAlert = nil }
             } message: {
-                Text(shareAlert?.message ?? "")
+                Text(viewModel.shareAlert?.message ?? "")
             }
-            .alert("account.leave_confirm_title", isPresented: $confirmingLeave) {
+            .alert("account.leave_confirm_title", isPresented: $viewModel.confirmingLeave) {
                 Button("common.cancel", role: .cancel) {}
                 Button("account.leave_confirm_action", role: .destructive) {
                     Task { await viewModel.leaveCurrentFamily() }
@@ -281,10 +261,10 @@ struct AccountView: View {
             } message: {
                 Text("account.leave_confirm_message")
             }
-            .alert("account.revoke_invite_title", isPresented: $confirmingRevokeInvite) {
+            .alert("account.revoke_invite_title", isPresented: $viewModel.confirmingRevokeInvite) {
                 Button("common.cancel", role: .cancel) {}
                 Button("account.revoke_invite_confirm", role: .destructive) {
-                    Task { await model.revokeInviteLink() }
+                    Task { await viewModel.revokeInviteLink() }
                 }
             } message: {
                 Text("account.revoke_invite_message")
@@ -292,14 +272,14 @@ struct AccountView: View {
             .alert(
                 "account.remove_member_title",
                 isPresented: Binding(
-                    get: { memberToRemove != nil },
+                    get: { viewModel.memberToRemove != nil },
                     set: {
                         if !$0 {
-                            memberToRemove = nil
+                            viewModel.memberToRemove = nil
                         }
                     }
                 ),
-                presenting: memberToRemove
+                presenting: viewModel.memberToRemove
             ) { member in
                 Button("common.delete", role: .destructive) {
                     Task { await viewModel.removeMember(member) }
@@ -308,203 +288,14 @@ struct AccountView: View {
             } message: { member in
                 Text("account.remove_member_message \(member.displayName)")
             }
-            .alert("account.sign_out_confirm_title", isPresented: $confirmingSignOut) {
+            .alert("account.sign_out_confirm_title", isPresented: $viewModel.confirmingSignOut) {
                 Button("common.cancel", role: .cancel) {}
                 Button("account.sign_out", role: .destructive) {
-                    model.signOut()
+                    viewModel.signOut()
                 }
             } message: {
                 Text("account.sign_out_message")
             }
         }
-    }
-
-    private var needsAccountName: Bool {
-        ParticipantDisplayName.isPlaceholder(model.account?.displayName)
-    }
-
-    private var cartRoleLine: String {
-        if model.access?.isParticipant == true {
-            String(localized: "account.role_member_status")
-        } else {
-            String(localized: "account.role_owner_status")
-        }
-    }
-
-    private var cartSectionFooter: String {
-        if model.access?.isParticipant == true {
-            String(localized: "account.cart_status_member_footer")
-        } else if model.access?.isOwner == true {
-            String(localized: "account.share_link_warning")
-        } else {
-            String(localized: "account.cart_status_owner_footer")
-        }
-    }
-
-    private var displayedMembers: [FamilyMember] {
-        if !model.familyMembers.isEmpty {
-            return model.familyMembers
-        }
-        guard let account = model.account, model.activeFamilySpace != nil else { return [] }
-        return [
-            FamilyMember(
-                id: account.id,
-                displayName: account.displayName,
-                access: model.access ?? .owner,
-                joinedAt: model.activeFamilySpace?.createdAt ?? Date(),
-                isCurrentUser: true,
-                avatarURL: account.avatarURL,
-                bannerURL: account.bannerURL
-            ),
-        ]
-    }
-
-    private func beginEditingDisplayName() {
-        draftDisplayName = model.preferences.participantDisplayName.isEmpty
-            ? (ParticipantDisplayName.isPlaceholder(model.account?.displayName)
-                ? ""
-                : (model.account?.displayName ?? ""))
-            : model.preferences.participantDisplayName
-        isEditingDisplayName = true
-    }
-
-    private func beginEditingCartName() {
-        draftCartName = model.activeFamilySpace?.displayName ?? model.cartTitle
-        isEditingCartName = true
-    }
-
-    private func shareCart() {
-        guard !isSharing else { return }
-        isSharing = true
-        CartHaptics.light()
-        CartSyncLog.action.info("shareCart UI start")
-        let work = Task { @MainActor in
-            defer { isSharing = false }
-            do {
-                let link = try await model.createFamilyInviteLink()
-                guard !Task.isCancelled else { return }
-                sharePayload = CartSharePayload(link: link)
-                CartHaptics.success()
-                CartSyncLog.action.info(
-                    "shareCart UI done host=\(link.url.host ?? "-", privacy: .public)"
-                )
-            } catch is CancellationError {
-                CartSyncLog.action.info("shareCart UI cancelled")
-                return
-            } catch {
-                CartSyncLog.action.error(
-                    "shareCart UI fail error=\(error.localizedDescription, privacy: .public)"
-                )
-                CartHaptics.error()
-                if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                    shareAlert = .error(CloudKitUserFacingError.productionSchemaMissing)
-                } else {
-                    shareAlert = .error(model.userFacingMessage(for: error))
-                }
-            }
-        }
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 48_000_000_000)
-            guard !work.isCancelled else { return }
-            if isSharing {
-                work.cancel()
-                isSharing = false
-                CartSyncLog.action.error("shareCart UI timeout")
-                if let message = OneCartCloudKitError.shareTimedOut.errorDescription {
-                    shareAlert = .error(message)
-                }
-            }
-        }
-    }
-}
-
-private enum AccountActionStyle {
-    case regular
-    case destructive
-}
-
-private struct AccountActionRow<Trailing: View>: View {
-    let titleKey: LocalizedStringKey
-    let systemImage: String
-    var style: AccountActionStyle = .regular
-    @ViewBuilder var trailing: () -> Trailing
-
-    init(
-        titleKey: LocalizedStringKey,
-        systemImage: String,
-        style: AccountActionStyle = .regular,
-        @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
-    ) {
-        self.titleKey = titleKey
-        self.systemImage = systemImage
-        self.style = style
-        self.trailing = trailing
-    }
-
-    private var accent: Color {
-        style == .destructive ? OneCartPalette.danger : OneCartPalette.primaryAccent
-    }
-
-    private var softFill: Color {
-        style == .destructive
-            ? OneCartPalette.danger.opacity(0.14)
-            : OneCartPalette.primarySoft
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(accent)
-                .frame(width: 28, height: 28)
-                .background(softFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-            Text(titleKey)
-                .font(.body)
-                .foregroundStyle(style == .destructive ? OneCartPalette.danger : .primary)
-
-            Spacer(minLength: 0)
-
-            trailing()
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-private struct AccountMemberRow: View {
-    let member: FamilyMember
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ProfileAvatarView(
-                name: member.displayName,
-                remoteURL: member.avatarURL,
-                size: 44
-            )
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(member.displayName)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    if member.isCurrentUser {
-                        Text("common.you")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(OneCartPalette.primaryAccent)
-                    }
-                }
-                Text(
-                    member.access.isOwner
-                        ? String(localized: "cart.owner_role")
-                        : String(localized: "cart.member_role")
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }
