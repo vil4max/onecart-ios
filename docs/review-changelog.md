@@ -116,6 +116,9 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 - How to verify: open `OneCart/OneCart.xcodeproj`; `just doctor`; `just build`; `just test`
 
 ## Follow-ups (explicitly not in this PR)
+
+Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with `Tooling/backend/` (historical RC paths that say `HostBuild/` are obsolete). Feature Account UI lives under `OneCart/Features/Account/` (not `Settings/` / `MoreView`). Style configs `Tooling/.swiftlint.yml` / `.swiftformat` are **app-owned** (see `Tooling/docs/style-config.md`).
+
 - FU01 Multi-cart UI (personal + N invited)
   - One durable personal cart + N invited shared carts in a switcher
   - Personal accent color vs invited/family chrome (readable without reading labels)
@@ -126,9 +129,9 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
   - Not in cart-as-core v1 (one active UX; personal hidden while on shared)
 - FU15 History size / retention (no Clear History UI; pagination/optimize later)
 - FU02 iOS 17 @Observable migration for ViewModels
-- FU03 Expand String Catalog beyond Welcome/cart title (full UI)
+- FU03 Expand String Catalog beyond Welcome/cart title (full UI) — **superseded**: UI strings are in `Localizable.xcstrings` (en/ru/uk)
 - FU04 IAP + Family Sharing subscriptions
-- FU05 Further split Catalog/Shopping UI monoliths
+- FU05 Further split Catalog/Shopping UI monoliths — **superseded** for current shell: Catalog/Stores UI removed; Shopping/Account split under Global Order (`CartProductRow`, `AccountViewModel`, …)
 - FU06 Replace PersistenceController @unchecked Sendable with stricter isolation
 - FU07 Scraper HTML fixtures / Keychain PII / profile file protection
 - FU08 Re-enable Stores tab / store-bound lists **only after** two-device invite+sync is solid

@@ -71,13 +71,19 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
-| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list + inline name add/edit; To Buy / Completed; FAB `+` |
+| `OneCart/Features/Shopping/ShoppingListView.swift` | Active list composition + inline add/edit; To Buy / Completed |
+| `OneCart/Features/Shopping/CartProductRow.swift` | Product row, purchase toggle, category thumbnail |
+| `OneCart/Features/Shopping/CartAddFAB.swift` | FAB `+` |
 | `OneCart/Features/Shopping/HistoryViews.swift` | History by day (`historyHasMore` / load more); read-only |
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | Day detail product list |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
+| `OneCart/Shared/Support/ProductCategory.swift` | Metro categories, inference, section grouping |
 | `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
-| `OneCart/Features/Account/AccountView.swift` | Account: members / invite / revoke invite / sign out |
+| `OneCart/Features/Account/AccountView.swift` | Account tab shell |
+| `OneCart/Features/Account/AccountViewModel.swift` | Share / leave / revoke / rename presentation state |
+| `OneCart/Features/Account/AccountRows.swift` | Member and action rows |
 | `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
+| `Tooling/` | Engineering Runtime 0.2+ (`backend/`, app-owned style configs) |
 
 ## Trade-offs (recovery / sync)
 

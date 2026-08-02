@@ -32,7 +32,7 @@ project: OneCart/OneCart.xcodeproj
 | Path | Role |
 |------|------|
 | `OneCart/Application/` | Composition root (`AppSession`, `CartSyncService`, `FamilyShareOrchestrator`) |
-| `OneCart/Features/` | Feature Views + ViewModels |
+| `OneCart/Features/` | Feature Views + ViewModels (`Shopping/`, `Account/`, `Onboarding/`) |
 | `OneCart/Data/` | Persistence, CloudKit, Auth |
 | `OneCart/Shared/` | Cross-feature helpers |
 | `OneCart/Resources/` | Bundle resources |
