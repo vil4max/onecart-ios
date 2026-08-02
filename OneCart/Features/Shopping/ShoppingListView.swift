@@ -127,11 +127,11 @@ struct ShoppingListView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if model.canEdit {
+                if model.canEdit, focusedField == nil {
                     CartAddFAB {
                         Task { await beginNewItem() }
                     }
-                    .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                    .disabled(isAddingDraft || model.isBusy)
                     .padding(.trailing, 20)
                     .padding(.bottom, 12)
                 }

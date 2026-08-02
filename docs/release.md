@@ -52,7 +52,8 @@ or (after model field adds):
 1. Open [CloudKit Console](https://icloud.developer.apple.com/) → container `iCloud.com.vil555tim.onecart`.
 2. Prefer Environment **Production** → Schema → confirm record types exist (at least):  
    `CD_FamilySpace`, `CD_ShoppingList`, `CD_Product`, `CD_Store`, `CD_PurchaseHistory`, `CD_HistoryItem`  
-   and that soft-delete fields such as `CD_deletedAt` appear on those types.
+   and that soft-delete / attribution fields such as `CD_deletedAt`, `CD_createdByName`, and
+   `CD_purchasedByName` appear on the types that use them (especially `CD_Product`).
 3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
 4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 

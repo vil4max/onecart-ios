@@ -279,7 +279,8 @@ final class CloudKitBackendService {
             needsPersist = true
         }
         guard needsPersist else { return false }
-        let store = try persistence.store(for: .private)
+        let storeScope = persistence.scope(for: family) ?? .private
+        let store = try persistence.store(for: storeScope)
         _ = try await persist(share, in: store)
         return true
     }

@@ -21,11 +21,15 @@ final class FamilyShareOrchestrator {
 
     func ensureOwnerReadWriteACL(for family: FamilySpace, isOwner: Bool) async {
         guard isOwner, !persistence.inMemory else { return }
-        guard persistence.scope(for: family) == .private else { return }
+        guard let scope = persistence.scope(for: family), scope == .private || scope == .shared else {
+            return
+        }
         do {
             let changed = try await backend.ensureReadWriteACL(for: family)
             if changed {
-                CartSyncLog.shareACL.info("owner ACL heal persisted hasURL=true")
+                CartSyncLog.shareACL.info(
+                    "owner ACL heal persisted hasURL=true scope=\(scope.rawValue, privacy: .public)"
+                )
             }
         } catch {
             CartSyncLog.shareACL.error(

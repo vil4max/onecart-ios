@@ -219,6 +219,14 @@ extension AppSession {
             CartSyncLog.action.error(
                 "\(action) fail error=\(error.localizedDescription, privacy: .public)"
             )
+            if error as? RepositoryError == .permissionDenied,
+               let lastSyncError,
+               lastSyncError.localizedCaseInsensitiveContains("production schema")
+                || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
+            {
+                presentProductionSchemaAlertIfNeeded(CloudKitUserFacingError.productionSchemaMissing)
+                return false
+            }
             show(error)
             return false
         }
