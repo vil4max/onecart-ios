@@ -20,9 +20,12 @@ final class CloudKitBackendService {
         appleUserID: String,
         displayName: String?
     ) async throws -> OneCartAccount {
-        if persistence.inMemory {
+        if persistence.inMemory || !persistence.cloudKitEnabled {
+            let namespaceKey = persistence.inMemory
+                ? "onecart.in-memory-user"
+                : "apple:\(appleUserID)"
             return OneCartAccount(
-                id: OneCartStableID.uuid(for: "onecart.in-memory-user"),
+                id: OneCartStableID.uuid(for: namespaceKey),
                 displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")
             )
         }
