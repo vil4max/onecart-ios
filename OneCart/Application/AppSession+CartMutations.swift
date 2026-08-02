@@ -222,7 +222,7 @@ extension AppSession {
             if error as? RepositoryError == .permissionDenied,
                let lastSyncError,
                lastSyncError.localizedCaseInsensitiveContains("production schema")
-                || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
+               || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
             {
                 presentProductionSchemaAlertIfNeeded(CloudKitUserFacingError.productionSchemaMissing)
                 return false
