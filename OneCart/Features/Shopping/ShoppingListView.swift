@@ -66,125 +66,127 @@ struct ShoppingListView: View {
     }
 
     var body: some View {
-        Group {
-            if list != nil {
-                List {
-                    if !model.canEdit {
+        if list != nil {
+            List {
+                if !model.canEdit {
+                    Section {
+                        ReadOnlyBanner()
+                    }
+                }
+
+                if showsEmptyCard {
+                    Section {
+                        EmptyCard(
+                            image: "cart.badge.plus",
+                            title: String(localized: "cart.empty_title"),
+                            message: emptyCartMessage
+                        )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
+                } else {
+                    if isComposingNewItem {
                         Section {
-                            ReadOnlyBanner()
+                            newItemComposerRow
+                        } header: {
+                            if toBuyProducts.isEmpty {
+                                Text("cart.section_to_buy")
+                            }
                         }
                     }
 
-                    if showsEmptyCard {
+                    ForEach(toBuyCategorySections, id: \.category) { section in
                         Section {
-                            EmptyCard(
-                                image: "cart.badge.plus",
-                                title: String(localized: "cart.empty_title"),
-                                message: emptyCartMessage
-                            )
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                            productRows(section.items, showsCategoryLabel: false)
+                        } header: {
+                            Label(section.category.localizedName, systemImage: section.category.symbolName)
                         }
-                    } else {
-                        if isComposingNewItem {
-                            Section {
-                                newItemComposerRow
-                            } header: {
-                                if toBuyProducts.isEmpty {
-                                    Text("cart.section_to_buy")
-                                }
-                            }
-                        }
+                    }
 
-                        ForEach(toBuyCategorySections, id: \.category) { section in
-                            Section {
-                                productRows(section.items, showsCategoryLabel: false)
-                            } header: {
-                                Label(section.category.localizedName, systemImage: section.category.symbolName)
-                            }
-                        }
-
-                        if !inTrolleyProducts.isEmpty {
-                            Section {
-                                productRows(inTrolleyProducts, showsCategoryLabel: true)
-                            } header: {
-                                Text("cart.section_in_trolley")
-                            } footer: {
-                                Text("cart.trolley_history_hint")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
+                    if !inTrolleyProducts.isEmpty {
+                        Section {
+                            productRows(inTrolleyProducts, showsCategoryLabel: true)
+                        } header: {
+                            Text("cart.section_in_trolley")
+                        } footer: {
+                            Text("cart.trolley_history_hint")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
-                .listStyle(.insetGrouped)
-                .animation(.snappy, value: purchasedCount)
-                .scrollContentBackground(.hidden)
-                .background(OneCartPalette.background.ignoresSafeArea())
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    if !products.isEmpty || isComposingNewItem {
-                        cartProgressStrip
-                    }
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if model.canEdit {
-                        Color.clear.frame(height: 72)
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    if model.canEdit {
-                        CartAddFAB {
-                            Task { await beginNewItem() }
-                        }
-                        .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 12)
-                    }
-                }
-                .refreshable {
-                    await model.syncCart(reason: .pull)
-                }
-                .disabled(model.isBusy && !isInlineBusy)
-                .overlay {
-                    if model.isBusy, !isInlineBusy {
-                        CartBusyOverlay(messageKey: "cart.updating")
-                    }
-                }
-                .navigationTitle(model.cartTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        if model.isCartSyncing {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .accessibilityLabel(Text("cart.updating"))
-                        }
-                    }
-                }
-                .task {
-                    await model.syncCart(reason: .appear)
-                }
-                .alert(
-                    UserAlertKind.error.title,
-                    isPresented: Binding(
-                        get: { model.sharedCartRemovedMessage != nil },
-                        set: { if !$0 { model.dismissSharedCartRemovedMessage() } }
-                    )
-                ) {
-                    Button("common.ok", role: .cancel) {
-                        model.dismissSharedCartRemovedMessage()
-                    }
-                } message: {
-                    Text(model.sharedCartRemovedMessage ?? "")
-                }
-            } else {
-                ContentUnavailableViewCompat(
-                    image: "questionmark.folder",
-                    title: String(localized: "cart.list_unavailable_title"),
-                    message: String(localized: "cart.list_unavailable_message")
-                )
             }
+            .listStyle(.insetGrouped)
+            .animation(.snappy, value: purchasedCount)
+            .scrollContentBackground(.hidden)
+            .background(OneCartPalette.background.ignoresSafeArea())
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !products.isEmpty || isComposingNewItem {
+                    cartProgressStrip
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if model.canEdit {
+                    Color.clear.frame(height: 72)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if model.canEdit {
+                    CartAddFAB {
+                        Task { await beginNewItem() }
+                    }
+                    .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 12)
+                }
+            }
+            .refreshable {
+                await model.syncCart(reason: .pull)
+            }
+            .disabled(model.isBusy && !isInlineBusy)
+            .overlay {
+                if model.isBusy, !isInlineBusy {
+                    CartBusyOverlay(messageKey: "cart.updating")
+                }
+            }
+            .navigationTitle(model.cartTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    if model.isCartSyncing {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .accessibilityLabel(Text("cart.updating"))
+                    }
+                }
+            }
+            .task {
+                await model.syncCart(reason: .appear)
+            }
+            .alert(
+                UserAlertKind.error.title,
+                isPresented: Binding(
+                    get: { model.sharedCartRemovedMessage != nil },
+                    set: {
+                        if !$0 {
+                            model.dismissSharedCartRemovedMessage()
+                        }
+                    }
+                )
+            ) {
+                Button("common.ok", role: .cancel) {
+                    model.dismissSharedCartRemovedMessage()
+                }
+            } message: {
+                Text(model.sharedCartRemovedMessage ?? "")
+            }
+        } else {
+            ContentUnavailableViewCompat(
+                image: "questionmark.folder",
+                title: String(localized: "cart.list_unavailable_title"),
+                message: String(localized: "cart.list_unavailable_message")
+            )
         }
     }
 

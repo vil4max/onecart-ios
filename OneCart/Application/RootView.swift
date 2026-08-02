@@ -83,7 +83,11 @@ struct RootView: View {
             model.userAlert?.kind.title ?? "",
             isPresented: Binding(
                 get: { model.userAlert != nil },
-                set: { if !$0 { model.dismissAlert() } }
+                set: {
+                    if !$0 {
+                        model.dismissAlert()
+                    }
+                }
             )
         ) {
             Button("common.ok", role: .cancel) {

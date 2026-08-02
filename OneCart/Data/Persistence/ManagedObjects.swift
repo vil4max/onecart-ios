@@ -565,13 +565,17 @@ final class ProductEntity: NSManagedObject {
     }
 
     var originalPriceValue: Double? {
-        if let promotionEndsAt, promotionEndsAt <= Date() { return nil }
+        if let promotionEndsAt, promotionEndsAt <= Date() {
+            return nil
+        }
         guard let value = originalPrice?.doubleValue, value > estimatedPriceValue else { return nil }
         return value
     }
 
     var loyaltyPriceValue: Double? {
-        if let promotionEndsAt, promotionEndsAt <= Date() { return nil }
+        if let promotionEndsAt, promotionEndsAt <= Date() {
+            return nil
+        }
         guard let value = loyaltyPrice?.doubleValue,
               value > 0,
               value < estimatedPriceValue else { return nil }
@@ -581,7 +585,9 @@ final class ProductEntity: NSManagedObject {
     var isCatalogPriceStale: Bool {
         guard sourceURLValue != nil else { return false }
         guard let catalogFetchedAt else { return true }
-        if let promotionEndsAt, promotionEndsAt <= Date() { return true }
+        if let promotionEndsAt, promotionEndsAt <= Date() {
+            return true
+        }
         return Date().timeIntervalSince(catalogFetchedAt) > 5 * 60
     }
 

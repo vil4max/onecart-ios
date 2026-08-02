@@ -124,8 +124,12 @@ final class PersistenceController: @unchecked Sendable {
         if let byURL = Self.scope(forStoreURL: store.url) {
             return byURL
         }
-        if let privateStore, store === privateStore { return .private }
-        if let sharedStore, store === sharedStore { return .shared }
+        if let privateStore, store === privateStore {
+            return .private
+        }
+        if let sharedStore, store === sharedStore {
+            return .shared
+        }
         return nil
     }
 

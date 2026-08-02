@@ -262,7 +262,11 @@ struct AccountView: View {
                 shareAlert?.kind.title ?? "",
                 isPresented: Binding(
                     get: { shareAlert != nil },
-                    set: { if !$0 { shareAlert = nil } }
+                    set: {
+                        if !$0 {
+                            shareAlert = nil
+                        }
+                    }
                 )
             ) {
                 Button("common.ok", role: .cancel) { shareAlert = nil }
@@ -289,7 +293,11 @@ struct AccountView: View {
                 "account.remove_member_title",
                 isPresented: Binding(
                     get: { memberToRemove != nil },
-                    set: { if !$0 { memberToRemove = nil } }
+                    set: {
+                        if !$0 {
+                            memberToRemove = nil
+                        }
+                    }
                 ),
                 presenting: memberToRemove
             ) { member in

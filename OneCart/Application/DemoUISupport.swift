@@ -110,7 +110,7 @@
                         id: ownerID,
                         displayName: "Max",
                         access: .owner,
-                        joinedAt: now.addingTimeInterval(-86_400),
+                        joinedAt: now.addingTimeInterval(-86400),
                         isCurrentUser: false,
                         avatarURL: nil,
                         bannerURL: nil

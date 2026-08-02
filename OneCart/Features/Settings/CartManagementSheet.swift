@@ -68,7 +68,11 @@ struct CartManagementSheet: View {
                 "account.remove_member_title",
                 isPresented: Binding(
                     get: { memberToRemove != nil },
-                    set: { if !$0 { memberToRemove = nil } }
+                    set: {
+                        if !$0 {
+                            memberToRemove = nil
+                        }
+                    }
                 ),
                 presenting: memberToRemove
             ) { member in

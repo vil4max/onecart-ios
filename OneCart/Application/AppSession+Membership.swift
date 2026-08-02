@@ -263,7 +263,9 @@ extension AppSession {
                 familyMembers = []
             }
         } catch {
-            if showErrors { show(error) }
+            if showErrors {
+                show(error)
+            }
         }
     }
 }

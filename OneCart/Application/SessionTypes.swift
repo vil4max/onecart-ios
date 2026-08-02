@@ -29,9 +29,13 @@ enum ParticipantDisplayName {
     ) -> String? {
         let preferred = preferences.participantDisplayName
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        if !isPlaceholder(preferred) { return preferred }
+        if !isPlaceholder(preferred) {
+            return preferred
+        }
         let accountName = account?.displayName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !isPlaceholder(accountName) { return accountName }
+        if !isPlaceholder(accountName) {
+            return accountName
+        }
         return nil
     }
 

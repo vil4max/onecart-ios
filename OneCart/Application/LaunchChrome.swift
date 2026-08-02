@@ -74,10 +74,16 @@ struct LaunchCartRideView: View {
 
     @MainActor
     private func waitUntilAppReady() async -> Bool {
-        if model.isReady { return true }
+        if model.isReady {
+            return true
+        }
         for await ready in model.$isReady.values {
-            if Task.isCancelled { return false }
-            if ready { return true }
+            if Task.isCancelled {
+                return false
+            }
+            if ready {
+                return true
+            }
         }
         return false
     }

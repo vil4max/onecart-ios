@@ -58,13 +58,12 @@ extension AppSession {
         let storedID = preferredFamilySpaceID
             ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
             .flatMap(UUID.init(uuidString:))
-        let selected: FamilySpace?
-        if sharedSpaces.isEmpty {
-            selected = storedID.flatMap { id in
+        let selected: FamilySpace? = if sharedSpaces.isEmpty {
+            storedID.flatMap { id in
                 fetchedSpaces.first { $0.id == id }
             } ?? fetchedSpaces.first
         } else {
-            selected = storedID.flatMap { id in
+            storedID.flatMap { id in
                 sharedSpaces.first { $0.id == id }
             } ?? sharedSpaces.first
         }

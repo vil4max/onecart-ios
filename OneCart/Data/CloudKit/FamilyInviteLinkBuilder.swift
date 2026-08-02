@@ -96,7 +96,9 @@ enum FamilyInviteLinkBuilder {
     ) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while Date() < deadline {
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
             if persistence.container.recordID(for: objectID) != nil {
                 return
             }
@@ -134,7 +136,9 @@ enum FamilyInviteLinkBuilder {
     }
 
     private static func isRetryableShareFailure(_ error: Error) -> Bool {
-        if error is OneCartCloudKitError { return false }
+        if error is OneCartCloudKitError {
+            return false
+        }
         if let ckError = error as? CKError {
             switch ckError.code {
             case .zoneBusy, .serviceUnavailable, .requestRateLimited, .serverResponseLost,
@@ -153,7 +157,9 @@ enum FamilyInviteLinkBuilder {
     }
 
     private static func mapShareFailure(_ error: Error) -> Error {
-        if error is OneCartCloudKitError { return error }
+        if error is OneCartCloudKitError {
+            return error
+        }
         if isRetryableShareFailure(error) {
             return OneCartCloudKitError.stillSyncing
         }

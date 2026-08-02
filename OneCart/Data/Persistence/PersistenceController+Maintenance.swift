@@ -24,7 +24,9 @@ extension PersistenceController {
         for url in contents {
             let name = url.lastPathComponent
             guard name.lowercased().hasPrefix("onecart-") else { continue }
-            if name.lowercased().hasPrefix("onecart-diagnostics") { continue }
+            if name.lowercased().hasPrefix("onecart-diagnostics") {
+                continue
+            }
             let destination = diagnosticsRoot.appendingPathComponent(name)
             if fileManager.fileExists(atPath: destination.path) {
                 try fileManager.removeItem(at: destination)
@@ -144,15 +146,21 @@ extension PersistenceController {
         for url in contents {
             let name = url.lastPathComponent.lowercased()
             guard name.hasPrefix("onecart-") else { continue }
-            if name.hasPrefix("onecart-diagnostics") { continue }
+            if name.hasPrefix("onecart-diagnostics") {
+                continue
+            }
             try? fileManager.removeItem(at: url)
         }
     }
 
     static func scope(forStoreURL url: URL?) -> PersistentStoreScope? {
         guard let name = url?.lastPathComponent.lowercased() else { return nil }
-        if name.contains("private") { return .private }
-        if name.contains("shared") { return .shared }
+        if name.contains("private") {
+            return .private
+        }
+        if name.contains("shared") {
+            return .shared
+        }
         return nil
     }
 }

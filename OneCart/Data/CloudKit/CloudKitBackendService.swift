@@ -134,7 +134,9 @@ final class CloudKitBackendService {
             )
         }
         .sorted {
-            if $0.access != $1.access { return $0.access == .owner }
+            if $0.access != $1.access {
+                return $0.access == .owner
+            }
             return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
         }
     }
@@ -284,7 +286,9 @@ final class CloudKitBackendService {
     }
 
     func revokeInviteLink(objectID: NSManagedObjectID) async throws {
-        if persistence.inMemory { return }
+        if persistence.inMemory {
+            return
+        }
         guard let share = try share(forObjectID: objectID) else {
             CartSyncLog.shareACL.info("revokeInvite skip no-share")
             throw OneCartCloudKitError.familyNotShared

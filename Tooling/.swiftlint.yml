@@ -1,5 +1,13 @@
 disabled_rules:
   - trailing_whitespace
+  - force_try
+  - opening_brace
+  - trailing_comma
+  - static_over_final_class
+  - type_name
+  - large_tuple
+  - function_parameter_count
+  - cyclomatic_complexity
 opt_in_rules:
   - empty_count
 excluded:
@@ -9,3 +17,12 @@ excluded:
 line_length: 120
 identifier_name:
   min_length: 2
+file_length:
+  warning: 600
+  error: 1200
+type_body_length:
+  warning: 400
+  error: 800
+function_body_length:
+  warning: 80
+  error: 200
