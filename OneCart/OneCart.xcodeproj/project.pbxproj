@@ -29,7 +29,6 @@
 		A20000000000000000000010 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* ProfileView.swift */; };
 		A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* FamilyCartMergeTests.swift */; };
 		A20000000000000000000014 /* ManagedObjectModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* ManagedObjectModelTests.swift */; };
-		A20000000000000000000016 /* CartManagementSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* CartManagementSheet.swift */; };
 		A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* CartShareActivityBridge.swift */; };
 		A20000000000000000000017 /* CartShareViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* CartShareViewModel.swift */; };
 		A20000000000000000000018 /* CartTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* CartTestSupport.swift */; };
@@ -130,7 +129,6 @@
 		A10000000000000000000015 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A10000000000000000000018 /* FamilyCartMergeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyCartMergeTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000019 /* ManagedObjectModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedObjectModelTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000001B /* CartManagementSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartManagementSheet.swift; sourceTree = "<group>"; };
 		A10000000000000000000042 /* CartShareActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareActivityBridge.swift; sourceTree = "<group>"; };
 		A10000000000000000000042 /* CartShareActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareActivityBridge.swift; sourceTree = "<group>"; };
 		A1000000000000000000001C /* CartShareViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartShareViewModel.swift; sourceTree = "<group>"; };
@@ -359,7 +357,6 @@
 		G10000000000000000000014 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				A1000000000000000000001B /* CartManagementSheet.swift */,
 				A10000000000000000000042 /* CartShareActivityBridge.swift */,
 				A1000000000000000000001C /* CartShareViewModel.swift */,
 				F10000000000000000000003 /* MoreView.swift */,
@@ -605,7 +602,6 @@
 				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
 				A2000000000000000000000A /* HomeView.swift in Sources */,
 				A20000000000000000000036 /* ShoppingListView.swift in Sources */,
-				A20000000000000000000016 /* CartManagementSheet.swift in Sources */,
 				A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */,
 				A20000000000000000000017 /* CartShareViewModel.swift in Sources */,
 				A2000000000000000000000E /* ProductMedia.swift in Sources */,
