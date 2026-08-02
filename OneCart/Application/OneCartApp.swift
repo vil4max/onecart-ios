@@ -15,19 +15,19 @@ struct OneCartApp: App {
         }
     }
 
-    private static func makeModel() -> AppModel {
+    private static func makeModel() -> AppSession {
         #if DEBUG
             if DemoUIMode.isEnabled {
                 return DemoUIMode.makeSession()
             }
         #endif
-        return AppModel()
+        return AppSession()
     }
 }
 
 private struct OneCartScene: View {
     @Environment(\.scenePhase) private var scenePhase
-    @ObservedObject var model: AppModel
+    @ObservedObject var model: AppSession
 
     var body: some View {
         RootView()

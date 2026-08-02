@@ -1,8 +1,6 @@
 import Combine
 import Foundation
 
-typealias AppModel = AppSession
-
 enum ParticipantDisplayName {
     static var placeholder: String {
         String(localized: "common.default_user")

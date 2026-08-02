@@ -210,7 +210,7 @@ final class CartItemsTests: XCTestCase {
     func testAddProductLandsInSameStoreAsFamilyForCloudKitSync() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(
-            name: AppModel.defaultFamilyName,
+            name: AppSession.defaultFamilyName,
             isHouseholdDefault: true
         )
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))

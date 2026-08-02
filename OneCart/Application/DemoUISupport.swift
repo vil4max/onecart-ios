@@ -41,7 +41,7 @@
         }
 
         @MainActor
-        static func makeSession() -> AppModel {
+        static func makeSession() -> AppSession {
             let suiteName = role == .member ? "onecart.demo-ui.member" : "onecart.demo-ui"
             return AppSession(
                 persistence: PersistenceController(inMemory: true, cloudKitEnabled: false),
@@ -51,7 +51,7 @@
         }
 
         @MainActor
-        static func seed(_ model: AppModel) async {
+        static func seed(_ model: AppSession) async {
             switch role {
             case .owner:
                 await seedOwnerPersonalCart(model)
@@ -61,13 +61,13 @@
         }
 
         @MainActor
-        private static func seedOwnerPersonalCart(_ model: AppModel) async {
+        private static func seedOwnerPersonalCart(_ model: AppSession) async {
             guard let listID = model.activeLists.first?.id else { return }
             await seedLivingList(on: listID, model: model)
         }
 
         @MainActor
-        private static func seedGuestSharedCart(_ model: AppModel) async {
+        private static func seedGuestSharedCart(_ model: AppSession) async {
             guard let account = model.account else { return }
             let persistence = model.persistence
             let sharedID = UUID()
@@ -133,7 +133,7 @@
         }
 
         @MainActor
-        private static func seedLivingList(on listID: UUID, model: AppModel) async {
+        private static func seedLivingList(on listID: UUID, model: AppSession) async {
             for name in ["Milk", "Bread", "Apples", "Coffee"] {
                 guard let list = model.activeLists.first(where: { $0.id == listID }) else { return }
                 await model.addProduct(to: list, draft: draft(named: name))
@@ -157,7 +157,7 @@
         @MainActor
         private static func purchasable(
             listID: UUID,
-            from model: AppModel
+            from model: AppSession
         ) -> [ProductEntity] {
             model.products(inListID: listID).filter { !$0.isPurchasedValue }
         }

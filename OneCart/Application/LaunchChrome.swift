@@ -20,7 +20,7 @@ enum LaunchChromeLayout {
 }
 
 struct LaunchCartRideView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let onFinished: () -> Void

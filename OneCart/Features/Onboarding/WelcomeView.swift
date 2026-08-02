@@ -2,13 +2,13 @@ import AuthenticationServices
 import SwiftUI
 
 struct WelcomeView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: WelcomeViewModel
     @State private var contentVisible = false
 
-    init(model: AppModel) {
+    init(model: AppSession) {
         _viewModel = StateObject(wrappedValue: WelcomeViewModel(session: model))
     }
 

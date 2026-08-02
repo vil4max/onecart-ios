@@ -22,7 +22,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 ## Composition root
 
-`AppSession` (typealias `AppModel` for gradual View migration) owns published session state and thin wrappers for Views. Heavy work is delegated:
+`AppSession` owns published session state and thin wrappers for Views. Heavy work is delegated:
 
 | Type | Role |
 |------|------|

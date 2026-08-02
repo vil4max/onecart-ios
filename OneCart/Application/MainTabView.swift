@@ -7,7 +7,7 @@ enum MainTab: String, Hashable {
 }
 
 struct MainTabView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @State private var selection: MainTab = Self.initialTab
 
     var body: some View {

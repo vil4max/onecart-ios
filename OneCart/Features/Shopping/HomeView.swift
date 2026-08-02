@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct HomeView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @StateObject private var viewModel: ShoppingViewModel
 
-    init(model: AppModel) {
+    init(model: AppSession) {
         _viewModel = StateObject(wrappedValue: ShoppingViewModel(session: model))
     }
 

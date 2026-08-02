@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @StateObject private var viewModel: CartShareViewModel
     @State private var sharePayload: CartSharePayload?
     @State private var isSharing = false
@@ -15,7 +15,7 @@ struct AccountView: View {
     @State private var draftDisplayName = ""
     @State private var draftCartName = ""
 
-    init(model: AppModel) {
+    init(model: AppSession) {
         _viewModel = StateObject(wrappedValue: CartShareViewModel(session: model))
     }
 

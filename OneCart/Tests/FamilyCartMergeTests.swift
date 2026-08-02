@@ -6,7 +6,7 @@ final class FamilyCartMergeTests: XCTestCase {
     func testDeletableStarterFamilyDetection() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(
-            name: AppModel.defaultFamilyName,
+            name: AppSession.defaultFamilyName,
             isHouseholdDefault: true
         )
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -187,14 +187,14 @@ final class FamilyCartMergeTests: XCTestCase {
 
     func testDefaultFamilyNameIsStable() {
         let expected = String(localized: String.LocalizationValue("cart.default_title"))
-        XCTAssertEqual(AppModel.defaultFamilyName, expected)
-        XCTAssertFalse(AppModel.defaultFamilyName.isEmpty)
+        XCTAssertEqual(AppSession.defaultFamilyName, expected)
+        XCTAssertFalse(AppSession.defaultFamilyName.isEmpty)
     }
 
     func testSharedOrNonDefaultCartIsNotDeletableStarter() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let privateNonDefault = try await repository.createFamilySpace(
-            name: AppModel.defaultFamilyName,
+            name: AppSession.defaultFamilyName,
             isHouseholdDefault: false
         )
         let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateNonDefault))
@@ -210,7 +210,7 @@ final class FamilyCartMergeTests: XCTestCase {
             let space = FamilySpace(context: context)
             try persistence.assign(space, to: .shared, in: context)
             space.id = sharedID
-            space.name = AppModel.defaultFamilyName
+            space.name = AppSession.defaultFamilyName
             space.createdAt = Date()
             space.updatedAt = Date()
             space.isHouseholdDefault = NSNumber(value: true)

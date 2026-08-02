@@ -37,7 +37,7 @@ private enum RootPhase: Equatable {
 }
 
 struct RootView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Cart overlay stays up until the ride ends; only then the real UI mounts.
     @State private var cartRideFinished = false

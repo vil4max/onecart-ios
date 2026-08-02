@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HistoryDayDetailView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     let group: HistoryDayGroup
 
     private var liveGroup: HistoryDayGroup {

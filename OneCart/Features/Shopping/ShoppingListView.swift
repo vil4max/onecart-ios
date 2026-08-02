@@ -6,7 +6,7 @@ private enum CartNameFocus: Hashable {
 }
 
 struct ShoppingListView: View {
-    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var model: AppSession
     let listID: UUID
 
     @State private var isComposingNewItem = false
