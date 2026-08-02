@@ -84,6 +84,8 @@
 		F20000000000000000000012 /* MemberJoinNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* MemberJoinNotifier.swift */; };
 		F20000000000000000000010 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* CategoryClassifier.swift */; };
 		F20000000000000000000013 /* ProductCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* ProductCategory.swift */; };
+		F20000000000000000000014 /* CartProductRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000014 /* CartProductRow.swift */; };
+		F20000000000000000000015 /* CartAddFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* CartAddFAB.swift */; };
 		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
 		F20000000000000000000003 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* AccountView.swift */; };
 		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
@@ -187,6 +189,8 @@
 		F10000000000000000000012 /* MemberJoinNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberJoinNotifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000013 /* ProductCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCategory.swift; sourceTree = "<group>"; };
+		F10000000000000000000014 /* CartProductRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartProductRow.swift; sourceTree = "<group>"; };
+		F10000000000000000000015 /* CartAddFAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartAddFAB.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		F10000000000000000000003 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
@@ -346,6 +350,8 @@
 		G10000000000000000000011 /* Shopping */ = {
 			isa = PBXGroup;
 			children = (
+				F10000000000000000000014 /* CartProductRow.swift */,
+				F10000000000000000000015 /* CartAddFAB.swift */,
 				A1000000000000000000000A /* HomeView.swift */,
 				A10000000000000000000036 /* ShoppingListView.swift */,
 				D10000000000000000000009 /* HistoryViews.swift */,
@@ -606,6 +612,8 @@
 				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
 				A2000000000000000000000A /* HomeView.swift in Sources */,
 				A20000000000000000000036 /* ShoppingListView.swift in Sources */,
+				F20000000000000000000014 /* CartProductRow.swift in Sources */,
+				F20000000000000000000015 /* CartAddFAB.swift in Sources */,
 				A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */,
 				A20000000000000000000017 /* CartShareViewModel.swift in Sources */,
 				A2000000000000000000000E /* ProductMedia.swift in Sources */,
