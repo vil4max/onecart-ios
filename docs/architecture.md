@@ -76,8 +76,8 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | Day detail product list |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |
 | `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
-| `OneCart/Features/Settings/MoreView.swift` | Account: members / invite / revoke invite / sign out |
-| `OneCart/Features/Settings/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
+| `OneCart/Features/Account/AccountView.swift` | Account: members / invite / revoke invite / sign out |
+| `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
 
 ## Trade-offs (recovery / sync)
 

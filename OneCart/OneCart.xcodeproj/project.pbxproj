@@ -84,7 +84,7 @@
 		F20000000000000000000012 /* MemberJoinNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* MemberJoinNotifier.swift */; };
 		F20000000000000000000010 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* CategoryClassifier.swift */; };
 		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
-		F20000000000000000000003 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* MoreView.swift */; };
+		F20000000000000000000003 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* AccountView.swift */; };
 		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
 		F20000000000000000000005 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000005 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -186,7 +186,7 @@
 		F10000000000000000000012 /* MemberJoinNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberJoinNotifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		F10000000000000000000003 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
+		F10000000000000000000003 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
 		F10000000000000000000005 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -292,7 +292,7 @@
 			children = (
 				G10000000000000000000010 /* Onboarding */,
 				G10000000000000000000011 /* Shopping */,
-				G10000000000000000000014 /* Settings */,
+				G10000000000000000000014 /* Account */,
 				G10000000000000000000015 /* Profile */,
 			);
 			path = Features;
@@ -354,14 +354,14 @@
 			path = Shopping;
 			sourceTree = "<group>";
 		};
-		G10000000000000000000014 /* Settings */ = {
+		G10000000000000000000014 /* Account */ = {
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000042 /* CartShareActivityBridge.swift */,
 				A1000000000000000000001C /* CartShareViewModel.swift */,
-				F10000000000000000000003 /* MoreView.swift */,
+				F10000000000000000000003 /* AccountView.swift */,
 			);
-			path = Settings;
+			path = Account;
 			sourceTree = "<group>";
 		};
 		G10000000000000000000015 /* Profile */ = {
@@ -608,7 +608,7 @@
 				A20000000000000000000010 /* ProfileView.swift in Sources */,
 				F20000000000000000000002 /* MainTabView.swift in Sources */,
 				F20000000000000000000004 /* DemoUISupport.swift in Sources */,
-				F20000000000000000000003 /* MoreView.swift in Sources */,
+				F20000000000000000000003 /* AccountView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
