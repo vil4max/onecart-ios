@@ -1,12 +1,13 @@
 # OneCart — agent notes (thin)
 
-Project facts only. Agent behavior lives in the Cursor Brain (`cursor-agent-kit`).
+Project facts only. Agent behavior lives in the Cursor Brain (`agents-kit`).
 
 ## Project
 
 - Name: OneCart
 - Context: see `.cursor/project-context` (`personal`)
 - Open: `OneCart/OneCart.xcodeproj`
+- Runtime: `Tooling/` (ios-agent-harness 0.2.2)
 - Docs index: [docs/README.md](docs/README.md)
 
 ## Review
@@ -18,6 +19,8 @@ For PR review (alex / review agent), start at [docs/review-changelog.md](docs/re
 ## Config
 
 Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
+
+Style (app-owned): `Tooling/.swiftlint.yml`, `Tooling/.swiftformat` — see [`Tooling/docs/style-config.md`](Tooling/docs/style-config.md).
 
 ```yaml
 scheme: OneCart
@@ -37,7 +40,7 @@ project: OneCart/OneCart.xcodeproj
 | `docs/` | See [docs/README.md](docs/README.md) |
 | `assets/` | Brand / store masters (not in the app bundle) |
 | `Tooling/` | Engineering Runtime — see [Tooling/README.md](Tooling/README.md) |
-| `justfile` | Thin shim that imports `Tooling/justfile` |
+| `justfile` | App-owned shim that imports `Tooling/justfile` (+ `demo` recipe) |
 
 ## Definition of Done
 
@@ -53,4 +56,8 @@ just doctor
 just diagnose
 just build
 just test
+just verify
+just run-sim
+just demo role=owner
+just demo-tab role=member tab=cart
 ```

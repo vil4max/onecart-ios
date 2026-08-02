@@ -1,45 +1,155 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-# Recipes — imported by the root justfile. Run from repo root: `just <recipe>`
+# Runtime public API — lives under Tooling/.
+# Prefer Tooling/scripts when this justfile is imported from the app root.
+# Fall back to ./scripts when invoked as `just -f Tooling/justfile`.
 
 doctor *args:
-    ./Tooling/scripts/doctor.sh {{args}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/doctor.sh" ]]; then exec "$d/doctor.sh" {{args}}; fi
+    done
+    echo "doctor.sh not found under $root" >&2
+    exit 1
 
 env:
-    ./Tooling/scripts/env.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/env.sh" ]]; then exec "$d/env.sh"; fi
+    done
+    echo "env.sh not found under $root" >&2
+    exit 1
 
 diagnose:
-    ./Tooling/scripts/diagnose.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/diagnose.sh" ]]; then exec "$d/diagnose.sh"; fi
+    done
+    echo "diagnose.sh not found under $root" >&2
+    exit 1
 
 format:
-    ./Tooling/scripts/format.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/format.sh" ]]; then exec "$d/format.sh"; fi
+    done
+    echo "format.sh not found under $root" >&2
+    exit 1
 
 lint:
-    ./Tooling/scripts/lint.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/lint.sh" ]]; then exec "$d/lint.sh"; fi
+    done
+    echo "lint.sh not found under $root" >&2
+    exit 1
 
 build:
-    ./Tooling/scripts/build.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/build.sh" ]]; then exec "$d/build.sh"; fi
+    done
+    echo "build.sh not found under $root" >&2
+    exit 1
 
 test:
-    ./Tooling/scripts/test.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/test.sh" ]]; then exec "$d/test.sh"; fi
+    done
+    echo "test.sh not found under $root" >&2
+    exit 1
 
 verify:
-    ./Tooling/scripts/verify.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/verify.sh" ]]; then exec "$d/verify.sh"; fi
+    done
+    echo "verify.sh not found under $root" >&2
+    exit 1
 
 ci:
-    ./Tooling/scripts/ci.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/ci.sh" ]]; then exec "$d/ci.sh"; fi
+    done
+    echo "ci.sh not found under $root" >&2
+    exit 1
+
+run-sim *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/run-sim.sh" ]]; then exec "$d/run-sim.sh" {{args}}; fi
+    done
+    echo "run-sim.sh not found under $root" >&2
+    exit 1
 
 clean:
-    ./Tooling/scripts/clean.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/clean.sh" ]]; then exec "$d/clean.sh"; fi
+    done
+    echo "clean.sh not found under $root" >&2
+    exit 1
 
 reset:
-    ./Tooling/scripts/reset.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/reset.sh" ]]; then exec "$d/reset.sh"; fi
+    done
+    echo "reset.sh not found under $root" >&2
+    exit 1
 
 release:
-    ./Tooling/scripts/release.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/release.sh" ]]; then exec "$d/release.sh"; fi
+    done
+    echo "release.sh not found under $root" >&2
+    exit 1
 
 profile:
-    ./Tooling/scripts/profile.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/profile.sh" ]]; then exec "$d/profile.sh"; fi
+    done
+    echo "profile.sh not found under $root" >&2
+    exit 1
 
 harness-update:
-    ./Tooling/scripts/harness-update.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/harness-update.sh" ]]; then exec "$d/harness-update.sh"; fi
+    done
+    echo "harness-update.sh not found under $root" >&2
+    exit 1

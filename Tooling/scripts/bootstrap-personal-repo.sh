@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="${1:-$PWD}"
 REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
 NAME="$(basename "$REPO_ROOT")"
-CURSOR_REPO="${CURSOR_REPO:-$HOME/Developer/GitHub/cursor-agent-kit}"
+CURSOR_REPO="${CURSOR_REPO:-$HOME/Developer/GitHub/agents-kit}"
 HARNESS_REPO="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-agent-harness}"
 
 CONTEXT_DIR="$REPO_ROOT/.cursor"
@@ -42,7 +42,7 @@ Rules and skills: \`${CURSOR_REPO}/\` — \`./scripts/cursor-skills-rules-toggle
 
 ## Runtime
 
-\`${HARNESS_REPO}/\` — \`just doctor\`, \`just verify\`.
+\`${HARNESS_REPO}/\` — installs into \`Tooling/\`; \`just doctor\`, \`just verify\`.
 
 ## Notes
 

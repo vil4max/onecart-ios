@@ -2,15 +2,21 @@
 set -euo pipefail
 
 SCRIPT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Tooling/scripts → repo root is ../..
 if [[ "$(basename "$(dirname "$SCRIPT_HOME")")" == "Tooling" ]]; then
   ROOT="$(cd "$SCRIPT_HOME/../.." && pwd)"
+  export TOOLING_ROOT="$ROOT/Tooling"
 else
   ROOT="$(cd "$SCRIPT_HOME/.." && pwd)"
+  export TOOLING_ROOT="${TOOLING_ROOT:-$ROOT/Tooling}"
 fi
 export RUNTIME_ROOT="${RUNTIME_ROOT:-$ROOT}"
-export TOOLING_ROOT="$ROOT/Tooling"
-export HOST_BUILD_ROOT="$TOOLING_ROOT/HostBuild"
+if [[ -d "$TOOLING_ROOT/backend" ]]; then
+  export BACKEND_ROOT="$TOOLING_ROOT/backend"
+elif [[ -d "$ROOT/backend" ]]; then
+  export BACKEND_ROOT="$ROOT/backend"
+else
+  export BACKEND_ROOT=""
+fi
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -33,6 +39,16 @@ runtime_local_path() {
     echo "$PWD/runtime.local.yml"
   else
     echo ""
+  fi
+}
+
+brewfile_path() {
+  if [[ -f "$TOOLING_ROOT/Brewfile" ]]; then
+    echo "$TOOLING_ROOT/Brewfile"
+  elif [[ -f "$ROOT/Brewfile" ]]; then
+    echo "$ROOT/Brewfile"
+  else
+    echo "Brewfile"
   fi
 }
 
@@ -129,9 +145,14 @@ sim_name() {
   cfg_get "simulator.name" "iPhone 17"
 }
 
+sim_os() {
+  cfg_get "simulator.os" ""
+}
+
 destination_spec() {
-  local name id
+  local name os id
   name="$(sim_name)"
+  os="$(sim_os)"
   id="$(
     xcrun simctl list devices available -j 2>/dev/null \
       | /usr/bin/python3 -c "
@@ -147,6 +168,8 @@ for devices in data.get('devices', {}).values():
   )"
   if [[ -n "$id" ]]; then
     echo "platform=iOS Simulator,id=${id}"
+  elif [[ -n "$os" ]]; then
+    echo "platform=iOS Simulator,name=${name},OS=${os}"
   else
     echo "platform=iOS Simulator,name=${name}"
   fi
@@ -162,4 +185,32 @@ harness_version() {
   else
     echo "0.0.0"
   fi
+}
+
+bundle_id_for_scheme() {
+  local proj ws scheme settings id
+  scheme="$(scheme_name)"
+  [[ -n "$scheme" ]] || return 1
+  proj="$(find_xcodeproj)"
+  ws="$(find_xcworkspace)"
+  if [[ -n "$ws" ]]; then
+    settings="$(xcodebuild -workspace "$ws" -scheme "$scheme" -showBuildSettings 2>/dev/null || true)"
+  elif [[ -n "$proj" ]]; then
+    settings="$(xcodebuild -project "$proj" -scheme "$scheme" -showBuildSettings 2>/dev/null || true)"
+  else
+    return 1
+  fi
+  id="$(
+    printf '%s\n' "$settings" | awk -F' = ' '
+      /PRODUCT_TYPE = com.apple.product-type.application/ { app=1 }
+      /PRODUCT_BUNDLE_IDENTIFIER/ {
+        id=$2
+        if (app) { print id; exit }
+        if (!first) first=id
+      }
+      END { if (first != "") print first }
+    '
+  )"
+  [[ -n "$id" ]] || return 1
+  echo "$id"
 }

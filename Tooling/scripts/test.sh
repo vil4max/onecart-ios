@@ -8,24 +8,26 @@ source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/capabilities.sh"
 
 if ! cfg_bool tests true; then
-  echo "tests skipped (Tooling/runtime.yml tests: false)"
+  echo "tests skipped (runtime.yml tests: false)"
   exit 0
 fi
+
+[[ -n "$BACKEND_ROOT" ]] || { echo "backend root missing — expected Tooling/backend or ./backend" >&2; exit 1; }
 
 BACKEND="$(select_build_backend)"
 echo "test backend: $BACKEND"
 
 case "$BACKEND" in
   xcode_tools)
-    exec "$HOST_BUILD_ROOT/build/xcode_tools/test.sh"
+    exec "$BACKEND_ROOT/build/xcode_tools/test.sh"
     ;;
   xcodebuild_mcp)
-    exec "$HOST_BUILD_ROOT/build/mcp/test.sh"
+    exec "$BACKEND_ROOT/build/mcp/test.sh"
     ;;
   swiftpm)
-    exec "$HOST_BUILD_ROOT/build/swiftpm/test.sh"
+    exec "$BACKEND_ROOT/build/swiftpm/test.sh"
     ;;
   xcodebuild|*)
-    exec "$HOST_BUILD_ROOT/build/xcodebuild/test.sh"
+    exec "$BACKEND_ROOT/build/xcodebuild/test.sh"
     ;;
 esac

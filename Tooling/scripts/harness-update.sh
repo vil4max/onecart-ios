@@ -2,7 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+if [[ "$(basename "$(dirname "$SCRIPT_DIR")")" == "Tooling" ]]; then
+  APP_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  VERSION_FILE="$APP_ROOT/Tooling/.harness-version"
+else
+  APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  VERSION_FILE="$APP_ROOT/.harness-version"
+fi
 
 HARNESS_ROOT="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-agent-harness}"
 if [[ ! -d "$HARNESS_ROOT/scripts" ]]; then
@@ -11,7 +17,9 @@ if [[ ! -d "$HARNESS_ROOT/scripts" ]]; then
 fi
 
 CURRENT="0.0.0"
-if [[ -f "$APP_ROOT/Tooling/.harness-version" ]]; then
+if [[ -f "$VERSION_FILE" ]]; then
+  CURRENT="$(tr -d '[:space:]' <"$VERSION_FILE")"
+elif [[ -f "$APP_ROOT/Tooling/.harness-version" ]]; then
   CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/Tooling/.harness-version")"
 elif [[ -f "$APP_ROOT/.harness-version" ]]; then
   CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/.harness-version")"
@@ -26,5 +34,5 @@ if [[ "$CURRENT" == "$LATEST" ]]; then
   exit 0
 fi
 
-echo "Harness outdated. Updating slice…"
+echo "Harness outdated. Updating Tooling/ slice…"
 exec "$HARNESS_ROOT/scripts/install.sh" "$APP_ROOT" --personal --force

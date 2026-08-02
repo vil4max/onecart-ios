@@ -7,20 +7,22 @@ source "$SCRIPT_DIR/lib.sh"
 # shellcheck source=capabilities.sh
 source "$SCRIPT_DIR/capabilities.sh"
 
+[[ -n "$BACKEND_ROOT" ]] || { echo "backend root missing — expected Tooling/backend or ./backend" >&2; exit 1; }
+
 BACKEND="$(select_build_backend)"
 echo "build backend: $BACKEND"
 
 case "$BACKEND" in
   xcode_tools)
-    exec "$HOST_BUILD_ROOT/build/xcode_tools/build.sh"
+    exec "$BACKEND_ROOT/build/xcode_tools/build.sh"
     ;;
   xcodebuild_mcp)
-    exec "$HOST_BUILD_ROOT/build/mcp/build.sh"
+    exec "$BACKEND_ROOT/build/mcp/build.sh"
     ;;
   swiftpm)
-    exec "$HOST_BUILD_ROOT/build/swiftpm/build.sh"
+    exec "$BACKEND_ROOT/build/swiftpm/build.sh"
     ;;
   xcodebuild|*)
-    exec "$HOST_BUILD_ROOT/build/xcodebuild/build.sh"
+    exec "$BACKEND_ROOT/build/xcodebuild/build.sh"
     ;;
 esac

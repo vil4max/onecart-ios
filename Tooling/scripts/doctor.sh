@@ -80,7 +80,7 @@ else
 fi
 
 if ! have yq; then
-  WARNINGS+=("yq missing — install via Tooling/Brewfile for Tooling/runtime.yml")
+  WARNINGS+=("yq missing — install via Brewfile for Tooling/runtime.yml")
 fi
 
 CHECKS_JSON="["

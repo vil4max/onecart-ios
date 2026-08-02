@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 echo '{"ok":false,"reason":"not_configured","command":"profile","availability":"stub"}'
-echo "just profile is a stub in Runtime 0.1 — use xctrace / Instruments later." >&2
+echo "just profile is a stub in Runtime 0.2 — use xctrace / Instruments later." >&2
 exit 1
