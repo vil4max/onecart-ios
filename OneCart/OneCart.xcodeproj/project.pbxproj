@@ -83,6 +83,7 @@
 		F20000000000000000000011 /* CartHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* CartHaptics.swift */; };
 		F20000000000000000000012 /* MemberJoinNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* MemberJoinNotifier.swift */; };
 		F20000000000000000000010 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* CategoryClassifier.swift */; };
+		F20000000000000000000013 /* ProductCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* ProductCategory.swift */; };
 		F20000000000000000000002 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* MainTabView.swift */; };
 		F20000000000000000000003 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* AccountView.swift */; };
 		F20000000000000000000004 /* DemoUISupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000004 /* DemoUISupport.swift */; };
@@ -185,6 +186,7 @@
 		F10000000000000000000011 /* CartHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartHaptics.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* MemberJoinNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberJoinNotifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
+		F10000000000000000000013 /* ProductCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCategory.swift; sourceTree = "<group>"; };
 		F10000000000000000000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		F10000000000000000000003 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		F10000000000000000000004 /* DemoUISupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUISupport.swift; sourceTree = "<group>"; };
@@ -425,6 +427,7 @@
 				F10000000000000000000011 /* CartHaptics.swift */,
 				F10000000000000000000012 /* MemberJoinNotifier.swift */,
 				F10000000000000000000010 /* CategoryClassifier.swift */,
+				F10000000000000000000013 /* ProductCategory.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -597,6 +600,7 @@
 				F20000000000000000000011 /* CartHaptics.swift in Sources */,
 				F20000000000000000000012 /* MemberJoinNotifier.swift in Sources */,
 				F20000000000000000000010 /* CategoryClassifier.swift in Sources */,
+				F20000000000000000000013 /* ProductCategory.swift in Sources */,
 				A20000000000000000000008 /* AppSession.swift in Sources */,
 				A20000000000000000000009 /* RootView.swift in Sources */,
 				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
