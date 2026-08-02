@@ -77,6 +77,12 @@ final class AccountViewModel: ObservableObject {
         session.access?.isParticipant == true
     }
 
+    var appVersionFooter: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return String(localized: "settings.version_build \(version) \(build)")
+    }
+
     var cartNamePrompt: String {
         if let family = session.activeFamilySpace,
            session.persistence.scope(for: family) == .private

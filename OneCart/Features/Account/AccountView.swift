@@ -161,6 +161,14 @@ struct AccountView: View {
                 } footer: {
                     Text("settings.apple_name_footer")
                 }
+
+                Section {} footer: {
+                    Text(viewModel.appVersionFooter)
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .listStyle(.insetGrouped)
             .tint(OneCartPalette.primary)
