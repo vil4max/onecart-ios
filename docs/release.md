@@ -125,7 +125,7 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 
 | Field | Value |
 |-------|-------|
-| Repo | `https://github.com/vil4engineering/OneCart.git` |
+| Repo | `https://github.com/vil4labs/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
 | Start condition | Branch changes → `main` |
 | Action 1 | Test — iOS, scheme `OneCart`, required |
