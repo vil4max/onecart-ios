@@ -5,7 +5,7 @@ REPO_ROOT="${1:-$PWD}"
 REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
 NAME="$(basename "$REPO_ROOT")"
 CURSOR_REPO="${CURSOR_REPO:-$HOME/Developer/GitHub/agents-kit}"
-HARNESS_REPO="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-agent-harness}"
+HARNESS_REPO="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-engineering-runtime}"
 
 CONTEXT_DIR="$REPO_ROOT/.cursor"
 CONTEXT_FILE="$CONTEXT_DIR/project-context"

@@ -31,7 +31,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 ### RC01 — Engineering Runtime harness
 - Status: done
 - Paths: justfile, Tooling/justfile, Tooling/runtime.yml, Tooling/scripts/, Tooling/HostBuild/, Tooling/Brewfile, Tooling/.swiftformat, Tooling/.swiftlint.yml, AGENTS.md, .gitignore
-- What changed: ios-agent-harness install (--personal); configs later moved under `Tooling/`
+- What changed: ios-engineering-runtime install (--personal); configs later moved under `Tooling/`
 - How to verify: `just doctor`
 
 ### RC02 — SwiftFormat baseline
