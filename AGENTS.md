@@ -7,7 +7,7 @@ Project facts only. Agent behavior lives in the Cursor Brain (`agents-kit`).
 - Name: OneCart
 - Context: see `.cursor/project-context` (`personal`)
 - Open: `OneCart/OneCart.xcodeproj`
-- Runtime: `Tooling/` (ios-agent-harness 0.2.2)
+- Runtime: `Tooling/` (ios-engineering-runtime 0.2.2)
 - Docs index: [docs/README.md](docs/README.md)
 
 ## Review

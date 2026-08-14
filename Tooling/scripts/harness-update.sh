@@ -10,7 +10,7 @@ else
   VERSION_FILE="$APP_ROOT/.harness-version"
 fi
 
-HARNESS_ROOT="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-agent-harness}"
+HARNESS_ROOT="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-engineering-runtime}"
 if [[ ! -d "$HARNESS_ROOT/scripts" ]]; then
   echo "harness root not found: $HARNESS_ROOT (set IOS_AGENT_HARNESS_ROOT)" >&2
   exit 1

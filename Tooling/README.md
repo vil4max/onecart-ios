@@ -1,6 +1,6 @@
 # Tooling
 
-Engineering Runtime slice from [ios-agent-harness](https://github.com/vil4labs/ios-agent-harness) **0.2**. Not product code.
+Engineering Runtime slice from [ios-engineering-runtime](https://github.com/vil4labs/ios-engineering-runtime) **0.2**. Not product code.
 
 | Path | Role |
 |------|------|
@@ -39,4 +39,4 @@ just verify
 just run-sim
 ```
 
-`just harness-update` refreshes this slice from `~/Developer/GitHub/ios-agent-harness` (or `IOS_AGENT_HARNESS_ROOT`).
+`just harness-update` refreshes this slice from `~/Developer/GitHub/ios-engineering-runtime` (or `IOS_AGENT_HARNESS_ROOT`).
