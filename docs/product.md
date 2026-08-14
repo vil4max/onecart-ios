@@ -153,7 +153,7 @@ Prefer on-device (including optional Foundation Models for category refine), no 
 
 ## Future: multi-cart UI (not this train)
 
-Tracked as **FU01** and on [Tasks & Ideas](https://github.com/orgs/vil4engineering/projects/2) (App=OneCart).
+Tracked as **FU01** and on [Tasks & Ideas](https://github.com/orgs/vil4labs/projects/2) (App=OneCart).
 
 Scope when greenlit:
 

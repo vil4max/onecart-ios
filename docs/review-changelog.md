@@ -125,7 +125,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
   - Move items between personal and invited
   - Account share/members bound to selected cart
   - Naming: app brand vs personal title vs owner-set shared title
-  - Board: https://github.com/orgs/vil4engineering/projects/2 (App=OneCart)
+  - Board: https://github.com/orgs/vil4labs/projects/2 (App=OneCart)
   - Not in cart-as-core v1 (one active UX; personal hidden while on shared)
 - FU15 History size / retention (no Clear History UI; pagination/optimize later)
 - FU02 iOS 17 @Observable migration for ViewModels
