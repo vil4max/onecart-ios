@@ -1,6 +1,6 @@
 # Tooling
 
-Agent Runtime slice from [ios-agent-runtime](https://github.com/vil4labs/ios-agent-runtime). Not product code.
+Agent Runtime slice from [ios-agent-runtime](https://github.com/vil4max/ios-agent-runtime). Not product code.
 
 | Path | Role |
 |------|------|
@@ -39,4 +39,5 @@ just verify
 just run-sim
 ```
 
-`just harness-update` refreshes this slice from `~/Developer/GitHub/ios-agent-runtime` (or `IOS_AGENT_RUNTIME_ROOT`; the old environment name remains compatible).
+`just harness-update` refreshes this slice from
+`~/Developer/Personal/vil4labs/ios-agent-runtime` or `IOS_AGENT_RUNTIME_ROOT`.

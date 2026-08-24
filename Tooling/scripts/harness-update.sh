@@ -8,7 +8,7 @@ else
   APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 fi
 
-RUNTIME_ROOT="${IOS_AGENT_RUNTIME_ROOT:-$HOME/Developer/GitHub/ios-agent-runtime}"
+RUNTIME_ROOT="${IOS_AGENT_RUNTIME_ROOT:-$HOME/Developer/Personal/vil4labs/ios-agent-runtime}"
 if [[ ! -d "$RUNTIME_ROOT/scripts" ]]; then
   echo "Runtime root not found: $RUNTIME_ROOT (set IOS_AGENT_RUNTIME_ROOT)" >&2
   exit 1
