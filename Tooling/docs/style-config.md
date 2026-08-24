@@ -46,11 +46,12 @@ just verify
 ### B. Tighten the **default for all new / reset apps**
 
 1. Edit the harness templates (`templates/swiftlint.yml`, `templates/swiftformat`).
-2. Bump `HARNESS_VERSION` / `runtime.manifest.json` and update this doc if settings change.
+2. Update this doc when the behavior changes. The installed `.runtime-lock` is
+   generated automatically from Runtime content; no manual version bump exists.
 3. Existing apps keep their app-owned configs until you explicitly reset:
 
 ```bash
-~/Developer/GitHub/ios-engineering-runtime/scripts/install.sh /path/to/app --force --reset-style
+~/Developer/GitHub/ios-agent-runtime/scripts/install.sh /path/to/app --force --reset-style
 ```
 
 Or only reset style without forcing the whole slice: `--reset-style` alone is enough to rewrite the two style files (other Tooling files still follow normal `--force` rules).

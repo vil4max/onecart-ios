@@ -1,6 +1,5 @@
 {
-  "version": "0.2.2",
-  "product": "iOS Engineering Runtime",
+  "product": "iOS Agent Runtime",
   "layout": "Tooling/",
   "commands": [
     { "name": "doctor", "availability": "ready" },

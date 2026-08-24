@@ -1,6 +1,6 @@
 # Tooling
 
-Engineering Runtime slice from [ios-engineering-runtime](https://github.com/vil4labs/ios-engineering-runtime) **0.2**. Not product code.
+Agent Runtime slice from [ios-agent-runtime](https://github.com/vil4labs/ios-agent-runtime). Not product code.
 
 | Path | Role |
 |------|------|
@@ -9,7 +9,7 @@ Engineering Runtime slice from [ios-engineering-runtime](https://github.com/vil4
 | `runtime.yml` | App-owned: scheme / project / simulator / lint-format-test flags |
 | `runtime.local.yml.example` | Copy to `runtime.local.yml` for local overrides (gitignored) |
 | `runtime.manifest.json` | Declared Runtime commands / capabilities |
-| `.harness-version` | Installed harness slice version |
+| `.runtime-lock` | Automatic content identity used for compatible worktree materialization |
 | `.swiftformat` / `.swiftlint.yml` | **App-owned** style configs (`just format` / `just lint`) |
 | `scripts/` | Shell implementations invoked by recipes |
 | `backend/` | Build adapters (`xcodebuild` baseline; others optional) |
@@ -39,4 +39,4 @@ just verify
 just run-sim
 ```
 
-`just harness-update` refreshes this slice from `~/Developer/GitHub/ios-engineering-runtime` (or `IOS_AGENT_HARNESS_ROOT`).
+`just harness-update` refreshes this slice from `~/Developer/GitHub/ios-agent-runtime` (or `IOS_AGENT_RUNTIME_ROOT`; the old environment name remains compatible).

@@ -176,14 +176,12 @@ for devices in data.get('devices', {}).values():
 }
 
 harness_version() {
-  if [[ -f "$RUNTIME_ROOT/HARNESS_VERSION" ]]; then
-    tr -d '[:space:]' <"$RUNTIME_ROOT/HARNESS_VERSION"
-  elif [[ -f "$TOOLING_ROOT/.harness-version" ]]; then
-    tr -d '[:space:]' <"$TOOLING_ROOT/.harness-version"
-  elif [[ -f "$PWD/.harness-version" ]]; then
-    tr -d '[:space:]' <"$PWD/.harness-version"
+  if [[ -f "$TOOLING_ROOT/.runtime-lock" ]]; then
+    printf 'lock:%s\n' "$(cut -c1-12 "$TOOLING_ROOT/.runtime-lock")"
+  elif [[ -x "$RUNTIME_ROOT/scripts/runtime-lock.sh" ]]; then
+    printf 'lock:%s\n' "$("$RUNTIME_ROOT/scripts/runtime-lock.sh" "$RUNTIME_ROOT" | cut -c1-12)"
   else
-    echo "0.0.0"
+    echo "lock:missing"
   fi
 }
 

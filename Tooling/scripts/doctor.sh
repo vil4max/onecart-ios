@@ -111,7 +111,7 @@ if $JSON; then
     echo "{\"ok\":$OK,\"version\":\"$VERSION\",\"build_backend_selected\":\"$BACKEND\"}"
   fi
 else
-  echo "iOS Engineering Runtime doctor (v$VERSION)"
+  echo "iOS Agent Runtime doctor (v$VERSION)"
   echo "backend: $BACKEND"
   echo "ok: $OK"
   for c in "${CHECKS[@]}"; do

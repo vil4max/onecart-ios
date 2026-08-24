@@ -4,35 +4,29 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$(basename "$(dirname "$SCRIPT_DIR")")" == "Tooling" ]]; then
   APP_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-  VERSION_FILE="$APP_ROOT/Tooling/.harness-version"
 else
   APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-  VERSION_FILE="$APP_ROOT/.harness-version"
 fi
 
-HARNESS_ROOT="${IOS_AGENT_HARNESS_ROOT:-$HOME/Developer/GitHub/ios-engineering-runtime}"
-if [[ ! -d "$HARNESS_ROOT/scripts" ]]; then
-  echo "harness root not found: $HARNESS_ROOT (set IOS_AGENT_HARNESS_ROOT)" >&2
+RUNTIME_ROOT="${IOS_AGENT_RUNTIME_ROOT:-$HOME/Developer/GitHub/ios-agent-runtime}"
+if [[ ! -d "$RUNTIME_ROOT/scripts" ]]; then
+  echo "Runtime root not found: $RUNTIME_ROOT (set IOS_AGENT_RUNTIME_ROOT)" >&2
   exit 1
 fi
 
-CURRENT="0.0.0"
-if [[ -f "$VERSION_FILE" ]]; then
-  CURRENT="$(tr -d '[:space:]' <"$VERSION_FILE")"
-elif [[ -f "$APP_ROOT/Tooling/.harness-version" ]]; then
-  CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/Tooling/.harness-version")"
-elif [[ -f "$APP_ROOT/.harness-version" ]]; then
-  CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/.harness-version")"
+CURRENT="missing"
+if [[ -f "$APP_ROOT/Tooling/.runtime-lock" ]]; then
+  CURRENT="$(tr -d '[:space:]' <"$APP_ROOT/Tooling/.runtime-lock")"
 fi
-LATEST="$(tr -d '[:space:]' <"$HARNESS_ROOT/HARNESS_VERSION")"
+LATEST="$("$RUNTIME_ROOT/scripts/runtime-lock.sh" "$RUNTIME_ROOT")"
 
-echo "Current $CURRENT"
-echo "Latest  $LATEST"
+echo "Current Runtime lock ${CURRENT:0:12}"
+echo "Source Runtime lock  ${LATEST:0:12}"
 
 if [[ "$CURRENT" == "$LATEST" ]]; then
   echo "Already up to date."
   exit 0
 fi
 
-echo "Harness outdated. Updating Tooling/ slice…"
-exec "$HARNESS_ROOT/scripts/install.sh" "$APP_ROOT" --personal --force
+echo "Runtime content differs. Updating Tooling/ slice…"
+exec "$RUNTIME_ROOT/scripts/install.sh" "$APP_ROOT" --force
