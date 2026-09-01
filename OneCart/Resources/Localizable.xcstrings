@@ -596,19 +596,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ will leave this cart now. They can join again later with an open invite link — this is not a ban."
+            "value" : "%@ will leave this cart now. They can join again later with an open invite link. This is not a ban."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ сейчас выйдет из этой корзины. Позже можно снова войти по открытой ссылке — это не запрет."
+            "value" : "%@ сейчас выйдет из этой корзины. Позже можно снова войти по открытой ссылке. Это не запрет."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ зараз вийде з цього кошика. Пізніше можна знову увійти за відкритим посиланням — це не заборона."
+            "value" : "%@ зараз вийде з цього кошика. Пізніше можна знову увійти за відкритим посиланням. Це не заборона."
           }
         }
       }
@@ -1154,13 +1154,13 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Аккаунт OneCart Family и ваши личные данные корзины будут удалены. Вы покинете общую семейную корзину — у остальных она останется. Это нельзя отменить."
+            "value" : "Аккаунт OneCart Family и ваши личные данные корзины будут удалены. Вы покинете общую семейную корзину; у остальных она останется. Это нельзя отменить."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Акаунт OneCart Family і ваші особисті дані кошика буде видалено. Ви залишите спільний сімейний кошик — в інших він залишиться. Це не можна скасувати."
+            "value" : "Акаунт OneCart Family і ваші особисті дані кошика буде видалено. Ви залишите спільний сімейний кошик; в інших він залишиться. Це не можна скасувати."
           }
         }
       }
@@ -1194,19 +1194,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn’t delete the account. Check the network and try again — you are still signed in."
+            "value" : "Couldn’t delete the account. Check the network and try again. You are still signed in."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось удалить аккаунт. Проверьте сеть и попробуйте снова — вы всё ещё в системе."
+            "value" : "Не удалось удалить аккаунт. Проверьте сеть и попробуйте снова. Вы всё ещё в системе."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не вдалося видалити акаунт. Перевірте мережу й спробуйте ще раз — ви досі в системі."
+            "value" : "Не вдалося видалити акаунт. Перевірте мережу й спробуйте ще раз. Ви досі в системі."
           }
         }
       }
@@ -1844,13 +1844,13 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Корзина — %@"
+            "value" : "Корзина %@"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Кошик — %@"
+            "value" : "Кошик %@"
           }
         }
       }
@@ -3061,19 +3061,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mark items bought in the cart — they appear here the next day when you open the app."
+            "value" : "Mark items bought in the cart. They appear here the next day when you open the app."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отметьте купленное в корзине — на следующий день при открытии приложения оно появится здесь."
+            "value" : "Отметьте купленное в корзине. На следующий день при открытии приложения оно появится здесь."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Позначте куплене в кошику — наступного дня після відкриття застосунку воно з’явиться тут."
+            "value" : "Позначте куплене в кошику. Наступного дня після відкриття застосунку воно з’явиться тут."
           }
         }
       }
@@ -3318,19 +3318,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap + and add the first thing — milk, bread, anything"
+            "value" : "Tap + and add the first thing: milk, bread, anything"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Жми +, добавь первое — молоко, хлеб, что угодно"
+            "value" : "Жми +, добавь первое: молоко, хлеб, что угодно"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Тисни +, додай перше — молоко, хліб, що завгодно"
+            "value" : "Тисни +, додай перше: молоко, хліб, що завгодно"
           }
         }
       }
@@ -3962,19 +3962,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud is temporarily busy. Wait a bit — sync will continue on its own."
+            "value" : "iCloud is temporarily busy. Wait a bit. Sync will continue on its own."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud временно перегружен. Подождите немного — синхронизация продолжится сама."
+            "value" : "iCloud временно перегружен. Подождите немного. Синхронизация продолжится сама."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud тимчасово перевантажений. Зачекайте трохи — синхронізація продовжиться сама."
+            "value" : "iCloud тимчасово перевантажений. Зачекайте трохи. Синхронізація продовжиться сама."
           }
         }
       }
@@ -3985,19 +3985,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud is restricted on this device — cart sync and sharing are unavailable."
+            "value" : "iCloud is restricted on this device. Cart sync and sharing are unavailable."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud ограничен на этом устройстве — синхронизация и шаринг корзины недоступны."
+            "value" : "iCloud ограничен на этом устройстве. Синхронизация и шаринг корзины недоступны."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud обмежено на цьому пристрої — синхронізація і шеринг кошика недоступні."
+            "value" : "iCloud обмежено на цьому пристрої. Синхронізація і шеринг кошика недоступні."
           }
         }
       }
@@ -4008,19 +4008,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud is temporarily unavailable. Check the network and retry — Sign in with Apple is already saved."
+            "value" : "iCloud is temporarily unavailable. Check the network and retry. Sign in with Apple is already saved."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud временно недоступен. Проверьте сеть и повторите — вход через Apple уже сохранён."
+            "value" : "iCloud временно недоступен. Проверьте сеть и повторите. Вход через Apple уже сохранён."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud тимчасово недоступний. Перевірте мережу і повторіть — вхід через Apple уже збережено."
+            "value" : "iCloud тимчасово недоступний. Перевірте мережу і повторіть. Вхід через Apple уже збережено."
           }
         }
       }
@@ -4146,19 +4146,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline — changes saved"
+            "value" : "Offline: changes saved"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Офлайн — изменения сохранены"
+            "value" : "Офлайн: изменения сохранены"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Офлайн — зміни збережено"
+            "value" : "Офлайн: зміни збережено"
           }
         }
       }

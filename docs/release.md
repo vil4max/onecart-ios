@@ -9,7 +9,7 @@ new-marketing-version baseline at `CURRENT_PROJECT_VERSION = 1`; every further A
 upload of 1.4 must receive a build number higher than 82. Reset the project baseline to **1** only
 when bumping `MARKETING_VERSION` again.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md). Do not block release on restoring those features.
+**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
 
 On a Mac with Xcode:
 
@@ -34,7 +34,7 @@ Simulator is enough for UI + unit tests. Real family sync needs two physical dev
 2. Enable **Sign in with Apple**, **iCloud (CloudKit)**, **Push Notifications**.
 3. Recreate Development/Distribution profiles after capabilities.
 4. Team in Xcode must match the project Team.
-5. Entitlements (`CKSharingSupported`, SIWA, iCloud) are already in the project — unsigned Debug builds compile without App ID setup; signed install + real sync need the steps above.
+5. Entitlements (`CKSharingSupported`, SIWA, iCloud) are already in the project. Unsigned Debug builds compile without App ID setup; signed install + real sync need the steps above.
 
 ## 2. CloudKit Production schema (required for TestFlight and Xcode Run)
 
@@ -107,7 +107,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Owner revoke invite keeps family identity | `testRevokeInviteKeepsFamilySpaceIdentity` |
 | Join adopt switches active to shared | `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` |
 | Guest / member session (shared active) | `GuestMemberSessionTests` |
-| Join LWW merge by name | deferred — `FamilyCartMergeTests` keep API coverage; join path does not call merge |
+| Join LWW merge by name | deferred: `FamilyCartMergeTests` keep API coverage; join path does not call merge |
 | Quick add/edit is name-only inline in cart | `ShoppingListView` composer / inline row edit |
 
 ## 4. TestFlight
@@ -131,8 +131,8 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
 | Start condition | Branch changes → `main` |
-| Action 1 | Test — iOS, scheme `OneCart`, required |
-| Action 2 | Archive — iOS, scheme `OneCart` → TestFlight (internal) |
+| Action 1 | Test (iOS), scheme `OneCart`, required |
+| Action 2 | Archive (iOS), scheme `OneCart` → TestFlight (internal) |
 | Post | Internal TestFlight → group **Friends&Family** |
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
@@ -159,11 +159,11 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 | Privacy Policy URL | `https://github.com/vil4max/OneCart/blob/main/docs/privacy.md` |
 | Price | Free |
 
-### Version 1.4 — English (U.S.)
+### Version 1.4: English (U.S.)
 
 **Promotional text**
 
-> One shared cart for your family. Add items at home, see updates in the store, mark purchases Completed, and revisit your history by day.
+> One shared cart for the family: add at home, see it in the store. Check items into the trolley and keep purchase history.
 
 **Description**
 
@@ -214,7 +214,7 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 
 ### Privacy and media
 
-- Privacy Nutrition Labels: name, user ID, user content (lists) — App Functionality, linked to
+- Privacy Nutrition Labels: name, user ID, user content (lists): App Functionality, linked to
   identity, no tracking (`PrivacyInfo.xcprivacy`). No location or store-locator data in the shipping app.
 - Screenshots: replace the four existing 6.5-inch screenshots; they show the removed In Trolley /
   Finish-shopping UI. Capture current Welcome, Cart, History, and Settings screens in English at

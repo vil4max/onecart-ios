@@ -1,4 +1,4 @@
-# Privacy Policy — OneCart Family
+# Privacy Policy: OneCart Family
 
 **Last updated:** September 1, 2026  
 **Developer:** Maksim Vilchevskiy  
@@ -18,7 +18,7 @@ OneCart Family (“the App”; engineering module name OneCart) is a shared shop
 | Purchase history (by day) | Show what the household bought | iCloud / CloudKit |
 | Participants on a shared cart | Family sharing via CKShare | iCloud / CloudKit |
 
-We do **not** sell personal data. We do **not** use tracking for advertising. We do **not** run our own backend server for shopping data — sync uses Apple iCloud / CloudKit.
+We do **not** sell personal data. We do **not** use tracking for advertising. We do **not** run our own backend server for shopping data. Sync uses Apple iCloud / CloudKit.
 
 ## Sharing
 
