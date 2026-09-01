@@ -1,6 +1,6 @@
 # OneCart
 
-User-facing product name: **Tim's Cart**. Repo / Xcode module / scheme stay **OneCart**.
+User-facing product name: **OneCart Family**. Repo / Xcode module / scheme stay **OneCart**.
 
 One shared family cart on iOS: add what you need, mark items **Completed** at the store, and see purchases in **History by day** (overnight archive when you open the app). Sign in with Apple; sync and invites run through iCloud / CloudKit (`CKShare`).
 
@@ -8,7 +8,7 @@ One shared family cart on iOS: add what you need, mark items **Completed** at th
 
 This is a **father–son pet project**: we build and ship a real iOS app together as a way to learn product, SwiftUI, Core Data / CloudKit, and App Store tooling.
 
-Keep that framing **here** (README / contributor docs). Do **not** put “learning project”, “demo for my kid”, classroom, or similar wording in App Store Connect metadata, review notes, screenshots, or in-app marketing copy — describe Tim's Cart as a normal family shopping cart product so Review does not treat the listing as incomplete or non-app content.
+Keep that framing **here** (README / contributor docs). Do **not** put “learning project”, “demo for my kid”, classroom, or similar wording in App Store Connect metadata, review notes, screenshots, or in-app marketing copy — describe OneCart Family as a normal family shopping cart product so Review does not treat the listing as incomplete or non-app content.
 
 ## Screenshots
 

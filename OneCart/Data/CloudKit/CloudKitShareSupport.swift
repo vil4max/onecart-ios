@@ -52,7 +52,7 @@ enum CloudKitShareEnvironment: String {
 }
 
 enum OneCartShareBranding {
-    static let title = "Tim's Cart"
+    static let title = "OneCart Family"
 
     @discardableResult
     static func apply(to share: CKShare) -> Bool {

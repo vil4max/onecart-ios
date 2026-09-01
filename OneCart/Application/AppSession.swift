@@ -9,7 +9,7 @@ final class AppSession: ObservableObject {
 
     nonisolated static let defaultFamilyName = String(
         localized: "cart.default_title",
-        defaultValue: "Tim's Cart"
+        defaultValue: "OneCart Family"
     )
 
     @Published var isReady = false

@@ -2,7 +2,7 @@
 
 ## Thesis
 
-**OneCart** (user-facing **Tim's Cart**) is one shared family cart and a single place to see every purchase.
+**OneCart** (user-facing **OneCart Family**) is one shared family cart and a single place to see every purchase.
 
 One person adds items, another shops, everyone sees progress live. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
 
@@ -108,9 +108,9 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 
 ## Default cart identity
 
-- Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / Tim's Cart). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
+- Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / OneCart Family). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
 - Owner can rename the active cart (`FamilySpace.name`) — personal or shared; invitees see the shared title.
-- App display name / Welcome / share branding: **Tim's Cart** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
+- App display name / Welcome / share branding: **OneCart Family** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](legacy.md).
 - Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.

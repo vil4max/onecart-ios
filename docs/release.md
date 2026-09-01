@@ -151,7 +151,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` â†’ Product â
 
 | Field | Value |
 |-------|-------|
-| Name | `Tim's Cart` |
+| Name | `OneCart Family` |
 | Subtitle | `Shared family shopping cart` |
 | Primary category | Shopping |
 | Age rating | 4+ |
@@ -167,7 +167,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` â†’ Product â
 
 **Description**
 
-> Tim's Cart keeps one shared shopping cart in sync for your household.
+> OneCart Family keeps one shared shopping cart in sync for your household.
 >
 > Add items at home and see updates while shopping. Everyone can follow the same living list without chat messages or screenshots.
 >
@@ -179,7 +179,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` â†’ Product â
 > â€¢ Browse a read-only purchase history grouped by day
 > â€¢ Invite up to four people from Settings using an iCloud share link
 >
-> Tim's Cart uses Sign in with Apple and iCloud to keep the household cart private and synchronized. Store prices, catalogs, budgeting, and messaging are intentionally not part of the app.
+> OneCart Family uses Sign in with Apple and iCloud to keep the household cart private and synchronized. Store prices, catalogs, budgeting, and messaging are intentionally not part of the app.
 
 **Keywords**
 
