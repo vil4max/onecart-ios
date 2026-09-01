@@ -145,18 +145,30 @@ struct AccountView: View {
                         .buttonStyle(.plain)
                         .accessibilityHint(Text("account.edit_display_name"))
                     }
+                } header: {
+                    Text("settings.apple_section")
+                } footer: {
+                    Text("settings.apple_name_footer")
+                }
 
+                Section {
                     Button {
                         viewModel.confirmingSignOut = true
                     } label: {
                         AccountActionRow(
                             titleKey: "account.sign_out",
                             systemImage: "rectangle.portrait.and.arrow.right",
-                            style: .destructive
+                            style: .regular
                         )
                     }
                     .buttonStyle(.plain)
+                } header: {
+                    Text("settings.session_section")
+                } footer: {
+                    Text("settings.session_footer")
+                }
 
+                Section {
                     Button {
                         viewModel.confirmingDeleteAccount = true
                     } label: {
@@ -175,9 +187,9 @@ struct AccountView: View {
                     .buttonStyle(.plain)
                     .disabled(model.isDeletingAccount || model.isBusy)
                 } header: {
-                    Text("settings.apple_section")
+                    Text("settings.delete_account_section")
                 } footer: {
-                    Text("settings.apple_name_footer")
+                    Text("settings.delete_account_footer")
                 }
 
                 Section {} footer: {

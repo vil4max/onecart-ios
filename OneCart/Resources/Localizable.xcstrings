@@ -1010,19 +1010,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The cart on this device will stay local until the next sign-in."
+            "value" : "Ends the session on this device and returns to Welcome. Your cart stays in iCloud; you can sign in again anytime. This does not sign out of iCloud on the device."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Корзина на этом устройстве останется локально до следующего входа."
+            "value" : "Завершает сессию на этом устройстве и возвращает на Welcome. Корзина остаётся в iCloud; войти снова можно в любой момент. Из iCloud на устройстве вы не выходите."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Кошик на цьому пристрої залишиться локально до наступного входу."
+            "value" : "Завершує сесію на цьому пристрої і повертає на Welcome. Кошик залишається в iCloud; увійти знову можна будь-коли. З iCloud на пристрої ви не виходите."
           }
         }
       }
@@ -3502,19 +3502,111 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One name for Apple Account and how you appear in the cart. Sign out clears the local Apple session and returns to Welcome; it does not sign out of iCloud on the device."
+            "value" : "One name for Apple Account and how you appear in the cart."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Одно имя для аккаунта Apple и того, как вас видят в корзине. Выход очищает локальную сессию Apple и возвращает на Welcome; из iCloud на устройстве вы не выходите."
+            "value" : "Одно имя для аккаунта Apple и того, как вас видят в корзине."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Одне ім’я для акаунта Apple і того, як вас бачать у кошику. Вихід очищає локальну сесію Apple і повертає на Welcome; з iCloud на пристрої ви не виходите."
+            "value" : "Одне ім’я для акаунта Apple і того, як вас бачать у кошику."
+          }
+        }
+      }
+    },
+    "settings.delete_account_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently deletes your OneCart Family account and private cart data from iCloud. This cannot be undone."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безвозвратно удаляет аккаунт OneCart Family и личные данные корзины из iCloud. Это нельзя отменить."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назавжди видаляє акаунт OneCart Family і особисті дані кошика з iCloud. Це не можна скасувати."
+          }
+        }
+      }
+    },
+    "settings.delete_account_section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account deletion"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаление аккаунта"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалення акаунта"
+          }
+        }
+      }
+    },
+    "settings.session_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out ends the Apple session on this device and returns to Welcome. Cart data in iCloud is kept; you can sign in again. This does not sign out of iCloud on the device."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход завершает сессию Apple на этом устройстве и возвращает на Welcome. Данные корзины в iCloud сохраняются; войти снова можно позже. Из iCloud на устройстве вы не выходите."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вихід завершує сесію Apple на цьому пристрої і повертає на Welcome. Дані кошика в iCloud зберігаються; увійти знову можна пізніше. З iCloud на пристрої ви не виходите."
+          }
+        }
+      }
+    },
+    "settings.session_section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сессия"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сесія"
           }
         }
       }

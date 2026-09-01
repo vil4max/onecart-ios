@@ -55,7 +55,7 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave) then **Аккаунт Apple** (SIWA / sign out / **Delete Account**) |
+| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave), then **Аккаунт Apple** (profile / name), **Сессия** (Sign out keeps iCloud cart), **Удаление аккаунта** (permanent CloudKit delete) |
 
 Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
 

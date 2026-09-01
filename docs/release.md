@@ -5,7 +5,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 ## Preflight (this branch)
 
 Version: **1.0**. Project is set to `MARKETING_VERSION = 1.0` and
-`CURRENT_PROJECT_VERSION = 83` (next App Store Connect upload after validated build **82**).
+`CURRENT_PROJECT_VERSION = 84` (after validated ASC build **82**).
 Every further upload of 1.0 must use a build number higher than the last accepted ASC build.
 Bump `MARKETING_VERSION` only when starting a new App Store version train.
 
@@ -68,7 +68,7 @@ Until Production has the fields Core Data expects, sync/share will keep failing 
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug / TestFlight build on A and B (version 1.0 / build ≥ 83). Production CloudKit schema deployed (§2).
+1. Signed Debug / TestFlight build on A and B (version 1.0 / build ≥ 84). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK).
 3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
 4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
@@ -196,8 +196,11 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 - Sign-in required: **on**. Reviewers authenticate through the system Sign in with Apple sheet;
   there is no developer-issued username or password; explain this in Review notes.
 - Contact: Maksim Vilchevskiy, `vil4max@gmail.com`, `<redacted-phone>`.
-- Review attachment: physical-device screen recording showing sign-in, navigation to Delete Account,
-  confirmation, completed deletion, and return to Welcome.
+- Review attachment: ready at
+  [`assets/store/review/delete-account-physical-2026-09-01.mp4`](../assets/store/review/delete-account-physical-2026-09-01.mp4)
+  (physical device, ~21s, 1290×2796, **1.0 (84)**). Upload in App Store Connect → App Review
+  Information → Attachment. Shows Sign in with Apple, Settings with separate Session / Account
+  deletion sections, Delete Account, and return to Welcome.
 
 **Review notes**
 

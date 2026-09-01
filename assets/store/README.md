@@ -1,6 +1,14 @@
 # Store / TestFlight visuals
 
-## App Store Connect — iPhone 6.5" (1284 × 2778)
+## App Review attachment
+
+Physical-device Delete Account recording for App Store Connect:
+
+[`review/delete-account-physical-2026-09-01.mp4`](review/delete-account-physical-2026-09-01.mp4)
+
+(~21s, 1290×2796, HEVC, app **1.0 (84)**). Attach under App Review Information.
+
+## App Store Connect: iPhone 6.5" (1284 × 2778)
 
 Default locale shots are **English** (app `developmentRegion = en`), light + dark.
 
