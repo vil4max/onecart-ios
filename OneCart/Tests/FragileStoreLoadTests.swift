@@ -4,6 +4,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class FragileStoreLoadTests: XCTestCase {
     func testLoadFailureDoesNotDestroyStoreFiles() async throws {
         let directory = FileManager.default.temporaryDirectory
@@ -111,7 +112,6 @@ final class FragileStoreLoadTests: XCTestCase {
         )
     }
 
-    @MainActor
     func testRetryWelcomeDoesNotWipeUnlessCoreDataFailure() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileRetry-\(UUID().uuidString)", isDirectory: true)

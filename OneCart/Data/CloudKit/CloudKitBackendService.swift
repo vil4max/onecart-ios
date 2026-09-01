@@ -4,16 +4,35 @@ import Foundation
 
 final class CloudKitBackendService {
     let persistence: PersistenceController
-    let cloudContainer: CKContainer
+    private let injectedCloudContainer: CKContainer?
+    private var cachedCloudContainer: CKContainer?
+
+    /// Lazily created — constructing `CKContainer` in unit tests / Xcode Cloud without iCloud can SEGV.
+    var cloudContainer: CKContainer {
+        if let injectedCloudContainer {
+            return injectedCloudContainer
+        }
+        if let cachedCloudContainer {
+            return cachedCloudContainer
+        }
+        let created = CKContainer(
+            identifier: PersistenceController.cloudKitContainerIdentifier
+        )
+        cachedCloudContainer = created
+        return created
+    }
+
+    /// Exposed for tests: true only after a real `CKContainer` was constructed or injected.
+    var cloudContainerInitializedForTesting: Bool {
+        injectedCloudContainer != nil || cachedCloudContainer != nil
+    }
 
     init(
         persistence: PersistenceController,
         cloudContainer: CKContainer? = nil
     ) {
         self.persistence = persistence
-        self.cloudContainer = cloudContainer ?? CKContainer(
-            identifier: PersistenceController.cloudKitContainerIdentifier
-        )
+        injectedCloudContainer = cloudContainer
     }
 
     func restoredAccount(

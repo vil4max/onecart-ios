@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class CartItemsTests: XCTestCase {
     func testTogglePurchasedSetsAndClearsBuyer() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()

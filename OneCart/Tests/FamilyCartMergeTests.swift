@@ -2,6 +2,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class FamilyCartMergeTests: XCTestCase {
     func testDeletableStarterFamilyDetection() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()

@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class PurchaseSessionTests: XCTestCase {
     func testCompletePurchasedMovesOnlyCheckedItems() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
@@ -196,7 +197,6 @@ final class PurchaseSessionTests: XCTestCase {
         )
     }
 
-    @MainActor
     func testArchiveStalePurchasedIfNeededViaSession() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()

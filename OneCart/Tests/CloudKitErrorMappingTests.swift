@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class CloudKitErrorMappingTests: XCTestCase {
     func testCloudKitProductReloadPolicyOnlyOnSuccessfulImport() {
         XCTAssertTrue(
@@ -165,6 +166,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let backend = CloudKitBackendService(persistence: persistence)
         let privateID = try await repository.createFamilySpace(name: "Моя")
+        persistence.container.viewContext.processPendingChanges()
         let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateID))
         XCTAssertEqual(backend.access(for: privateSpace), .owner)
 
@@ -177,6 +179,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             space.createdAt = Date()
             space.updatedAt = Date()
         }
+        persistence.container.viewContext.processPendingChanges()
         let sharedSpace = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
         XCTAssertEqual(backend.access(for: sharedSpace), .member)
 
@@ -186,6 +189,8 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
         XCTAssertEqual(account.id, OneCartStableID.uuid(for: "onecart.in-memory-user"))
         XCTAssertEqual(account.displayName, String(localized: "common.default_user"))
+        // In-memory path must not construct CKContainer (Xcode Cloud SEGV risk).
+        XCTAssertFalse(backend.cloudContainerInitializedForTesting)
     }
 
     func testCloudKitUserFacingErrorMapsAuthAndPermission() {

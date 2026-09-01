@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class FamilyCartLifecycleTests: XCTestCase {
     func testClaimUnassignedFamilySpacesStampsPrivateOnly() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
