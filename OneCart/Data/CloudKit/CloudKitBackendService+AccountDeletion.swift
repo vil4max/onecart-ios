@@ -31,8 +31,7 @@ extension CloudKitBackendService {
         } catch {
             if Self.isIdempotentAccountDeletionFailure(error) {
                 CartSyncLog.shareACL.info(
-                    "deletePrivateAccountCloudData treat already-gone " +
-                        "error=\(error.localizedDescription, privacy: .public)"
+                    "deletePrivateAccountCloudData treat already-gone error=\(error.localizedDescription, privacy: .public)"
                 )
                 return
             }

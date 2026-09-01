@@ -29,7 +29,6 @@ extension AppSession {
 
         var didLeaveShared = false
         var didDetachLocalStores = false
-        var didDeleteCloudData = false
         do {
             didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
             // Drop published cart state before unloading stores; keep account + SIWA until cloud succeeds.
@@ -37,13 +36,11 @@ extension AppSession {
             try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
             didDetachLocalStores = true
             try await accountCloudDataDeleter.deletePrivateAccountCloudData()
-            didDeleteCloudData = true
             do {
                 try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
             } catch {
                 CartSyncLog.action.error(
-                    "deleteAccount attachEmpty after cloud success " +
-                        "error=\(error.localizedDescription, privacy: .public)"
+                    "deleteAccount attachEmpty after cloud success error=\(error.localizedDescription, privacy: .public)"
                 )
             }
             finalizeSignOutAfterSuccessfulAccountDeletion()
@@ -53,13 +50,6 @@ extension AppSession {
             CartSyncLog.action.error(
                 "deleteAccount fail error=\(error.localizedDescription, privacy: .public)"
             )
-            if didDeleteCloudData {
-                try? await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
-                finalizeSignOutAfterSuccessfulAccountDeletion()
-                CartHaptics.success()
-                CartSyncLog.action.info("deleteAccount completed after attach recovery")
-                return
-            }
             await recoverAfterFailedAccountDeletion(
                 didLeaveShared: didLeaveShared,
                 didDetachLocalStores: didDetachLocalStores
