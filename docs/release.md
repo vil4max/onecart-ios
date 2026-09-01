@@ -4,7 +4,10 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.4 (1)** — bump `CURRENT_PROJECT_VERSION` before each further upload of 1.4; reset to **1** when bumping `MARKETING_VERSION`.
+Version: **1.4**. Latest validated App Store Connect build: **82**. The Xcode project keeps the
+new-marketing-version baseline at `CURRENT_PROJECT_VERSION = 1`; every further App Store Connect
+upload of 1.4 must receive a build number higher than 82. Reset the project baseline to **1** only
+when bumping `MARKETING_VERSION` again.
 
 **Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose — see [product.md](product.md). Do not block release on restoring those features.
 
@@ -125,7 +128,7 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 
 | Field | Value |
 |-------|-------|
-| Repo | `https://github.com/vil4labs/OneCart.git` |
+| Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
 | Start condition | Branch changes → `main` |
 | Action 1 | Test — iOS, scheme `OneCart`, required |
@@ -142,11 +145,81 @@ Docs: [Configuring your first Xcode Cloud workflow](https://developer.apple.com/
 
 Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product → Archive (scheme `OneCart`, Release) → Distribute → App Store Connect → TestFlight.
 
-## 5. Public App Store (optional)
+## 5. Public App Store
 
-- Privacy Nutrition Labels: name, user ID, user content (lists) — “App Functionality”, no tracking (`PrivacyInfo.xcprivacy`). No location / store locator in the shipping app.
-- Screenshots: iPhone 6.7" / 6.5".
-- Review notes: “Sign in with Apple required; family sharing via iCloud CKShare invite from Account; anyone with the invite link can edit until the owner deletes the cart or removes the member”.
+### App Information
+
+| Field | Value |
+|-------|-------|
+| Name | `Tim's Cart` |
+| Subtitle | `Shared family shopping cart` |
+| Primary category | Shopping |
+| Age rating | 4+ |
+| Support URL | `https://github.com/vil4max/OneCart/issues` |
+| Privacy Policy URL | `https://github.com/vil4max/OneCart/blob/main/docs/privacy.md` |
+| Price | Free |
+
+### Version 1.4 — English (U.S.)
+
+**Promotional text**
+
+> One shared cart for your family. Add items at home, see updates in the store, mark purchases Completed, and revisit your history by day.
+
+**Description**
+
+> Tim's Cart keeps one shared shopping cart in sync for your household.
+>
+> Add items at home and see updates while shopping. Everyone can follow the same living list without chat messages or screenshots.
+>
+> How it works
+> • Add items quickly using only the product name
+> • See who added or completed an item
+> • Mark products Completed as they go into the trolley
+> • Completed items move to History automatically the next day when the app opens
+> • Browse a read-only purchase history grouped by day
+> • Invite up to four people from Settings using an iCloud share link
+>
+> Tim's Cart uses Sign in with Apple and iCloud to keep the household cart private and synchronized. Store prices, catalogs, budgeting, and messaging are intentionally not part of the app.
+
+**Keywords**
+
+```text
+shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
+```
+
+**What to Test**
+
+> Please verify Sign in with Apple, name-only item entry, shared cart updates, Completed items, overnight History, inviting from Settings, and Settings → Apple Account → Delete Account.
+
+### App Review Information
+
+- Sign-in required: **on**. Reviewers authenticate through the system Sign in with Apple sheet;
+  there is no developer-issued username or password; explain this in Review notes.
+- Contact: Maksim Vilchevskiy, `vil4max@gmail.com`, `<redacted-phone>`.
+- Review attachment: physical-device screen recording showing sign-in, navigation to Delete Account,
+  confirmation, completed deletion, and return to Welcome.
+
+**Review notes**
+
+> AUTHENTICATION
+> This app uses Sign in with Apple. There is no email/password account or demo password. On a review device signed into an Apple ID with iCloud enabled, tap Sign in with Apple and complete the system sheet.
+>
+> CORE FLOW
+> Add an item by name in Cart. Mark it Completed to show shopping progress. Items completed on a previous calendar day move to read-only History when the app opens or returns to the foreground. Invite another person from Settings → Share cart using the system iCloud share sheet.
+>
+> ACCOUNT DELETION
+> Open Settings → Apple Account → Delete Account and confirm. Successful deletion removes the user's private CloudKit data, clears local app data and the Sign in with Apple session, and returns to Welcome. If the user owns the active shared cart, it is deleted for its members. If the user is a member, the user leaves that shared cart and the owner's cart remains.
+>
+> The attached physical-device recording demonstrates sign-in, navigation to Delete Account, confirmation, completed deletion, and return to Welcome.
+
+### Privacy and media
+
+- Privacy Nutrition Labels: name, user ID, user content (lists) — App Functionality, linked to
+  identity, no tracking (`PrivacyInfo.xcprivacy`). No location or store-locator data in the shipping app.
+- Screenshots: replace the four existing 6.5-inch screenshots; they show the removed In Trolley /
+  Finish-shopping UI. Capture current Welcome, Cart, History, and Settings screens in English at
+  an accepted 6.9-inch size (for example, 1290 × 2796); App Store Connect scales them down for
+  smaller iPhone displays.
 
 ## 6. Not needed for this pet project
 

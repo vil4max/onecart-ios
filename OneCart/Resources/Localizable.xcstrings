@@ -1102,19 +1102,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will permanently delete your OneCart account and remove your personal cart data from iCloud. This action cannot be undone."
+            "value" : "This will permanently delete your Tim's Cart account and remove your personal cart data from iCloud. This action cannot be undone."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Аккаунт OneCart и ваши личные данные корзины в iCloud будут удалены безвозвратно. Это действие нельзя отменить."
+            "value" : "Аккаунт Tim's Cart и ваши личные данные корзины в iCloud будут удалены безвозвратно. Это действие нельзя отменить."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Акаунт OneCart і ваші особисті дані кошика в iCloud буде видалено назавжди. Цю дію не можна скасувати."
+            "value" : "Акаунт Tim's Cart і ваші особисті дані кошика в iCloud буде видалено назавжди. Цю дію не можна скасувати."
           }
         }
       }
@@ -1125,19 +1125,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This permanently deletes your OneCart account and the shared family cart for every member. Personal account data is removed from iCloud. This cannot be undone."
+            "value" : "This permanently deletes your Tim's Cart account and the shared family cart for every member. Personal account data is removed from iCloud. This cannot be undone."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Аккаунт OneCart и общая семейная корзина будут удалены для всех участников. Личные данные аккаунта исчезнут из iCloud. Это нельзя отменить."
+            "value" : "Аккаунт Tim's Cart и общая семейная корзина будут удалены для всех участников. Личные данные аккаунта исчезнут из iCloud. Это нельзя отменить."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Акаунт OneCart і спільний сімейний кошик буде видалено для всіх учасників. Особисті дані акаунта зникнуть з iCloud. Це не можна скасувати."
+            "value" : "Акаунт Tim's Cart і спільний сімейний кошик буде видалено для всіх учасників. Особисті дані акаунта зникнуть з iCloud. Це не можна скасувати."
           }
         }
       }
@@ -1148,19 +1148,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This permanently deletes your OneCart account and your personal cart data. You leave the shared family cart; other members keep it. This cannot be undone."
+            "value" : "This permanently deletes your Tim's Cart account and your personal cart data. You leave the shared family cart; other members keep it. This cannot be undone."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Аккаунт OneCart и ваши личные данные корзины будут удалены. Вы покинете общую семейную корзину — у остальных она останется. Это нельзя отменить."
+            "value" : "Аккаунт Tim's Cart и ваши личные данные корзины будут удалены. Вы покинете общую семейную корзину — у остальных она останется. Это нельзя отменить."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Акаунт OneCart і ваші особисті дані кошика буде видалено. Ви залишите спільний сімейний кошик — в інших він залишиться. Це не можна скасувати."
+            "value" : "Акаунт Tim's Cart і ваші особисті дані кошика буде видалено. Ви залишите спільний сімейний кошик — в інших він залишиться. Це не можна скасувати."
           }
         }
       }
@@ -2762,19 +2762,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loading OneCart"
+            "value" : "Loading Tim's Cart"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Загрузка OneCart"
+            "value" : "Загрузка Tim's Cart"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Завантаження OneCart"
+            "value" : "Завантаження Tim's Cart"
           }
         }
       }
@@ -4192,19 +4192,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OneCart iCloud schema is not deployed to Production. Owner: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, then Force Quit the app and open it again."
+            "value" : "Tim's Cart iCloud schema is not deployed to Production. Owner: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, then Force Quit the app and open it again."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Схема iCloud для OneCart не задеплоена в Production. Владелец: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, затем Force Quit приложения и открыть снова."
+            "value" : "Схема iCloud для Tim's Cart не задеплоена в Production. Владелец: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, затем Force Quit приложения и открыть снова."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Схему iCloud для OneCart не задеплоєно в Production. Власник: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, потім Force Quit застосунку і відкрийте знову."
+            "value" : "Схему iCloud для Tim's Cart не задеплоєно в Production. Власник: CloudKit Console → iCloud.com.vil555tim.onecart → Deploy Schema Changes to Production, потім Force Quit застосунку і відкрийте знову."
           }
         }
       }
@@ -4491,19 +4491,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OneCart cloud zone is unavailable. Restart the app and check iCloud."
+            "value" : "Tim's Cart cloud zone is unavailable. Restart the app and check iCloud."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Облачная зона OneCart недоступна. Перезапустите приложение и проверьте iCloud."
+            "value" : "Облачная зона Tim's Cart недоступна. Перезапустите приложение и проверьте iCloud."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Хмарна зона OneCart недоступна. Перезапустіть застосунок і перевірте iCloud."
+            "value" : "Хмарна зона Tim's Cart недоступна. Перезапустіть застосунок і перевірте iCloud."
           }
         }
       }

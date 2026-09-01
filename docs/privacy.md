@@ -31,7 +31,7 @@ The App is not directed at children under 13. Do not use the App to collect data
 ## Your choices
 
 - Sign out in the App to clear the local Sign in with Apple session.
-- Delete Account in **Settings → Apple Account → Delete Account** to permanently remove your OneCart account, local session, and private cart data stored for you in iCloud / CloudKit. If you own a shared family cart, that cart is deleted for all members. If you joined someone else’s cart, you leave it and their cart stays.
+- Delete Account in **Settings → Apple Account → Delete Account** to permanently remove your Tim's Cart account, local session, and private cart data stored for you in iCloud / CloudKit. If you own a shared family cart, that cart is deleted for all members. If you joined someone else’s cart, you leave it and their cart stays.
 - Leave a shared cart (member) to return to your personal cart, or **Revoke invite** (owner) to stop new joins while keeping the cart and current members; CloudKit data remains subject to your Apple ID and share settings.
 
 ## Changes
