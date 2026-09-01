@@ -4,10 +4,10 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.4**. Latest validated App Store Connect build: **82**. The Xcode project keeps the
-new-marketing-version baseline at `CURRENT_PROJECT_VERSION = 1`; every further App Store Connect
-upload of 1.4 must receive a build number higher than 82. Reset the project baseline to **1** only
-when bumping `MARKETING_VERSION` again.
+Version: **1.0**. Project is set to `MARKETING_VERSION = 1.0` and
+`CURRENT_PROJECT_VERSION = 83` (next App Store Connect upload after validated build **82**).
+Every further upload of 1.0 must use a build number higher than the last accepted ASC build.
+Bump `MARKETING_VERSION` only when starting a new App Store version train.
 
 **Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
 
@@ -68,7 +68,7 @@ Until Production has the fields Core Data expects, sync/share will keep failing 
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug / TestFlight build on A and B (version 1.4 / build ≥ 1). Production CloudKit schema deployed (§2).
+1. Signed Debug / TestFlight build on A and B (version 1.0 / build ≥ 83). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK).
 3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
 4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
@@ -159,7 +159,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 | Privacy Policy URL | `https://github.com/vil4max/OneCart/blob/main/docs/privacy.md` |
 | Price | Free |
 
-### Version 1.4: English (U.S.)
+### Version 1.0: English (U.S.)
 
 **Promotional text**
 
