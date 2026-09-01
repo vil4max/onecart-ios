@@ -52,6 +52,10 @@ enum MemberJoinNotifier {
         }
     }
 
+    static func clearSeenMembers(accountID: UUID, defaults: UserDefaults) {
+        defaults.removeObject(forKey: seenKey(accountID: accountID))
+    }
+
     private static func storedIDs(accountID: UUID, defaults: UserDefaults) -> Set<UUID> {
         Set(
             (defaults.array(forKey: seenKey(accountID: accountID)) as? [String] ?? [])

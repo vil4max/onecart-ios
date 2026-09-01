@@ -55,7 +55,7 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave) then **Аккаунт Apple** (SIWA / sign out) |
+| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave) then **Аккаунт Apple** (SIWA / sign out / **Delete Account**) |
 
 Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
 
@@ -101,6 +101,7 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 - Display name: **device-local** account name (set when Sign in with Apple did not provide one). The same name appears in the cart members list and on items you add (`createdByName`) / mark Completed (`purchasedByName`). Avatar and banner stay device-local.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
 - Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
+- **Delete Account** permanently deletes private CloudKit zones for this iCloud user, clears the SIWA Keychain session and local stores, and returns to Welcome. Owner deletion removes the shared family cart for members; a member leaves the shared cart first so others keep it.
 - Owner **Revoke invite**: close door for new joins; cart UUID unchanged. No Recreate / delete-entity in UX.
 - History is never user-cleared; retention/size optimization is a later backlog item.
 - Failures use a system alert (`OK`), not toast/banner chrome.

@@ -9,6 +9,7 @@ final class AccountViewModel: ObservableObject {
     @Published var confirmingLeave = false
     @Published var memberToRemove: FamilyMember?
     @Published var confirmingSignOut = false
+    @Published var confirmingDeleteAccount = false
     @Published var confirmingRevokeInvite = false
     @Published var isEditingDisplayName = false
     @Published var isEditingCartName = false
@@ -23,6 +24,16 @@ final class AccountViewModel: ObservableObject {
 
     var needsAccountName: Bool {
         ParticipantDisplayName.isPlaceholder(session.account?.displayName)
+    }
+
+    var deleteAccountConfirmMessage: String {
+        if session.access?.isOwner == true, session.familyMembers.contains(where: { !$0.isCurrentUser }) {
+            return String(localized: "account.delete_confirm_message_owner")
+        }
+        if session.access?.isParticipant == true {
+            return String(localized: "account.delete_confirm_message_member")
+        }
+        return String(localized: "account.delete_confirm_message")
     }
 
     var cartRoleLine: String {
@@ -132,6 +143,10 @@ final class AccountViewModel: ObservableObject {
 
     func signOut() {
         session.signOut()
+    }
+
+    func deleteAccount() async {
+        await session.deleteAccount()
     }
 
     func shareCart() {

@@ -65,6 +65,10 @@
 		D20000000000000000000012 /* AppSession+CartMutations.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000012 /* AppSession+CartMutations.swift */; };
 		D20000000000000000000013 /* AppSession+Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000013 /* AppSession+Membership.swift */; };
 		D20000000000000000000016 /* AppSession+Welcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000016 /* AppSession+Welcome.swift */; };
+		D20000000000000000000017 /* AppSession+AccountDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000017 /* AppSession+AccountDeletion.swift */; };
+		D20000000000000000000018 /* AccountCloudDataDeleting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000018 /* AccountCloudDataDeleting.swift */; };
+		D20000000000000000000019 /* CloudKitBackendService+AccountDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000019 /* CloudKitBackendService+AccountDeletion.swift */; };
+		A20000000000000000000052 /* AccountDeletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000052 /* AccountDeletionTests.swift */; };
 		D20000000000000000000015 /* AppSession+Hosts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000015 /* AppSession+Hosts.swift */; };
 		D20000000000000000000014 /* AppSession+FamilySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000014 /* AppSession+FamilySelection.swift */; };
 		A20000000000000000000034 /* DevicePreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* DevicePreferencesTests.swift */; };
@@ -172,6 +176,10 @@
 		D10000000000000000000012 /* AppSession+CartMutations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+CartMutations.swift"; sourceTree = "<group>"; };
 		D10000000000000000000013 /* AppSession+Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Membership.swift"; sourceTree = "<group>"; };
 		D10000000000000000000016 /* AppSession+Welcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Welcome.swift"; sourceTree = "<group>"; };
+		D10000000000000000000017 /* AppSession+AccountDeletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+AccountDeletion.swift"; sourceTree = "<group>"; };
+		D10000000000000000000018 /* AccountCloudDataDeleting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountCloudDataDeleting.swift; sourceTree = "<group>"; };
+		D10000000000000000000019 /* CloudKitBackendService+AccountDeletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudKitBackendService+AccountDeletion.swift"; sourceTree = "<group>"; };
+		A10000000000000000000052 /* AccountDeletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000015 /* AppSession+Hosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Hosts.swift"; sourceTree = "<group>"; };
 		D10000000000000000000014 /* AppSession+FamilySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+FamilySelection.swift"; sourceTree = "<group>"; };
 		A10000000000000000000034 /* DevicePreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePreferencesTests.swift; sourceTree = "<group>"; };
@@ -253,6 +261,7 @@
 				A10000000000000000000020 /* FamilyCartLifecycleTests.swift */,
 				A10000000000000000000021 /* CartAccessTests.swift */,
 				A10000000000000000000051 /* GuestMemberSessionTests.swift */,
+				A10000000000000000000052 /* AccountDeletionTests.swift */,
 				A10000000000000000000022 /* StableIDTests.swift */,
 				A10000000000000000000023 /* PersistenceRoutingTests.swift */,
 				A10000000000000000000024 /* CloudKitErrorMappingTests.swift */,
@@ -282,6 +291,7 @@
 				D10000000000000000000012 /* AppSession+CartMutations.swift */,
 				D10000000000000000000013 /* AppSession+Membership.swift */,
 				D10000000000000000000016 /* AppSession+Welcome.swift */,
+				D10000000000000000000017 /* AppSession+AccountDeletion.swift */,
 				D10000000000000000000015 /* AppSession+Hosts.swift */,
 				D10000000000000000000014 /* AppSession+FamilySelection.swift */,
 				D10000000000000000000007 /* CartSyncService.swift */,
@@ -410,6 +420,8 @@
 				D10000000000000000000003 /* CloudKitShareSupport.swift */,
 				D10000000000000000000004 /* CloudKitPermissionAuthorizer.swift */,
 				D10000000000000000000005 /* CloudKitBackendService.swift */,
+				D10000000000000000000019 /* CloudKitBackendService+AccountDeletion.swift */,
+				D10000000000000000000018 /* AccountCloudDataDeleting.swift */,
 				D10000000000000000000006 /* FamilyInviteLinkBuilder.swift */,
 			);
 			path = CloudKit;
@@ -585,6 +597,8 @@
 				D20000000000000000000004 /* CloudKitShareSupport.swift in Sources */,
 				D20000000000000000000005 /* CloudKitPermissionAuthorizer.swift in Sources */,
 				D20000000000000000000006 /* CloudKitBackendService.swift in Sources */,
+				D20000000000000000000019 /* CloudKitBackendService+AccountDeletion.swift in Sources */,
+				D20000000000000000000018 /* AccountCloudDataDeleting.swift in Sources */,
 				D20000000000000000000007 /* FamilyInviteLinkBuilder.swift in Sources */,
 				D20000000000000000000008 /* CartSyncService.swift in Sources */,
 				D2000000000000000000000C /* CartContentStore.swift in Sources */,
@@ -597,6 +611,7 @@
 				D20000000000000000000012 /* AppSession+CartMutations.swift in Sources */,
 				D20000000000000000000013 /* AppSession+Membership.swift in Sources */,
 				D20000000000000000000016 /* AppSession+Welcome.swift in Sources */,
+				D20000000000000000000017 /* AppSession+AccountDeletion.swift in Sources */,
 				D20000000000000000000015 /* AppSession+Hosts.swift in Sources */,
 				D20000000000000000000014 /* AppSession+FamilySelection.swift in Sources */,
 				D20000000000000000000009 /* FamilyShareOrchestrator.swift in Sources */,
@@ -644,6 +659,7 @@
 				A2000000000000000000001B /* FamilyCartLifecycleTests.swift in Sources */,
 				A2000000000000000000001C /* CartAccessTests.swift in Sources */,
 				A20000000000000000000051 /* GuestMemberSessionTests.swift in Sources */,
+				A20000000000000000000052 /* AccountDeletionTests.swift in Sources */,
 				A2000000000000000000001D /* StableIDTests.swift in Sources */,
 				A2000000000000000000001E /* PersistenceRoutingTests.swift in Sources */,
 				A2000000000000000000001F /* CloudKitErrorMappingTests.swift in Sources */,

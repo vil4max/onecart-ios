@@ -35,7 +35,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
 | `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
-| `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle |
+| `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle, private-zone account deletion |
 
 Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
 

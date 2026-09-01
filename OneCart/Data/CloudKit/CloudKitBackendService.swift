@@ -3,8 +3,8 @@ import CoreData
 import Foundation
 
 final class CloudKitBackendService {
-    private let persistence: PersistenceController
-    private let cloudContainer: CKContainer
+    let persistence: PersistenceController
+    let cloudContainer: CKContainer
 
     init(
         persistence: PersistenceController,
@@ -381,7 +381,7 @@ final class CloudKitBackendService {
         }
     }
 
-    private func accountStatus() async throws -> CKAccountStatus {
+    func accountStatus() async throws -> CKAccountStatus {
         try await withCheckedThrowingContinuation { continuation in
             cloudContainer.accountStatus { status, error in
                 if let error {

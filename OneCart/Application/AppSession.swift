@@ -29,6 +29,7 @@ final class AppSession: ObservableObject {
     @Published var preferredMainTab: MainTab?
     @Published var userAlert: UserAlert?
     @Published var sharedCartRemovedMessage: String?
+    @Published var isDeletingAccount = false
 
     var alertMessage: String? {
         userAlert?.message
@@ -42,6 +43,8 @@ final class AppSession: ObservableObject {
     let cloudSync: CloudSyncCoordinator
     let invitePreparer: InviteLinkPreparer
     let household: HouseholdCartCoordinator
+    let accountCloudDataDeleter: AccountCloudDataDeleting
+    let accountLocalStorePreparer: AccountLocalStorePreparing
 
     var lists: [ShoppingListEntity] {
         cartContent.lists
@@ -121,7 +124,9 @@ final class AppSession: ObservableObject {
         preferences: DevicePreferences = DevicePreferences(),
         defaults: UserDefaults = .standard,
         backend: CloudKitBackendService? = nil,
-        appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared
+        appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
+        accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
+        accountLocalStorePreparer: AccountLocalStorePreparing? = nil
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
@@ -136,6 +141,8 @@ final class AppSession: ObservableObject {
         let backend = backend ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
         self.backend = backend
+        self.accountCloudDataDeleter = accountCloudDataDeleter ?? backend
+        self.accountLocalStorePreparer = accountLocalStorePreparer ?? persistence
         cartSync = CartSyncService(persistence: persistence)
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(

@@ -156,6 +156,24 @@ struct AccountView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
+                    Button {
+                        viewModel.confirmingDeleteAccount = true
+                    } label: {
+                        AccountActionRow(
+                            titleKey: "account.delete_account",
+                            systemImage: "person.crop.circle.badge.minus",
+                            style: .destructive,
+                            trailing: {
+                                if model.isDeletingAccount {
+                                    ProgressView()
+                                        .tint(OneCartPalette.danger)
+                                }
+                            }
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.isDeletingAccount || model.isBusy)
                 } header: {
                     Text("settings.apple_section")
                 } footer: {
@@ -303,6 +321,14 @@ struct AccountView: View {
                 }
             } message: {
                 Text("account.sign_out_message")
+            }
+            .alert("account.delete_confirm_title", isPresented: $viewModel.confirmingDeleteAccount) {
+                Button("common.cancel", role: .cancel) {}
+                Button("account.delete_confirm_action", role: .destructive) {
+                    Task { await viewModel.deleteAccount() }
+                }
+            } message: {
+                Text(viewModel.deleteAccountConfirmMessage)
             }
         }
     }
