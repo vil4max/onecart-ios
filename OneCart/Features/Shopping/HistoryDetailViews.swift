@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HistoryDayDetailView: View {
     @EnvironmentObject private var model: AppSession
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let group: HistoryDayGroup
 
     private var liveGroup: HistoryDayGroup {
@@ -14,11 +15,25 @@ struct HistoryDayDetailView: View {
         .current
     }
 
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var gridColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 12)]
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(liveGroup.items, id: \.objectID) { item in
-                    HistoryProductRow(item: item)
+            Group {
+                if isRegular {
+                    LazyVGrid(columns: gridColumns, spacing: 12) {
+                        rowsContent
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 10) {
+                        rowsContent
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -28,6 +43,12 @@ struct HistoryDayDetailView: View {
         .background(OneCartPalette.background.ignoresSafeArea())
         .navigationTitle(liveGroup.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var rowsContent: some View {
+        ForEach(liveGroup.items, id: \.objectID) { item in
+            HistoryProductRow(item: item)
+        }
     }
 }
 

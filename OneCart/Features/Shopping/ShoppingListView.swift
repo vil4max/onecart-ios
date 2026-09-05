@@ -148,6 +148,18 @@ struct ShoppingListView: View {
             .navigationTitle(model.cartTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if model.canEdit {
+                        Button {
+                            Task { await beginNewItem() }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .disabled(isAddingDraft || model.isBusy)
+                        .accessibilityLabel(String(localized: "cart.add_a11y"))
+                        .keyboardShortcut("n", modifiers: .command)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if model.isCartSyncing {
                         ProgressView()
@@ -155,6 +167,14 @@ struct ShoppingListView: View {
                             .accessibilityLabel(Text("cart.updating"))
                     }
                 }
+            }
+            .background {
+                Button("") {
+                    Task { await model.syncCart(reason: .pull) }
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .opacity(0)
+                .accessibilityHidden(true)
             }
             .task {
                 await model.syncCart(reason: .appear)
@@ -273,7 +293,7 @@ struct ShoppingListView: View {
         .padding(.top, 8)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.bar)
+        .background(OneCartPalette.background)
     }
 
     @MainActor

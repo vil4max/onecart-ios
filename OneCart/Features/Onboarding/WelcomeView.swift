@@ -13,27 +13,23 @@ struct WelcomeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 32)
-
-            Group {
-                switch model.welcomePhase {
-                case .signIn:
-                    signInContent
-                case .connecting:
-                    connectingContent
-                case let .failed(message):
-                    failedContent(message: message)
-                }
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 0) {
+                Spacer(minLength: 32)
+                welcomeContent
+                Spacer(minLength: 32)
             }
-            .opacity(contentVisible ? 1 : 0)
-            .offset(y: contentVisible || reduceMotion ? 0 : 12)
+            .padding(.horizontal, 32)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Spacer(minLength: 32)
+            ScrollView(showsIndicators: false) {
+                welcomeContent
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: .infinity)
+            }
         }
-        .padding(.horizontal, 32)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(OneCartPalette.background.ignoresSafeArea())
         .onAppear {
             guard !contentVisible else { return }
@@ -45,6 +41,21 @@ struct WelcomeView: View {
                 }
             }
         }
+    }
+
+    private var welcomeContent: some View {
+        Group {
+            switch model.welcomePhase {
+            case .signIn:
+                signInContent
+            case .connecting:
+                connectingContent
+            case let .failed(message):
+                failedContent(message: message)
+            }
+        }
+        .opacity(contentVisible ? 1 : 0)
+        .offset(y: contentVisible || reduceMotion ? 0 : 12)
     }
 
     private var signInContent: some View {

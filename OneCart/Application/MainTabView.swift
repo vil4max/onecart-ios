@@ -22,6 +22,7 @@ struct MainTabView: View {
                 AccountView(model: model)
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tint(OneCartPalette.primary)
         .onReceive(model.$preferredMainTab.compactMap { $0 }) { tab in
             selection = tab

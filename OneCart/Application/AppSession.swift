@@ -121,7 +121,7 @@ final class AppSession: ObservableObject {
 
     init(
         persistence: PersistenceController? = nil,
-        preferences: DevicePreferences = DevicePreferences(),
+        preferences: DevicePreferences? = nil,
         defaults: UserDefaults = .standard,
         backend: CloudKitBackendService? = nil,
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
@@ -130,7 +130,7 @@ final class AppSession: ObservableObject {
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
-        self.preferences = preferences
+        self.preferences = preferences ?? DevicePreferences(defaults: defaults)
         self.defaults = defaults
         self.appleSignIn = appleSignIn
 

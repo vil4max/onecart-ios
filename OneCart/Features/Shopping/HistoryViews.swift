@@ -2,15 +2,24 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppSession
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var dayGroups: [HistoryDayGroup] {
         HistoryDayGroup.groups(from: model.history)
     }
 
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var gridColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 16)]
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
                     Text("history.how_it_works")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -24,13 +33,14 @@ struct HistoryView: View {
                             message: String(localized: "history.empty_message")
                         )
                     } else {
-                        ForEach(dayGroups) { group in
-                            NavigationLink {
-                                HistoryDayDetailView(group: group)
-                            } label: {
-                                HistoryDayCard(group: group)
+                        if isRegular {
+                            LazyVGrid(columns: gridColumns, spacing: 16) {
+                                cardsContent
                             }
-                            .buttonStyle(HomePressButtonStyle())
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 16) {
+                                cardsContent
+                            }
                         }
 
                         if model.historyHasMore {
@@ -41,6 +51,8 @@ struct HistoryView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(OneCartSecondaryButtonStyle())
+                            .frame(maxWidth: isRegular ? 400 : .infinity)
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
                 }
@@ -51,6 +63,17 @@ struct HistoryView: View {
             .background(OneCartPalette.background.ignoresSafeArea())
             .navigationTitle("history.nav_title")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var cardsContent: some View {
+        ForEach(dayGroups) { group in
+            NavigationLink {
+                HistoryDayDetailView(group: group)
+            } label: {
+                HistoryDayCard(group: group)
+            }
+            .buttonStyle(HomePressButtonStyle())
         }
     }
 }

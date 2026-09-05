@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 enum ParticipantDisplayName {
     static var placeholder: String {
@@ -45,7 +46,47 @@ enum ParticipantDisplayName {
     }
 }
 
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String {
+        rawValue
+    }
+
+    var localizedTitleKey: LocalizedStringKey {
+        switch self {
+        case .system: "theme.system"
+        case .light: "theme.light"
+        case .dark: "theme.dark"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .system: String(localized: "theme.system")
+        case .light: String(localized: "theme.light")
+        case .dark: String(localized: "theme.dark")
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
 final class DevicePreferences: ObservableObject {
+    @Published var theme: AppTheme {
+        didSet {
+            defaults.set(theme.rawValue, forKey: Keys.theme)
+        }
+    }
+
     @Published var participantDisplayName: String {
         didSet {
             defaults.set(
@@ -59,16 +100,21 @@ final class DevicePreferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
+        theme = AppTheme(rawValue: storedTheme) ?? .system
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     func reloadFromDefaults() {
+        let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
+        theme = AppTheme(rawValue: storedTheme) ?? .system
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     private enum Keys {
+        static let theme = "onecart.theme"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }

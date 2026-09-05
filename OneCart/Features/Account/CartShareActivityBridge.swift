@@ -12,7 +12,17 @@ struct CartActivityViewController: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context _: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        if let popover = controller.popoverPresentationController {
+            popover.permittedArrowDirections = []
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            let activeScene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+            if let window = activeScene?.windows.first(where: \.isKeyWindow) ?? activeScene?.windows.first {
+                popover.sourceView = window
+                popover.sourceRect = CGRect(x: window.bounds.midX, y: window.bounds.midY, width: 0, height: 0)
+            }
+        }
+        return controller
     }
 
     func updateUIViewController(_: UIActivityViewController, context _: Context) {}

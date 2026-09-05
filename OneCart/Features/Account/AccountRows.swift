@@ -90,3 +90,30 @@ struct AccountMemberRow: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+struct AccountPickerRow<SelectionValue: Hashable, Content: View>: View {
+    let titleKey: LocalizedStringKey
+    let systemImage: String
+    @Binding var selection: SelectionValue
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .frame(width: 28, height: 28)
+                .background(
+                    OneCartPalette.primarySoft,
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+
+            Picker(titleKey, selection: $selection) {
+                content()
+            }
+            .pickerStyle(.menu)
+            .tint(.secondary)
+        }
+        .contentShape(Rectangle())
+    }
+}

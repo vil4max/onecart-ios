@@ -163,6 +163,9 @@ private final class LaunchRideView: UIView {
         if let scene = scenes.first(where: { $0.activationState == .foregroundActive })
             ?? scenes.first
         {
+            if let window = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first {
+                return window.bounds
+            }
             return scene.screen.bounds
         }
         return .init(x: 0, y: 0, width: 390, height: 844)
@@ -241,10 +244,13 @@ private final class LaunchRideView: UIView {
     }
 
     private var screenWidth: CGFloat {
+        if bounds.width > 0 {
+            return bounds.width
+        }
         if let window {
             return window.bounds.width
         }
-        return bounds.width
+        return Self.screenBounds.width
     }
 }
 

@@ -28,11 +28,17 @@ struct OneCartApp: App {
 private struct OneCartScene: View {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var model: AppSession
+    @ObservedObject private var preferences: DevicePreferences
+
+    init(model: AppSession) {
+        self.model = model
+        _preferences = ObservedObject(wrappedValue: model.preferences)
+    }
 
     var body: some View {
         RootView()
             .environmentObject(model)
-            .preferredColorScheme(nil)
+            .preferredColorScheme(preferences.theme.colorScheme)
             .task {
                 guard !Self.isRunningUnitTests else { return }
                 if Self.bootstrapTask == nil {

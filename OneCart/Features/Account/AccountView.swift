@@ -3,9 +3,11 @@ import SwiftUI
 struct AccountView: View {
     @EnvironmentObject private var model: AppSession
     @StateObject private var viewModel: AccountViewModel
+    @ObservedObject private var preferences: DevicePreferences
 
     init(model: AppSession) {
         _viewModel = StateObject(wrappedValue: AccountViewModel(session: model))
+        _preferences = ObservedObject(wrappedValue: model.preferences)
     }
 
     var body: some View {
@@ -149,6 +151,20 @@ struct AccountView: View {
                     Text("settings.apple_section")
                 } footer: {
                     Text("settings.apple_name_footer")
+                }
+
+                Section {
+                    AccountPickerRow(
+                        titleKey: "settings.theme",
+                        systemImage: "circle.lefthalf.filled",
+                        selection: $preferences.theme
+                    ) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.localizedTitleKey).tag(theme)
+                        }
+                    }
+                } header: {
+                    Text("settings.appearance")
                 }
 
                 Section {
