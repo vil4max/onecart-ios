@@ -98,10 +98,12 @@ extension AppSession {
             access = nil
             clearPreparedInviteLink()
         }
+        updateWidgetSnapshot()
     }
 
     func refreshProducts() throws {
         guard let selectedID = activeFamilySpace?.id else { return }
         try cartContent.refreshProducts(familySpaceID: selectedID)
+        updateWidgetSnapshot()
     }
 }

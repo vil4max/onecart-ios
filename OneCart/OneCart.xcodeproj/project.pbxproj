@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A20000000000000000000060 /* OneCartPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* OneCartPalette.swift */; };
+		A20000000000000000000061 /* WidgetCartSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000061 /* WidgetCartSnapshot.swift */; };
+		A20000000000000000000062 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000062 /* WidgetSnapshotStore.swift */; };
+		A20000000000000000000063 /* ToggleProductPurchasedIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000063 /* ToggleProductPurchasedIntent.swift */; };
+		A20000000000000000000064 /* AppSession+Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000064 /* AppSession+Widget.swift */; };
+		A20000000000000000000065 /* WidgetSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000065 /* WidgetSnapshotTests.swift */; };
+		W200000000000000000000002 /* OneCartWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = W100000000000000000000002 /* OneCartWidgetsBundle.swift */; };
+		W200000000000000000000003 /* CartOverviewWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W100000000000000000000003 /* CartOverviewWidget.swift */; };
+		W200000000000000000000004 /* CartWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W100000000000000000000004 /* CartWidgetViews.swift */; };
+		W200000000000000000000005 /* OneCartPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* OneCartPalette.swift */; };
+		W200000000000000000000006 /* ProductCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* ProductCategory.swift */; };
+		W200000000000000000000007 /* WidgetCartSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000061 /* WidgetCartSnapshot.swift */; };
+		W200000000000000000000008 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000062 /* WidgetSnapshotStore.swift */; };
+		W200000000000000000000009 /* ToggleProductPurchasedIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000063 /* ToggleProductPurchasedIntent.swift */; };
+		W200000000000000000000010 /* OneCartWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = W100000000000000000000001 /* OneCartWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -99,6 +114,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		W600000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = W50000000000000000000001;
+			remoteInfo = OneCartWidgets;
+		};
 		A60000000000000000000001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -108,7 +130,33 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		W400000000000000000000001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				W200000000000000000000010 /* OneCartWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		A10000000000000000000060 /* OneCartPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartPalette.swift; sourceTree = "<group>"; };
+		A10000000000000000000061 /* WidgetCartSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCartSnapshot.swift; sourceTree = "<group>"; };
+		A10000000000000000000062 /* WidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000063 /* ToggleProductPurchasedIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleProductPurchasedIntent.swift; sourceTree = "<group>"; };
+		A10000000000000000000064 /* AppSession+Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Widget.swift"; sourceTree = "<group>"; };
+		A10000000000000000000065 /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
+		W100000000000000000000001 /* OneCartWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneCartWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		W100000000000000000000002 /* OneCartWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartWidgetsBundle.swift; sourceTree = "<group>"; };
+		W100000000000000000000003 /* CartOverviewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartOverviewWidget.swift; sourceTree = "<group>"; };
+		W100000000000000000000004 /* CartWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartWidgetViews.swift; sourceTree = "<group>"; };
+		W100000000000000000000005 /* OneCartWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OneCartWidgets.entitlements; sourceTree = "<group>"; };
+		W100000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* OneCart.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneCart.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -221,12 +269,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		W300000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
+				WG0000000000000000000001 /* OneCartWidgets */,
 				G10000000000000000000001 /* Application */,
 				G10000000000000000000002 /* Features */,
 				G10000000000000000000003 /* Data */,
@@ -241,6 +297,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* OneCart.app */,
+				W100000000000000000000001 /* OneCartWidgets.appex */,
 				A1000000000000000000000E /* OneCartTests.xctest */,
 			);
 			name = Products;
@@ -249,6 +306,7 @@
 		A30000000000000000000001 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000065 /* WidgetSnapshotTests.swift */,
 				A10000000000000000000018 /* FamilyCartMergeTests.swift */,
 				A10000000000000000000019 /* ManagedObjectModelTests.swift */,
 				A1000000000000000000001D /* CartTestSupport.swift */,
@@ -278,6 +336,7 @@
 		G10000000000000000000001 /* Application */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000064 /* AppSession+Widget.swift */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				F10000000000000000000005 /* SceneDelegate.swift */,
 				A10000000000000000000002 /* OneCartApp.swift */,
@@ -331,6 +390,7 @@
 			children = (
 				G10000000000000000000030 /* Media */,
 				G10000000000000000000031 /* Support */,
+				G100000000000000000000032 /* Widgets */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -443,6 +503,7 @@
 		G10000000000000000000031 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000060 /* OneCartPalette.swift */,
 				E10000000000000000000001 /* OneCartStableID.swift */,
 				F10000000000000000000001 /* FamilyCartMerge.swift */,
 				F10000000000000000000011 /* CartHaptics.swift */,
@@ -451,6 +512,28 @@
 				F10000000000000000000013 /* ProductCategory.swift */,
 			);
 			path = Support;
+			sourceTree = "<group>";
+		};
+		G100000000000000000000032 /* Widgets */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000061 /* WidgetCartSnapshot.swift */,
+				A10000000000000000000062 /* WidgetSnapshotStore.swift */,
+				A10000000000000000000063 /* ToggleProductPurchasedIntent.swift */,
+			);
+			path = Widgets;
+			sourceTree = "<group>";
+		};
+		WG0000000000000000000001 /* OneCartWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				W100000000000000000000002 /* OneCartWidgetsBundle.swift */,
+				W100000000000000000000003 /* CartOverviewWidget.swift */,
+				W100000000000000000000004 /* CartWidgetViews.swift */,
+				W100000000000000000000005 /* OneCartWidgets.entitlements */,
+				W100000000000000000000006 /* Info.plist */,
+			);
+			path = OneCartWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -463,10 +546,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				W400000000000000000000001 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				W600000000000000000000002 /* PBXTargetDependency */,
 			);
 			name = OneCart;
 			packageProductDependencies = (
@@ -495,6 +580,25 @@
 			productReference = A1000000000000000000000E /* OneCartTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		W50000000000000000000001 /* OneCartWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = W500000000000000000000002 /* Build configuration list for PBXNativeTarget "OneCartWidgets" */;
+			buildPhases = (
+				W300000000000000000000001 /* Sources */,
+				W300000000000000000000002 /* Frameworks */,
+				W300000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OneCartWidgets;
+			packageProductDependencies = (
+			);
+			productName = OneCartWidgets;
+			productReference = W100000000000000000000001 /* OneCartWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -505,6 +609,10 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					W500000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+						ProvisioningStyle = Automatic;
+					};
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 2600;
@@ -547,6 +655,7 @@
 			targets = (
 				504EC3031FED79650016851F /* OneCart */,
 				A40000000000000000000001 /* OneCartTests */,
+				W50000000000000000000001 /* OneCartWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -570,6 +679,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		W300000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -577,6 +693,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A20000000000000000000060 /* OneCartPalette.swift in Sources */,
+				A20000000000000000000061 /* WidgetCartSnapshot.swift in Sources */,
+				A20000000000000000000062 /* WidgetSnapshotStore.swift in Sources */,
+				A20000000000000000000063 /* ToggleProductPurchasedIntent.swift in Sources */,
+				A20000000000000000000064 /* AppSession+Widget.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				F20000000000000000000005 /* SceneDelegate.swift in Sources */,
 				A20000000000000000000002 /* OneCartApp.swift in Sources */,
@@ -647,6 +768,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A20000000000000000000065 /* WidgetSnapshotTests.swift in Sources */,
 				A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */,
 				A20000000000000000000014 /* ManagedObjectModelTests.swift in Sources */,
 				A20000000000000000000018 /* CartTestSupport.swift in Sources */,
@@ -672,9 +794,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		W300000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				W200000000000000000000002 /* OneCartWidgetsBundle.swift in Sources */,
+				W200000000000000000000003 /* CartOverviewWidget.swift in Sources */,
+				W200000000000000000000004 /* CartWidgetViews.swift in Sources */,
+				W200000000000000000000005 /* OneCartPalette.swift in Sources */,
+				W200000000000000000000006 /* ProductCategory.swift in Sources */,
+				W200000000000000000000007 /* WidgetCartSnapshot.swift in Sources */,
+				W200000000000000000000008 /* WidgetSnapshotStore.swift in Sources */,
+				W200000000000000000000009 /* ToggleProductPurchasedIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		W600000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = W500000000000000000000001 /* OneCartWidgets */;
+			targetProxy = W600000000000000000000001 /* PBXContainerItemProxy */;
+		};
 		A60000000000000000000002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 504EC3031FED79650016851F /* OneCart */;
@@ -916,6 +1058,64 @@
 			};
 			name = Release;
 		};
+		W700000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = OneCartWidgets/OneCartWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 84;
+				DEVELOPMENT_TEAM = BTHRDS7254;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OneCartWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OneCart;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart.OneCartWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		W700000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = OneCartWidgets/OneCartWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 84;
+				DEVELOPMENT_TEAM = BTHRDS7254;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OneCartWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OneCart;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vil555tim.onecart.OneCartWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -942,6 +1142,15 @@
 			buildConfigurations = (
 				A50000000000000000000001 /* Debug */,
 				A50000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		W500000000000000000000002 /* Build configuration list for PBXNativeTarget "OneCartWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				W700000000000000000000001 /* Debug */,
+				W700000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -118,6 +118,7 @@ final class AppSession: ObservableObject {
     private var cartSyncCancellable: AnyCancellable?
     private var cartContentCancellable: AnyCancellable?
     private var invitePreparerCancellable: AnyCancellable?
+    private var preferencesCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -189,6 +190,12 @@ final class AppSession: ObservableObject {
         invitePreparerCancellable = invitePreparer.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        preferencesCancellable = preferences.$theme
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newTheme in
+                self?.updateWidgetSnapshot(themeOverride: newTheme)
+            }
         cartSync.onHardRefresh = { [weak self] in
             guard let self else { return }
             try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {

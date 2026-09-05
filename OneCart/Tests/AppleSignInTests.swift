@@ -42,4 +42,70 @@ final class AppleSignInTests: XCTestCase {
         store.clear()
         XCTAssertNil(store.load())
     }
+
+    func testKeychainStoreFallsBackToUserDefaultsBackup() throws {
+        let service = "onecart.tests.\(UUID().uuidString)"
+        let defaultsSuite = "onecart.tests.suite.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: defaultsSuite))
+        let store = KeychainAppleSignInCredentialStore(service: service, defaults: defaults)
+        let credential = AppleSignInCredential(
+            userID: "user.backup.test",
+            email: "backup@example.com",
+            givenName: "Backup",
+            familyName: "User"
+        )
+        store.save(credential)
+
+        // Clear only keychain items directly
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+        ]
+        SecItemDelete(query as CFDictionary)
+
+        // Store load should fall back to defaults backup
+        let loaded = store.load()
+        XCTAssertEqual(loaded, credential)
+
+        // Clean up
+        store.clear()
+        XCTAssertNil(store.load())
+        defaults.removePersistentDomain(forName: defaultsSuite)
+    }
+
+    func testSimulatorCredentialStateReturnsAuthorized() async {
+        #if targetEnvironment(simulator)
+            let service = AppleSignInService()
+            let state = await service.credentialState(for: "any-user")
+            XCTAssertEqual(state, .authorized)
+        #endif
+    }
+
+    @MainActor
+    func testWelcomeViewModelSignInWithTestAccountBootstrapsSession() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let service = "onecart.tests.\(UUID().uuidString)"
+        let defaultsSuite = "onecart.tests.suite.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: defaultsSuite))
+        let store = KeychainAppleSignInCredentialStore(service: service, defaults: defaults)
+        let appleSignIn = AppleSignInService(store: store)
+        let session = AppSession(
+            persistence: persistence,
+            defaults: defaults,
+            appleSignIn: appleSignIn
+        )
+        let viewModel = WelcomeViewModel(session: session)
+        await viewModel.signInWithTestAccount()
+
+        XCTAssertFalse(session.needsWelcome)
+        XCTAssertEqual(session.account?.displayName, "Max")
+        XCTAssertEqual(session.activeFamilySpace?.displayName, "Max's Cart")
+        XCTAssertEqual(store.load()?.givenName, "Max")
+
+        // Clean up
+        session.signOut()
+        XCTAssertTrue(session.needsWelcome)
+        XCTAssertNil(store.load())
+        defaults.removePersistentDomain(forName: defaultsSuite)
+    }
 }

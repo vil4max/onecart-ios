@@ -21,12 +21,12 @@
             guard isEnabled else { return .owner }
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: roleArgument),
-                  let raw = arguments[safe: index + 1],
-                  let parsed = Role(rawValue: raw.lowercased())
+                  let raw = arguments[safe: index + 1]
             else {
                 return .owner
             }
-            return parsed
+            let normalized = raw.hasPrefix("role=") ? String(raw.dropFirst(5)) : raw
+            return Role(rawValue: normalized.lowercased()) ?? .owner
         }
 
         static var initialTab: MainTab? {
@@ -37,16 +37,21 @@
             else {
                 return nil
             }
-            return MainTab(rawValue: raw)
+            let normalized = raw.hasPrefix("tab=") ? String(raw.dropFirst(4)) : raw
+            return MainTab(rawValue: normalized)
         }
 
         @MainActor
         static func makeSession() -> AppSession {
             let suiteName = role == .member ? "onecart.demo-ui.member" : "onecart.demo-ui"
+            let signIn = DemoAppleSignInService(role: role)
+            if let credential = signIn.storedCredential() {
+                AppleSignInService.shared.save(credential)
+            }
             return AppSession(
-                persistence: PersistenceController(inMemory: true, cloudKitEnabled: false),
+                persistence: PersistenceController(inMemory: false, cloudKitEnabled: false),
                 defaults: UserDefaults(suiteName: suiteName) ?? .standard,
-                appleSignIn: DemoAppleSignInService(role: role)
+                appleSignIn: signIn
             )
         }
 
@@ -63,6 +68,7 @@
         @MainActor
         private static func seedOwnerPersonalCart(_ model: AppSession) async {
             guard let listID = model.activeLists.first?.id else { return }
+            guard model.products(inListID: listID).isEmpty else { return }
             await seedLivingList(on: listID, model: model)
         }
 
@@ -70,6 +76,9 @@
         private static func seedGuestSharedCart(_ model: AppSession) async {
             guard let account = model.account else { return }
             let persistence = model.persistence
+            if model.familySpaces.contains(where: { persistence.scope(for: $0) == .shared }) {
+                return
+            }
             let sharedID = UUID()
             let listID = UUID()
             let sharedName = "Max's Cart"
@@ -214,9 +223,12 @@
 
         func save(_ credential: AppleSignInCredential) {
             self.credential = credential
+            AppleSignInService.shared.save(credential)
         }
 
-        func clearCredential() {}
+        func clearCredential() {
+            AppleSignInService.shared.clearCredential()
+        }
 
         func credentialState(for _: String) async -> AppleSignInCredentialState {
             .authorized

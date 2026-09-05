@@ -49,10 +49,20 @@ final class CloudKitBackendService {
             )
         }
 
-        let status = try await accountStatus()
-        guard status == .available else {
-            throw OneCartCloudKitError.accountUnavailable(status)
-        }
+        #if targetEnvironment(simulator)
+            let status = await (try? accountStatus()) ?? .noAccount
+            if status != .available {
+                return OneCartAccount(
+                    id: OneCartStableID.uuid(for: "apple:\(appleUserID)"),
+                    displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")
+                )
+            }
+        #else
+            let status = try await accountStatus()
+            guard status == .available else {
+                throw OneCartCloudKitError.accountUnavailable(status)
+            }
+        #endif
         return OneCartAccount(
             id: OneCartStableID.uuid(for: "apple:\(appleUserID)"),
             displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")

@@ -67,7 +67,13 @@ final class SessionBootstrapper {
                 await prepare(appleCredential: credential)
                 return
             case .revoked, .notFound:
-                host.clearStoredAppleCredential()
+                #if targetEnvironment(simulator)
+                    host.applyWelcomeConnecting()
+                    await prepare(appleCredential: credential)
+                    return
+                #else
+                    host.clearStoredAppleCredential()
+                #endif
             }
         }
 

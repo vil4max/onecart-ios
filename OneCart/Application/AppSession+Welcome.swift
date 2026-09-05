@@ -37,21 +37,25 @@ extension AppSession {
         isReady = true
     }
 
-    func completeAppleSignIn(authorization: ASAuthorization) async {
+    func completeAppleSignIn(credential: AppleSignInCredential) async {
         needsWelcome = true
         welcomePhase = .connecting
         isReady = true
         isBusy = true
         defer { isBusy = false }
+        appleSignIn.save(credential)
+        if let providedName = credential.providedDisplayName {
+            preferences.participantDisplayName = providedName
+        } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
+            preferences.participantDisplayName = ""
+        }
+        await bootstrapper.prepare(appleCredential: credential)
+    }
+
+    func completeAppleSignIn(authorization: ASAuthorization) async {
         do {
             let credential = try appleSignIn.makeCredential(from: authorization)
-            appleSignIn.save(credential)
-            if let providedName = credential.providedDisplayName {
-                preferences.participantDisplayName = providedName
-            } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
-                preferences.participantDisplayName = ""
-            }
-            await bootstrapper.prepare(appleCredential: credential)
+            await completeAppleSignIn(credential: credential)
         } catch {
             needsWelcome = true
             if let localized = error as? LocalizedError,

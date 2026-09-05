@@ -56,7 +56,11 @@ private struct OneCartScene: View {
             .onChange(of: scenePhase) { _, newPhase in
                 guard !Self.isRunningUnitTests else { return }
                 guard newPhase == .active, model.account != nil else { return }
-                Task { await model.syncCart(reason: .foreground) }
+                Task {
+                    await model.drainWidgetPendingToggles()
+                    await model.syncCart(reason: .foreground)
+                    model.updateWidgetSnapshot()
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
                 guard !Self.isRunningUnitTests else { return }

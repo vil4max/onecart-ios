@@ -67,13 +67,20 @@ protocol AppleSignInAuthenticating: AnyObject {
 final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     private let service: String
     private let account: String
+    private let defaults: UserDefaults
+
+    private var backupKey: String {
+        "onecart.apple-sign-in.backup.\(service).\(account)"
+    }
 
     init(
         service: String = "com.vil555tim.onecart.apple-sign-in",
-        account: String = "current-user"
+        account: String = "current-user",
+        defaults: UserDefaults = OneCartAppGroup.defaults ?? .standard
     ) {
         self.service = service
         self.account = account
+        self.defaults = defaults
     }
 
     func load() -> AppleSignInCredential? {
@@ -86,13 +93,36 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
+        if status == errSecSuccess, let data = item as? Data,
+           let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
+        {
+            defaults.set(data, forKey: backupKey)
+            return credential
+        }
+
+        if let data = defaults.data(forKey: backupKey),
+           let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
+        {
+            saveKeychain(data: data)
+            return credential
+        }
+
+        return nil
     }
 
     func save(_ credential: AppleSignInCredential) {
-        clear()
+        clearKeychain()
         guard let data = try? JSONEncoder().encode(credential) else { return }
+        defaults.set(data, forKey: backupKey)
+        saveKeychain(data: data)
+    }
+
+    func clear() {
+        clearKeychain()
+        defaults.removeObject(forKey: backupKey)
+    }
+
+    private func saveKeychain(data: Data) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -103,7 +133,7 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         SecItemAdd(query as CFDictionary, nil)
     }
 
-    func clear() {
+    private func clearKeychain() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -138,11 +168,15 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
     }
 
     func credentialState(for userID: String) async -> AppleSignInCredentialState {
-        await withCheckedContinuation { continuation in
-            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: userID) { state, _ in
-                continuation.resume(returning: Self.mapCredentialState(state))
+        #if targetEnvironment(simulator)
+            return .authorized
+        #else
+            await withCheckedContinuation { continuation in
+                ASAuthorizationAppleIDProvider().getCredentialState(forUserID: userID) { state, _ in
+                    continuation.resume(returning: Self.mapCredentialState(state))
+                }
             }
-        }
+        #endif
     }
 
     @MainActor

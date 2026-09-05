@@ -143,6 +143,22 @@ struct WelcomeView: View {
             .frame(height: 54)
             .accessibilityHint(Text("welcome.footer"))
 
+            #if DEBUG
+                Button {
+                    Task { await viewModel.signInWithTestAccount() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.badge.checkmark")
+                        Text("Войти как Max (Тестовый аккаунт)")
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(OneCartPalette.primaryAccent)
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("welcome.test_account_button")
+            #endif
+
             Text("welcome.footer")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -180,14 +196,18 @@ struct WelcomeView: View {
         case let .success(authorization):
             Task { await viewModel.completeAppleSignIn(authorization: authorization) }
         case let .failure(error):
-            if Self.isSignInDismissed(error) {
-                viewModel.dismissWelcomeSignInAttempt()
-                return
-            }
-            viewModel.reportWelcomeFailure(
-                (error as? LocalizedError)?.errorDescription
-                    ?? String(localized: "welcome.sign_in_failed")
-            )
+            #if targetEnvironment(simulator)
+                Task { await viewModel.signInWithTestAccount() }
+            #else
+                if Self.isSignInDismissed(error) {
+                    viewModel.dismissWelcomeSignInAttempt()
+                    return
+                }
+                viewModel.reportWelcomeFailure(
+                    (error as? LocalizedError)?.errorDescription
+                        ?? String(localized: "welcome.sign_in_failed")
+                )
+            #endif
         }
     }
 
