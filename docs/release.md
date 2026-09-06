@@ -5,11 +5,20 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 ## Preflight (this branch)
 
 Version: **1.0.1**. Project is set to `MARKETING_VERSION = 1.0.1` and
-`CURRENT_PROJECT_VERSION = 87` (after validated ASC build **82** / train **1.0** approved).
+`CURRENT_PROJECT_VERSION = 88` (after validated ASC build **82** / train **1.0** approved).
 Every further upload of 1.0.1 must use a build number higher than the last accepted ASC build.
 Bump `MARKETING_VERSION` only when starting a new App Store version train.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, theme sync, and smart family push notifications for items added and cart completed (build 87). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
+**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, theme sync, smart family push notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
+
+### Build 88 Highlights (Quick Suggestion Chips)
+- **1-Tap Add Suggestions:** Frequently purchased items appear directly below the text input inside the composer card when adding an item.
+- **Dynamic Frequency Ranking:** Powered by `CartSuggestionsEngine`, ranking suggestions by purchase frequency from historical shopping sessions, automatically excluding items already in the cart.
+- **Real-Time Text Filtering:** Suggestions filter as the user types with prefix-match priority.
+- **Clean Inset-Grouped Layout:** Integrated into the composer row cell with `.buttonStyle(.borderless)` — no bottom overlay, no floating tab bar collision, and no drag jitter.
+- **Screenshots:**
+  - ![Integrated composer suggestions](screenshots/suggestions_integrated.png)
+  - ![Suggestions added in 1 tap](screenshots/suggestions_chips_added.png)
 
 ### Build 87 Highlights (Smart Family Notifications)
 - **Item added by partner:** Instant push notification when a family member adds new item(s) to the shared cart (*«Маша добавила «Сыр» в корзину»*).

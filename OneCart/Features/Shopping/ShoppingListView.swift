@@ -48,6 +48,14 @@ struct ShoppingListView: View {
         editName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var suggestions: [String] {
+        CartSuggestionsEngine.suggestions(
+            from: model.history,
+            currentCartProducts: products,
+            query: draftName
+        )
+    }
+
     private var showsEmptyCard: Bool {
         products.isEmpty && !isComposingNewItem
     }
@@ -127,11 +135,11 @@ struct ShoppingListView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if model.canEdit, focusedField == nil {
+                if model.canEdit {
                     CartAddFAB {
                         Task { await beginNewItem() }
                     }
-                    .disabled(isAddingDraft || model.isBusy)
+                    .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
                     .padding(.trailing, 20)
                     .padding(.bottom, 12)
                 }
@@ -206,20 +214,52 @@ struct ShoppingListView: View {
     }
 
     private var newItemComposerRow: some View {
-        HStack(spacing: 12) {
-            CartCategoryThumbnail(
-                category: ProductCategory.inferred(from: draftName),
-                isDimmed: false
-            )
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                CartCategoryThumbnail(
+                    category: ProductCategory.inferred(from: draftName),
+                    isDimmed: false
+                )
 
-            TextField("cart.add_placeholder", text: $draftName)
-                .font(.body)
-                .focused($focusedField, equals: .compose)
-                .submitLabel(.done)
-                .onSubmit { Task { await commitDraftProduct(startAnother: false) } }
-                .disabled(isAddingDraft)
-                .accessibilityLabel(String(localized: "cart.add_a11y"))
+                TextField("cart.add_placeholder", text: $draftName)
+                    .font(.body)
+                    .focused($focusedField, equals: .compose)
+                    .submitLabel(.done)
+                    .onSubmit { Task { await commitDraftProduct(startAnother: false) } }
+                    .disabled(isAddingDraft)
+                    .accessibilityLabel(String(localized: "cart.add_a11y"))
+            }
+
+            if !suggestions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(suggestions, id: \.self) { item in
+                            Button {
+                                Task { await addSuggestedItem(item) }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus")
+                                        .font(.caption2.weight(.bold))
+                                    Text(item)
+                                        .font(.subheadline.weight(.medium))
+                                }
+                                .foregroundStyle(OneCartPalette.primaryAccent)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(OneCartPalette.primarySoft)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel(
+                                String(format: String(localized: "cart.suggestion_chip_a11y %@"), item)
+                            )
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
         }
+        .padding(.vertical, 4)
     }
 
     private func productRows(
@@ -338,6 +378,26 @@ struct ShoppingListView: View {
         isComposingNewItem = false
         draftName = ""
         focusedField = nil
+    }
+
+    @MainActor
+    private func addSuggestedItem(_ name: String) async {
+        guard model.canEdit else { return }
+        guard let list = model.lists.first(where: { $0.id == listID }) else { return }
+
+        CartHaptics.light()
+        let draft = ProductDraft(
+            name: name,
+            quantity: 1,
+            unit: .piece,
+            category: ProductCategory.inferred(from: name),
+            estimatedPrice: 0,
+            note: ""
+        )
+        _ = await model.addProduct(to: list, draft: draft)
+        draftName = ""
+        isComposingNewItem = true
+        focusedField = .compose
     }
 
     @MainActor

@@ -1602,6 +1602,29 @@
         }
       }
     },
+    "cart.suggestion_chip_a11y %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додати %@"
+          }
+        }
+      }
+    },
     "cart.added_by %@" : {
       "extractionState" : "manual",
       "localizations" : {

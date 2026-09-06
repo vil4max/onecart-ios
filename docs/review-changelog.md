@@ -312,3 +312,10 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Paths: CartActivityNotifier.swift, CartActivityDiffTests.swift, AppSession+Hosts.swift, AppDelegate.swift, Localizable.xcstrings, docs/screenshots/
 - What changed: Pure diff engine (`CartActivityDiff`) for detecting items added by partner and cart completed; anti-spam filters (self-actions ignored, baseline seeded on launch, single-user carts suppressed, multiple items coalesced); local banner and sound presentation via `UNUserNotificationCenter` in foreground and background; APNs remote notification registration in `AppDelegate`.
 - How to verify: `CartActivityDiffTests` (8 unit tests), `just verify` (151 tests pass).
+
+### RC39 — Quick Suggestion Chips (Build 88)
+- Status: done (this train)
+- Paths: CartSuggestionsEngine.swift, CartSuggestionsEngineTests.swift, ShoppingListView.swift, Localizable.xcstrings, docs/screenshots/
+- What changed: `CartSuggestionsEngine` calculates top suggested items based on historical purchase frequency (`PurchaseHistoryEntity`) while excluding items currently in the cart and filtering dynamically by typed query (prefix-first); integrated horizontally scrollable suggestions inside the composer card cell in `ShoppingListView` with `.buttonStyle(.borderless)` for instant 1-tap additions; prevents tab-bar overlap and scroll desynchronization.
+- How to verify: `CartSuggestionsEngineTests` (6 unit tests), `just verify` (151 tests pass), UI verified in simulator.
+
