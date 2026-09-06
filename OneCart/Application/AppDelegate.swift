@@ -10,17 +10,35 @@ extension Notification.Name {
     )
 }
 
-final class AppDelegate: UIResponder, UIApplicationDelegate {
+final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private static let metadataLock = NSLock()
     private static var pendingShareMetadata: [CKShare.Metadata] = []
 
     func application(
-        _: UIApplication,
+        _ application: UIApplication,
         didFinishLaunchingWithOptions _: [
             UIApplication.LaunchOptionsKey: Any
         ]?
     ) -> Bool {
-        true
+        UNUserNotificationCenter.current().delegate = self
+        application.registerForRemoteNotifications()
+        return true
+    }
+
+    func application(
+        _: UIApplication,
+        didReceiveRemoteNotification _: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        completionHandler(.newData)
+    }
+
+    func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     func application(

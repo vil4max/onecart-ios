@@ -41,6 +41,15 @@ extension AppSession: CloudSyncHost {
 
     func softRefreshCartProducts() {
         do {
+            let previous = products.map { product in
+                CartItemSnapshot(
+                    id: product.stableID,
+                    name: product.displayName,
+                    isPurchased: product.isPurchasedValue,
+                    createdByName: product.createdByName,
+                    purchasedByName: product.purchasedByName
+                )
+            }
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
             let purchasedCount = products.filter(\.isPurchasedValue).count
@@ -48,6 +57,26 @@ extension AppSession: CloudSyncHost {
             CartSyncLog.cart.info(
                 "softRefresh purchased=\(purchasedCount)/\(totalCount)"
             )
+            let current = products.map { product in
+                CartItemSnapshot(
+                    id: product.stableID,
+                    name: product.displayName,
+                    isPurchased: product.isPurchasedValue,
+                    createdByName: product.createdByName,
+                    purchasedByName: product.purchasedByName
+                )
+            }
+            if let cartID = activeFamilySpace?.id {
+                let currentUserName = Self.participantName(preferences: preferences, account: account) ?? ""
+                let isShared = familyMembers.count > 1
+                CartActivityNotifier.notifyIfNeeded(
+                    cartID: cartID,
+                    previous: previous,
+                    current: current,
+                    currentUserName: currentUserName,
+                    isSharedCart: isShared
+                )
+            }
         } catch {
             CartSyncLog.cart.error(
                 "softRefresh failed error=\(error.localizedDescription, privacy: .public)"

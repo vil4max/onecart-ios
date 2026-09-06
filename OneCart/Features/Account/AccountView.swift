@@ -222,6 +222,7 @@ struct AccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 MemberJoinNotifier.requestAuthorizationIfNeeded()
+                CartActivityNotifier.requestAuthorizationIfNeeded()
                 await model.refreshAccountSharing()
             }
             .sheet(isPresented: $viewModel.isEditingDisplayName) {

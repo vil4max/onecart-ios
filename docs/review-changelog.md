@@ -300,3 +300,15 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - What changed: separate demo state for participant on shared cart; unit tests for member access, no owner rename/revoke, return to personal; no-share metadata fallback uses `access(for:)` (member on shared)
 - How to verify: `GuestMemberSessionTests`; sim `-oneCartDemoUI -oneCartDemoRole member -oneCartDemoTab account` → Leave, no Rename for member; owner still sees Revoke on private-store cart
 - Do not invent scope: real CKShare participant list still requires CloudKit share record
+
+### RC37 — Home & Lock Screen Widgets (Build 86)
+- Status: done (this train)
+- Paths: OneCartWidgets/, WidgetSnapshotStore, WidgetCartSnapshot, AppSession+Widget, ToggleProductPurchasedIntent
+- What changed: Interactive Home & Lock Screen widgets (Small, Medium, Large, Circular, Inline, Rectangular), App Group snapshot sharing, theme synchronization with dark/light mode, optimistic interactive toggling from widget.
+- How to verify: `WidgetSnapshotTests`, run widget extension in simulator.
+
+### RC38 — Smart Family Push Notifications (Build 87)
+- Status: done (this train)
+- Paths: CartActivityNotifier.swift, CartActivityDiffTests.swift, AppSession+Hosts.swift, AppDelegate.swift, Localizable.xcstrings, docs/screenshots/
+- What changed: Pure diff engine (`CartActivityDiff`) for detecting items added by partner and cart completed; anti-spam filters (self-actions ignored, baseline seeded on launch, single-user carts suppressed, multiple items coalesced); local banner and sound presentation via `UNUserNotificationCenter` in foreground and background; APNs remote notification registration in `AppDelegate`.
+- How to verify: `CartActivityDiffTests` (8 unit tests), `just verify` (151 tests pass).

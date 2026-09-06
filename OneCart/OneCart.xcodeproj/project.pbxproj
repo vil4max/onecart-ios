@@ -111,6 +111,8 @@
 		F20000000000000000000015 /* CartAddFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* CartAddFAB.swift */; };
 		F20000000000000000000016 /* AccountRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* AccountRows.swift */; };
 		F20000000000000000000017 /* AccountViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* AccountViewModelTests.swift */; };
+		F20000000000000000000018 /* CartActivityNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000018 /* CartActivityNotifier.swift */; };
+		A20000000000000000000066 /* CartActivityDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000066 /* CartActivityDiffTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -151,6 +153,8 @@
 		A10000000000000000000063 /* ToggleProductPurchasedIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleProductPurchasedIntent.swift; sourceTree = "<group>"; };
 		A10000000000000000000064 /* AppSession+Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSession+Widget.swift"; sourceTree = "<group>"; };
 		A10000000000000000000065 /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000066 /* CartActivityDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartActivityDiffTests.swift; sourceTree = "<group>"; };
+		F10000000000000000000018 /* CartActivityNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartActivityNotifier.swift; sourceTree = "<group>"; };
 		W100000000000000000000001 /* OneCartWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneCartWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		W100000000000000000000002 /* OneCartWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartWidgetsBundle.swift; sourceTree = "<group>"; };
 		W100000000000000000000003 /* CartOverviewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartOverviewWidget.swift; sourceTree = "<group>"; };
@@ -307,6 +311,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000065 /* WidgetSnapshotTests.swift */,
+				A10000000000000000000066 /* CartActivityDiffTests.swift */,
 				A10000000000000000000018 /* FamilyCartMergeTests.swift */,
 				A10000000000000000000019 /* ManagedObjectModelTests.swift */,
 				A1000000000000000000001D /* CartTestSupport.swift */,
@@ -508,6 +513,7 @@
 				F10000000000000000000001 /* FamilyCartMerge.swift */,
 				F10000000000000000000011 /* CartHaptics.swift */,
 				F10000000000000000000012 /* MemberJoinNotifier.swift */,
+				F10000000000000000000018 /* CartActivityNotifier.swift */,
 				F10000000000000000000010 /* CategoryClassifier.swift */,
 				F10000000000000000000013 /* ProductCategory.swift */,
 			);
@@ -747,6 +753,7 @@
 				F20000000000000000000001 /* FamilyCartMerge.swift in Sources */,
 				F20000000000000000000011 /* CartHaptics.swift in Sources */,
 				F20000000000000000000012 /* MemberJoinNotifier.swift in Sources */,
+				F20000000000000000000018 /* CartActivityNotifier.swift in Sources */,
 				F20000000000000000000010 /* CategoryClassifier.swift in Sources */,
 				F20000000000000000000013 /* ProductCategory.swift in Sources */,
 				A20000000000000000000008 /* AppSession.swift in Sources */,
@@ -772,6 +779,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A20000000000000000000065 /* WidgetSnapshotTests.swift in Sources */,
+				A20000000000000000000066 /* CartActivityDiffTests.swift in Sources */,
 				A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */,
 				A20000000000000000000014 /* ManagedObjectModelTests.swift in Sources */,
 				A20000000000000000000018 /* CartTestSupport.swift in Sources */,
@@ -968,7 +976,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/OneCartDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 86;
+				CURRENT_PROJECT_VERSION = 87;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -997,7 +1005,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/OneCartRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 86;
+				CURRENT_PROJECT_VERSION = 87;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -1071,7 +1079,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = OneCartWidgets/OneCartWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 86;
+				CURRENT_PROJECT_VERSION = 87;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OneCartWidgets/Info.plist;
@@ -1100,7 +1108,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = OneCartWidgets/OneCartWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 86;
+				CURRENT_PROJECT_VERSION = 87;
 				DEVELOPMENT_TEAM = BTHRDS7254;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OneCartWidgets/Info.plist;

@@ -232,7 +232,7 @@ extension AppSession {
         }
     }
 
-    private static func participantName(
+    static func participantName(
         preferences: DevicePreferences,
         account: OneCartAccount?
     ) -> String? {

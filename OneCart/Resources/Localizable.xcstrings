@@ -3358,6 +3358,98 @@
         }
       }
     },
+    "notify.all_purchased_body %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bought all items in the cart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ купил(а) все товары из корзины"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ придбав(-ла) всі товари з кошика"
+          }
+        }
+      }
+    },
+    "notify.all_purchased_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All items purchased! 🎉"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всё куплено! 🎉"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все куплено! 🎉"
+          }
+        }
+      }
+    },
+    "notify.item_added_single %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ added \"%2$@\" to the cart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ добавил(а) «%2$@» в корзину"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ додав(-ла) «%2$@» до кошика"
+          }
+        }
+      }
+    },
+    "notify.items_added_multiple %@ %@ %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ added \"%2$@\" and %3$lld more items"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ добавил(а) «%2$@» и ещё %3$lld в корзину"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ додав(-ла) «%2$@» та ще %3$lld до кошика"
+          }
+        }
+      }
+    },
     "notify.member_joined_body %@" : {
       "extractionState" : "manual",
       "localizations" : {
