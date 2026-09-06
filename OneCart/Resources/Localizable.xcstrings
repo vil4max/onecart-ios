@@ -1878,6 +1878,52 @@
         }
       }
     },
+    "cart.all_purchased_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All products are in your trolley — ready for checkout"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все продукты в тележке — можно идти на кассу"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі продукти у візку — можна йти до каси"
+          }
+        }
+      }
+    },
+    "cart.all_purchased_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All products bought! 🎉"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все продукты куплены! 🎉"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі продукти куплено! 🎉"
+          }
+        }
+      }
+    },
     "cart.progress_completed %lld %lld" : {
       "extractionState" : "manual",
       "localizations" : {

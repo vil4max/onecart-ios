@@ -115,6 +115,8 @@
 		F20000000000000000000020 /* CartSuggestionsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000020 /* CartSuggestionsEngine.swift */; };
 		A20000000000000000000066 /* CartActivityDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000066 /* CartActivityDiffTests.swift */; };
 		A20000000000000000000067 /* CartSuggestionsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000067 /* CartSuggestionsEngineTests.swift */; };
+		F20000000000000000000021 /* CartConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000021 /* CartConfettiView.swift */; };
+		A20000000000000000000068 /* CartCelebrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000068 /* CartCelebrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -159,6 +161,8 @@
 		A10000000000000000000067 /* CartSuggestionsEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartSuggestionsEngineTests.swift; sourceTree = "<group>"; };
 		F10000000000000000000018 /* CartActivityNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartActivityNotifier.swift; sourceTree = "<group>"; };
 		F10000000000000000000020 /* CartSuggestionsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartSuggestionsEngine.swift; sourceTree = "<group>"; };
+		F10000000000000000000021 /* CartConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartConfettiView.swift; sourceTree = "<group>"; };
+		A10000000000000000000068 /* CartCelebrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartCelebrationTests.swift; sourceTree = "<group>"; };
 		W100000000000000000000001 /* OneCartWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneCartWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		W100000000000000000000002 /* OneCartWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartWidgetsBundle.swift; sourceTree = "<group>"; };
 		W100000000000000000000003 /* CartOverviewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartOverviewWidget.swift; sourceTree = "<group>"; };
@@ -317,6 +321,7 @@
 				A10000000000000000000065 /* WidgetSnapshotTests.swift */,
 				A10000000000000000000066 /* CartActivityDiffTests.swift */,
 				A10000000000000000000067 /* CartSuggestionsEngineTests.swift */,
+				A10000000000000000000068 /* CartCelebrationTests.swift */,
 				A10000000000000000000018 /* FamilyCartMergeTests.swift */,
 				A10000000000000000000019 /* ManagedObjectModelTests.swift */,
 				A1000000000000000000001D /* CartTestSupport.swift */,
@@ -434,6 +439,7 @@
 			children = (
 				F10000000000000000000014 /* CartProductRow.swift */,
 				F10000000000000000000015 /* CartAddFAB.swift */,
+				F10000000000000000000021 /* CartConfettiView.swift */,
 				A1000000000000000000000A /* HomeView.swift */,
 				A10000000000000000000036 /* ShoppingListView.swift */,
 				D10000000000000000000009 /* HistoryViews.swift */,
@@ -768,6 +774,7 @@
 				A20000000000000000000040 /* LaunchChrome.swift in Sources */,
 				A2000000000000000000000A /* HomeView.swift in Sources */,
 				A20000000000000000000036 /* ShoppingListView.swift in Sources */,
+				F20000000000000000000021 /* CartConfettiView.swift in Sources */,
 				F20000000000000000000014 /* CartProductRow.swift in Sources */,
 				F20000000000000000000015 /* CartAddFAB.swift in Sources */,
 				A20000000000000000000042 /* CartShareActivityBridge.swift in Sources */,
@@ -786,6 +793,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A20000000000000000000067 /* CartSuggestionsEngineTests.swift in Sources */,
+				A20000000000000000000068 /* CartCelebrationTests.swift in Sources */,
 				A20000000000000000000065 /* WidgetSnapshotTests.swift in Sources */,
 				A20000000000000000000066 /* CartActivityDiffTests.swift in Sources */,
 				A20000000000000000000013 /* FamilyCartMergeTests.swift in Sources */,

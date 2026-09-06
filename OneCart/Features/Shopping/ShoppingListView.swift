@@ -11,6 +11,8 @@ struct ShoppingListView: View {
     @FocusState private var focusedField: CartNameFocus?
     @State private var isAddingDraft = false
     @State private var isSavingEdit = false
+    @State private var confettiTrigger = 0
+    @State private var hasCelebratedCurrentCompletion = false
 
     init(listID: UUID) {
         self.listID = listID
@@ -38,6 +40,10 @@ struct ShoppingListView: View {
 
     private var purchasedCount: Int {
         inTrolleyProducts.count
+    }
+
+    private var isAllPurchased: Bool {
+        !products.isEmpty && toBuyProducts.isEmpty
     }
 
     private var trimmedDraft: String {
@@ -107,6 +113,12 @@ struct ShoppingListView: View {
                         }
                     }
 
+                    if isAllPurchased, !isComposingNewItem {
+                        Section {
+                            cartAllPurchasedHeroCard
+                        }
+                    }
+
                     if !inTrolleyProducts.isEmpty {
                         Section {
                             productRows(inTrolleyProducts, showsCategoryLabel: true)
@@ -152,6 +164,9 @@ struct ShoppingListView: View {
                 if model.isBusy, !isInlineBusy {
                     CartBusyOverlay(messageKey: "cart.updating")
                 }
+            }
+            .overlay {
+                CartConfettiView(trigger: confettiTrigger)
             }
             .navigationTitle(model.cartTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -276,6 +291,12 @@ struct ShoppingListView: View {
                 isSavingEdit: isSavingEdit,
                 showsCategoryLabel: showsCategoryLabel,
                 onToggle: {
+                    let willCompleteCart = !product.isPurchasedValue && toBuyProducts.count == 1
+                    if willCompleteCart, !hasCelebratedCurrentCompletion {
+                        hasCelebratedCurrentCompletion = true
+                        CartHaptics.success()
+                        confettiTrigger += 1
+                    }
                     Task {
                         await model.togglePurchased(product)
                     }
@@ -303,11 +324,22 @@ struct ShoppingListView: View {
     private var cartProgressStrip: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(
-                    String(localized: "cart.progress_completed \(purchasedCount) \(products.count)")
-                )
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                if isAllPurchased {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.subheadline)
+                            .foregroundStyle(OneCartPalette.primaryAccent)
+                        Text("cart.all_purchased_title")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(OneCartPalette.primaryAccent)
+                    }
+                } else {
+                    Text(
+                        String(localized: "cart.progress_completed \(purchasedCount) \(products.count)")
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
 
                 Spacer(minLength: 8)
 
@@ -334,6 +366,29 @@ struct ShoppingListView: View {
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(OneCartPalette.background)
+    }
+
+    private var cartAllPurchasedHeroCard: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 32, weight: .semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .padding(.top, 4)
+
+            Text("cart.all_purchased_title")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+
+            Text("cart.all_purchased_subtitle")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
     @MainActor
@@ -395,6 +450,7 @@ struct ShoppingListView: View {
             note: ""
         )
         _ = await model.addProduct(to: list, draft: draft)
+        hasCelebratedCurrentCompletion = false
         draftName = ""
         isComposingNewItem = true
         focusedField = .compose
@@ -427,6 +483,7 @@ struct ShoppingListView: View {
             return
         }
 
+        hasCelebratedCurrentCompletion = false
         draftName = ""
         if startAnother {
             isComposingNewItem = true
