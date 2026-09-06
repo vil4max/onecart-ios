@@ -16,12 +16,12 @@ struct CartWidgetProvider: TimelineProvider {
             completion(CartWidgetEntry(date: Date(), snapshot: .placeholder))
             return
         }
-        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .placeholder
+        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
         completion(CartWidgetEntry(date: Date(), snapshot: snapshot))
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<CartWidgetEntry>) -> Void) {
-        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .placeholder
+        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
         let entry = CartWidgetEntry(date: Date(), snapshot: snapshot)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())
             ?? Date().addingTimeInterval(900)

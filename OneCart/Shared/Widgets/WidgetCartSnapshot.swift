@@ -74,15 +74,15 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         purchasedCount: 3,
         isSyncing: false,
         lastUpdated: Date(),
-        familyMemberCount: 2,
-        activePartnerName: "Максим в магазине",
+        familyMemberCount: 1,
+        activePartnerName: nil,
         items: [
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
                 name: "Молоко 3.2%",
                 isPurchased: true,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
-                subtitle: "в тележке"
+                subtitle: nil
             ),
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
