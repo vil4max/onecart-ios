@@ -3,6 +3,7 @@ import SwiftUI
 struct HistoryDayDetailView: View {
     @EnvironmentObject private var model: AppSession
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.locale) private var locale
     let group: HistoryDayGroup
 
     private var liveGroup: HistoryDayGroup {
@@ -41,7 +42,7 @@ struct HistoryDayDetailView: View {
             .padding(.bottom, 28)
         }
         .background(OneCartPalette.background.ignoresSafeArea())
-        .navigationTitle(liveGroup.title)
+        .navigationTitle(liveGroup.title(locale: locale))
         .navigationBarTitleDisplayMode(.inline)
     }
 

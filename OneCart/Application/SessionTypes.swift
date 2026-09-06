@@ -80,10 +80,70 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case english = "en"
+    case ukrainian = "uk"
+    case russian = "ru"
+
+    var id: String {
+        rawValue
+    }
+
+    var localizedTitleKey: LocalizedStringKey {
+        switch self {
+        case .system: "language.system"
+        case .english: "language.english"
+        case .ukrainian: "language.ukrainian"
+        case .russian: "language.russian"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .system: String(localized: "language.system")
+        case .english: String(localized: "language.english")
+        case .ukrainian: String(localized: "language.ukrainian")
+        case .russian: String(localized: "language.russian")
+        }
+    }
+
+    var languageCode: String? {
+        switch self {
+        case .system: nil
+        case .english: "en"
+        case .ukrainian: "uk"
+        case .russian: "ru"
+        }
+    }
+
+    var locale: Locale? {
+        switch self {
+        case .system: nil
+        case .english: Locale(identifier: "en")
+        case .ukrainian: Locale(identifier: "uk")
+        case .russian: Locale(identifier: "ru")
+        }
+    }
+}
+
 final class DevicePreferences: ObservableObject {
     @Published var theme: AppTheme {
         didSet {
             defaults.set(theme.rawValue, forKey: Keys.theme)
+            defaults.synchronize()
+        }
+    }
+
+    @Published var language: AppLanguage {
+        didSet {
+            defaults.set(language.rawValue, forKey: Keys.language)
+            if let code = language.languageCode {
+                defaults.set([code], forKey: "AppleLanguages")
+            } else {
+                defaults.removeObject(forKey: "AppleLanguages")
+            }
+            defaults.synchronize()
         }
     }
 
@@ -93,7 +153,12 @@ final class DevicePreferences: ObservableObject {
                 participantDisplayName.trimmingCharacters(in: .whitespacesAndNewlines),
                 forKey: Keys.participantDisplayName
             )
+            defaults.synchronize()
         }
+    }
+
+    var effectiveLocale: Locale {
+        language.locale ?? .autoupdatingCurrent
     }
 
     private let defaults: UserDefaults
@@ -102,6 +167,8 @@ final class DevicePreferences: ObservableObject {
         self.defaults = defaults
         let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
         theme = AppTheme(rawValue: storedTheme) ?? .system
+        let storedLanguage = defaults.string(forKey: Keys.language) ?? ""
+        language = AppLanguage(rawValue: storedLanguage) ?? .system
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
@@ -109,12 +176,15 @@ final class DevicePreferences: ObservableObject {
     func reloadFromDefaults() {
         let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
         theme = AppTheme(rawValue: storedTheme) ?? .system
+        let storedLanguage = defaults.string(forKey: Keys.language) ?? ""
+        language = AppLanguage(rawValue: storedLanguage) ?? .system
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     private enum Keys {
         static let theme = "onecart.theme"
+        static let language = "onecart.language"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }

@@ -47,8 +47,20 @@ struct ReadOnlyBanner: View {
 
 struct EmptyCard: View {
     let image: String
-    let title: String
-    let message: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
+
+    init(image: String, title: LocalizedStringKey, message: LocalizedStringKey) {
+        self.image = image
+        self.title = title
+        self.message = message
+    }
+
+    init(image: String, title: String, message: String) {
+        self.image = image
+        self.title = LocalizedStringKey(title)
+        self.message = LocalizedStringKey(message)
+    }
 
     var body: some View {
         VStack(spacing: 10) {

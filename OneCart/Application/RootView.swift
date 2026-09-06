@@ -78,6 +78,7 @@ struct RootView: View {
             WelcomeView(model: model)
         case .main:
             MainTabView()
+                .id(model.preferences.language)
         }
     }
 }

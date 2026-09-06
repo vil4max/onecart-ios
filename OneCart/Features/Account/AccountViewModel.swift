@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 @MainActor
 final class AccountViewModel: ObservableObject {
@@ -26,6 +27,16 @@ final class AccountViewModel: ObservableObject {
         ParticipantDisplayName.isPlaceholder(session.account?.displayName)
     }
 
+    var deleteAccountConfirmMessageKey: LocalizedStringKey {
+        if session.access?.isOwner == true, session.familyMembers.contains(where: { !$0.isCurrentUser }) {
+            return "account.delete_confirm_message_owner"
+        }
+        if session.access?.isParticipant == true {
+            return "account.delete_confirm_message_member"
+        }
+        return "account.delete_confirm_message"
+    }
+
     var deleteAccountConfirmMessage: String {
         if session.access?.isOwner == true, session.familyMembers.contains(where: { !$0.isCurrentUser }) {
             return String(localized: "account.delete_confirm_message_owner")
@@ -36,11 +47,29 @@ final class AccountViewModel: ObservableObject {
         return String(localized: "account.delete_confirm_message")
     }
 
+    var cartRoleLineKey: LocalizedStringKey {
+        if session.access?.isParticipant == true {
+            "account.role_member_status"
+        } else {
+            "account.role_owner_status"
+        }
+    }
+
     var cartRoleLine: String {
         if session.access?.isParticipant == true {
             String(localized: "account.role_member_status")
         } else {
             String(localized: "account.role_owner_status")
+        }
+    }
+
+    var cartSectionFooterKey: LocalizedStringKey {
+        if session.access?.isParticipant == true {
+            "account.cart_status_member_footer"
+        } else if session.access?.isOwner == true {
+            "account.share_link_warning"
+        } else {
+            "account.cart_status_owner_footer"
         }
     }
 
@@ -88,10 +117,25 @@ final class AccountViewModel: ObservableObject {
         session.access?.isParticipant == true
     }
 
+    var appVersion: (version: String, build: String) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return (version, build)
+    }
+
     var appVersionFooter: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
         return String(localized: "settings.version_build \(version) \(build)")
+    }
+
+    var cartNamePromptKey: LocalizedStringKey {
+        if let family = session.activeFamilySpace,
+           session.persistence.scope(for: family) == .private
+        {
+            return "account.cart_name_prompt_personal"
+        }
+        return "account.cart_name_prompt"
     }
 
     var cartNamePrompt: String {

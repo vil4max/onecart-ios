@@ -39,6 +39,7 @@ private struct OneCartScene: View {
         RootView()
             .environmentObject(model)
             .preferredColorScheme(preferences.theme.colorScheme)
+            .environment(\.locale, preferences.effectiveLocale)
             .task {
                 guard !Self.isRunningUnitTests else { return }
                 if Self.bootstrapTask == nil {

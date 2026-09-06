@@ -29,8 +29,8 @@ struct HistoryView: View {
                     if dayGroups.isEmpty {
                         EmptyCard(
                             image: "clock",
-                            title: String(localized: "history.empty_title"),
-                            message: String(localized: "history.empty_message")
+                            title: "history.empty_title",
+                            message: "history.empty_message"
                         )
                     } else {
                         if isRegular {
@@ -87,7 +87,11 @@ struct HistoryDayGroup: Identifiable {
     }
 
     var title: String {
-        HistoryDayFormatting.title(for: dayStart)
+        title()
+    }
+
+    func title(locale: Locale? = nil) -> String {
+        HistoryDayFormatting.title(for: dayStart, locale: locale)
     }
 
     static func groups(
@@ -113,26 +117,30 @@ struct HistoryDayGroup: Identifiable {
 }
 
 enum HistoryDayFormatting {
-    static func title(for dayStart: Date, calendar: Calendar = .current, now: Date = Date()) -> String {
+    static func title(for dayStart: Date, calendar: Calendar = .current, now: Date = Date(),
+                      locale: Locale? = nil) -> String
+    {
+        let effectiveLocale = locale ?? calendar.locale ?? .current
         if calendar.isDate(dayStart, inSameDayAs: now) {
-            return String(localized: "history.day_today")
+            return String(localized: "history.day_today", locale: effectiveLocale)
         }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)),
            calendar.isDate(dayStart, inSameDayAs: yesterday)
         {
-            return String(localized: "history.day_yesterday")
+            return String(localized: "history.day_yesterday", locale: effectiveLocale)
         }
-        return dayStart.formatted(.dateTime.weekday(.wide).day().month(.wide))
+        return dayStart.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(effectiveLocale))
     }
 }
 
 private struct HistoryDayCard: View {
+    @Environment(\.locale) private var locale
     let group: HistoryDayGroup
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(group.title)
+                Text(group.title(locale: locale))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)

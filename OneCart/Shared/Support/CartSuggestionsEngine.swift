@@ -7,6 +7,12 @@ enum CartSuggestionsEngine {
         "Куриное филе", "Помидоры", "Огурцы", "Картофель",
     ]
 
+    static let defaultUkrainianSuggestions = [
+        "Молоко", "Хліб", "Яйця", "Сир", "Вершкове масло",
+        "Банани", "Яблука", "Кава", "Чай", "Вода",
+        "Куряче філе", "Помідори", "Огірки", "Картопля",
+    ]
+
     static let defaultEnglishSuggestions = [
         "Milk", "Bread", "Eggs", "Cheese", "Butter",
         "Bananas", "Apples", "Coffee", "Tea", "Water",
@@ -14,7 +20,20 @@ enum CartSuggestionsEngine {
     ]
 
     static func defaultEssentials(
-        isRussian: Bool = Locale.current.language.languageCode?.identifier == "ru"
+        languageCode: String? = nil
+    ) -> [String] {
+        let code = languageCode ?? Locale.current.language.languageCode?.identifier
+        if code == "uk" {
+            return defaultUkrainianSuggestions
+        }
+        if code == "ru" {
+            return defaultRussianSuggestions
+        }
+        return defaultEnglishSuggestions
+    }
+
+    static func defaultEssentials(
+        isRussian: Bool
     ) -> [String] {
         isRussian ? defaultRussianSuggestions : defaultEnglishSuggestions
     }

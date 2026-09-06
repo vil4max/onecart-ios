@@ -104,4 +104,19 @@ struct CartSuggestionsEngineTests {
 
         #expect(suggestions.count == 3)
     }
+
+    @Test("Returns appropriate default essentials for language code")
+    func essentialsForLanguageCode() {
+        let uk = CartSuggestionsEngine.defaultEssentials(languageCode: "uk")
+        #expect(uk.contains("Хліб"))
+        #expect(uk.contains("Кава"))
+
+        let ru = CartSuggestionsEngine.defaultEssentials(languageCode: "ru")
+        #expect(ru.contains("Хлеб"))
+        #expect(ru.contains("Кофе"))
+
+        let en = CartSuggestionsEngine.defaultEssentials(languageCode: "en")
+        #expect(en.contains("Bread"))
+        #expect(en.contains("Coffee"))
+    }
 }

@@ -22,9 +22,7 @@ struct ProductPurchaseToggle: View {
         .buttonStyle(.borderless)
         .disabled(!canEdit)
         .accessibilityLabel(
-            isPurchased
-                ? String(localized: "cart.unmark_trolley_a11y")
-                : String(localized: "cart.mark_in_trolley_a11y")
+            Text(isPurchased ? "cart.unmark_trolley_a11y" : "cart.mark_in_trolley_a11y")
         )
         .accessibilityAddTraits(isPurchased ? [.isSelected] : [])
     }
@@ -85,7 +83,7 @@ struct ProductRow: View {
                         .onSubmit(onSubmitEdit)
                         .disabled(isSavingEdit)
 
-                    Text(resolvedCategory.localizedName)
+                    Text(resolvedCategory.localizedTitleKey)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -103,7 +101,7 @@ struct ProductRow: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         if showsCategoryLabel {
-                            Text(resolvedCategory.localizedName)
+                            Text(resolvedCategory.localizedTitleKey)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

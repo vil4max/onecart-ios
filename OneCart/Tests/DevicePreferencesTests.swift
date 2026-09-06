@@ -48,6 +48,64 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertEqual(reloaded.theme, .system)
     }
 
+    func testLanguageDefaultsToSystemAndPersists() throws {
+        let defaults = try makeDefaults()
+        let preferences = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(preferences.language, .system)
+        XCTAssertNil(preferences.language.languageCode)
+
+        preferences.language = .english
+        XCTAssertEqual(preferences.language, .english)
+        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "en")
+        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["en"])
+        XCTAssertEqual(preferences.effectiveLocale.identifier, "en")
+
+        preferences.language = .ukrainian
+        XCTAssertEqual(preferences.language, .ukrainian)
+        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "uk")
+        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
+        XCTAssertEqual(preferences.effectiveLocale.identifier, "uk")
+
+        preferences.language = .russian
+        XCTAssertEqual(preferences.language, .russian)
+        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "ru")
+        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["ru"])
+        XCTAssertEqual(preferences.effectiveLocale.identifier, "ru")
+
+        preferences.language = .system
+        XCTAssertEqual(preferences.language, .system)
+        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "system")
+        XCTAssertNotEqual(defaults.stringArray(forKey: "AppleLanguages"), ["ru"])
+
+        let reloaded = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.language, .system)
+
+        defaults.set("uk", forKey: "onecart.language")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.language, .ukrainian)
+
+        defaults.set("unknown-code", forKey: "onecart.language")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.language, .system)
+    }
+
+    func testAppLanguagePropertiesAndLocales() {
+        XCTAssertEqual(AppLanguage.system.id, "system")
+        XCTAssertEqual(AppLanguage.english.id, "en")
+        XCTAssertEqual(AppLanguage.ukrainian.id, "uk")
+        XCTAssertEqual(AppLanguage.russian.id, "ru")
+
+        XCTAssertNil(AppLanguage.system.locale)
+        XCTAssertEqual(AppLanguage.english.locale?.identifier, "en")
+        XCTAssertEqual(AppLanguage.ukrainian.locale?.identifier, "uk")
+        XCTAssertEqual(AppLanguage.russian.locale?.identifier, "ru")
+
+        XCTAssertFalse(AppLanguage.system.title.isEmpty)
+        XCTAssertFalse(AppLanguage.english.title.isEmpty)
+        XCTAssertFalse(AppLanguage.ukrainian.title.isEmpty)
+        XCTAssertFalse(AppLanguage.russian.title.isEmpty)
+    }
+
     func testAppThemePropertiesAndColorScheme() {
         XCTAssertEqual(AppTheme.system.id, "system")
         XCTAssertEqual(AppTheme.light.id, "light")

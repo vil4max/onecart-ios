@@ -99,7 +99,7 @@ struct AccountView: View {
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                                 .textCase(nil)
-                            Text(viewModel.cartRoleLine)
+                            Text(viewModel.cartRoleLineKey)
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .textCase(nil)
@@ -108,7 +108,7 @@ struct AccountView: View {
                         Text("settings.cart_section")
                     }
                 } footer: {
-                    Text(viewModel.cartSectionFooter)
+                    Text(viewModel.cartSectionFooterKey)
                 }
 
                 Section {
@@ -129,13 +129,15 @@ struct AccountView: View {
                                     Text("settings.apple_siwa_caption")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
-                                    Text(
-                                        viewModel.needsAccountName
-                                            ? String(localized: "settings.apple_set_name")
-                                            : String(localized: "settings.apple_edit_name")
-                                    )
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
+                                    if viewModel.needsAccountName {
+                                        Text("settings.apple_set_name")
+                                            .font(.caption)
+                                            .foregroundStyle(.tertiary)
+                                    } else {
+                                        Text("settings.apple_edit_name")
+                                            .font(.caption)
+                                            .foregroundStyle(.tertiary)
+                                    }
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.right")
@@ -155,11 +157,21 @@ struct AccountView: View {
 
                 Section {
                     AccountPickerRow(
+                        titleKey: "settings.language",
+                        systemImage: "globe",
+                        selection: $preferences.language
+                    ) {
+                        ForEach(AppLanguage.allCases, id: \.self) { language in
+                            Text(language.localizedTitleKey).tag(language)
+                        }
+                    }
+
+                    AccountPickerRow(
                         titleKey: "settings.theme",
                         systemImage: "circle.lefthalf.filled",
                         selection: $preferences.theme
                     ) {
-                        ForEach(AppTheme.allCases) { theme in
+                        ForEach(AppTheme.allCases, id: \.self) { theme in
                             Text(theme.localizedTitleKey).tag(theme)
                         }
                     }
@@ -209,7 +221,7 @@ struct AccountView: View {
                 }
 
                 Section {} footer: {
-                    Text(viewModel.appVersionFooter)
+                    Text("settings.version_build \(viewModel.appVersion.version) \(viewModel.appVersion.build)")
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                         .font(.footnote)
@@ -230,7 +242,7 @@ struct AccountView: View {
                     Form {
                         Section {
                             TextField(
-                                String(localized: "account.display_name_placeholder"),
+                                "account.display_name_placeholder",
                                 text: $viewModel.draftDisplayName
                             )
                             .textInputAutocapitalization(.words)
@@ -259,13 +271,13 @@ struct AccountView: View {
                     Form {
                         Section {
                             TextField(
-                                String(localized: "account.cart_name_placeholder"),
+                                "account.cart_name_placeholder",
                                 text: $viewModel.draftCartName
                             )
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                         } footer: {
-                            Text(viewModel.cartNamePrompt)
+                            Text(viewModel.cartNamePromptKey)
                         }
                     }
                     .navigationTitle("account.rename_cart")
@@ -357,7 +369,7 @@ struct AccountView: View {
                     Task { await viewModel.deleteAccount() }
                 }
             } message: {
-                Text(viewModel.deleteAccountConfirmMessage)
+                Text(viewModel.deleteAccountConfirmMessageKey)
             }
         }
     }

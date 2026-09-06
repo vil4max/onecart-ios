@@ -50,6 +50,7 @@
             }
             return AppSession(
                 persistence: PersistenceController(inMemory: false, cloudKitEnabled: false),
+                preferences: DevicePreferences(defaults: .standard),
                 defaults: UserDefaults(suiteName: suiteName) ?? .standard,
                 appleSignIn: signIn
             )

@@ -190,11 +190,12 @@ final class AppSession: ObservableObject {
         invitePreparerCancellable = invitePreparer.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
-        preferencesCancellable = preferences.$theme
-            .dropFirst()
+        preferencesCancellable = preferences.objectWillChange
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] newTheme in
-                self?.updateWidgetSnapshot(themeOverride: newTheme)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                objectWillChange.send()
+                updateWidgetSnapshot()
             }
         cartSync.onHardRefresh = { [weak self] in
             guard let self else { return }

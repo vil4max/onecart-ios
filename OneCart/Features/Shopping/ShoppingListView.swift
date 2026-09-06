@@ -58,7 +58,10 @@ struct ShoppingListView: View {
         CartSuggestionsEngine.suggestions(
             from: model.history,
             currentCartProducts: products,
-            query: draftName
+            query: draftName,
+            defaults: CartSuggestionsEngine.defaultEssentials(
+                languageCode: model.preferences.language.languageCode
+            )
         )
     }
 
@@ -66,8 +69,8 @@ struct ShoppingListView: View {
         products.isEmpty && !isComposingNewItem
     }
 
-    private var emptyCartMessage: String {
-        "\(String(localized: "home.empty_hint")) \(String(localized: "home.empty_hint_share"))"
+    private var emptyCartMessage: LocalizedStringKey {
+        "\(Text("home.empty_hint")) \(Text("home.empty_hint_share"))"
     }
 
     private var isInlineBusy: Bool {
@@ -87,7 +90,7 @@ struct ShoppingListView: View {
                     Section {
                         EmptyCard(
                             image: "cart.badge.plus",
-                            title: String(localized: "cart.empty_title"),
+                            title: "cart.empty_title",
                             message: emptyCartMessage
                         )
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -109,7 +112,7 @@ struct ShoppingListView: View {
                         Section {
                             productRows(section.items, showsCategoryLabel: false)
                         } header: {
-                            Label(section.category.localizedName, systemImage: section.category.symbolName)
+                            Label(section.category.localizedTitleKey, systemImage: section.category.symbolName)
                         }
                     }
 
@@ -152,6 +155,7 @@ struct ShoppingListView: View {
                         Task { await beginNewItem() }
                     }
                     .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                    .keyboardShortcut("n", modifiers: .command)
                     .padding(.trailing, 20)
                     .padding(.bottom, 12)
                 }
@@ -171,18 +175,6 @@ struct ShoppingListView: View {
             .navigationTitle(model.cartTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    if model.canEdit {
-                        Button {
-                            Task { await beginNewItem() }
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .disabled(isAddingDraft || model.isBusy)
-                        .accessibilityLabel(String(localized: "cart.add_a11y"))
-                        .keyboardShortcut("n", modifiers: .command)
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if model.isCartSyncing {
                         ProgressView()
