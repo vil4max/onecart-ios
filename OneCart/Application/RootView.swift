@@ -30,7 +30,7 @@ struct RootView: View {
                     destinationView
                         .transition(.opacity)
                 } else {
-                    Color("LaunchBackground").ignoresSafeArea()
+                    OneCartPalette.primary(accent: model.preferences.accentColor).ignoresSafeArea()
                 }
             }
             .animation(
@@ -73,7 +73,7 @@ struct RootView: View {
     private var destinationView: some View {
         switch phase {
         case .loading:
-            Color("LaunchBackground").ignoresSafeArea()
+            OneCartPalette.primary(accent: model.preferences.accentColor).ignoresSafeArea()
         case .welcome:
             WelcomeView(model: model)
         case .main:

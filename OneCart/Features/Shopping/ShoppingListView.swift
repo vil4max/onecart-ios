@@ -151,7 +151,7 @@ struct ShoppingListView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if model.canEdit {
-                    CartAddFAB {
+                    CartAddFAB(accent: model.preferences.accentColor) {
                         Task { await beginNewItem() }
                     }
                     .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))

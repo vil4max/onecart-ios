@@ -31,7 +31,8 @@ struct LaunchCartRideView: View {
     var body: some View {
         LaunchCartRideUIView(
             progress: driveProgress,
-            titleOpacity: titleOpacity
+            titleOpacity: titleOpacity,
+            accent: model.preferences.accentColor
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
@@ -92,12 +93,14 @@ struct LaunchCartRideView: View {
 private struct LaunchCartRideUIView: UIViewRepresentable {
     var progress: CGFloat
     var titleOpacity: CGFloat
+    var accent: AppAccentColor
 
     func makeUIView(context _: Context) -> LaunchRideView {
-        LaunchRideView()
+        LaunchRideView(accent: accent)
     }
 
     func updateUIView(_ uiView: LaunchRideView, context _: Context) {
+        uiView.updateAccent(accent)
         uiView.apply(progress: progress, titleOpacity: titleOpacity)
     }
 }
@@ -111,10 +114,41 @@ private final class LaunchRideView: UIView {
     private var pendingProgress: CGFloat = 0
     private var pendingTitleOpacity: CGFloat = 1
     private var driveAnimator: UIViewPropertyAnimator?
+    private var accent: AppAccentColor
+
+    init(accent: AppAccentColor = OneCartPalette.currentAccent) {
+        self.accent = accent
+        super.init(frame: .zero)
+        setupView()
+    }
 
     override init(frame: CGRect) {
+        accent = OneCartPalette.currentAccent
         super.init(frame: frame)
-        backgroundColor = UIColor(named: "LaunchBackground")
+        setupView()
+    }
+
+    func updateAccent(_ newAccent: AppAccentColor) {
+        guard accent != newAccent else { return }
+        accent = newAccent
+        updateBackgroundColor()
+    }
+
+    private func updateBackgroundColor() {
+        backgroundColor = UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            let rgb = dark ? self.accent.primaryRGB.dark : self.accent.primaryRGB.light
+            return UIColor(
+                red: rgb.0 / 255,
+                green: rgb.1 / 255,
+                blue: rgb.2 / 255,
+                alpha: 1
+            )
+        }
+    }
+
+    private func setupView() {
+        updateBackgroundColor()
         isUserInteractionEnabled = false
         insetsLayoutMarginsFromSafeArea = false
 
@@ -256,6 +290,7 @@ private final class LaunchRideView: UIView {
 
 struct OneCartMark: View {
     var compact: Bool = false
+    var accent: AppAccentColor?
 
     var body: some View {
         HStack(spacing: compact ? 10 : 12) {
@@ -264,7 +299,7 @@ struct OneCartMark: View {
                 .foregroundColor(.white)
                 .frame(width: compact ? 36 : 40, height: compact ? 36 : 40)
                 .background(
-                    OneCartPalette.primary,
+                    OneCartPalette.primary(accent: accent),
                     in: RoundedRectangle(cornerRadius: compact ? 11 : 12, style: .continuous)
                 )
             Text("common.app_name")
@@ -277,6 +312,8 @@ struct OneCartMark: View {
 }
 
 struct OneCartPrimaryButtonStyle: ButtonStyle {
+    var accent: AppAccentColor?
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
@@ -285,8 +322,8 @@ struct OneCartPrimaryButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(
                 configuration.isPressed
-                    ? OneCartPalette.primaryStrong
-                    : OneCartPalette.primary,
+                    ? OneCartPalette.primaryStrong(accent: accent)
+                    : OneCartPalette.primary(accent: accent),
                 in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
             .opacity(configuration.isPressed ? 0.92 : 1)
@@ -294,14 +331,16 @@ struct OneCartPrimaryButtonStyle: ButtonStyle {
 }
 
 struct OneCartSecondaryButtonStyle: ButtonStyle {
+    var accent: AppAccentColor?
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundColor(OneCartPalette.primaryAccent)
+            .foregroundColor(OneCartPalette.primaryAccent(accent: accent))
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
             .background(
-                OneCartPalette.primarySoft.opacity(configuration.isPressed ? 0.72 : 1),
+                OneCartPalette.primarySoft(accent: accent).opacity(configuration.isPressed ? 0.72 : 1),
                 in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
     }

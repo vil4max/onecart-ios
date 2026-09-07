@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct ProfileAvatarView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let name: String
     var remoteURL: String?
     var size: CGFloat = 52
+    var accent: AppAccentColor?
 
     var body: some View {
         Group {
@@ -30,6 +32,7 @@ struct ProfileAvatarView: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .accessibilityLabel(name)
+        .animation(.easeInOut(duration: 0.35), value: accent)
     }
 
     private var initialsView: some View {
@@ -37,7 +40,7 @@ struct ProfileAvatarView: View {
             .font(.system(size: size * 0.34, weight: .bold, design: .rounded))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(OneCartPalette.primary)
+            .background(OneCartPalette.primary(for: colorScheme, accent: accent))
     }
 
     private var initials: String {

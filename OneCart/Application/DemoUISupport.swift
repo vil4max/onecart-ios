@@ -11,6 +11,7 @@
         enum Role: String {
             case owner
             case member
+            case welcome
         }
 
         static var isEnabled: Bool {
@@ -41,19 +42,70 @@
             return MainTab(rawValue: normalized)
         }
 
+        static let accentArgument = "-oneCartDemoAccent"
+
+        static var initialAccent: AppAccentColor? {
+            guard isEnabled else { return nil }
+            let arguments = ProcessInfo.processInfo.arguments
+            guard let index = arguments.firstIndex(of: accentArgument),
+                  let raw = arguments[safe: index + 1]
+            else {
+                return nil
+            }
+            let normalized = raw.hasPrefix("accent=") ? String(raw.dropFirst(7)) : raw
+            return AppAccentColor(rawValue: normalized.lowercased())
+        }
+
+        static let themeArgument = "-oneCartDemoTheme"
+
+        static var initialTheme: AppTheme? {
+            guard isEnabled else { return nil }
+            let arguments = ProcessInfo.processInfo.arguments
+            guard let index = arguments.firstIndex(of: themeArgument),
+                  let raw = arguments[safe: index + 1]
+            else {
+                return nil
+            }
+            let normalized = raw.hasPrefix("theme=") ? String(raw.dropFirst(6)) : raw
+            return AppTheme(rawValue: normalized.lowercased())
+        }
+
         @MainActor
         static func makeSession() -> AppSession {
-            let suiteName = role == .member ? "onecart.demo-ui.member" : "onecart.demo-ui"
+            let suiteName: String
+            switch role {
+            case .owner:
+                suiteName = "onecart.demo-ui"
+            case .member:
+                suiteName = "onecart.demo-ui.member"
+            case .welcome:
+                suiteName = "onecart.demo-ui.welcome"
+                if let defaults = UserDefaults(suiteName: suiteName) {
+                    defaults.removePersistentDomain(forName: suiteName)
+                }
+                AppleSignInService.shared.clearCredential()
+            }
             let signIn = DemoAppleSignInService(role: role)
             if let credential = signIn.storedCredential() {
                 AppleSignInService.shared.save(credential)
             }
-            return AppSession(
-                persistence: PersistenceController(inMemory: false, cloudKitEnabled: false),
+            let session = AppSession(
+                persistence: PersistenceController(inMemory: role == .welcome, cloudKitEnabled: false),
                 preferences: DevicePreferences(defaults: .standard),
                 defaults: UserDefaults(suiteName: suiteName) ?? .standard,
                 appleSignIn: signIn
             )
+            if let initialAccent {
+                session.preferences.accentColor = initialAccent
+            }
+            if let initialTheme {
+                session.preferences.theme = initialTheme
+            }
+            if role == .welcome {
+                session.needsWelcome = true
+                session.welcomePhase = .signIn
+            }
+            return session
         }
 
         @MainActor
@@ -63,6 +115,8 @@
                 await seedOwnerPersonalCart(model)
             case .member:
                 await seedGuestSharedCart(model)
+            case .welcome:
+                break
             }
         }
 
@@ -197,7 +251,7 @@
     }
 
     final class DemoAppleSignInService: AppleSignInAuthenticating {
-        private var credential: AppleSignInCredential
+        private var credential: AppleSignInCredential?
 
         init(role: DemoUIMode.Role) {
             switch role {
@@ -215,6 +269,8 @@
                     givenName: "Tim",
                     familyName: nil
                 )
+            case .welcome:
+                credential = nil
             }
         }
 
@@ -228,19 +284,38 @@
         }
 
         func clearCredential() {
+            credential = nil
             AppleSignInService.shared.clearCredential()
         }
 
         func credentialState(for _: String) async -> AppleSignInCredentialState {
-            .authorized
+            credential != nil ? .authorized : .notFound
         }
 
         func signIn() async throws -> AppleSignInCredential {
-            credential
+            if let credential {
+                return credential
+            }
+            let cred = AppleSignInCredential(
+                userID: "onecart-demo-owner",
+                email: nil,
+                givenName: "Max",
+                familyName: nil
+            )
+            credential = cred
+            return cred
         }
 
         func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
-            credential
+            if let credential {
+                return credential
+            }
+            return AppleSignInCredential(
+                userID: "onecart-demo-owner",
+                email: nil,
+                givenName: "Max",
+                familyName: nil
+            )
         }
     }
 #endif

@@ -107,13 +107,17 @@ struct SmallHomeWidgetView: View {
     @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot
 
+    private var accent: AppAccentColor {
+        snapshot.accentColor
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Header: Icon + Title + Status Pill
             HStack(spacing: 5) {
                 Image(systemName: "cart.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(OneCartPalette.primary(for: scheme))
+                    .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
 
                 Text(snapshot.cartTitle)
                     .font(.system(size: 13, weight: .bold))
@@ -126,16 +130,16 @@ struct SmallHomeWidgetView: View {
                 if snapshot.remainingCount > 0 {
                     Text("\(snapshot.remainingCount)")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme))
+                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(OneCartPalette.primarySoft(for: scheme), in: Capsule())
+                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                 } else if !snapshot.isEmpty {
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme))
+                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(3)
-                        .background(OneCartPalette.primarySoft(for: scheme), in: Circle())
+                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Circle())
                 }
             }
 
@@ -159,7 +163,7 @@ struct SmallHomeWidgetView: View {
                     Spacer(minLength: 0)
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
-                        .foregroundStyle(OneCartPalette.primary(for: scheme))
+                        .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
                     Text("Все куплено!")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.primary)
@@ -179,7 +183,8 @@ struct SmallHomeWidgetView: View {
                                     .font(.system(size: 15))
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(
-                                        item.isPurchased ? OneCartPalette.primary(for: scheme) : Color.secondary
+                                        item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
+                                            .secondary
                                             .opacity(0.4)
                                     )
                             }
@@ -213,7 +218,7 @@ struct SmallHomeWidgetView: View {
                             Capsule()
                                 .fill(Color.primary.opacity(0.12))
                             Capsule()
-                                .fill(OneCartPalette.primary(for: scheme))
+                                .fill(OneCartPalette.primary(for: scheme, accent: accent))
                                 .frame(width: max(0, geo.size.width * CGFloat(snapshot.progress)))
                         }
                     }
@@ -230,7 +235,7 @@ struct SmallHomeWidgetView: View {
                         if let partner = snapshot.activePartnerName, !partner.isEmpty {
                             Text(partner)
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(OneCartPalette.primaryAccent(for: scheme))
+                                .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                                 .lineLimit(1)
                         }
                     }
@@ -245,6 +250,10 @@ struct MediumHomeWidgetView: View {
     @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot
 
+    private var accent: AppAccentColor {
+        snapshot.accentColor
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             // Left column: Cart Context
@@ -255,7 +264,7 @@ struct MediumHomeWidgetView: View {
                         .foregroundStyle(.white)
                         .frame(width: 34, height: 34)
                         .background(
-                            OneCartPalette.primary(for: scheme),
+                            OneCartPalette.primary(for: scheme, accent: accent),
                             in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                         )
                 }
@@ -277,7 +286,7 @@ struct MediumHomeWidgetView: View {
 
                     HStack(spacing: 6) {
                         ProgressView(value: snapshot.progress)
-                            .tint(OneCartPalette.primary(for: scheme))
+                            .tint(OneCartPalette.primary(for: scheme, accent: accent))
 
                         Text("\(Int(snapshot.progress * 100))%")
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -287,10 +296,10 @@ struct MediumHomeWidgetView: View {
                     if let partner = snapshot.activePartnerName, !partner.isEmpty {
                         Text(partner)
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(OneCartPalette.primaryAccent(for: scheme))
+                            .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(OneCartPalette.primarySoft(for: scheme), in: Capsule())
+                            .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                             .lineLimit(1)
                     }
                 }
@@ -324,7 +333,8 @@ struct MediumHomeWidgetView: View {
                                     .font(.system(size: 20))
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(
-                                        item.isPurchased ? OneCartPalette.primary(for: scheme) : Color.secondary
+                                        item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
+                                            .secondary
                                             .opacity(0.4)
                                     )
                             }
@@ -357,6 +367,10 @@ struct LargeHomeWidgetView: View {
     @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot
 
+    private var accent: AppAccentColor {
+        snapshot.accentColor
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -366,7 +380,7 @@ struct LargeHomeWidgetView: View {
                         .foregroundStyle(.white)
                         .frame(width: 32, height: 32)
                         .background(
-                            OneCartPalette.primary(for: scheme),
+                            OneCartPalette.primary(for: scheme, accent: accent),
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                         )
 
@@ -386,15 +400,15 @@ struct LargeHomeWidgetView: View {
                 if let partner = snapshot.activePartnerName, !partner.isEmpty {
                     Text(partner)
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme))
+                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(OneCartPalette.primarySoft(for: scheme), in: Capsule())
+                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                 }
             }
 
             ProgressView(value: snapshot.progress)
-                .tint(OneCartPalette.primary(for: scheme))
+                .tint(OneCartPalette.primary(for: scheme, accent: accent))
 
             Divider()
 
@@ -419,7 +433,8 @@ struct LargeHomeWidgetView: View {
                                 .font(.system(size: 20))
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(
-                                    item.isPurchased ? OneCartPalette.primary(for: scheme) : Color.secondary
+                                    item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
+                                        .secondary
                                         .opacity(0.4)
                                 )
                         }

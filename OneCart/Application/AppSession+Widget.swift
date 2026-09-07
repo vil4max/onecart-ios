@@ -2,8 +2,12 @@ import CoreData
 import Foundation
 
 extension AppSession {
-    func updateWidgetSnapshot(themeOverride: AppTheme? = nil) {
+    func updateWidgetSnapshot(
+        themeOverride: AppTheme? = nil,
+        accentOverride: AppAccentColor? = nil
+    ) {
         let activeTheme = themeOverride ?? preferences.theme
+        let activeAccent = accentOverride ?? preferences.accentColor
         guard isReady, let list = activeLists.first ?? lists.first else {
             let emptySnapshot = WidgetCartSnapshot(
                 cartTitle: "OneCart Family",
@@ -14,6 +18,7 @@ extension AppSession {
                 familyMemberCount: 1,
                 activePartnerName: nil,
                 themeRaw: activeTheme.rawValue,
+                accentColorRaw: activeAccent.rawValue,
                 items: []
             )
             WidgetSnapshotStore.shared.save(snapshot: emptySnapshot)
@@ -69,6 +74,7 @@ extension AppSession {
             familyMemberCount: max(1, familyMembers.count),
             activePartnerName: partnerName,
             themeRaw: activeTheme.rawValue,
+            accentColorRaw: activeAccent.rawValue,
             items: itemSnapshots
         )
 

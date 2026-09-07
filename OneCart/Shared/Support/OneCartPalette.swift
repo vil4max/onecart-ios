@@ -2,14 +2,101 @@ import SwiftUI
 import UIKit
 
 public enum OneCartPalette {
+    /// Active accent color across the app.
+    public static var currentAccent: AppAccentColor = {
+        if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
+           let accent = AppAccentColor(rawValue: raw)
+        {
+            return accent
+        }
+        if let raw = UserDefaults.standard.string(forKey: "onecart.accent-color"),
+           let accent = AppAccentColor(rawValue: raw)
+        {
+            return accent
+        }
+        return .emerald
+    }()
+
     /// Filled surfaces that carry white content.
-    public static let primary = adaptive(light: (52, 120, 91), dark: (62, 147, 112))
+    public static var primary: Color {
+        primary()
+    }
+
+    public static func primary(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
+        let active = accent ?? currentAccent
+        if let scheme {
+            let rgb = scheme == .dark ? active.primaryRGB.dark : active.primaryRGB.light
+            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
+        }
+        if let accent {
+            return adaptive(light: accent.primaryRGB.light, dark: accent.primaryRGB.dark)
+        }
+        return adaptiveDynamic(
+            light: { $0.primaryRGB.light },
+            dark: { $0.primaryRGB.dark }
+        )
+    }
+
     /// Pressed state of a filled surface.
-    public static let primaryStrong = adaptive(light: (40, 95, 71), dark: (46, 110, 83))
+    public static var primaryStrong: Color {
+        primaryStrong()
+    }
+
+    public static func primaryStrong(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
+        let active = accent ?? currentAccent
+        if let scheme {
+            let rgb = scheme == .dark ? active.primaryStrongRGB.dark : active.primaryStrongRGB.light
+            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
+        }
+        if let accent {
+            return adaptive(light: accent.primaryStrongRGB.light, dark: accent.primaryStrongRGB.dark)
+        }
+        return adaptiveDynamic(
+            light: { $0.primaryStrongRGB.light },
+            dark: { $0.primaryStrongRGB.dark }
+        )
+    }
+
     /// Text and glyphs drawn on `background`, `surface` or `primarySoft`.
-    public static let primaryAccent = adaptive(light: (40, 95, 71), dark: (116, 199, 159))
+    public static var primaryAccent: Color {
+        primaryAccent()
+    }
+
+    public static func primaryAccent(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
+        let active = accent ?? currentAccent
+        if let scheme {
+            let rgb = scheme == .dark ? active.primaryAccentRGB.dark : active.primaryAccentRGB.light
+            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
+        }
+        if let accent {
+            return adaptive(light: accent.primaryAccentRGB.light, dark: accent.primaryAccentRGB.dark)
+        }
+        return adaptiveDynamic(
+            light: { $0.primaryAccentRGB.light },
+            dark: { $0.primaryAccentRGB.dark }
+        )
+    }
+
     /// Tinted backing for chips and icon tiles.
-    public static let primarySoft = adaptive(light: (225, 239, 231), dark: (30, 51, 41))
+    public static var primarySoft: Color {
+        primarySoft()
+    }
+
+    public static func primarySoft(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
+        let active = accent ?? currentAccent
+        if let scheme {
+            let rgb = scheme == .dark ? active.primarySoftRGB.dark : active.primarySoftRGB.light
+            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
+        }
+        if let accent {
+            return adaptive(light: accent.primarySoftRGB.light, dark: accent.primarySoftRGB.dark)
+        }
+        return adaptiveDynamic(
+            light: { $0.primarySoftRGB.light },
+            dark: { $0.primarySoftRGB.dark }
+        )
+    }
+
     public static let background = Color(.systemGroupedBackground)
     public static let surface = Color(.secondarySystemGroupedBackground)
     public static let danger = adaptive(light: (185, 74, 72), dark: (232, 117, 111))
@@ -20,24 +107,6 @@ public enum OneCartPalette {
         } else {
             Color(red: 255 / 255, green: 255 / 255, blue: 255 / 255)
         }
-    }
-
-    public static func primary(for scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 62 / 255, green: 147 / 255, blue: 112 / 255)
-            : Color(red: 52 / 255, green: 120 / 255, blue: 91 / 255)
-    }
-
-    public static func primaryAccent(for scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 116 / 255, green: 199 / 255, blue: 159 / 255)
-            : Color(red: 40 / 255, green: 95 / 255, blue: 71 / 255)
-    }
-
-    public static func primarySoft(for scheme: ColorScheme) -> Color {
-        scheme == .dark
-            ? Color(red: 30 / 255, green: 51 / 255, blue: 41 / 255)
-            : Color(red: 225 / 255, green: 239 / 255, blue: 231 / 255)
     }
 
     private static func adaptive(
@@ -54,4 +123,21 @@ public enum OneCartPalette {
             )
         })
     }
+
+    private static func adaptiveDynamic(
+        light: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat),
+        dark: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat)
+    ) -> Color {
+        Color(UIColor { traits in
+            let accent = currentAccent
+            let components = traits.userInterfaceStyle == .dark ? dark(accent) : light(accent)
+            return UIColor(
+                red: components.0 / 255,
+                green: components.1 / 255,
+                blue: components.2 / 255,
+                alpha: 1
+            )
+        })
+    }
 }
+

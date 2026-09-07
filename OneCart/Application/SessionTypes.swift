@@ -128,10 +128,15 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 }
 
 final class DevicePreferences: ObservableObject {
+    var onAccentChanged: ((AppAccentColor) -> Void)?
+    var onThemeChanged: ((AppTheme) -> Void)?
+
     @Published var theme: AppTheme {
         didSet {
             defaults.set(theme.rawValue, forKey: Keys.theme)
             defaults.synchronize()
+            OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
+            onThemeChanged?(theme)
         }
     }
 
@@ -157,6 +162,29 @@ final class DevicePreferences: ObservableObject {
         }
     }
 
+    @Published var accentColor: AppAccentColor {
+        willSet {
+            OneCartPalette.currentAccent = newValue
+        }
+        didSet {
+            defaults.set(accentColor.rawValue, forKey: Keys.accentColor)
+            defaults.synchronize()
+            if defaults == .standard {
+                OneCartAppGroup.defaults?.set(accentColor.rawValue, forKey: Keys.accentColor)
+                OneCartAppGroup.defaults?.synchronize()
+            }
+            OneCartPalette.currentAccent = accentColor
+            onAccentChanged?(accentColor)
+        }
+    }
+
+    @Published var appIcon: AppIconOption {
+        didSet {
+            defaults.set(appIcon.rawValue, forKey: Keys.appIcon)
+            defaults.synchronize()
+        }
+    }
+
     var effectiveLocale: Locale {
         language.locale ?? .autoupdatingCurrent
     }
@@ -166,18 +194,48 @@ final class DevicePreferences: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
-        theme = AppTheme(rawValue: storedTheme) ?? .system
+        let initialTheme = AppTheme(rawValue: storedTheme) ?? .system
+        theme = initialTheme
+        if defaults == .standard {
+            OneCartAppGroup.defaults?.set(initialTheme.rawValue, forKey: Keys.theme)
+        }
         let storedLanguage = defaults.string(forKey: Keys.language) ?? ""
         language = AppLanguage(rawValue: storedLanguage) ?? .system
+        let storedAccent = defaults.string(forKey: Keys.accentColor)
+            ?? (defaults == .standard ? OneCartAppGroup.defaults?.string(forKey: Keys.accentColor) : nil)
+            ?? ""
+        let initialAccent = AppAccentColor(rawValue: storedAccent) ?? .emerald
+        accentColor = initialAccent
+        OneCartPalette.currentAccent = initialAccent
+        if defaults == .standard {
+            OneCartAppGroup.defaults?.set(initialAccent.rawValue, forKey: Keys.accentColor)
+        }
+        let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
+        appIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     func reloadFromDefaults() {
         let storedTheme = defaults.string(forKey: Keys.theme) ?? ""
-        theme = AppTheme(rawValue: storedTheme) ?? .system
+        let reloadedTheme = AppTheme(rawValue: storedTheme) ?? .system
+        theme = reloadedTheme
+        if defaults == .standard {
+            OneCartAppGroup.defaults?.set(reloadedTheme.rawValue, forKey: Keys.theme)
+        }
         let storedLanguage = defaults.string(forKey: Keys.language) ?? ""
         language = AppLanguage(rawValue: storedLanguage) ?? .system
+        let storedAccent = defaults.string(forKey: Keys.accentColor)
+            ?? (defaults == .standard ? OneCartAppGroup.defaults?.string(forKey: Keys.accentColor) : nil)
+            ?? ""
+        let reloadedAccent = AppAccentColor(rawValue: storedAccent) ?? .emerald
+        accentColor = reloadedAccent
+        OneCartPalette.currentAccent = reloadedAccent
+        if defaults == .standard {
+            OneCartAppGroup.defaults?.set(reloadedAccent.rawValue, forKey: Keys.accentColor)
+        }
+        let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
+        appIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
@@ -185,6 +243,8 @@ final class DevicePreferences: ObservableObject {
     private enum Keys {
         static let theme = "onecart.theme"
         static let language = "onecart.language"
+        static let accentColor = "onecart.accent-color"
+        static let appIcon = "onecart.app-icon"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }

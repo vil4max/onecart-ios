@@ -7,6 +7,7 @@ enum MainTab: String, Hashable {
 }
 
 struct MainTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var model: AppSession
     @State private var selection: MainTab = Self.initialTab
 
@@ -23,7 +24,8 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
-        .tint(OneCartPalette.primary)
+        .tint(OneCartPalette.primary(for: colorScheme, accent: model.preferences.accentColor))
+        .animation(.easeInOut(duration: 0.35), value: model.preferences.accentColor)
         .onReceive(model.$preferredMainTab.compactMap { $0 }) { tab in
             selection = tab
             model.preferredMainTab = nil

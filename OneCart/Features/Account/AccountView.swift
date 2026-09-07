@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var model: AppSession
     @StateObject private var viewModel: AccountViewModel
     @ObservedObject private var preferences: DevicePreferences
@@ -17,13 +18,13 @@ struct AccountView: View {
                     if model.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
-                                .tint(OneCartPalette.primary)
+                                .tint(OneCartPalette.primary(for: colorScheme, accent: preferences.accentColor))
                             Text("account.updating_members")
                                 .foregroundStyle(.secondary)
                         }
                     } else {
                         ForEach(viewModel.displayedMembers) { member in
-                            AccountMemberRow(member: member)
+                            AccountMemberRow(member: member, accent: preferences.accentColor)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if viewModel.canOwnerManageMembers, !member.isCurrentUser {
                                         Button(role: .destructive) {
@@ -43,10 +44,14 @@ struct AccountView: View {
                             AccountActionRow(
                                 titleKey: "account.share_cart",
                                 systemImage: "square.and.arrow.up",
+                                accentColor: preferences.accentColor,
                                 trailing: {
                                     if viewModel.isSharing {
                                         ProgressView()
-                                            .tint(OneCartPalette.primary)
+                                            .tint(OneCartPalette.primary(
+                                                for: colorScheme,
+                                                accent: preferences.accentColor
+                                            ))
                                     }
                                 }
                             )
@@ -60,7 +65,8 @@ struct AccountView: View {
                             } label: {
                                 AccountActionRow(
                                     titleKey: "account.rename_cart",
-                                    systemImage: "pencil"
+                                    systemImage: "pencil",
+                                    accentColor: preferences.accentColor
                                 )
                             }
                             .buttonStyle(.plain)
@@ -72,7 +78,8 @@ struct AccountView: View {
                             } label: {
                                 AccountActionRow(
                                     titleKey: "account.revoke_invite",
-                                    systemImage: "person.badge.minus"
+                                    systemImage: "person.badge.minus",
+                                    accentColor: preferences.accentColor
                                 )
                             }
                             .buttonStyle(.plain)
@@ -86,7 +93,8 @@ struct AccountView: View {
                                 AccountActionRow(
                                     titleKey: "account.leave_cart",
                                     systemImage: "rectangle.portrait.and.arrow.right",
-                                    style: .destructive
+                                    style: .destructive,
+                                    accentColor: preferences.accentColor
                                 )
                             }
                             .buttonStyle(.plain)
@@ -120,7 +128,8 @@ struct AccountView: View {
                                 ProfileAvatarView(
                                     name: account.displayName,
                                     remoteURL: account.avatarURL,
-                                    size: 44
+                                    size: 44,
+                                    accent: preferences.accentColor
                                 )
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(account.displayName)
@@ -156,23 +165,32 @@ struct AccountView: View {
                 }
 
                 Section {
-                    AccountPickerRow(
-                        titleKey: "settings.language",
-                        systemImage: "globe",
-                        selection: $preferences.language
-                    ) {
-                        ForEach(AppLanguage.allCases, id: \.self) { language in
-                            Text(language.localizedTitleKey).tag(language)
-                        }
-                    }
+                    AccountAccentPickerRow(selection: $preferences.accentColor)
+
+                    AccountAppIconPickerRow(
+                        selection: $preferences.appIcon,
+                        accent: preferences.accentColor
+                    )
 
                     AccountPickerRow(
                         titleKey: "settings.theme",
                         systemImage: "circle.lefthalf.filled",
+                        accent: preferences.accentColor,
                         selection: $preferences.theme
                     ) {
                         ForEach(AppTheme.allCases, id: \.self) { theme in
                             Text(theme.localizedTitleKey).tag(theme)
+                        }
+                    }
+
+                    AccountPickerRow(
+                        titleKey: "settings.language",
+                        systemImage: "globe",
+                        accent: preferences.accentColor,
+                        selection: $preferences.language
+                    ) {
+                        ForEach(AppLanguage.allCases, id: \.self) { language in
+                            Text(language.localizedTitleKey).tag(language)
                         }
                     }
                 } header: {
@@ -186,7 +204,8 @@ struct AccountView: View {
                         AccountActionRow(
                             titleKey: "account.sign_out",
                             systemImage: "rectangle.portrait.and.arrow.right",
-                            style: .regular
+                            style: .regular,
+                            accentColor: preferences.accentColor
                         )
                     }
                     .buttonStyle(.plain)
@@ -204,6 +223,7 @@ struct AccountView: View {
                             titleKey: "account.delete_account",
                             systemImage: "person.crop.circle.badge.minus",
                             style: .destructive,
+                            accentColor: preferences.accentColor,
                             trailing: {
                                 if model.isDeletingAccount {
                                     ProgressView()
@@ -229,7 +249,11 @@ struct AccountView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .tint(OneCartPalette.primary)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: 70)
+            }
+            .tint(OneCartPalette.primary(for: colorScheme, accent: preferences.accentColor))
+            .animation(.easeInOut(duration: 0.35), value: preferences.accentColor)
             .navigationTitle("settings.nav_title")
             .navigationBarTitleDisplayMode(.inline)
             .task {

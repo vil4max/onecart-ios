@@ -80,13 +80,24 @@ struct WelcomeView: View {
 
     private var brandHero: some View {
         VStack(spacing: 16) {
-            Image("LaunchIcon")
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .accessibilityHidden(true)
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(OneCartPalette.primary(accent: model.preferences.accentColor))
+                    .frame(width: 80, height: 80)
+                    .shadow(
+                        color: OneCartPalette.primary(accent: model.preferences.accentColor).opacity(0.28),
+                        radius: 12,
+                        x: 0,
+                        y: 6
+                    )
+
+                Image("LaunchIcon")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 56, height: 56)
+            }
+            .accessibilityHidden(true)
 
             Text("common.app_name")
                 .font(.title2.weight(.semibold))
@@ -112,17 +123,20 @@ struct WelcomeView: View {
             OnboardingFeatureRow(
                 systemImage: "person.2",
                 textKey: "onboarding.step.list",
-                delay: 0.05
+                delay: 0.05,
+                accent: model.preferences.accentColor
             )
             OnboardingFeatureRow(
                 systemImage: "cart",
                 textKey: "onboarding.step.trolley",
-                delay: 0.12
+                delay: 0.12,
+                accent: model.preferences.accentColor
             )
             OnboardingFeatureRow(
                 systemImage: "checkmark.circle",
                 textKey: "onboarding.step.paid",
-                delay: 0.19
+                delay: 0.19,
+                accent: model.preferences.accentColor
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,7 +166,7 @@ struct WelcomeView: View {
                         Text("Войти как Max (Тестовый аккаунт)")
                     }
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(OneCartPalette.primaryAccent)
+                    .foregroundStyle(OneCartPalette.primaryAccent(accent: model.preferences.accentColor))
                     .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
@@ -167,9 +181,10 @@ struct WelcomeView: View {
     }
 
     private var connectingContent: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.large)
+                .tint(OneCartPalette.primary(accent: model.preferences.accentColor))
             Text("welcome.connecting")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -187,7 +202,7 @@ struct WelcomeView: View {
             Button(String(localized: "welcome.try_again")) {
                 Task { await viewModel.retryWelcome() }
             }
-            .buttonStyle(OneCartPrimaryButtonStyle())
+            .buttonStyle(OneCartPrimaryButtonStyle(accent: model.preferences.accentColor))
         }
     }
 
@@ -229,14 +244,19 @@ private struct OnboardingFeatureRow: View {
     let systemImage: String
     let textKey: LocalizedStringKey
     let delay: Double
+    var accent: AppAccentColor?
     @State private var visible = false
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
+        HStack(alignment: .center, spacing: 14) {
             Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-                .frame(width: 22, alignment: .center)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent(accent: accent))
+                .frame(width: 32, height: 32)
+                .background(
+                    OneCartPalette.primarySoft(accent: accent),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
                 .accessibilityHidden(true)
 
             Text(textKey)

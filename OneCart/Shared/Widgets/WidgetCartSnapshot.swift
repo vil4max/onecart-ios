@@ -17,6 +17,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     public let familyMemberCount: Int
     public let activePartnerName: String?
     public let themeRaw: String?
+    public let accentColorRaw: String?
     public let items: [WidgetItemSnapshot]
 
     public init(
@@ -28,6 +29,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         familyMemberCount: Int,
         activePartnerName: String? = nil,
         themeRaw: String? = nil,
+        accentColorRaw: String? = nil,
         items: [WidgetItemSnapshot]
     ) {
         self.cartTitle = cartTitle
@@ -38,6 +40,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         self.familyMemberCount = familyMemberCount
         self.activePartnerName = activePartnerName
         self.themeRaw = themeRaw
+        self.accentColorRaw = accentColorRaw
         self.items = items
     }
 
@@ -50,6 +53,18 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         default:
             nil
         }
+    }
+
+    public var accentColor: AppAccentColor {
+        guard let accentColorRaw else {
+            if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
+               let accent = AppAccentColor(rawValue: raw)
+            {
+                return accent
+            }
+            return .emerald
+        }
+        return AppAccentColor(rawValue: accentColorRaw) ?? .emerald
     }
 
     public var remainingCount: Int {

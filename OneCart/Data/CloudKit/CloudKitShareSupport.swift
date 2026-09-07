@@ -69,25 +69,29 @@ enum OneCartShareBranding {
     }
 
     static let thumbnailImage: UIImage = {
-        if let mark = UIImage(named: "LaunchIcon") {
-            return mark
-        }
         let size = CGSize(width: 512, height: 512)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
             let rect = CGRect(origin: .zero, size: size)
-            UIColor(red: 52 / 255, green: 120 / 255, blue: 91 / 255, alpha: 1).setFill()
+            let rgb = OneCartPalette.currentAccent.primaryRGB.light
+            UIColor(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255, alpha: 1).setFill()
             UIBezierPath(roundedRect: rect, cornerRadius: 112).fill()
 
-            let config = UIImage.SymbolConfiguration(pointSize: 220, weight: .semibold)
-            guard let symbol = UIImage(systemName: "cart.fill", withConfiguration: config)?
-                .withTintColor(.white, renderingMode: .alwaysOriginal)
-            else { return }
-            let origin = CGPoint(
-                x: (size.width - symbol.size.width) / 2,
-                y: (size.height - symbol.size.height) / 2
-            )
-            symbol.draw(at: origin)
+            if let mark = UIImage(named: "LaunchIcon") {
+                let inset = CGRect(x: 80, y: 80, width: 352, height: 352)
+                mark.draw(in: inset)
+            } else {
+                let config = UIImage.SymbolConfiguration(pointSize: 220, weight: .semibold)
+                if let symbol = UIImage(systemName: "cart.fill", withConfiguration: config)?
+                    .withTintColor(.white, renderingMode: .alwaysOriginal)
+                {
+                    let origin = CGPoint(
+                        x: (size.width - symbol.size.width) / 2,
+                        y: (size.height - symbol.size.height) / 2
+                    )
+                    symbol.draw(at: origin)
+                }
+            }
         }
     }()
 

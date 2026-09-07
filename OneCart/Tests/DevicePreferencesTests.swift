@@ -167,4 +167,84 @@ final class DevicePreferencesTests: XCTestCase {
         )
         XCTAssertEqual(subject, dummyLink.shareTitle)
     }
+
+    func testAccentColorDefaultsToEmeraldAndPersists() throws {
+        let defaults = try makeDefaults()
+        let preferences = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(preferences.accentColor, .emerald)
+        XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
+
+        preferences.accentColor = .ocean
+        XCTAssertEqual(preferences.accentColor, .ocean)
+        XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "ocean")
+        XCTAssertEqual(OneCartPalette.currentAccent, .ocean)
+
+        let reloaded = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.accentColor, .ocean)
+
+        defaults.set("sunset", forKey: "onecart.accent-color")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.accentColor, .sunset)
+        XCTAssertEqual(OneCartPalette.currentAccent, .sunset)
+
+        defaults.set("invalid-accent", forKey: "onecart.accent-color")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.accentColor, .emerald)
+        XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
+    }
+
+    func testAccentAndThemeChangeCallbacks() throws {
+        let defaults = try makeDefaults()
+        let preferences = DevicePreferences(defaults: defaults)
+
+        var notifiedAccent: AppAccentColor?
+        preferences.onAccentChanged = { notifiedAccent = $0 }
+        preferences.accentColor = .coral
+        XCTAssertEqual(notifiedAccent, .coral)
+
+        var notifiedTheme: AppTheme?
+        preferences.onThemeChanged = { notifiedTheme = $0 }
+        preferences.theme = .dark
+        XCTAssertEqual(notifiedTheme, .dark)
+    }
+
+    func testAppAccentColorProperties() {
+        for accent in AppAccentColor.allCases {
+            XCTAssertFalse(accent.id.isEmpty)
+            XCTAssertFalse(accent.title.isEmpty)
+            XCTAssertNotNil(accent.swatchColor)
+            XCTAssertEqual(accent.primaryRGB.light.0, accent.primaryRGB.light.0)
+            XCTAssertEqual(accent.primaryStrongRGB.light.0, accent.primaryStrongRGB.light.0)
+            XCTAssertEqual(accent.primaryAccentRGB.light.0, accent.primaryAccentRGB.light.0)
+            XCTAssertEqual(accent.primarySoftRGB.light.0, accent.primarySoftRGB.light.0)
+        }
+    }
+
+    func testAppIconOptionPropertiesAndDefaults() throws {
+        let defaults = try makeDefaults()
+        let preferences = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(preferences.appIcon, .classic)
+
+        preferences.appIcon = .midnight
+        XCTAssertEqual(preferences.appIcon, .midnight)
+        XCTAssertEqual(defaults.string(forKey: "onecart.app-icon"), "midnight")
+
+        let reloaded = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.appIcon, .midnight)
+
+        defaults.set("ocean", forKey: "onecart.app-icon")
+        reloaded.reloadFromDefaults()
+        XCTAssertEqual(reloaded.appIcon, .ocean)
+
+        for option in AppIconOption.allCases {
+            XCTAssertFalse(option.id.isEmpty)
+            XCTAssertFalse(option.title.isEmpty)
+            XCTAssertFalse(option.previewSymbol.isEmpty)
+            XCTAssertFalse(option.previewImageName.isEmpty)
+        }
+        XCTAssertNil(AppIconOption.classic.iconName)
+        XCTAssertEqual(AppIconOption.midnight.iconName, "AppIcon-Midnight")
+        XCTAssertEqual(AppIconOption.ocean.iconName, "AppIcon-Ocean")
+        XCTAssertEqual(AppIconOption.sunset.iconName, "AppIcon-Sunset")
+    }
 }

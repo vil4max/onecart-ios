@@ -197,6 +197,12 @@ final class AppSession: ObservableObject {
                 objectWillChange.send()
                 updateWidgetSnapshot()
             }
+        preferences.onAccentChanged = { [weak self] newAccent in
+            self?.updateWidgetSnapshot(accentOverride: newAccent)
+        }
+        preferences.onThemeChanged = { [weak self] newTheme in
+            self?.updateWidgetSnapshot(themeOverride: newTheme)
+        }
         cartSync.onHardRefresh = { [weak self] in
             guard let self else { return }
             try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {

@@ -71,6 +71,7 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
             familyMemberCount: snapshot.familyMemberCount,
             activePartnerName: snapshot.activePartnerName,
             themeRaw: snapshot.themeRaw,
+            accentColorRaw: snapshot.accentColorRaw,
             items: updatedItems
         )
 

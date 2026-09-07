@@ -174,4 +174,55 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded?.themeRaw, "dark")
         XCTAssertEqual(loaded?.preferredColorScheme, .dark)
     }
+
+    func testAccentColorRoundtripAndFallback() throws {
+        let berrySnapshot = WidgetCartSnapshot(
+            cartTitle: "Berry Cart",
+            totalCount: 1,
+            purchasedCount: 0,
+            isSyncing: false,
+            lastUpdated: Date(),
+            familyMemberCount: 1,
+            activePartnerName: nil,
+            themeRaw: nil,
+            accentColorRaw: "berry",
+            items: []
+        )
+        XCTAssertEqual(berrySnapshot.accentColor, .berry)
+
+        let encoded = try JSONEncoder().encode(berrySnapshot)
+        let decoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: encoded)
+        XCTAssertEqual(decoded.accentColorRaw, "berry")
+        XCTAssertEqual(decoded.accentColor, .berry)
+
+        // Snapshot without accentColorRaw (legacy) falls back gracefully to emerald
+        let legacyJson = """
+        {
+            "cartTitle": "Legacy",
+            "totalCount": 0,
+            "purchasedCount": 0,
+            "isSyncing": false,
+            "lastUpdated": 0,
+            "familyMemberCount": 1,
+            "items": []
+        }
+        """.data(using: .utf8)!
+        let legacyDecoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: legacyJson)
+        XCTAssertNil(legacyDecoded.accentColorRaw)
+        let expectedFallback = AppAccentColor(
+            rawValue: OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color") ?? ""
+        ) ?? .emerald
+        XCTAssertEqual(legacyDecoded.accentColor, expectedFallback)
+    }
+
+    @MainActor
+    func testUpdateWidgetSnapshotAccentOverride() {
+        let session = AppSession()
+        session.isReady = true
+        session.preferences.accentColor = .sunset
+        session.updateWidgetSnapshot(accentOverride: .ocean)
+        let loaded = WidgetSnapshotStore.shared.loadSnapshot()
+        XCTAssertEqual(loaded?.accentColorRaw, "ocean")
+        XCTAssertEqual(loaded?.accentColor, .ocean)
+    }
 }
