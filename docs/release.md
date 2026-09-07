@@ -4,9 +4,9 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.0.1**. Project is set to `MARKETING_VERSION = 1.0.1` and
-`CURRENT_PROJECT_VERSION = 88` (after validated ASC build **82** / train **1.0** approved).
-Every further upload of 1.0.1 must use a build number higher than the last accepted ASC build.
+Version: **1.0.2**. Project is set to `MARKETING_VERSION = 1.0.2` and
+`CURRENT_PROJECT_VERSION = 90` (after validated ASC build **89** / train **1.0.1** approved).
+Every further upload of 1.0.2 must use a build number higher than the last accepted ASC build.
 Bump `MARKETING_VERSION` only when starting a new App Store version train.
 
 **Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, theme sync, smart family push notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
