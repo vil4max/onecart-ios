@@ -196,34 +196,13 @@ final class HouseholdCartCoordinator {
             return
         }
 
-        var staleSharedIDs: [UUID] = []
-        for space in host.familySpaces {
-            guard let spaceID = space.id,
-                  persistence.scope(for: space) == .shared,
-                  spaceID != sharedID
-            else { continue }
-            staleSharedIDs.append(spaceID)
-        }
-
         defaults.set(
             sharedID.uuidString,
             forKey: host.activeFamilyKey(accountID: account.id)
         )
         try host.reloadHousehold(preferredFamilySpaceID: sharedID)
 
-        for staleID in staleSharedIDs {
-            do {
-                try await repository.archiveFamilySpace(id: staleID)
-                CartSyncLog.cart.info(
-                    "adoptShared archived stale shared id=\(staleID.uuidString, privacy: .public)"
-                )
-            } catch {
-                CartSyncLog.cart.error(
-                    "adoptShared stale shared archive failed id=\(staleID.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
-                )
-            }
-        }
-
+        // Other shared families remain intact; selection must never mutate their mirrored data.
         try host.reloadHousehold(preferredFamilySpaceID: sharedID)
         await host.refreshFamilyMetadata(showErrors: false)
         CartSyncLog.cart.info(

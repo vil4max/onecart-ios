@@ -104,7 +104,7 @@ final class HouseholdEnsureTests: XCTestCase {
         XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
     }
 
-    func testEnsureHouseholdConsolidatesStaleGuestShareOntoNewest() async throws {
+    func testEnsureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -151,6 +151,6 @@ final class HouseholdEnsureTests: XCTestCase {
             NSPredicate(format: "id == %@", oldSharedID as NSUUID),
             NSPredicate(format: "deletedAt == nil"),
         ])
-        XCTAssertTrue(try session.persistence.container.viewContext.fetch(oldRequest).isEmpty)
+        XCTAssertEqual(try session.persistence.container.viewContext.fetch(oldRequest).count, 1)
     }
 }

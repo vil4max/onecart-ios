@@ -156,7 +156,7 @@ final class SharedCartJoinTests: XCTestCase {
         XCTAssertTrue(session.products.isEmpty)
     }
 
-    func testAcceptConsolidatesOntoNewestSharedAndArchivesStaleGuestShare() async throws {
+    func testAcceptSelectsNewestSharedWithoutDeletingOtherFamilies() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -206,9 +206,12 @@ final class SharedCartJoinTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, newSharedID)
         XCTAssertEqual(session.access, .member)
-        XCTAssertNil(try session.persistence.container.viewContext.fetch(
+        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: oldSharedID)
         ).first)
+        let oldFamily = try XCTUnwrap(repository.fetchFamilySpace(id: oldSharedID))
+        XCTAssertNil(oldFamily.deletedAt)
+        XCTAssertEqual(oldFamily.activeLists.flatMap(\.sortedProducts).map(\.displayName), ["Old"])
         XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
             familySpaceRequest(id: privateID)
         ).first)
