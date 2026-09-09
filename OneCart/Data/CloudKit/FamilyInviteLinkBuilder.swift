@@ -3,12 +3,6 @@ import CoreData
 import Foundation
 import OSLog
 
-/// CloudKit share creation must stay off the MainActor. Keeping this as a plain enum
-/// avoids inheriting actor isolation from `CloudKitBackendService`.
-enum ShareCreateRace: @unchecked Sendable {
-    case share(CKShare)
-}
-
 enum FamilyInviteLinkBuilder {
     static func existingInviteLink(
         persistence: PersistenceController,
@@ -212,29 +206,11 @@ enum FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
-        try await withThrowingTaskGroup(of: ShareCreateRace.self) { group in
-            group.addTask {
-                let share = try await createShareUnscoped(
-                    persistence: persistence,
-                    objectID: objectID
-                )
-                return .share(share)
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: 12_000_000_000)
-                throw OneCartCloudKitError.stillSyncing
-            }
-            do {
-                guard case let .share(share) = try await group.next() else {
-                    group.cancelAll()
-                    throw OneCartCloudKitError.stillSyncing
-                }
-                group.cancelAll()
-                return share
-            } catch {
-                group.cancelAll()
-                throw error
-            }
+        try await CloudKitDeadline.run(
+            timeoutNanoseconds: 12_000_000_000,
+            timeoutError: OneCartCloudKitError.stillSyncing
+        ) {
+            try await createShareUnscoped(persistence: persistence, objectID: objectID)
         }
     }
 
@@ -357,22 +333,8 @@ enum FamilyInviteLinkBuilder {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             throw OneCartCloudKitError.shareEnvironmentMismatch
         }
-        return try await withThrowingTaskGroup(of: CKShare.self) { group in
-            group.addTask {
-                try await persistShare(share, persistence: persistence)
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: timeoutNanoseconds)
-                throw OneCartCloudKitError.shareTimedOut
-            }
-            do {
-                let saved = try await group.next()!
-                group.cancelAll()
-                return saved
-            } catch {
-                group.cancelAll()
-                throw error
-            }
+        return try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
+            try await persistShare(share, persistence: persistence)
         }
     }
 

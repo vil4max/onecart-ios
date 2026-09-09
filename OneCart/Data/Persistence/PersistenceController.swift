@@ -198,24 +198,8 @@ final class PersistenceController: @unchecked Sendable {
     func acceptShareInvitations(from metadata: [CKShare.Metadata]) async throws {
         guard !inMemory else { return }
         let sharedStore = try store(for: .shared)
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                try await self.acceptShareInvitationsWithoutTimeout(
-                    metadata,
-                    into: sharedStore
-                )
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: 22_000_000_000)
-                throw OneCartCloudKitError.shareTimedOut
-            }
-            do {
-                try await group.next()!
-                group.cancelAll()
-            } catch {
-                group.cancelAll()
-                throw error
-            }
+        try await CloudKitDeadline.run(timeoutNanoseconds: 22_000_000_000) {
+            try await self.acceptShareInvitationsWithoutTimeout(metadata, into: sharedStore)
         }
     }
 

@@ -4,6 +4,54 @@ import XCTest
 
 @MainActor
 final class InviteLinkPreparerTests: XCTestCase {
+    func test_deadline_returnsBeforeUnresponsiveOperationAndIgnoresLateSuccess() async {
+        let operationGate = DeadlineTestGate()
+        let timerGate = DeadlineTestGate()
+        let started = expectation(description: "Operation started")
+        let finished = expectation(description: "Late callback finished")
+        let task = Task {
+            try await CloudKitDeadline.run(timeout: { await timerGate.wait() }) {
+                started.fulfill()
+                await operationGate.wait()
+                finished.fulfill()
+                return 42
+            }
+        }
+        await fulfillment(of: [started], timeout: 2)
+        await timerGate.release()
+        do {
+            _ = try await task.value
+            XCTFail("Expected timeout before the operation returns")
+        } catch {
+            guard case OneCartCloudKitError.shareTimedOut = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+        await operationGate.release()
+        await fulfillment(of: [finished], timeout: 2)
+    }
+
+    func test_deadline_cancellationReturnsWithoutWaitingForCallback() async {
+        let operationGate = DeadlineTestGate()
+        let timerGate = DeadlineTestGate()
+        let started = expectation(description: "Operation started")
+        let task = Task {
+            try await CloudKitDeadline.run(timeout: { await timerGate.wait() }) {
+                started.fulfill()
+                await operationGate.wait()
+                return 42
+            }
+        }
+        await fulfillment(of: [started], timeout: 2)
+        task.cancel()
+        do {
+            _ = try await task.value
+            XCTFail("Expected cancellation")
+        } catch { XCTAssertTrue(error is CancellationError) }
+        await operationGate.release()
+        await timerGate.release()
+    }
+
     func testMissingFamilyIDThrows() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
@@ -158,5 +206,21 @@ final class InviteLinkPreparerTests: XCTestCase {
         )
         try await Task.sleep(nanoseconds: 80_000_000)
         XCTAssertNil(preparer.preparedInviteLink)
+    }
+}
+
+private actor DeadlineTestGate {
+    private var released = false
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    func wait() async {
+        guard !released else { return }
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func release() {
+        released = true
+        continuation?.resume()
+        continuation = nil
     }
 }

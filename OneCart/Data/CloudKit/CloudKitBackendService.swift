@@ -374,22 +374,8 @@ final class CloudKitBackendService {
         in store: NSPersistentStore,
         timeoutNanoseconds: UInt64 = 22_000_000_000
     ) async throws -> CKShare {
-        try await withThrowingTaskGroup(of: CKShare.self) { group in
-            group.addTask {
-                try await self.persistWithoutTimeout(share, in: store)
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: timeoutNanoseconds)
-                throw OneCartCloudKitError.shareTimedOut
-            }
-            do {
-                let saved = try await group.next()!
-                group.cancelAll()
-                return saved
-            } catch {
-                group.cancelAll()
-                throw error
-            }
+        try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
+            try await self.persistWithoutTimeout(share, in: store)
         }
     }
 

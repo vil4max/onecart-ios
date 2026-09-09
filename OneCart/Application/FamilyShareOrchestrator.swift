@@ -54,12 +54,17 @@ final class FamilyShareOrchestrator {
             try viewContext.save()
         }
         let backend = backend
-        let link = try await Task.detached(priority: .userInitiated) {
+        let task = Task.detached(priority: .userInitiated) {
             try await backend.createFamilyInviteLink(
                 objectID: objectID,
                 displayName: displayName
             )
-        }.value
+        }
+        let link = try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
         CartSyncLog.shareACL.info(
             "invite link ready hasURL=true host=\(link.url.host ?? "-", privacy: .public)"
         )
@@ -73,9 +78,14 @@ final class FamilyShareOrchestrator {
             "revokeInvite start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
         let backend = backend
-        try await Task.detached(priority: .userInitiated) {
+        let task = Task.detached(priority: .userInitiated) {
             try await backend.revokeInviteLink(objectID: objectID)
-        }.value
+        }
+        try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
         CartSyncLog.action.info("revokeInvite done")
     }
 }
