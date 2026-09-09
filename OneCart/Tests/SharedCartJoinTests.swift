@@ -384,6 +384,17 @@ final class SharedCartJoinTests: XCTestCase {
 }
 
 final class ShareLinkJoinACLTests: XCTestCase {
+    func test_backgroundInvitePreparation_keepsRevokedShareClosed() {
+        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        share.publicPermission = .none
+        XCTAssertThrowsError(try FamilyInviteLinkBuilder.linkForOpenShare(share, displayName: "Family")) { error in
+            guard case OneCartCloudKitError.inviteDoorClosed = error else {
+                return XCTFail("Expected the revoked invite to remain unavailable")
+            }
+        }
+        XCTAssertEqual(share.publicPermission, .none)
+    }
+
     func testApplyReadWriteACLPreservesRevokedPublicPermission() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
         share.publicPermission = .none

@@ -38,6 +38,14 @@ final class FamilyShareOrchestrator {
         }
     }
 
+    func existingInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
+        try await FamilyInviteLinkBuilder.existingInviteLink(
+            persistence: persistence,
+            objectID: family.objectID,
+            displayName: family.displayName
+        )
+    }
+
     func createInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
         let objectID = family.objectID
         let displayName = family.displayName

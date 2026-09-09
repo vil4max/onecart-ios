@@ -10,6 +10,30 @@ enum ShareCreateRace: @unchecked Sendable {
 }
 
 enum FamilyInviteLinkBuilder {
+    static func existingInviteLink(
+        persistence: PersistenceController,
+        objectID: NSManagedObjectID,
+        displayName: String
+    ) async throws -> FamilyInviteLink {
+        guard let share = try await fetchShare(persistence: persistence, objectID: objectID) else {
+            throw OneCartCloudKitError.stillSyncing
+        }
+        return try linkForOpenShare(share, displayName: displayName)
+    }
+
+    static func linkForOpenShare(_ share: CKShare, displayName: String) throws -> FamilyInviteLink {
+        // Background preparation is read-only; only an explicit Share action can reopen access.
+        guard share.publicPermission == .readWrite else {
+            throw OneCartCloudKitError.inviteDoorClosed
+        }
+        guard let url = share.url else { throw OneCartCloudKitError.stillSyncing }
+        return FamilyInviteLink(
+            id: stableUUID(for: share.recordID.recordName),
+            familyName: displayName,
+            url: url
+        )
+    }
+
     static func makeInviteLink(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,

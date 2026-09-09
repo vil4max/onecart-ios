@@ -110,7 +110,7 @@ extension AppSession {
             },
             fetch: { [weak self] family in
                 guard let self else { throw InviteLinkError.offline }
-                return try await shareOrchestrator.createInviteLink(for: family)
+                return try await shareOrchestrator.existingInviteLink(for: family)
             }
         )
     }
