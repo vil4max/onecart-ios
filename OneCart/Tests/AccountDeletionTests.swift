@@ -310,6 +310,89 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertFalse(CloudKitBackendService.isIdempotentAccountDeletionFailure(network))
     }
 
+    func test_validateAccountDeletionResults_whenEveryZoneSucceeds_completes() {
+        let first = CKRecordZone(zoneName: "first").zoneID
+        let second = CKRecordZone(zoneName: "second").zoneID
+
+        XCTAssertNoThrow(try CloudKitBackendService.validateAccountDeletionResults(
+            [first: .success(()), second: .success(())],
+            requestedZoneIDs: [first, second]
+        ))
+    }
+
+    func test_validateAccountDeletionResults_whenOneZoneFails_propagatesFailure() {
+        let first = CKRecordZone(zoneName: "first").zoneID
+        let second = CKRecordZone(zoneName: "second").zoneID
+        let failure = NSError(domain: CKError.errorDomain, code: CKError.Code.zoneBusy.rawValue)
+
+        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
+            [first: .success(()), second: .failure(failure)],
+            requestedZoneIDs: [first, second]
+        )) { error in
+            XCTAssertEqual(error as NSError, failure)
+        }
+    }
+
+    func test_validateAccountDeletionResults_whenZonesAlreadyGone_completes() {
+        let codes: [CKError.Code] = [.zoneNotFound, .userDeletedZone, .unknownItem]
+        let zoneIDs = codes.map { CKRecordZone(zoneName: "gone-\($0.rawValue)").zoneID }
+        let results = Dictionary(uniqueKeysWithValues: zip(zoneIDs, codes).map { zoneID, code in
+            (zoneID, Result<Void, Error>.failure(NSError(domain: CKError.errorDomain, code: code.rawValue)))
+        })
+
+        XCTAssertNoThrow(try CloudKitBackendService.validateAccountDeletionResults(
+            results,
+            requestedZoneIDs: zoneIDs
+        ))
+    }
+
+    func test_validateAccountDeletionResults_whenResultMissing_throws() {
+        let first = CKRecordZone(zoneName: "first").zoneID
+        let missing = CKRecordZone(zoneName: "missing").zoneID
+
+        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
+            [first: .success(())],
+            requestedZoneIDs: [first, missing]
+        )) { error in
+            XCTAssertEqual(
+                error as? CloudKitBackendService.AccountDeletionResultError,
+                .missingZoneResult
+            )
+        }
+    }
+
+    func test_validateAccountDeletionResults_whenPartialFailureContainsAnotherError_throws() {
+        let zoneID = CKRecordZone(zoneName: "partial").zoneID
+        let failure = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [CKPartialErrorsByItemIDKey: [
+                "gone": NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue),
+                "denied": NSError(domain: CKError.errorDomain, code: CKError.Code.permissionFailure.rawValue),
+            ]]
+        )
+
+        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
+            [zoneID: .failure(failure)],
+            requestedZoneIDs: [zoneID]
+        )) { error in
+            XCTAssertEqual(error as NSError, failure)
+        }
+    }
+
+    func test_isIdempotentAccountDeletionFailure_whenInspectionLimitExceeded_rejectsUnverifiedResults() {
+        let partialErrors = Dictionary(uniqueKeysWithValues: (0 ..< 25).map { index in
+            ("zone-\(index)", NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue))
+        })
+        let failure = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [CKPartialErrorsByItemIDKey: partialErrors]
+        )
+
+        XCTAssertFalse(CloudKitBackendService.isIdempotentAccountDeletionFailure(failure))
+    }
+
     private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
         let request = FamilySpace.fetchRequest()
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [

@@ -26,7 +26,8 @@ extension CloudKitBackendService {
             "deletePrivateAccountCloudData begin zones=\(zoneIDs.count)"
         )
         do {
-            _ = try await database.modifyRecordZones(saving: [], deleting: zoneIDs)
+            let result = try await database.modifyRecordZones(saving: [], deleting: zoneIDs)
+            try Self.validateAccountDeletionResults(result.deleteResults, requestedZoneIDs: zoneIDs)
             CartSyncLog.shareACL.info("deletePrivateAccountCloudData done")
         } catch {
             if Self.isIdempotentAccountDeletionFailure(error) {
@@ -46,6 +47,26 @@ extension CloudKitBackendService {
     static func recordZoneIDsForAccountDeletion(from zones: [CKRecordZone]) -> [CKRecordZone.ID] {
         let defaultZoneID = CKRecordZone.default().zoneID
         return zones.map(\.zoneID).filter { $0 != defaultZoneID }
+    }
+
+    enum AccountDeletionResultError: Error, Equatable {
+        case missingZoneResult
+    }
+
+    static func validateAccountDeletionResults(
+        _ results: [CKRecordZone.ID: Result<Void, Error>],
+        requestedZoneIDs: [CKRecordZone.ID]
+    ) throws {
+        for zoneID in requestedZoneIDs {
+            guard let result = results[zoneID] else {
+                throw AccountDeletionResultError.missingZoneResult
+            }
+            if case let .failure(error) = result,
+               !isIdempotentAccountDeletionFailure(error)
+            {
+                throw error
+            }
+        }
     }
 
     static func isIdempotentAccountDeletionFailure(_ error: Error) -> Bool {
@@ -77,6 +98,7 @@ extension CloudKitBackendService {
             }
             result.append(current)
         }
+        guard queue.isEmpty else { return [] }
         return result
     }
 
