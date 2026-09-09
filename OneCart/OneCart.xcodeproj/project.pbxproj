@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        AB0000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* PrivacyInfo.xcprivacy */; };
+        AB0000000000000000000002 /* Widget PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000003 /* PrivacyInfo.xcprivacy */; };
 		A20000000000000000000060 /* OneCartPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* OneCartPalette.swift */; };
 		A20000000000000000000070 /* AppAccentColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000070 /* AppAccentColor.swift */; };
 		A20000000000000000000071 /* AppIconOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000071 /* AppIconOption.swift */; };
@@ -154,6 +156,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+        AB0000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A10000000000000000000060 /* OneCartPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneCartPalette.swift; sourceTree = "<group>"; };
 		A10000000000000000000070 /* AppAccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAccentColor.swift; sourceTree = "<group>"; };
 		A10000000000000000000071 /* AppIconOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconOption.swift; sourceTree = "<group>"; };
@@ -557,6 +560,7 @@
 				W100000000000000000000004 /* CartWidgetViews.swift */,
 				W100000000000000000000005 /* OneCartWidgets.entitlements */,
 				W100000000000000000000006 /* Info.plist */,
+                AB0000000000000000000003 /* PrivacyInfo.xcprivacy */,
 			);
 			path = OneCartWidgets;
 			sourceTree = "<group>";
@@ -697,6 +701,7 @@
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
 				E20000000000000000000007 /* Localizable.xcstrings in Resources */,
 				E20000000000000000000008 /* InfoPlist.xcstrings in Resources */,
+                    AB0000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -711,6 +716,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                    AB0000000000000000000002 /* Widget PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
