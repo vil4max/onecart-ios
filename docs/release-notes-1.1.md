@@ -4,8 +4,10 @@
 
 - Local version/build: **1.1 (1)**, app and widget extension, Debug and Release.
 - Scope: reliability fixes in `0842c07..d85ab0a`; this is an audited change range, not a verified previous App Store release boundary.
-- App Store Connect requires authentication in the current session. Version availability, uploaded builds and review status are unverified.
-- No release tag, upload, submission or public release has been made for this candidate.
+- Candidate commit `71a8441` is pushed to `origin/main`.
+- App Store Connect version **1.1** is created with English and Russian release notes and automatic release after approval. The Russian description and support URL are updated.
+- Xcode Cloud build **89** uses `71a8441`; cloud tests succeeded. App Store Connect reports uploaded **1.1 (89)** as Processing on 2026-09-09. Xcode Cloud assigns the uploaded build number independently of the local build setting.
+- Submission is pending build processing/selection and the owner-provided App Review contact phone and email. No release tag, submission or public release has been made for this candidate.
 
 ## What’s New — English
 
@@ -46,7 +48,7 @@ The bumped **1.1 (1)** candidate passed `just verify` (197 XCTest tests and the 
 Before publication:
 
 1. Local candidate verification is complete; rerun it if the candidate changes.
-2. Sign in to App Store Connect, confirm that 1.1 is available, and review the current Xcode Cloud workflow.
-3. Push the approved candidate and obtain a successful Xcode Cloud archive/TestFlight build; record the actual uploaded build number.
+2. App Store Connect version 1.1 and its localized metadata are prepared. Supply the App Review contact phone and email.
+3. Confirm successful processing of uploaded build 1.1 (89), then select it for version 1.1.
 4. Complete the signed-device checks in [the release runbook](release.md#3-two-device-checklist), especially terminated-app widget actions and two-account CloudKit recovery.
 5. Use the matching localized notes, select the validated build, and submit the version after the release decision. Tag the final shipped commit rather than this unvalidated candidate.
