@@ -5,6 +5,7 @@ Project facts only. Agent behavior lives in the Cursor Brain (`agents-kit`).
 ## Project
 
 - Name: OneCart
+- Supported devices: iPhone only (`TARGETED_DEVICE_FAMILY = 1`); keep app, widget, and test targets aligned.
 - Context: see `.cursor/project-context` (`personal`)
 - Open: `OneCart/OneCart.xcodeproj`
 - Runtime: `Tooling/` (ios-engineering-runtime 0.2.2)
