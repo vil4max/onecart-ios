@@ -4,10 +4,15 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Version: **1.0.2**. Project is set to `MARKETING_VERSION = 1.0.2` and
-`CURRENT_PROJECT_VERSION = 90`. These are local project values; verify the current App Store Connect build and review status before uploading.
-Every further upload of 1.0.2 must use a build number higher than the last accepted ASC build.
-Bump `MARKETING_VERSION` only when starting a new App Store version train.
+Local release candidate: **1.1 (1)** for both the app and widget extension.
+Marketing versions use `MAJOR.MINOR`, with both components treated as integers: **2.4 → 2.5 → … → 2.9 → 2.10**. Increment MINOR without rolling MAJOR at 9; never add a third component.
+A new marketing version resets the local build number to **1**; subsequent builds
+of that version must use a higher unused number. Confirm the actual uploaded build
+number in Xcode Cloud / App Store Connect before selecting it for submission.
+
+Release notes and candidate status: [1.1](release-notes-1.1.md).
+App Store Connect version availability, cloud build status, and submission status
+must be checked in an authenticated session before publication.
 
 **Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, appearance preferences, local family activity notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
 
