@@ -61,7 +61,8 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
         updatedItems[index].isPurchased = newPurchased
 
         // Recalculate counts
-        let purchasedCount = updatedItems.filter(\.isPurchased).count
+        // Items are only a display window; preserve counts for products outside it.
+        let purchasedCount = min(snapshot.totalCount, max(0, snapshot.purchasedCount + (newPurchased ? 1 : -1)))
         snapshot = WidgetCartSnapshot(
             cartTitle: snapshot.cartTitle,
             totalCount: snapshot.totalCount,

@@ -96,6 +96,23 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertTrue(pendingSecondDrain.isEmpty)
     }
 
+    func test_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() {
+        let suite = "test.onecart.widget.\(UUID().uuidString)"
+        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
+        let store = WidgetSnapshotStore(suiteName: suite)
+        let id = UUID()
+        store.save(snapshot: WidgetCartSnapshot(
+            cartTitle: "Family", totalCount: 15, purchasedCount: 10,
+            isSyncing: false, lastUpdated: Date(), familyMemberCount: 1,
+            items: [WidgetItemSnapshot(id: id, name: "Milk", isPurchased: false, categoryRaw: "dairyEggs")]
+        ))
+        XCTAssertTrue(store.toggleItem(id: id))
+        XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 11)
+        XCTAssertEqual(store.loadSnapshot()?.remainingCount, 4)
+        XCTAssertTrue(store.toggleItem(id: id))
+        XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 10)
+    }
+
     func testEmptyAndAllPurchasedHelpers() {
         let empty = WidgetCartSnapshot.empty
         XCTAssertTrue(empty.isEmpty)
