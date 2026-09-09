@@ -40,6 +40,8 @@ extension AppSession {
                 try await accountCloudDataDeleter.deletePrivateAccountCloudData()
             }
             try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
+            try widgetStore.clear()
+            widgetDrainTask?.cancel()
             finalizeSignOutAfterSuccessfulAccountDeletion()
             CartHaptics.success()
             CartSyncLog.action.info("deleteAccount done")

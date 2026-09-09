@@ -83,6 +83,13 @@ extension AppSession {
     }
 
     func signOut() {
+        do {
+            try widgetStore.clear()
+        } catch {
+            show(error)
+            return
+        }
+        widgetDrainTask?.cancel()
         if let account {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
         }

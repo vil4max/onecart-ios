@@ -525,3 +525,52 @@ private final class WidgetAppleSignIn: AppleSignInAuthenticating {
         try XCTUnwrap(credential)
     }
 }
+
+@MainActor
+final class WidgetPrivacyCleanupTests: XCTestCase {
+    func test_clear_removesWidgetSnapshotAndPendingPurchases() throws {
+        let fixture = try makeWidgetStore()
+        fixture.store.save(snapshot: .placeholder)
+        try fixture.store.enqueuePurchase(WidgetPurchaseRequest(
+            accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true
+        ))
+
+        try fixture.store.clear()
+
+        XCTAssertTrue(fixture.store.loadSnapshot()?.isEmpty ?? true)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
+    func test_signOut_clearsWidgetDataAndRejectsLateWidgetAction() async throws {
+        let fixture = try await makeWidgetSession()
+        let request = fixture.request()
+        try fixture.store.enqueuePurchase(request)
+        fixture.session.updateWidgetSnapshot()
+        XCTAssertFalse(try XCTUnwrap(fixture.store.loadSnapshot()).isEmpty)
+
+        fixture.session.signOut()
+
+        XCTAssertNil(fixture.session.account)
+        XCTAssertTrue(fixture.store.loadSnapshot()?.isEmpty ?? true)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+        do {
+            try await fixture.session.performWidgetPurchase(request)
+            XCTFail("A stale widget must not enqueue purchases after sign-out")
+        } catch {
+            XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+        }
+    }
+
+    func test_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {
+        let fixture = try await makeWidgetSession()
+        try fixture.store.enqueuePurchase(fixture.request())
+        fixture.session.updateWidgetSnapshot()
+        XCTAssertFalse(try XCTUnwrap(fixture.store.loadSnapshot()).isEmpty)
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertNil(fixture.session.account)
+        XCTAssertTrue(fixture.store.loadSnapshot()?.isEmpty ?? true)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+}

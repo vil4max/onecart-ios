@@ -146,6 +146,21 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
         }
     }
 
+    public func clear() throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+            #if canImport(WidgetKit)
+                WidgetCenter.shared.reloadAllTimelines()
+            #endif
+        }
+        userDefaults?.removeObject(forKey: snapshotKey)
+        userDefaults?.removeObject(forKey: "onecart.widget.pending_toggles")
+        if let pendingDirectoryURL, FileManager.default.fileExists(atPath: pendingDirectoryURL.path) {
+            try FileManager.default.removeItem(at: pendingDirectoryURL)
+        }
+    }
+
     public func clearPendingPurchases() throws {
         lock.lock()
         defer { lock.unlock() }
