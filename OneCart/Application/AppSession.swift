@@ -30,6 +30,8 @@ final class AppSession: ObservableObject {
     @Published var userAlert: UserAlert?
     @Published var sharedCartRemovedMessage: String?
     @Published var isDeletingAccount = false
+    @Published var isReconcilingPersonalCart = false
+    var pendingCartMutationCount = 0
 
     var alertMessage: String? {
         userAlert?.message
@@ -75,7 +77,7 @@ final class AppSession: ObservableObject {
     }
 
     var canEdit: Bool {
-        activeFamilySpace != nil && (access?.canEdit ?? false)
+        !isReconcilingPersonalCart && !isDeletingAccount && activeFamilySpace != nil && (access?.canEdit ?? false)
     }
 
     var isOnline: Bool {

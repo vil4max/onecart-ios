@@ -31,10 +31,10 @@ extension AppSession {
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
-        guard let id = product.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else { return }
         CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
-            try await self.repository.updateProduct(id: id, draft: draft)
+            try await self.repository.updateProduct(id: id, familySpaceID: familyID, draft: draft)
         }
         let name = draft.name
         Task { await self.refineProductCategory(productID: id, name: name) }
@@ -42,7 +42,11 @@ extension AppSession {
 
     private func refineProductCategory(productID: UUID, name: String) async {
         let classified = await ProductCategoryClassifier.shared.classify(name)
-        guard let product = products.first(where: { $0.id == productID }) else { return }
+        guard canEdit else { return }
+        pendingCartMutationCount += 1
+        defer { finishCartMutation() }
+        guard let product = products.first(where: { $0.id == productID }),
+              let familyID = product.familySpace?.id else { return }
         guard product.categoryValue != classified else { return }
 
         let draft = ProductDraft(
@@ -61,7 +65,7 @@ extension AppSession {
         )
 
         do {
-            try await repository.updateProduct(id: productID, draft: draft)
+            try await repository.updateProduct(id: productID, familySpaceID: familyID, draft: draft)
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
@@ -78,7 +82,7 @@ extension AppSession {
     }
 
     func togglePurchased(_ product: ProductEntity) async {
-        guard let id = product.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else { return }
         guard canEdit else {
             CartSyncLog.cart.error("togglePurchased denied canEdit=false")
             CartSyncLog.action.error("togglePurchased denied canEdit=false")
@@ -86,11 +90,14 @@ extension AppSession {
             return
         }
 
+        pendingCartMutationCount += 1
+        defer { finishCartMutation() }
         do {
             CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
             CartSyncLog.action.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
             try await repository.togglePurchased(
                 id: id,
+                familySpaceID: familyID,
                 participantDisplayName: Self.participantName(
                     preferences: preferences,
                     account: account
@@ -122,14 +129,14 @@ extension AppSession {
     }
 
     func deleteProduct(_ product: ProductEntity) async {
-        guard let id = product.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else { return }
         guard !product.isPurchasedValue else {
             CartSyncLog.action.info("deleteProduct skipped purchased id=\(id.uuidString, privacy: .public)")
             return
         }
         CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
-            try await self.repository.deleteProduct(id: id)
+            try await self.repository.deleteProduct(id: id, familySpaceID: familyID)
         }
     }
 
@@ -149,6 +156,8 @@ extension AppSession {
         calendar: Calendar = .current
     ) async {
         guard canEdit else { return }
+        pendingCartMutationCount += 1
+        defer { finishCartMutation() }
         let cutoff = calendar.startOfDay(for: now)
         var didArchive = false
 
@@ -203,7 +212,11 @@ extension AppSession {
         }
 
         isBusy = true
-        defer { isBusy = false }
+        pendingCartMutationCount += 1
+        defer {
+            isBusy = false
+            finishCartMutation()
+        }
 
         do {
             try await operation()
@@ -229,6 +242,14 @@ extension AppSession {
             }
             show(error)
             return false
+        }
+    }
+
+    func finishCartMutation() {
+        pendingCartMutationCount -= 1
+        guard pendingCartMutationCount == 0, let account else { return }
+        Task { @MainActor in
+            try? await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
         }
     }
 
@@ -291,7 +312,11 @@ extension AppSession {
         let personalSpaces = spaces.filter {
             persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
         }
-        return personalSpaces.first(where: \.isHouseholdDefaultValue) ?? personalSpaces.first
+        let preferredID = activeFamilySpace.flatMap { family in
+            persistence.scope(for: family) == .private ? family.id : nil
+        } ?? household.restoredPersonalFamilyID(accountID: account.id)
+        return personalSpaces.first(where: { $0.id == preferredID })
+            ?? personalSpaces.first(where: \.isHouseholdDefaultValue) ?? personalSpaces.first
     }
 
     private func syncPersonalCartNameWithParticipant() async {

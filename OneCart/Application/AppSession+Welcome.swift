@@ -50,6 +50,10 @@ extension AppSession {
             preferences.participantDisplayName = ""
         }
         await bootstrapper.prepare(appleCredential: credential)
+        isBusy = false
+        if let account {
+            try? await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
+        }
     }
 
     func completeAppleSignIn(authorization: ASAuthorization) async {

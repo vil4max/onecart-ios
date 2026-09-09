@@ -52,12 +52,12 @@ extension FamilySpaceRepository {
         }
     }
 
-    func updateProduct(id: UUID, draft: ProductDraft) async throws {
+    func updateProduct(id: UUID, familySpaceID: UUID? = nil, draft: ProductDraft) async throws {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
 
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, in: context) else {
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
@@ -71,10 +71,11 @@ extension FamilySpaceRepository {
 
     func togglePurchased(
         id: UUID,
+        familySpaceID: UUID? = nil,
         participantDisplayName: String?
     ) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, in: context) else {
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
@@ -91,9 +92,9 @@ extension FamilySpaceRepository {
         }
     }
 
-    func deleteProduct(id: UUID) async throws {
+    func deleteProduct(id: UUID, familySpaceID: UUID? = nil) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, in: context) else {
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
                 throw RepositoryError.productNotFound
             }
             try self.requireDeletePermission(for: product)
