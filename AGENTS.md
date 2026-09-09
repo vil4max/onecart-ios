@@ -27,6 +27,13 @@ scheme: OneCart
 project: OneCart/OneCart.xcodeproj
 ```
 
+## Versioning
+
+- Marketing versions use `MAJOR.MINOR`, with both components treated as integers: `2.4 → 2.5 → … → 2.9 → 2.10`.
+- Increment MINOR for the next release; do not roll MAJOR at 9 and never add a third component.
+- The build number is separate: reset it to `1` for a new marketing version, then increment within that version.
+- Keep the app and widget extension versions and build numbers aligned in Debug and Release.
+
 ## Modules
 
 | Path | Role |
