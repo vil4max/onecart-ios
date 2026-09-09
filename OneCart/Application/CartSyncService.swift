@@ -25,6 +25,7 @@ final class CartSyncService: ObservableObject {
     private let persistence: PersistenceController
     private var pendingReason: CartSyncReason?
     private var isExclusiveRunning = false
+    private var syncWaiters: [CheckedContinuation<CartSyncOutcome, Never>] = []
     private var lastAppearSyncAt: Date?
 
     var onHardRefresh: (() async throws -> Void)?
@@ -52,13 +53,9 @@ final class CartSyncService: ObservableObject {
             CartSyncLog.cart.info(
                 "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(pendingLabel, privacy: .public)"
             )
-            while isExclusiveRunning {
-                await Task.yield()
+            return await withCheckedContinuation { continuation in
+                syncWaiters.append(continuation)
             }
-            if let leftover = pendingReason {
-                return await syncCart(reason: leftover, debouncedAppear: false)
-            }
-            return .succeeded
         }
 
         isExclusiveRunning = true
@@ -71,6 +68,11 @@ final class CartSyncService: ObservableObject {
         while let reasonToRun = takePendingReason() {
             isCartSyncing = Self.showsSyncChrome(for: reasonToRun)
             lastOutcome = await performSync(reason: reasonToRun)
+        }
+        let waiters = syncWaiters
+        syncWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume(returning: lastOutcome)
         }
         return lastOutcome
     }

@@ -101,6 +101,38 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(cartSync.contentRevision, 2)
     }
 
+    func test_coalescedPull_whenRefreshFails_returnsFailureToBothCallers() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let sync = CartSyncService(persistence: persistence)
+        let started = expectation(description: "First refresh is suspended")
+        let secondStarted = expectation(description: "Pull joins the active refresh")
+        var release: CheckedContinuation<Void, Never>?
+        var calls = 0
+        sync.onHardRefresh = {
+            calls += 1
+            if calls == 1 {
+                await withCheckedContinuation { continuation in
+                    release = continuation
+                    started.fulfill()
+                }
+            }
+            throw NSError(domain: "Sync", code: 1, userInfo: [NSLocalizedDescriptionKey: "Import failed"])
+        }
+        let first = Task { await sync.syncCart(reason: .cloudImport) }
+        await fulfillment(of: [started], timeout: 2)
+        let second = Task {
+            secondStarted.fulfill()
+            return await sync.syncCart(reason: .pull)
+        }
+        await fulfillment(of: [secondStarted], timeout: 2)
+        release?.resume()
+        let outcomes = await (first.value, second.value)
+        XCTAssertEqual(outcomes.0, .failed("Import failed"))
+        XCTAssertEqual(outcomes.1, .failed("Import failed"))
+        XCTAssertEqual(calls, 2)
+    }
+
     func testSoftRefreshCartProductsBumpsRevision() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
