@@ -12,9 +12,9 @@ Product policy (see [product.md](product.md)): **one living family cart + CKShar
 
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
-| Tabs: Корзина / История / Аккаунт | Theme-unit prefs / Stores / catalog UI |
+| Tabs: Корзина / История / Настройки; appearance, icon and language preferences | Unit / price input / Stores / catalog UI |
 | Name-only inline add via `+` empty row + keyboard; category SF Symbol from keywords, optional on-device FM refine | Rich product editor / money UI |
-| Invite + Revoke invite + leave from Аккаунт; members on the same screen | Multi-cart switcher (FU01) |
+| Invite + Revoke invite + leave from Настройки; members on the same screen | Multi-cart switcher (FU01) |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |
 
@@ -26,7 +26,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 | Type | Role |
 |------|------|
-| `SessionBootstrapper` | SIWA restore / welcome retry; Core Data wipe only on typed store failure |
+| `SessionBootstrapper` | SIWA restore / welcome retry; preserves pending account-deletion recovery |
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
 | `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
@@ -55,12 +55,12 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Application/ConnectivityMonitor.swift` | Path monitor used by cloud sync |
 | `OneCart/Application/HouseholdCartCoordinator.swift` | Household ensure / adopt / shared-gone |
 | `OneCart/Application/InviteLinkPreparer.swift` | Invite link prepare / cache |
-| `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / delete-and-recreate |
+| `OneCart/Application/FamilyShareOrchestrator.swift` | Invite / ACL heal / revoke without replacing the cart |
 | `OneCart/Application/AppDelegate.swift` | Scene config + fallback CloudKit share handoff |
 | `OneCart/Application/SceneDelegate.swift` | Scene-based `CKShare` accept + cold-start metadata |
 | `OneCart/Application/RootView.swift` | Launch → welcome or main tabs; system alert |
 | `OneCart/Application/LaunchChrome.swift` | Launch cart ride + shared chrome controls |
-| `OneCart/Application/MainTabView.swift` | Корзина / История / Аккаунт |
+| `OneCart/Application/MainTabView.swift` | Корзина / История / Настройки |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; non-destructive `load()` |
 | `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile |
 | `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
@@ -89,10 +89,10 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 
 | Choice | Why |
 |--------|-----|
-| `load()` never auto-wipes | Offline SQLite must survive transient open failures; wipe only from welcome retry after Core Data failure + diagnostics copy |
-| `CartSyncOutcome` + failed ≠ synchronized | UI must not show “ok” after hard-refresh throws |
+| `load()` preserves stores on transient failures | Explicit welcome recovery requires a Core Data failure and diagnostics copy; a confirmed account-deletion marker finishes previously authorized cleanup before reopening |
+| `CartSyncOutcome` + failed ≠ synchronized | Coalesced callers receive the final queued refresh outcome; recovery mode keeps `.failed` |
 | History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
-| No local profile photos | Display name from SIWA / iCloud account only; member rows use initials (+ HTTPS avatar URL if CloudKit provides one) |
+| Device-local profile | Display name and local avatar/banner preferences are separate from CloudKit membership |
 | NC09: no pre-merge GitHub Actions | Xcode Cloud release-only for this personal train |
 
 ## Fragile-test matrix (living checklist)
@@ -134,6 +134,15 @@ There is **no public API to force** a CloudKit import/export mirror ([TN3163](ht
 `CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. Join product merge is deferred. See [product.md](product.md) and [privacy.md](privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
+
+## Recovery, deadlines and widget writes
+
+- Provisional personal-cart IDs are stored per account. Late imports reconcile local content by stable IDs before selecting the restored cart; pending mutations defer reconciliation and retry on completion. Neither the provisional source nor other shared families are deleted by selection.
+- `HistoryItems.unique` selects one logical item per `(family ID, item ID)` for history and suggestions. Archive retries reuse existing logical purchases. This does not physically delete duplicate CloudKit history records.
+- Account deletion unloads stores without deleting SQLite, checks every requested zone result, then marks confirmed cloud deletion before local cleanup. `account-deletion-state.json` survives interrupted cleanup. Pending cloud deletion loads original stores without mirroring; confirmed deletion finishes cleanup before reopening. Credentials clear only after cleanup succeeds.
+- `CloudKitDeadline` resolves the caller once on result, timeout, or cancellation without waiting for a cancellation-insensitive SDK callback. A late cloud write remains possible; timeout is not proof of server-side cancellation.
+- Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer product edit are ignored; confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
+- Both the app and widget extension bundle their own `PrivacyInfo.xcprivacy`. App Group defaults access is declared in each relevant target.
 
 ## Folder layout
 

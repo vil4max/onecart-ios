@@ -4,7 +4,7 @@
 
 **OneCart** (user-facing **OneCart Family**) is one shared family cart and a single place to see every purchase.
 
-One person adds items, another shops, everyone sees progress live. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
+One person adds items, another shops, everyone follows synchronized progress. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
 
 ## Business skeleton
 
@@ -29,7 +29,7 @@ The cart mirrors the shopping trip:
 
 1. Family adds name-only items to the shared cart.
 2. Shopper checks items as they pick them — they move to **Completed** (strikethrough), still on the living cart.
-3. Everyone sees Completed updates live over CloudKit.
+3. Completed updates propagate through CloudKit when synchronization runs.
 4. There is **no** manual «Finish shopping» / Done CTA. When the app opens or returns to foreground on a **later calendar day**, items Completed before the start of today move into **History**, grouped by purchase day.
 5. Completed items cannot be swipe-deleted; uncheck first if the mark was a mistake. To-buy items can still be deleted.
 
@@ -37,7 +37,7 @@ Checkbox means **Completed for this trip**, not yet archived. History is the ove
 
 ### Product promises
 
-1. **Sync** — added at home, visible in the store at once.
+1. **Sync** — local edits save immediately and propagate through iCloud; offline changes wait for connectivity and CloudKit scheduling.
 2. **Transparency** — who added / who completed an item, without calls.
 3. **Memory** — History by day answers what the family bought.
 
@@ -55,7 +55,7 @@ Three tabs after Welcome:
 |-----|----------|
 | **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
 | **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave), then **Аккаунт Apple** (profile / name), **Сессия** (Sign out keeps iCloud cart), **Удаление аккаунта** (permanent CloudKit delete) |
+| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave), then **Аккаунт Apple** (profile / name), appearance, accent, app icon and language preferences, **Сессия** (Sign out keeps iCloud cart), **Удаление аккаунта** (permanent CloudKit delete) |
 
 Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
 
@@ -67,21 +67,25 @@ Nav title is the cart name. Personal cart starts as `cart.personal_title` from t
 2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, keyboard Done to save.
 3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. Check items into **Completed**; they stay on the living cart until the next calendar day, then move to **History** on app open / foreground.
-5. After cart create, warm-start a private `CKShare` in the background. Invite from **Настройки → Корзина**.
+5. Background preparation reads an existing open invite only; it never creates a share or reopens a revoked link. Explicitly invite from **Настройки → Корзина**.
 6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
 
 Up to four people share one cart; changes sync via CloudKit.
+
+A newly installed device may create a provisional personal cart while iCloud imports. When an older personal cart arrives for the same account, its list becomes active after local provisional products and history are copied by stable identifiers. The provisional source is retained. Selecting a shared cart also retains other shared families on disk; selection never deletes another family.
+
+History and suggestion frequency count each `(family ID, item ID)` once, including when multiple devices independently archive the same purchase. Duplicate transport records may remain in CloudKit.
 
 **Identical cart lines (same cart).** Same `Product.id` within one cart: keep one row. Cross-cart join merge (private → shared LWW) is deferred — accept switches to the shared cart only.
 
 ## Technical invite path
 
 ```text
-Create household cart → warm-start CKShare (publicPermission = .readWrite)
-  → Аккаунт → «Поделиться корзиной» → system Share Sheet → Accept
+Create household cart → Settings → «Поделиться корзиной»
+  → create/reopen CKShare (publicPermission = .readWrite) → system Share Sheet → Accept
 ```
 
-Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation has timeouts, `retryAfterSeconds` backoff when CloudKit asks, and a UI watchdog so the loader cannot stick.
+Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation and persistence have caller deadlines and `retryAfterSeconds` backoff when CloudKit asks. A deadline ends the wait; an underlying CloudKit operation can still finish later.
 
 ### Membership (no ban list)
 
@@ -100,11 +104,18 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 - **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
 - Display name: **device-local** account name (set when Sign in with Apple did not provide one). The same name appears in the cart members list and on items you add (`createdByName`) / mark Completed (`purchasedByName`). Avatar and banner stay device-local.
 - Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
-- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud.
+- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud. It also clears the widget snapshot and pending widget actions.
 - **Delete Account** permanently deletes private CloudKit zones for this iCloud user, clears the SIWA Keychain session and local stores, and returns to Welcome. Owner deletion removes the shared family cart for members; a member leaves the shared cart first so others keep it.
+- If cloud deletion fails, keep credentials and preserve local SQLite. Pending cloud deletion opens in local recovery mode without CloudKit mirroring; retry deletion to finish. Once cloud deletion is confirmed, failed local cleanup must finish before successful sign-out.
 - Owner **Revoke invite**: close door for new joins; cart UUID unchanged. No Recreate / delete-entity in UX.
 - History is never user-cleared; retention/size optimization is a later backlog item.
 - Failures use a system alert (`OK`), not toast/banner chrome.
+
+## Widgets and notifications
+
+Home and Lock Screen widgets display a compact snapshot, with up to six needed and two completed items; totals cover the full cart. Purchase actions run through the app session and persist to Core Data. Pending commands carry account/cart identity and an explicit purchased state; they are acknowledged only after a successful save and retried after startup, foreground or imported changes. CloudKit propagation still follows its normal schedule.
+
+Family activity notifications are local notifications created when the app observes imported cart changes. They require notification permission and an opportunity for the app to observe those changes; delivery is not an instantaneous server-push guarantee.
 
 ## Default cart identity
 
@@ -133,19 +144,19 @@ Ship a reliable SIWA → one cart → name-only add → Completed → overnight 
 
 | Kept out of UX | Why |
 |----------------|-----|
-| Theme / unit prefs | System appearance; name-only add |
+| Unit / price input | Name-only add |
 | Stores / catalog scrapers | Enlarged CK surface; blocked simple add |
 | Rich product editor (qty / unit / price / notes) | Friction; add fields later on a working core |
 | Multi-cart switcher / audience sheets | Deferred — see FU01; v1 keeps one active cart with durable hidden personal |
 | Toast / sync banner chrome | Prefer system alert; cart nav shows short «Updating…» only while hard-refreshing |
 
-Deferred until core is solid on real devices: multi-cart UI (personal + N invited, accent colors, move items — FU01 + Tasks & Ideas board), store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, price input. History size/retention optimization without a Clear History button.
+Deferred until core is solid on real devices: multi-cart UI (personal + N invited, move items — FU01 + Tasks & Ideas board), store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, price input. History size/retention optimization without a Clear History button.
 
 ## Idea: history assistant (not this train)
 
 History days are a dataset of family habits (what, how often, who). Possible later:
 
-- Autocomplete while typing (“мол…” → “Молоко”)
+- Broader autocomplete beyond the existing history-based suggestion chips
 - Reminders for regularly forgotten items
 - Rough trip total once prices exist
 

@@ -1,8 +1,29 @@
 # OneCart PR review changelog
 
-Branch: feat/living-cart-and-tabs
-Base: main
+Historical scope: `feat/living-cart-and-tabs` against `main` (RC/NC/FU entries below).
+Current audit fixes are tracked separately in the table below.
 Audience: human reviewer + review agent (alex)
+
+## September 2026 reliability audit
+
+Each row is one logical repair and one commit. Historical RC entries below describe their original review scope and are not a current branch manifest.
+
+| Finding | Repair | Regression evidence |
+|---------|--------|---------------------|
+| 1 | Shared-cart selection retains other families | SharedCartJoinTests, HouseholdEnsureTests |
+| 2 | Background invite preparation never opens a revoked door | ShareLinkJoinACLTests |
+| 3 | Validate every CloudKit zone deletion result | AccountDeletionTests |
+| 4 | Preserve SQLite until cloud deletion succeeds; recover/retry cleanup | AccountDeletionTests disk recovery cases |
+| 5 | Bundle app and widget privacy manifests | Built app/extension resource inspection |
+| 6 | Reconcile provisional personal cart after late import | HouseholdEnsureTests, FamilyCartMergeTests |
+| 7 | Deduplicate logical history across archive replicas | PurchaseSessionTests, CartSuggestionsEngineTests |
+| 8 | Coalesced sync callers receive failure outcomes | FragileSyncOutcomeTests |
+| 9 | SDK callbacks cannot prolong caller deadlines | InviteLinkPreparerTests |
+| 10 | Persist and acknowledge widget purchase commands | WidgetSnapshotTests |
+| 11 | Widget counts include products outside its display window | WidgetSnapshotTests |
+| 12 | Clear widget data on sign-out/account deletion | WidgetPrivacyCleanupTests |
+
+Run `just verify` for the combined code state. Signed-device checks and release status remain separate; see [release.md](release.md).
 
 ## Current layout (post-reorg)
 

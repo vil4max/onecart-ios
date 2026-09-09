@@ -5,11 +5,11 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 ## Preflight (this branch)
 
 Version: **1.0.2**. Project is set to `MARKETING_VERSION = 1.0.2` and
-`CURRENT_PROJECT_VERSION = 90` (after validated ASC build **89** / train **1.0.1** approved).
+`CURRENT_PROJECT_VERSION = 90`. These are local project values; verify the current App Store Connect build and review status before uploading.
 Every further upload of 1.0.2 must use a build number higher than the last accepted ASC build.
 Bump `MARKETING_VERSION` only when starting a new App Store version train.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, theme sync, smart family push notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Аккаунт), name-only add, share from «Аккаунт»; Stores/catalog UI, price and unit input, theme prefs are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
+**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, appearance preferences, local family activity notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
 
 ### Build 88 Highlights (Quick Suggestion Chips)
 - **1-Tap Add Suggestions:** Frequently purchased items appear directly below the text input inside the composer card when adding an item.
@@ -21,8 +21,8 @@ Bump `MARKETING_VERSION` only when starting a new App Store version train.
   - ![Suggestions added in 1 tap](screenshots/suggestions_chips_added.png)
 
 ### Build 87 Highlights (Smart Family Notifications)
-- **Item added by partner:** Instant push notification when a family member adds new item(s) to the shared cart (*«Маша добавила «Сыр» в корзину»*).
-- **All items purchased:** Celebration push when partner checks off the last remaining item (*«Всё куплено! 🎉»*).
+- **Item added by partner:** Local notification when the app observes newly imported items from a family member (*«Маша добавила «Сыр» в корзину»*).
+- **All items purchased:** Local celebration notification when the app observes a partner completing the last remaining item (*«Всё куплено! 🎉»*).
 - **Anti-spam:** Ignores self-actions, seeds baseline on first install, suppresses single-user carts, aggregates multiple items into one concise banner.
 - **Screenshots:**
   - ![Item added notification](screenshots/push_item_added.png)
@@ -85,16 +85,28 @@ Until Production has the fields Core Data expects, sync/share will keep failing 
 
 Physical devices, different iCloud accounts (simulator is UI/local Core Data only):
 
-1. Signed Debug / TestFlight build on A and B (version 1.0 / build ≥ 84). Production CloudKit schema deployed (§2).
+1. Signed Debug / TestFlight build on A and B (the candidate version/build under test). Production CloudKit schema deployed (§2).
 2. On A: SIWA → empty household cart; add items (including offline). Failures show as a system alert (OK).
 3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
-4. Tab «Аккаунт» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
+4. Tab «Настройки» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
 5. On B: SIWA → accept share → shared cart becomes the only active cart (personal stays on disk, hidden); edits sync both ways (including Completed checkboxes).
 6. Same product name added by A and B → two separate cart rows (not summed).
 7. Mark items Completed on A → visible on B; next calendar day, open/foreground on either device → yesterday’s Completed move to History by day (read-only).
 8. Remove member on A → B loses access.
 9. On A (owner): **Revoke invite** → confirm → same cart UUID; new joins blocked; B stays on shared cart; A can **Share** again to reopen joining.
 10. Relaunch offline: local data opens; queued changes upload when back online.
+
+### Audit regression checks on devices
+
+- Join a second shared family; verify the first family remains available to its other members.
+- Revoke an invite, rename/relaunch, and verify joining stays closed until explicit Share.
+- Restore on a fresh device while adding local items before import; verify restored and provisional purchases remain intact.
+- Archive the same completed item offline on both devices, reconnect, and verify history/suggestions count it once.
+- Fail account deletion or local cleanup; verify no false success and that retry completes. Check owner and member paths separately.
+- Tap a widget with the app terminated; verify the persistent cart changes, failure retries do not invert the item, full-cart counts remain correct, and sign-out clears snapshot/actions.
+- Inspect both built bundles for `PrivacyInfo.xcprivacy` before upload.
+
+Unit tests and simulator verification do not replace these signed-device CloudKit/widget checks.
 
 ### Code-level verification (no devices)
 
@@ -118,7 +130,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Toggle Completed / edit / delete tombstone (to-buy only) | `testTogglePurchasedSetsAndClearsBuyer`, `testUpdateProductRewritesFields`, `testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI` (`CartItemsTests`) |
 | Deduplicate stable IDs / Core Data vs CK errors | `testDeduplicateStableIDsKeepsNewerProduct`, `testIsUserFacingCoreDataFailureIgnoresCloudKit` |
 | Invite does not block forever on mirror | `FamilyInviteLinkBuilder`: brief wait + `share()` retry; outer `shareTimedOut` |
-| Invite link warm-up after cart create | `AppSession.scheduleInviteLinkPreparation` / `preparedInviteLink` |
+| Read-only invite warm-up; revoked links stay closed | `AppSession.scheduleInviteLinkPreparation` / `FamilyInviteLinkBuilder.existingInviteLink` |
 | Hard cart sync / product snapshot reload | `CartSyncService`, `CloudKitProductReloadPolicy`, `testRefreshFromServerPicksUpToggledPurchasedState` |
 | Permission deny on shared mutations | `DenyAllPermissionAuthorizer` + `CartAccessTests` |
 | Owner revoke invite keeps family identity | `testRevokeInviteKeepsFamilySpaceIdentity` |
