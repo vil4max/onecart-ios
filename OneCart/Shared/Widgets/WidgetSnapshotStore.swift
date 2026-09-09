@@ -8,11 +8,17 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
 
     private let userDefaults: UserDefaults?
     private let snapshotKey = "onecart.widget.snapshot"
-    private let pendingTogglesKey = "onecart.widget.pending_toggles"
+    private let pendingDirectoryURL: URL?
     private let lock = NSLock()
 
-    public init(suiteName: String = OneCartAppGroup.identifier) {
+    public init(
+        suiteName: String = OneCartAppGroup.identifier,
+        pendingDirectoryURL: URL? = nil
+    ) {
         userDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        self.pendingDirectoryURL = pendingDirectoryURL ?? FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: OneCartAppGroup.identifier)?
+            .appendingPathComponent("WidgetPurchases", isDirectory: true)
     }
 
     public func save(snapshot: WidgetCartSnapshot) {
@@ -60,7 +66,6 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
         var updatedItems = snapshot.items
         updatedItems[index].isPurchased = newPurchased
 
-        // Recalculate counts
         // Items are only a display window; preserve counts for products outside it.
         let purchasedCount = min(snapshot.totalCount, max(0, snapshot.purchasedCount + (newPurchased ? 1 : -1)))
         snapshot = WidgetCartSnapshot(
@@ -73,17 +78,14 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
             activePartnerName: snapshot.activePartnerName,
             themeRaw: snapshot.themeRaw,
             accentColorRaw: snapshot.accentColorRaw,
+            accountID: snapshot.accountID,
+            familyID: snapshot.familyID,
             items: updatedItems
         )
 
         if let encoded = try? JSONEncoder().encode(snapshot) {
             userDefaults.set(encoded, forKey: snapshotKey)
         }
-
-        // Record pending toggle for AppSession reconciliation
-        var pending = userDefaults.stringArray(forKey: pendingTogglesKey) ?? []
-        pending.append(id.uuidString)
-        userDefaults.set(pending, forKey: pendingTogglesKey)
 
         #if canImport(WidgetKit)
             WidgetCenter.shared.reloadAllTimelines()
@@ -92,13 +94,73 @@ public final class WidgetSnapshotStore: @unchecked Sendable {
         return true
     }
 
-    public func drainPendingToggles() -> [UUID] {
+    public func enqueuePurchase(_ request: WidgetPurchaseRequest) throws {
         lock.lock()
         defer { lock.unlock() }
+        guard let pendingDirectoryURL else { throw WidgetPurchaseError.unavailable }
+        try FileManager.default.createDirectory(at: pendingDirectoryURL, withIntermediateDirectories: true)
+        let url = pendingDirectoryURL.appendingPathComponent(request.id.uuidString).appendingPathExtension("json")
+        if FileManager.default.fileExists(atPath: url.path) {
+            let existing = try JSONDecoder().decode(WidgetPurchaseRequest.self, from: Data(contentsOf: url))
+            guard existing.accountID == request.accountID, existing.familyID == request.familyID,
+                  existing.productID == request.productID, existing.isPurchased == request.isPurchased
+            else { throw WidgetPurchaseError.invalidRequest }
+            return
+        }
+        try JSONEncoder().encode(request).write(to: url, options: .atomic)
+    }
 
-        guard let userDefaults else { return [] }
-        let raw = userDefaults.stringArray(forKey: pendingTogglesKey) ?? []
-        userDefaults.removeObject(forKey: pendingTogglesKey)
-        return raw.compactMap { UUID(uuidString: $0) }
+    public func pendingPurchases() throws -> [WidgetPurchaseRequest] {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let pendingDirectoryURL else { return [] }
+        guard FileManager.default.fileExists(atPath: pendingDirectoryURL.path) else { return [] }
+        let urls = try FileManager.default.contentsOfDirectory(at: pendingDirectoryURL, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+        var requests: [WidgetPurchaseRequest] = []
+        for url in urls {
+            do {
+                let request = try JSONDecoder().decode(WidgetPurchaseRequest.self, from: Data(contentsOf: url))
+                guard UUID(uuidString: url.deletingPathExtension().lastPathComponent) == request.id else {
+                    try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("invalid"))
+                    continue
+                }
+                requests.append(request)
+            } catch is DecodingError {
+                // Keep malformed data for inspection; one damaged request must not block valid purchases.
+                try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("invalid"))
+            }
+        }
+        return requests.sorted {
+            $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
+        }
+    }
+
+    public func acknowledgePurchase(id: UUID) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let pendingDirectoryURL else { throw WidgetPurchaseError.unavailable }
+        let url = pendingDirectoryURL.appendingPathComponent(id.uuidString).appendingPathExtension("json")
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+    }
+
+    public func clearPendingPurchases() throws {
+        lock.lock()
+        defer { lock.unlock() }
+        if let pendingDirectoryURL, FileManager.default.fileExists(atPath: pendingDirectoryURL.path) {
+            try FileManager.default.removeItem(at: pendingDirectoryURL)
+        }
+        userDefaults?.removeObject(forKey: "onecart.widget.pending_toggles")
+    }
+}
+
+public enum WidgetPurchaseError: LocalizedError {
+    case invalidRequest
+    case unavailable
+
+    public var errorDescription: String? {
+        String(localized: "sync.generic_failure")
     }
 }

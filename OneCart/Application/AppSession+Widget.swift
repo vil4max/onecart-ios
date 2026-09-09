@@ -8,7 +8,9 @@ extension AppSession {
     ) {
         let activeTheme = themeOverride ?? preferences.theme
         let activeAccent = accentOverride ?? preferences.accentColor
-        guard isReady, let list = activeLists.first ?? lists.first else {
+        guard isReady, let accountID = account?.id, let familyID = activeFamilySpace?.id,
+              let list = activeLists.first ?? lists.first
+        else {
             let emptySnapshot = WidgetCartSnapshot(
                 cartTitle: "OneCart Family",
                 totalCount: 0,
@@ -21,7 +23,7 @@ extension AppSession {
                 accentColorRaw: activeAccent.rawValue,
                 items: []
             )
-            WidgetSnapshotStore.shared.save(snapshot: emptySnapshot)
+            widgetStore.save(snapshot: emptySnapshot)
             return
         }
 
@@ -75,21 +77,95 @@ extension AppSession {
             activePartnerName: partnerName,
             themeRaw: activeTheme.rawValue,
             accentColorRaw: activeAccent.rawValue,
+            accountID: accountID,
+            familyID: familyID,
             items: itemSnapshots
         )
 
-        WidgetSnapshotStore.shared.save(snapshot: snapshot)
+        widgetStore.save(snapshot: snapshot)
     }
 
     func drainWidgetPendingToggles() async {
-        let pendingIDs = WidgetSnapshotStore.shared.drainPendingToggles()
-        guard !pendingIDs.isEmpty else { return }
+        do {
+            try await applyPendingWidgetPurchases()
+        } catch {
+            show(error)
+        }
+    }
 
-        for id in pendingIDs {
-            if let product = products.first(where: { $0.id == id }) {
-                await togglePurchased(product)
+    func performWidgetPurchase(_ request: WidgetPurchaseRequest) async throws {
+        await start()
+        guard account?.id == request.accountID, activeFamilySpace?.id == request.familyID, canEdit else {
+            throw WidgetPurchaseError.unavailable
+        }
+        try widgetStore.enqueuePurchase(request)
+        while try widgetStore.pendingPurchases().contains(where: { $0.id == request.id }) {
+            try Task.checkCancellation()
+            guard account?.id == request.accountID, activeFamilySpace?.id == request.familyID, canEdit else {
+                throw WidgetPurchaseError.unavailable
+            }
+            do {
+                try await applyPendingWidgetPurchases()
+            } catch {
+                if try widgetStore.pendingPurchases().contains(where: { $0.id == request.id }) {
+                    throw error
+                }
             }
         }
-        updateWidgetSnapshot()
+    }
+
+    private func applyPendingWidgetPurchases() async throws {
+        if let widgetDrainTask {
+            try await widgetDrainTask.value
+            return
+        }
+        guard account != nil, activeFamilySpace != nil else { return }
+        let task = Task { @MainActor in
+            defer {
+                widgetDrainTask = nil
+                updateWidgetSnapshot()
+            }
+            var blockedProductIDs = Set<UUID>()
+            var firstError: Error?
+            for request in try widgetStore.pendingPurchases() {
+                guard account?.id == request.accountID, activeFamilySpace?.id == request.familyID else { continue }
+                guard !blockedProductIDs.contains(request.productID) else { continue }
+                do {
+                    try await persistWidgetPurchase(request)
+                } catch {
+                    // Preserve order for this product without blocking unrelated purchases.
+                    blockedProductIDs.insert(request.productID)
+                    if firstError == nil {
+                        firstError = error
+                    }
+                }
+            }
+            if let firstError {
+                throw firstError
+            }
+        }
+        widgetDrainTask = task
+        try await task.value
+    }
+
+    private func persistWidgetPurchase(_ request: WidgetPurchaseRequest) async throws {
+        guard account?.id == request.accountID, activeFamilySpace?.id == request.familyID, canEdit else {
+            throw WidgetPurchaseError.unavailable
+        }
+        pendingCartMutationCount += 1
+        defer { finishCartMutation() }
+        try await repository.setPurchased(
+            id: request.productID,
+            familySpaceID: request.familyID,
+            isPurchased: request.isPurchased,
+            participantDisplayName: Self.participantName(preferences: preferences, account: account),
+            purchasedAt: request.createdAt
+        )
+        // A crash after save leaves an idempotent desired-state command available for retry.
+        try widgetStore.acknowledgePurchase(id: request.id)
+        if account?.id == request.accountID, activeFamilySpace?.id == request.familyID {
+            try reload(preferredFamilySpaceID: request.familyID)
+            cartSync.bumpRevisionAfterLocalChange()
+        }
     }
 }

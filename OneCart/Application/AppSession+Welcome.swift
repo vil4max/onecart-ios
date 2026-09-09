@@ -3,9 +3,19 @@ import Foundation
 
 extension AppSession {
     func start() async {
+        if let startupTask {
+            await startupTask.value
+            return
+        }
         guard !started else { return }
         started = true
-        await bootstrapSession()
+        let task = Task { @MainActor in
+            await bootstrapSession()
+            await drainWidgetPendingToggles()
+        }
+        startupTask = task
+        await task.value
+        startupTask = nil
     }
 
     func retryStartup() async {

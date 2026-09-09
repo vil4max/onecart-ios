@@ -92,6 +92,42 @@ extension FamilySpaceRepository {
         }
     }
 
+    func setPurchased(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?,
+        purchasedAt: Date
+    ) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+                let tombstones = ProductEntity.fetchRequest()
+                tombstones.predicate = NSPredicate(
+                    format: "id == %@ AND familySpace.id == %@ AND deletedAt != nil",
+                    id as NSUUID,
+                    familySpaceID as NSUUID
+                )
+                tombstones.fetchLimit = 1
+                if try context.fetch(tombstones).first != nil {
+                    return
+                }
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            // A retried command cannot replace a newer app edit or widget command.
+            guard (product.updatedAt ?? .distantPast) < purchasedAt else { return }
+            let now = Date()
+            if product.isPurchasedValue != isPurchased {
+                product.isPurchased = NSNumber(value: isPurchased)
+                product.purchasedAt = isPurchased ? purchasedAt : nil
+                product.purchasedByName = isPurchased ? participantDisplayName?.trimmedNilIfEmpty : nil
+            }
+            product.updatedAt = purchasedAt
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
     func deleteProduct(id: UUID, familySpaceID: UUID? = nil) async throws {
         try await persistence.performBackgroundTask { context in
             guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {

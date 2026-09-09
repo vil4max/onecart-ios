@@ -83,11 +83,17 @@ struct RectangularLockScreenWidgetView: View {
             } else {
                 ForEach(displayItems) { item in
                     HStack(spacing: 6) {
-                        Button(intent: ToggleProductPurchasedIntent(productID: item.id.uuidString)) {
+                        Button(intent: ToggleProductPurchasedIntent(
+                            productID: item.id.uuidString,
+                            accountID: snapshot.accountID?.uuidString ?? "",
+                            familyID: snapshot.familyID?.uuidString ?? "",
+                            isPurchased: !item.isPurchased
+                        )) {
                             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 13))
                         }
                         .buttonStyle(.plain)
+                        .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)
                             .font(.system(size: 12))
@@ -178,7 +184,12 @@ struct SmallHomeWidgetView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     ForEach(displayItems) { item in
                         HStack(spacing: 6) {
-                            Button(intent: ToggleProductPurchasedIntent(productID: item.id.uuidString)) {
+                            Button(intent: ToggleProductPurchasedIntent(
+                                productID: item.id.uuidString,
+                                accountID: snapshot.accountID?.uuidString ?? "",
+                                familyID: snapshot.familyID?.uuidString ?? "",
+                                isPurchased: !item.isPurchased
+                            )) {
                                 Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 15))
                                     .symbolRenderingMode(.hierarchical)
@@ -189,6 +200,7 @@ struct SmallHomeWidgetView: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
                                 .font(.system(size: 11, weight: .medium))
@@ -328,7 +340,12 @@ struct MediumHomeWidgetView: View {
                 } else {
                     ForEach(itemsToShow) { item in
                         HStack(spacing: 8) {
-                            Button(intent: ToggleProductPurchasedIntent(productID: item.id.uuidString)) {
+                            Button(intent: ToggleProductPurchasedIntent(
+                                productID: item.id.uuidString,
+                                accountID: snapshot.accountID?.uuidString ?? "",
+                                familyID: snapshot.familyID?.uuidString ?? "",
+                                isPurchased: !item.isPurchased
+                            )) {
                                 Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 20))
                                     .symbolRenderingMode(.hierarchical)
@@ -339,6 +356,7 @@ struct MediumHomeWidgetView: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
                                 .font(.system(size: 13, weight: .medium))
@@ -428,7 +446,12 @@ struct LargeHomeWidgetView: View {
             } else {
                 ForEach(displayItems) { item in
                     HStack(spacing: 10) {
-                        Button(intent: ToggleProductPurchasedIntent(productID: item.id.uuidString)) {
+                        Button(intent: ToggleProductPurchasedIntent(
+                            productID: item.id.uuidString,
+                            accountID: snapshot.accountID?.uuidString ?? "",
+                            familyID: snapshot.familyID?.uuidString ?? "",
+                            isPurchased: !item.isPurchased
+                        )) {
                             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 20))
                                 .symbolRenderingMode(.hierarchical)
@@ -439,6 +462,7 @@ struct LargeHomeWidgetView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)
                             .font(.system(size: 14, weight: .medium))

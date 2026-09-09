@@ -47,6 +47,9 @@ final class AppSession: ObservableObject {
     let household: HouseholdCartCoordinator
     let accountCloudDataDeleter: AccountCloudDataDeleting
     let accountLocalStorePreparer: AccountLocalStorePreparing
+    let widgetStore: WidgetSnapshotStore
+    var startupTask: Task<Void, Never>?
+    var widgetDrainTask: Task<Void, Error>?
 
     var lists: [ShoppingListEntity] {
         cartContent.lists
@@ -129,13 +132,15 @@ final class AppSession: ObservableObject {
         backend: CloudKitBackendService? = nil,
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
-        accountLocalStorePreparer: AccountLocalStorePreparing? = nil
+        accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
+        widgetStore: WidgetSnapshotStore = .shared
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
         self.preferences = preferences ?? DevicePreferences(defaults: defaults)
         self.defaults = defaults
         self.appleSignIn = appleSignIn
+        self.widgetStore = widgetStore
 
         let repository = FamilySpaceRepository(
             persistence: persistence,

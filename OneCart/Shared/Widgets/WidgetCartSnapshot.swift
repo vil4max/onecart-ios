@@ -18,6 +18,8 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     public let activePartnerName: String?
     public let themeRaw: String?
     public let accentColorRaw: String?
+    public let accountID: UUID?
+    public let familyID: UUID?
     public let items: [WidgetItemSnapshot]
 
     public init(
@@ -30,6 +32,8 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         activePartnerName: String? = nil,
         themeRaw: String? = nil,
         accentColorRaw: String? = nil,
+        accountID: UUID? = nil,
+        familyID: UUID? = nil,
         items: [WidgetItemSnapshot]
     ) {
         self.cartTitle = cartTitle
@@ -41,6 +45,8 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         self.activePartnerName = activePartnerName
         self.themeRaw = themeRaw
         self.accentColorRaw = accentColorRaw
+        self.accountID = accountID
+        self.familyID = familyID
         self.items = items
     }
 
@@ -133,6 +139,31 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         activePartnerName: nil,
         items: []
     )
+}
+
+public struct WidgetPurchaseRequest: Codable, Sendable, Equatable, Identifiable {
+    public let id: UUID
+    public let accountID: UUID
+    public let familyID: UUID
+    public let productID: UUID
+    public let isPurchased: Bool
+    public let createdAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        accountID: UUID,
+        familyID: UUID,
+        productID: UUID,
+        isPurchased: Bool,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.accountID = accountID
+        self.familyID = familyID
+        self.productID = productID
+        self.isPurchased = isPurchased
+        self.createdAt = createdAt
+    }
 }
 
 public struct WidgetItemSnapshot: Codable, Sendable, Identifiable, Equatable {

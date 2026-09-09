@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct OneCartApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = OneCartApp.makeModel()
+    @StateObject private var model = OneCartAppComposition.session
 
     var body: some Scene {
         WindowGroup {
@@ -14,15 +14,18 @@ struct OneCartApp: App {
                 )
         }
     }
+}
 
-    private static func makeModel() -> AppSession {
+@MainActor
+enum OneCartAppComposition {
+    static let session: AppSession = {
         #if DEBUG
             if DemoUIMode.isEnabled {
                 return DemoUIMode.makeSession()
             }
         #endif
         return AppSession()
-    }
+    }()
 }
 
 private struct OneCartScene: View {
@@ -58,6 +61,7 @@ private struct OneCartScene: View {
                 guard !Self.isRunningUnitTests else { return }
                 guard newPhase == .active, model.account != nil else { return }
                 Task {
+                    await model.start()
                     await model.drainWidgetPendingToggles()
                     await model.syncCart(reason: .foreground)
                     model.updateWidgetSnapshot()

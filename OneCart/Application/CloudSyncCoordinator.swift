@@ -11,6 +11,7 @@ protocol CloudSyncHost: AnyObject {
     func applyLastSyncError(_ message: String?)
     func presentSyncAlert(_ message: String)
     func presentProductionSchemaAlertIfNeeded(_ message: String)
+    func drainWidgetPendingToggles() async
     func softRefreshCartProducts()
     func refreshFamilyMetadata(showErrors: Bool) async
     func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws
@@ -188,6 +189,7 @@ final class CloudSyncCoordinator {
                     host.applySyncState(.failed)
                     host.applyLastSyncError(host.userFacingMessage(for: error))
                 }
+                await host.drainWidgetPendingToggles()
                 await syncCart(reason: .cloudImport)
             }
         }
