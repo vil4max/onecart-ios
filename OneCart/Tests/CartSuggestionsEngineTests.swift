@@ -1,3 +1,4 @@
+import CoreData
 import Foundation
 @testable import OneCart
 import Testing
@@ -118,5 +119,57 @@ struct CartSuggestionsEngineTests {
         let en = CartSuggestionsEngine.defaultEssentials(languageCode: "en")
         #expect(en.contains("Bread"))
         #expect(en.contains("Coffee"))
+    }
+
+    @MainActor
+    @Test("Counts replicated purchases once per family when ranking suggestions")
+    func replicatedPurchasesDoNotInflateFrequency() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let context = persistence.container.viewContext
+        let firstFamily = FamilySpace(context: context)
+        firstFamily.id = UUID()
+        let secondFamily = FamilySpace(context: context)
+        secondFamily.id = UUID()
+        let milkID = UUID()
+        let milkCopies = (0 ..< 3).map { _ in
+            makeHistory(in: firstFamily, productID: milkID, name: "Milk", context: context)
+        }
+        let firstBread = makeHistory(in: firstFamily, productID: UUID(), name: "Bread", context: context)
+        let secondBread = makeHistory(in: firstFamily, productID: UUID(), name: "Bread", context: context)
+        let otherFamilyMilk = makeHistory(in: secondFamily, productID: milkID, name: "Milk", context: context)
+
+        let firstSuggestions = CartSuggestionsEngine.suggestions(
+            from: milkCopies + [firstBread, secondBread],
+            currentCartProducts: [],
+            defaults: []
+        )
+        let acrossFamilies = CartSuggestionsEngine.suggestions(
+            from: milkCopies + [firstBread, otherFamilyMilk],
+            currentCartProducts: [],
+            defaults: []
+        )
+
+        #expect(firstSuggestions == ["Bread", "Milk"])
+        #expect(acrossFamilies == ["Milk", "Bread"])
+        #expect(milkCopies.flatMap(\.sortedItems).count == 3)
+    }
+
+    @MainActor
+    private func makeHistory(
+        in family: FamilySpace,
+        productID: UUID,
+        name: String,
+        context: NSManagedObjectContext
+    ) -> PurchaseHistoryEntity {
+        let history = PurchaseHistoryEntity(context: context)
+        history.id = UUID()
+        history.familySpace = family
+        let item = HistoryItemEntity(context: context)
+        item.id = productID
+        item.name = name
+        item.familySpace = family
+        item.history = history
+        return history
     }
 }

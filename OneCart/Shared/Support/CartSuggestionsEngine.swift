@@ -142,7 +142,7 @@ enum CartSuggestionsEngine {
         defaults: [String] = defaultEssentials(),
         limit: Int = 8
     ) -> [String] {
-        let historyNames = history.flatMap(\.sortedItems).map(\.displayName)
+        let historyNames = HistoryItems.unique(from: history).map(\.displayName)
         let cartNames = currentCartProducts.map(\.displayName)
         return suggestions(
             historyItemNames: historyNames,

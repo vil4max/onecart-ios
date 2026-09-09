@@ -98,7 +98,7 @@ struct HistoryDayGroup: Identifiable {
         from entries: [PurchaseHistoryEntity],
         calendar: Calendar = .current
     ) -> [HistoryDayGroup] {
-        let items = entries.flatMap(\.sortedItems)
+        let items = HistoryItems.unique(from: entries)
         let grouped = Dictionary(grouping: items) { item in
             calendar.startOfDay(for: item.purchaseMoment)
         }

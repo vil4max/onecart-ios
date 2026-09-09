@@ -137,12 +137,34 @@ extension FamilySpaceRepository {
             guard !purchased.isEmpty else { return nil }
 
             let now = Date()
+            let existingItems = try Self.existingHistoryItems(
+                productIDs: purchased.compactMap(\.id),
+                familySpace: space,
+                in: context
+            )
+            var archivedIDs = Set(existingItems.compactMap(\.id))
+            let unarchived = purchased.filter { product in
+                guard let id = product.id else { return true }
+                return archivedIDs.insert(id).inserted
+            }
+            for product in purchased {
+                product.deletedAt = now
+                product.updatedAt = now
+            }
+            list.updatedAt = now
+            space.updatedAt = now
+
+            guard !unarchived.isEmpty else {
+                // A late product import must not recreate an already archived purchase.
+                return existingItems.first?.history?.id
+            }
+
             let historyID = UUID()
             let history = PurchaseHistoryEntity(context: context)
             try self.persistence.assign(history, toSameStoreAs: list, in: context)
             history.id = historyID
             history.total = NSNumber(
-                value: purchased.reduce(0) { $0 + $1.estimatedPriceValue }
+                value: unarchived.reduce(0) { $0 + $1.estimatedPriceValue }
             )
             history.date = now
             history.createdAt = now
@@ -151,12 +173,12 @@ extension FamilySpaceRepository {
             history.store = list.store
 
             let names = Set(
-                purchased.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
+                unarchived.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
             ).sorted()
             history.memberNames = names.isEmpty ? String(localized: "common.default_group") : names
                 .joined(separator: ", ")
 
-            for product in purchased {
+            for product in unarchived {
                 let item = HistoryItemEntity(context: context)
                 try self.persistence.assign(item, toSameStoreAs: list, in: context)
                 item.id = product.id ?? UUID()
@@ -176,14 +198,33 @@ extension FamilySpaceRepository {
                 item.updatedAt = now
                 item.familySpace = space
                 item.history = history
-                product.deletedAt = now
-                product.updatedAt = now
             }
 
-            list.updatedAt = now
-            space.updatedAt = now
             return historyID
         }
+    }
+
+    private static func existingHistoryItems(
+        productIDs: [UUID],
+        familySpace: FamilySpace,
+        in context: NSManagedObjectContext
+    ) throws -> [HistoryItemEntity] {
+        guard !productIDs.isEmpty else { return [] }
+        let request = HistoryItemEntity.fetchRequest()
+        var predicates = [
+            NSPredicate(format: "id IN %@", productIDs.map { $0 as NSUUID }),
+            NSPredicate(format: "history.id != nil"),
+        ]
+        if let familyID = familySpace.id {
+            predicates.append(NSPredicate(format: "familySpace.id == %@", familyID as NSUUID))
+        } else {
+            predicates.append(NSPredicate(format: "familySpace == %@", familySpace))
+        }
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        if let store = familySpace.objectID.persistentStore {
+            request.affectedStores = [store]
+        }
+        return try context.fetch(request)
     }
 
     static func apply(draft: ProductDraft, to product: ProductEntity) {
