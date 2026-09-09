@@ -62,9 +62,10 @@ final class CloudSyncCoordinator {
     }
 
     func syncCart(reason: CartSyncReason) async {
-        guard let host else { return }
+        guard let host, !persistence.accountDeletionRecoveryRequired else { return }
         let previousState = host.syncState
         let outcome = await cartSync.syncCart(reason: reason)
+        guard !persistence.accountDeletionRecoveryRequired else { return }
         switch outcome {
         case .succeeded:
             await host.refreshFamilyMetadata(showErrors: false)
@@ -118,6 +119,7 @@ final class CloudSyncCoordinator {
             Task { @MainActor in
                 guard let self,
                       let host = self.host,
+                      !self.persistence.accountDeletionRecoveryRequired,
                       let event = notification.userInfo?[
                           NSPersistentCloudKitContainer.eventNotificationUserInfoKey
                       ] as? NSPersistentCloudKitContainer.Event else { return }
@@ -150,7 +152,7 @@ final class CloudSyncCoordinator {
     }
 
     func scheduleSoftProductRefresh(delayNanoseconds: UInt64 = 80_000_000) {
-        guard host?.account != nil else { return }
+        guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
         softRefreshTask?.cancel()
         softRefreshTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: delayNanoseconds)
@@ -162,7 +164,7 @@ final class CloudSyncCoordinator {
     }
 
     func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
-        guard host?.account != nil else { return }
+        guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
         cloudReloadPending = true
         guard scheduledReloadTask == nil else { return }
         scheduledReloadTask = Task { [weak self] in
@@ -173,7 +175,7 @@ final class CloudSyncCoordinator {
                 guard cloudReloadPending else { return }
                 cloudReloadPending = false
                 try? await Task.sleep(nanoseconds: delayNanoseconds)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, !persistence.accountDeletionRecoveryRequired else { return }
                 if cloudReloadPending {
                     continue
                 }
@@ -225,6 +227,7 @@ final class CloudSyncCoordinator {
                 guard let self, let host = self.host else { return }
                 let wasOnline = host.isOnline
                 host.applyConnectivityOnline(isOnline)
+                guard !self.persistence.accountDeletionRecoveryRequired else { return }
                 if !isOnline {
                     host.applySyncState(.offline)
                 } else if !wasOnline, host.account != nil {

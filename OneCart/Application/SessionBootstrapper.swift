@@ -120,13 +120,22 @@ final class SessionBootstrapper {
                 preferences: host.preferences,
                 account: nil
             )
-            host.installConnectivityMonitor()
-            host.installCloudObservers()
+            if !persistence.accountDeletionRecoveryRequired {
+                host.installConnectivityMonitor()
+                host.installCloudObservers()
+            }
 
-            let restoredAccount = try await backend.restoredAccount(
-                appleUserID: appleCredential.userID,
-                displayName: preferredName
-            )
+            let restoredAccount: OneCartAccount = if persistence.accountDeletionRecoveryRequired {
+                OneCartAccount(
+                    id: appleCredential.accountID,
+                    displayName: preferredName ?? String(localized: "common.default_user")
+                )
+            } else {
+                try await backend.restoredAccount(
+                    appleUserID: appleCredential.userID,
+                    displayName: preferredName
+                )
+            }
             let account = OneCartAccount(
                 id: restoredAccount.id,
                 displayName: ParticipantDisplayName.displayOrPlaceholder(
@@ -139,6 +148,11 @@ final class SessionBootstrapper {
             host.applyBootstrapAccount(account)
             try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
             try host.reloadAfterBootstrap()
+            if persistence.accountDeletionRecoveryRequired {
+                host.applyBootstrapSyncState(.failed)
+                host.applyWelcomeReady(needsWelcome: false)
+                return
+            }
             await host.acceptPendingCloudKitShares()
             try await host.finishFamilyCartSetup(for: restoredAccount)
             host.applyBootstrapSyncState(host.isOnline ? .synchronized : .offline)

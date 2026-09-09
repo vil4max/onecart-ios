@@ -51,6 +51,7 @@ final class PersistenceController: @unchecked Sendable {
     let loadLock = NSLock()
     var loaded = false
     var loading = false
+    var accountDeletionInProgress = false
     var loadWaiters: [CheckedContinuation<Result<Void, Error>, Never>] = []
     let storeDirectoryURL: URL
     let cloudKitEnabled: Bool
@@ -90,14 +91,20 @@ final class PersistenceController: @unchecked Sendable {
     static let cloudKitLocalEnvironmentKey = "onecart.cloudkit-local-environment"
 
     func load() async throws {
+        try checkAccountDeletionAllowsStoreAccess()
         if isLoaded {
             return
         }
 
         do {
-            try reconcileCloudKitEnvironmentBeforeLoad()
+            let recoveringDeletion = try prepareAccountDeletionRecoveryBeforeLoad()
+            if !recoveringDeletion {
+                try reconcileCloudKitEnvironmentBeforeLoad()
+            }
             try await loadPersistentStoresOnce()
-            stampCloudKitEnvironmentAfterSuccessfulLoad()
+            if !recoveringDeletion {
+                stampCloudKitEnvironmentAfterSuccessfulLoad()
+            }
         } catch {
             logger.error(
                 "Persistent store load failed; preserving store files: \(error.localizedDescription, privacy: .public)"
@@ -169,10 +176,12 @@ final class PersistenceController: @unchecked Sendable {
         author: String = "OneCartRepository",
         _ block: @escaping (NSManagedObjectContext) throws -> T
     ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
+        try checkAccountDeletionAllowsStoreAccess()
+        return try await withCheckedThrowingContinuation { continuation in
             let context = newBackgroundContext(author: author)
             context.perform {
                 do {
+                    try self.checkAccountDeletionAllowsStoreAccess()
                     let value = try block(context)
                     if context.hasChanges {
                         try context.save()
@@ -236,6 +245,11 @@ final class PersistenceController: @unchecked Sendable {
     private func loadPersistentStoresOnce() async throws {
         let result: Result<Void, Error> = await withCheckedContinuation { continuation in
             loadLock.lock()
+            if accountDeletionInProgress {
+                loadLock.unlock()
+                continuation.resume(returning: .failure(AccountDeletionStoreError.deletionInProgress))
+                return
+            }
             if loaded {
                 loadLock.unlock()
                 continuation.resume(returning: .success(()))

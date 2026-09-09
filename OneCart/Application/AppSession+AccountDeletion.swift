@@ -11,7 +11,8 @@ extension AppSession {
             return
         }
 
-        let requiresCloud = persistence.cloudKitEnabled
+        let cloudAlreadyDeleted = (try? persistence.readAccountDeletionPhase()) == .cloudDeleted
+        let requiresCloud = persistence.cloudKitEnabled && !cloudAlreadyDeleted
         if requiresCloud, !online {
             presentAlert(String(localized: "account.delete_need_network"), kind: .error)
             return
@@ -30,19 +31,15 @@ extension AppSession {
         var didLeaveShared = false
         var didDetachLocalStores = false
         do {
-            didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
-            // Drop published cart state before unloading stores; keep account + SIWA until cloud succeeds.
-            clearAccountData()
-            try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
-            didDetachLocalStores = true
-            try await accountCloudDataDeleter.deletePrivateAccountCloudData()
-            do {
-                try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
-            } catch {
-                CartSyncLog.action.error(
-                    "deleteAccount attachEmpty after cloud success error=\(error.localizedDescription, privacy: .public)"
-                )
+            if !cloudAlreadyDeleted {
+                didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
+                // Keep account and SIWA until both cloud deletion and local cleanup succeed.
+                clearAccountData()
+                try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
+                didDetachLocalStores = true
+                try await accountCloudDataDeleter.deletePrivateAccountCloudData()
             }
+            try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
             finalizeSignOutAfterSuccessfulAccountDeletion()
             CartHaptics.success()
             CartSyncLog.action.info("deleteAccount done")
@@ -106,10 +103,14 @@ extension AppSession {
         didDetachLocalStores: Bool
     ) async {
         if didDetachLocalStores {
-            try? await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
+            try? await accountLocalStorePreparer.restoreLocalStoresAfterFailedCloudAccountDeletion()
         }
-        cloudSync.installConnectivityMonitor()
-        cloudSync.installCloudObservers()
+        if !persistence.accountDeletionRecoveryRequired {
+            cloudSync.installConnectivityMonitor()
+            cloudSync.installCloudObservers()
+        }
+        syncState = .failed
+        lastSyncError = String(localized: "account.delete_failed")
         guard let account else { return }
         try? reload()
         if didLeaveShared {

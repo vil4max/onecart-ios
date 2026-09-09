@@ -78,7 +78,8 @@ final class AccountDeletionTests: XCTestCase {
 
         XCTAssertEqual(stores.detachCount, 1)
         XCTAssertEqual(cloud.callCount, 1)
-        XCTAssertGreaterThanOrEqual(stores.attachCount, 1)
+        XCTAssertEqual(stores.restoreCount, 1)
+        XCTAssertEqual(stores.attachCount, 0)
         XCTAssertEqual(session.account?.id, account.id)
         XCTAssertFalse(session.needsWelcome)
         XCTAssertEqual(apple.clearCount, 0)
@@ -117,7 +118,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(session.userAlert?.message, String(localized: "account.delete_failed"))
     }
 
-    func test_deleteAccount_whenAttachFailsAfterCloudSuccess_stillSignsOut() async throws {
+    func test_deleteAccount_whenAttachFailsAfterCloudSuccess_keepsRetryAvailable() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -139,10 +140,16 @@ final class AccountDeletionTests: XCTestCase {
         await session.deleteAccount()
 
         XCTAssertEqual(cloud.callCount, 1)
-        XCTAssertEqual(apple.clearCount, 1)
+        XCTAssertEqual(apple.clearCount, 0)
+        XCTAssertNotNil(session.account)
+        XCTAssertFalse(session.needsWelcome)
+        XCTAssertEqual(session.userAlert?.kind, .error)
+        XCTAssertEqual(session.syncState, .failed)
+
+        stores.attachError = nil
+        await session.deleteAccount()
         XCTAssertNil(session.account)
-        XCTAssertTrue(session.needsWelcome)
-        XCTAssertNil(session.userAlert)
+        XCTAssertEqual(apple.clearCount, 1)
     }
 
     func test_deleteAccount_ignoresDuplicateWhileInFlight() async throws {
@@ -274,6 +281,180 @@ final class AccountDeletionTests: XCTestCase {
             session.userAlert?.message,
             OneCartCloudKitError.accountUnavailable(.noAccount).errorDescription
         )
+    }
+
+    func test_deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.session.account?.id, fixture.account.id)
+        XCTAssertEqual(fixture.session.syncState, .failed)
+        XCTAssertTrue(fixture.persistence.accountDeletionRecoveryRequired)
+        XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+        XCTAssertTrue(fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
+            $0.cloudKitContainerOptions == nil
+        })
+
+        fixture.cloud.errorToThrow = nil
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.cloud.callCount, 2)
+        XCTAssertNil(fixture.session.account)
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+    }
+
+    func test_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertNil(fixture.session.account)
+        XCTAssertTrue(fixture.persistence.isLoaded)
+        XCTAssertFalse(fixture.persistence.accountDeletionRecoveryRequired)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.persistence.accountDeletionMarkerURL.path))
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+    }
+
+    func test_detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        let privateURL = fixture.persistence.storeDirectoryURL.appendingPathComponent("OneCart-private.sqlite")
+
+        try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
+        XCTAssertTrue(fixture.persistence.container.persistentStoreCoordinator.persistentStores.isEmpty)
+        do {
+            try await fixture.persistence.load()
+            XCTFail("Loading must remain blocked while cloud deletion is in flight")
+        } catch {
+            guard case PersistenceController.AccountDeletionStoreError.deletionInProgress = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+        try await fixture.persistence.restoreLocalStoresAfterFailedCloudAccountDeletion()
+        XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+    }
+
+    func test_deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+        try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
+        XCTAssertThrowsError(try fixture.persistence.destroyDetachedAccountStores { _ in
+            throw TestAccountDeletionError.simulated
+        })
+        fixture.session.online = false
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.cloud.callCount, 0)
+        XCTAssertNil(fixture.session.account)
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.persistence.accountDeletionMarkerURL.path))
+    }
+
+    func test_load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+        try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
+
+        XCTAssertThrowsError(try fixture.persistence.destroyDetachedAccountStores { _ in
+            throw TestAccountDeletionError.simulated
+        })
+        XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .cloudDeleted)
+        let relaunched = PersistenceController(
+            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
+            cloudKitEnabled: false
+        )
+        try await relaunched.load()
+        let repository = FamilySpaceRepository(
+            persistence: relaunched,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: repository))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: relaunched.accountDeletionMarkerURL.path))
+    }
+
+    func test_start_afterInterruptedDeletion_restoresLocalCartAndLeavesDeletionRetryAvailable() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+        let relaunched = PersistenceController(
+            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
+            cloudKitEnabled: true
+        )
+        let defaults = try makeDefaults()
+        let cloud = RecordingAccountCloudDeleter()
+        let session = AppSession(
+            persistence: relaunched,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: fixture.apple,
+            accountCloudDataDeleter: cloud
+        )
+
+        await session.start()
+
+        XCTAssertEqual(session.account?.id, fixture.account.id)
+        XCTAssertFalse(session.needsWelcome)
+        XCTAssertEqual(session.syncState, .failed)
+        XCTAssertFalse(session.isDeletingAccount)
+        XCTAssertEqual(session.activeFamilySpace?.id, fixture.familyID)
+        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
+            $0.cloudKitContainerOptions == nil
+        })
+        XCTAssertEqual(cloud.callCount, 0)
+    }
+
+    private func makeDiskDeletionFixture() async throws -> (
+        persistence: PersistenceController,
+        repository: FamilySpaceRepository,
+        session: AppSession,
+        cloud: RecordingAccountCloudDeleter,
+        apple: TrackingAppleSignIn,
+        account: OneCartAccount,
+        familyID: UUID,
+        productID: UUID
+    ) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneCartAccountDeletion-\(UUID().uuidString)", isDirectory: true)
+        let persistence = PersistenceController(storeDirectoryURL: directory, cloudKitEnabled: false)
+        try await persistence.load()
+        let repository = FamilySpaceRepository(
+            persistence: persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        let apple = TrackingAppleSignIn()
+        let account = try OneCartAccount(
+            id: XCTUnwrap(apple.storedCredential()).accountID,
+            displayName: "Max"
+        )
+        let familyID = try await repository.createFamilySpace(
+            name: "Personal",
+            cachedForUserID: account.id,
+            isHouseholdDefault: true
+        )
+        let listID = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
+        let productID = try await repository.addProduct(to: listID, draft: productDraft(name: "Unsynced milk"))
+        let defaults = try makeDefaults()
+        let cloud = RecordingAccountCloudDeleter()
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: apple,
+            accountCloudDataDeleter: cloud
+        )
+        try session.bootstrapTestingSession(account: account)
+        session.needsWelcome = false
+        return (persistence, repository, session, cloud, apple, account, familyID, productID)
     }
 
     func test_recordZoneIDsForAccountDeletion_skipsDefaultZone() {
@@ -429,6 +610,7 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting {
 private final class RecordingLocalStorePreparer: AccountLocalStorePreparing {
     var detachCount = 0
     var attachCount = 0
+    var restoreCount = 0
     var detachError: Error?
     var attachError: Error?
     var events: [String] = []
@@ -447,6 +629,11 @@ private final class RecordingLocalStorePreparer: AccountLocalStorePreparing {
         if let attachError {
             throw attachError
         }
+    }
+
+    func restoreLocalStoresAfterFailedCloudAccountDeletion() async throws {
+        restoreCount += 1
+        events.append("restore")
     }
 }
 
