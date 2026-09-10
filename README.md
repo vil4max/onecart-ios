@@ -73,6 +73,9 @@ just verify
 
 Config: [`Tooling/runtime.yml`](Tooling/runtime.yml). Local overrides: `Tooling/runtime.local.yml.example` → `Tooling/runtime.local.yml`.
 
+Install the repository pre-push hook once with `./scripts/install-hooks.sh`.
+It runs smoke tests for branch updates and skips tag-only pushes and ref deletions.
+
 ## Docs
 
 Start at [docs/README.md](docs/README.md) — architecture, product, release, legacy, review changelog.

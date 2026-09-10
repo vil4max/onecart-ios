@@ -49,6 +49,7 @@ project: OneCart/OneCart.xcodeproj
 | `assets/` | Brand / store masters (not in the app bundle) |
 | `Tooling/` | Engineering Runtime — see [Tooling/README.md](Tooling/README.md) |
 | `justfile` | App-owned shim that imports `Tooling/justfile` (+ `demo` recipe) |
+| `scripts/install-hooks.sh` | Installs the repository pre-push hook |
 
 ## Definition of Done
 
@@ -69,3 +70,6 @@ just run-sim
 just demo role=owner
 just demo-tab role=member tab=cart
 ```
+
+Install repository hooks once with `./scripts/install-hooks.sh`. The pre-push hook
+runs smoke tests for branch updates and skips tag-only pushes and ref deletions.
