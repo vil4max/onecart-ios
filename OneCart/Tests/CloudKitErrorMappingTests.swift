@@ -111,7 +111,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             userInfo: [
                 NSLocalizedDescriptionKey:
                     "The operation couldn’t be completed. Request was aborted because the mirroring "
-                        + "delegate never successfully initialized due to error: Partial Failure",
+                    + "delegate never successfully initialized due to error: Partial Failure",
                 NSUnderlyingErrorKey: nested,
             ]
         )
@@ -282,7 +282,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             userInfo: [
                 NSLocalizedDescriptionKey:
                     "The operation couldn’t be completed. Request was aborted because the mirroring "
-                        + "delegate never successfully initialized due to error: Partial Failure",
+                    + "delegate never successfully initialized due to error: Partial Failure",
                 NSUnderlyingErrorKey: partial,
             ]
         )

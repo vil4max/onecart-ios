@@ -220,7 +220,7 @@ final class WidgetSnapshotTests: XCTestCase {
             "familyMemberCount": 1,
             "items": []
         }
-        """)
+        """.utf8)
         let legacyDecoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: legacyJson)
         XCTAssertNil(legacyDecoded.accentColorRaw)
         let expectedFallback = AppAccentColor(
