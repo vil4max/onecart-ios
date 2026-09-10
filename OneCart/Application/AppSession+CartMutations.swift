@@ -72,6 +72,7 @@ extension AppSession {
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
             CartSyncLog.action.info(
+                // swiftlint:disable:next line_length
                 "refineProductCategory id=\(productID.uuidString, privacy: .public) category=\(classified.rawValue, privacy: .public)"
             )
         } catch {
@@ -172,6 +173,7 @@ extension AppSession {
                 }
             } catch {
                 CartSyncLog.action.error(
+                    // swiftlint:disable:next line_length
                     "archiveStalePurchased fail list=\(id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
                 )
             }

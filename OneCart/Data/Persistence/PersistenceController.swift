@@ -207,9 +207,7 @@ final class PersistenceController: @unchecked Sendable {
         _ metadata: [CKShare.Metadata],
         into sharedStore: NSPersistentStore
     ) async throws {
-        try await withCheckedThrowingContinuation { (
-            continuation: CheckedContinuation<Void, Error>
-        ) in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let lock = NSLock()
             var resumed = false
             container.acceptShareInvitations(from: metadata, into: sharedStore) { _, error in
@@ -265,6 +263,7 @@ final class PersistenceController: @unchecked Sendable {
 
                 if let error {
                     logger.error(
+                        // swiftlint:disable:next line_length
                         "Failed loading \(description.url?.lastPathComponent ?? "store", privacy: .public): \(error.localizedDescription, privacy: .public)"
                     )
                 } else {

@@ -56,6 +56,10 @@ final class AppleSignInTests: XCTestCase {
         )
         store.save(credential)
 
+        // The App Group backup must be PII-free: only the stable userID.
+        XCTAssertEqual(defaults.string(forKey: store.backupKey), credential.userID)
+        XCTAssertNil(defaults.data(forKey: store.backupKey))
+
         // Clear only keychain items directly
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -63,9 +67,12 @@ final class AppleSignInTests: XCTestCase {
         ]
         SecItemDelete(query as CFDictionary)
 
-        // Store load should fall back to defaults backup
+        // Store load should fall back to the PII-free defaults backup (userID only)
         let loaded = store.load()
-        XCTAssertEqual(loaded, credential)
+        XCTAssertEqual(loaded?.userID, credential.userID)
+        XCTAssertNil(loaded?.email)
+        XCTAssertNil(loaded?.givenName)
+        XCTAssertNil(loaded?.familyName)
 
         // Clean up
         store.clear()

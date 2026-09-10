@@ -140,8 +140,7 @@ enum CloudKitDeadline {
             try await withCheckedThrowingContinuation { continuation in
                 guard gate.install(continuation) else { return }
                 let work = Task {
-                    do { try await gate.resolve(.success(operation())) }
-                    catch { gate.resolve(.failure(error)) }
+                    do { try await gate.resolve(.success(operation())) } catch { gate.resolve(.failure(error)) }
                 }
                 let timer = Task {
                     do {

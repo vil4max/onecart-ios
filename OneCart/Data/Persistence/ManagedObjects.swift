@@ -235,7 +235,9 @@ final class ShoppingListEntity: NSManagedObject {
 enum ProductUnit: String, CaseIterable, Identifiable {
     case piece
     case kg
+    // swiftlint:disable:next identifier_name
     case g
+    // swiftlint:disable:next identifier_name
     case l
     case ml
     case pack
@@ -255,7 +257,6 @@ enum ProductUnit: String, CaseIterable, Identifiable {
         }
     }
 }
-
 
 @objc(ProductEntity)
 final class ProductEntity: NSManagedObject {

@@ -288,6 +288,7 @@ enum FamilyInviteLinkBuilder {
     ) async throws {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
+                // swiftlint:disable:next line_length
                 "invite door skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
             throw OneCartCloudKitError.shareEnvironmentMismatch
@@ -302,11 +303,13 @@ enum FamilyInviteLinkBuilder {
 
         if aclChanged || brandingChanged || doorWasClosed {
             CartSyncLog.shareACL.info(
+                // swiftlint:disable:next line_length
                 "invite door persist reopen=\(doorWasClosed, privacy: .public) aclChanged=\(aclChanged, privacy: .public) brandingChanged=\(brandingChanged, privacy: .public)"
             )
             let saved = try await persistShareRequired(share, persistence: persistence)
             guard saved.publicPermission == .readWrite else {
                 CartSyncLog.shareACL.error(
+                    // swiftlint:disable:next line_length
                     "invite door persist returned closed permission=\(String(describing: saved.publicPermission), privacy: .public)"
                 )
                 throw OneCartCloudKitError.inviteDoorClosed
@@ -344,6 +347,7 @@ enum FamilyInviteLinkBuilder {
     ) async throws -> CKShare {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
+                // swiftlint:disable:next line_length
                 "persistShare skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
             )
             throw OneCartCloudKitError.shareEnvironmentMismatch

@@ -210,7 +210,7 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.accentColor, .berry)
 
         // Snapshot without accentColorRaw (legacy) falls back gracefully to emerald
-        let legacyJson = """
+        let legacyJson = Data("""
         {
             "cartTitle": "Legacy",
             "totalCount": 0,
@@ -220,7 +220,7 @@ final class WidgetSnapshotTests: XCTestCase {
             "familyMemberCount": 1,
             "items": []
         }
-        """.data(using: .utf8)!
+        """)
         let legacyDecoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: legacyJson)
         XCTAssertNil(legacyDecoded.accentColorRaw)
         let expectedFallback = AppAccentColor(

@@ -51,6 +51,7 @@ final class CartSyncService: ObservableObject {
         if isExclusiveRunning {
             let pendingLabel = pendingReason?.rawValue ?? "-"
             CartSyncLog.cart.info(
+                // swiftlint:disable:next line_length
                 "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(pendingLabel, privacy: .public)"
             )
             return await withCheckedContinuation { continuation in
@@ -115,6 +116,7 @@ final class CartSyncService: ObservableObject {
             try await onHardRefresh?()
             if let counts = purchasedCountProvider?() {
                 CartSyncLog.cart.info(
+                    // swiftlint:disable:next line_length
                     "syncCart refresh purchased=\(counts.purchased) total=\(counts.total) reason=\(reason.rawValue, privacy: .public)"
                 )
             }

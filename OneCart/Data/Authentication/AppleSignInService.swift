@@ -69,7 +69,9 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     private let account: String
     private let defaults: UserDefaults
 
-    private var backupKey: String {
+    /// App Group backup key. Only the stable `userID` is stored here — never
+    /// the email or name (PII stays in the Keychain).
+    var backupKey: String {
         "onecart.apple-sign-in.backup.\(service).\(account)"
     }
 
@@ -96,14 +98,23 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         if status == errSecSuccess, let data = item as? Data,
            let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
         {
-            defaults.set(data, forKey: backupKey)
+            // Keep only the stable identifier in the App Group backup (no PII).
+            defaults.set(credential.userID, forKey: backupKey)
             return credential
         }
 
-        if let data = defaults.data(forKey: backupKey),
-           let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
-        {
-            saveKeychain(data: data)
+        // Fall back to the PII-free backup: recover the stable userID so the
+        // account identity (and derived cart) survives a Keychain read failure.
+        if let userID = defaults.string(forKey: backupKey) {
+            let credential = AppleSignInCredential(
+                userID: userID,
+                email: nil,
+                givenName: nil,
+                familyName: nil
+            )
+            if let data = try? JSONEncoder().encode(credential) {
+                saveKeychain(data: data)
+            }
             return credential
         }
 
@@ -113,7 +124,8 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     func save(_ credential: AppleSignInCredential) {
         clearKeychain()
         guard let data = try? JSONEncoder().encode(credential) else { return }
-        defaults.set(data, forKey: backupKey)
+        // Backup stores only the stable userID; email/name live in the Keychain.
+        defaults.set(credential.userID, forKey: backupKey)
         saveKeychain(data: data)
     }
 

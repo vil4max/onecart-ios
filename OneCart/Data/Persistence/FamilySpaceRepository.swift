@@ -246,7 +246,6 @@ final class FamilySpaceRepository {
         }
     }
 
-
     static func fetchFamilySpace(
         id: UUID,
         in context: NSManagedObjectContext

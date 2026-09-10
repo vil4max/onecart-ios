@@ -10,12 +10,15 @@ final class InviteLinkPreparerTests: XCTestCase {
         let started = expectation(description: "Operation started")
         let finished = expectation(description: "Late callback finished")
         let task = Task {
-            try await CloudKitDeadline.run(timeout: { await timerGate.wait() }) {
-                started.fulfill()
-                await operationGate.wait()
-                finished.fulfill()
-                return 42
-            }
+            try await CloudKitDeadline.run(
+                timeout: { await timerGate.wait() },
+                operation: {
+                    started.fulfill()
+                    await operationGate.wait()
+                    finished.fulfill()
+                    return 42
+                }
+            )
         }
         await fulfillment(of: [started], timeout: 2)
         await timerGate.release()
@@ -36,11 +39,14 @@ final class InviteLinkPreparerTests: XCTestCase {
         let timerGate = DeadlineTestGate()
         let started = expectation(description: "Operation started")
         let task = Task {
-            try await CloudKitDeadline.run(timeout: { await timerGate.wait() }) {
-                started.fulfill()
-                await operationGate.wait()
-                return 42
-            }
+            try await CloudKitDeadline.run(
+                timeout: { await timerGate.wait() },
+                operation: {
+                    started.fulfill()
+                    await operationGate.wait()
+                    return 42
+                }
+            )
         }
         await fulfillment(of: [started], timeout: 2)
         task.cancel()

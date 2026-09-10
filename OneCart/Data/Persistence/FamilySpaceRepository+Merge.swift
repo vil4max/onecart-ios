@@ -135,100 +135,136 @@ extension FamilySpaceRepository {
             }
             try self.requireUpdatePermission(for: destination)
 
-            let destinationList = destination.activeLists.first
+            let targetList = destination.activeLists.first
                 ?? destination.sortedLists.first
-            guard let targetList = destinationList, targetList.id != nil else {
+            guard let targetList, targetList.id != nil else {
                 throw RepositoryError.listNotFound
             }
 
-            var storeMap: [UUID: StoreEntity] = [:]
-            for store in destination.sortedStores {
-                if let storeID = store.id {
-                    storeMap[storeID] = store
-                }
-            }
-
             let now = Date()
-            for store in source.sortedStores {
-                let copied = StoreEntity(context: context)
-                try self.persistence.assign(copied, toSameStoreAs: destination, in: context)
-                let newStoreID = UUID()
-                copied.id = newStoreID
-                copied.name = store.name
-                copied.icon = store.icon
-                copied.colorHex = store.colorHex
-                copied.address = store.address
-                copied.latitude = store.latitude
-                copied.longitude = store.longitude
-                copied.externalAppURL = store.externalAppURL
-                copied.isPinned = store.isPinned
-                copied.createdAt = store.createdAt ?? now
-                copied.updatedAt = now
-                copied.familySpace = destination
-                if let sourceStoreID = store.id {
-                    storeMap[sourceStoreID] = copied
-                }
-            }
-
-            var destinationByName: [String: ProductEntity] = [:]
-            for product in destination.sortedProducts {
-                let key = FamilyCartMerge.normalizedProductName(product.displayName)
-                guard !key.isEmpty else { continue }
-                if let existing = destinationByName[key] {
-                    let preferNew = FamilyCartMerge.shouldPreferSourceProduct(
-                        sourceUpdatedAt: product.updatedAt,
-                        destinationUpdatedAt: existing.updatedAt
-                    )
-                    if preferNew {
-                        destinationByName[key] = product
-                    }
-                } else {
-                    destinationByName[key] = product
-                }
-            }
-
-            for product in source.sortedProducts {
-                let key = FamilyCartMerge.normalizedProductName(product.displayName)
-                if let existing = destinationByName[key],
-                   FamilyCartMerge.shouldPreferSourceProduct(
-                       sourceUpdatedAt: product.updatedAt,
-                       destinationUpdatedAt: existing.updatedAt
-                   )
-                {
-                    Self.applyProductFields(from: product, onto: existing, now: now)
-                    if let storeID = product.store?.id {
-                        existing.store = storeMap[storeID]
-                    }
-                    existing.list = targetList
-                    existing.updatedAt = product.updatedAt ?? now
-                    continue
-                }
-
-                if destinationByName[key] != nil {
-                    continue
-                }
-
-                let copied = ProductEntity(context: context)
-                try self.persistence.assign(copied, toSameStoreAs: destination, in: context)
-                copied.id = UUID()
-                Self.applyProductFields(from: product, onto: copied, now: now)
-                copied.createdAt = product.createdAt ?? now
-                copied.updatedAt = product.updatedAt ?? now
-                copied.familySpace = destination
-                copied.list = targetList
-                if let storeID = product.store?.id {
-                    copied.store = storeMap[storeID]
-                }
-                if !key.isEmpty {
-                    destinationByName[key] = copied
-                }
-            }
+            let storeMap = try Self.mergeStores(
+                from: source,
+                into: destination,
+                now: now,
+                context: context,
+                persistence: self.persistence
+            )
+            try Self.mergeProducts(
+                from: source,
+                into: destination,
+                targetList: targetList,
+                storeMap: storeMap,
+                now: now,
+                context: context,
+                persistence: self.persistence
+            )
 
             destination.updatedAt = now
             targetList.updatedAt = now
         }
         if archiveSource {
             try await archiveFamilySpace(id: sourceID)
+        }
+    }
+
+    private static func mergeStores(
+        from source: FamilySpace,
+        into destination: FamilySpace,
+        now: Date,
+        context: NSManagedObjectContext,
+        persistence: PersistenceController
+    ) throws -> [UUID: StoreEntity] {
+        var storeMap: [UUID: StoreEntity] = [:]
+        for store in destination.sortedStores {
+            if let storeID = store.id {
+                storeMap[storeID] = store
+            }
+        }
+
+        for store in source.sortedStores {
+            let copied = StoreEntity(context: context)
+            try persistence.assign(copied, toSameStoreAs: destination, in: context)
+            let newStoreID = UUID()
+            copied.id = newStoreID
+            copied.name = store.name
+            copied.icon = store.icon
+            copied.colorHex = store.colorHex
+            copied.address = store.address
+            copied.latitude = store.latitude
+            copied.longitude = store.longitude
+            copied.externalAppURL = store.externalAppURL
+            copied.isPinned = store.isPinned
+            copied.createdAt = store.createdAt ?? now
+            copied.updatedAt = now
+            copied.familySpace = destination
+            if let sourceStoreID = store.id {
+                storeMap[sourceStoreID] = copied
+            }
+        }
+        return storeMap
+    }
+
+    private static func mergeProducts(
+        from source: FamilySpace,
+        into destination: FamilySpace,
+        targetList: ShoppingListEntity,
+        storeMap: [UUID: StoreEntity],
+        now: Date,
+        context: NSManagedObjectContext,
+        persistence: PersistenceController
+    ) throws {
+        var destinationByName: [String: ProductEntity] = [:]
+        for product in destination.sortedProducts {
+            let key = FamilyCartMerge.normalizedProductName(product.displayName)
+            guard !key.isEmpty else { continue }
+            if let existing = destinationByName[key] {
+                let preferNew = FamilyCartMerge.shouldPreferSourceProduct(
+                    sourceUpdatedAt: product.updatedAt,
+                    destinationUpdatedAt: existing.updatedAt
+                )
+                if preferNew {
+                    destinationByName[key] = product
+                }
+            } else {
+                destinationByName[key] = product
+            }
+        }
+
+        for product in source.sortedProducts {
+            let key = FamilyCartMerge.normalizedProductName(product.displayName)
+            if let existing = destinationByName[key],
+               FamilyCartMerge.shouldPreferSourceProduct(
+                   sourceUpdatedAt: product.updatedAt,
+                   destinationUpdatedAt: existing.updatedAt
+               )
+            {
+                Self.applyProductFields(from: product, onto: existing, now: now)
+                if let storeID = product.store?.id {
+                    existing.store = storeMap[storeID]
+                }
+                existing.list = targetList
+                existing.updatedAt = product.updatedAt ?? now
+                continue
+            }
+
+            if destinationByName[key] != nil {
+                continue
+            }
+
+            let copied = ProductEntity(context: context)
+            try persistence.assign(copied, toSameStoreAs: destination, in: context)
+            copied.id = UUID()
+            Self.applyProductFields(from: product, onto: copied, now: now)
+            copied.createdAt = product.createdAt ?? now
+            copied.updatedAt = product.updatedAt ?? now
+            copied.familySpace = destination
+            copied.list = targetList
+            if let storeID = product.store?.id {
+                copied.store = storeMap[storeID]
+            }
+            if !key.isEmpty {
+                destinationByName[key] = copied
+            }
         }
     }
 

@@ -27,6 +27,49 @@ enum OneCartManagedObjectModel {
         let history = entity("PurchaseHistory", PurchaseHistoryEntity.self)
         let historyItem = entity("HistoryItem", HistoryItemEntity.self)
 
+        let relationships = makeRelationships(
+            familySpace: familySpace,
+            store: store,
+            list: list,
+            product: product,
+            history: history,
+            historyItem: historyItem
+        )
+
+        familySpace.properties = makeFamilySpaceProperties(relationships)
+        store.properties = makeStoreProperties(relationships)
+        list.properties = makeListProperties(relationships)
+        product.properties = makeProductProperties(relationships)
+        history.properties = makeHistoryProperties(relationships)
+        historyItem.properties = makeHistoryItemProperties(relationships)
+
+        model.entities = [familySpace, store, list, product, history, historyItem]
+        return model
+    }
+
+    // MARK: - Relationships
+
+    private struct Relationships {
+        let familyStores, storeFamily: NSRelationshipDescription
+        let familyLists, listFamily: NSRelationshipDescription
+        let familyProducts, productFamily: NSRelationshipDescription
+        let familyHistory, historyFamily: NSRelationshipDescription
+        let familyHistoryItems, historyItemFamily: NSRelationshipDescription
+        let storeLists, listStore: NSRelationshipDescription
+        let storeProducts, productStore: NSRelationshipDescription
+        let storeHistory, historyStore: NSRelationshipDescription
+        let listProducts, productList: NSRelationshipDescription
+        let historyItems, itemHistory: NSRelationshipDescription
+    }
+
+    private static func makeRelationships(
+        familySpace: NSEntityDescription,
+        store: NSEntityDescription,
+        list: NSEntityDescription,
+        product: NSEntityDescription,
+        history: NSEntityDescription,
+        historyItem: NSEntityDescription
+    ) -> Relationships {
         let familyStores = toMany("stores", destination: store, deleteRule: .cascadeDeleteRule)
         let storeFamily = toOne("familySpace", destination: familySpace)
         connect(familyStores, storeFamily)
@@ -67,7 +110,34 @@ enum OneCartManagedObjectModel {
         let itemHistory = toOne("history", destination: history)
         connect(historyItems, itemHistory)
 
-        familySpace.properties = [
+        return Relationships(
+            familyStores: familyStores,
+            storeFamily: storeFamily,
+            familyLists: familyLists,
+            listFamily: listFamily,
+            familyProducts: familyProducts,
+            productFamily: productFamily,
+            familyHistory: familyHistory,
+            historyFamily: historyFamily,
+            familyHistoryItems: familyHistoryItems,
+            historyItemFamily: historyItemFamily,
+            storeLists: storeLists,
+            listStore: listStore,
+            storeProducts: storeProducts,
+            productStore: productStore,
+            storeHistory: storeHistory,
+            historyStore: historyStore,
+            listProducts: listProducts,
+            productList: productList,
+            historyItems: historyItems,
+            itemHistory: itemHistory
+        )
+    }
+
+    // MARK: - Entity properties
+
+    private static func makeFamilySpaceProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("name", .stringAttributeType),
             attribute("createdAt", .dateAttributeType),
@@ -77,14 +147,16 @@ enum OneCartManagedObjectModel {
             attribute("serverRole", .stringAttributeType),
             attribute("needsRemoteCreation", .booleanAttributeType),
             attribute("isHouseholdDefault", .booleanAttributeType),
-            familyStores,
-            familyLists,
-            familyProducts,
-            familyHistory,
-            familyHistoryItems,
+            rels.familyStores,
+            rels.familyLists,
+            rels.familyProducts,
+            rels.familyHistory,
+            rels.familyHistoryItems,
         ]
+    }
 
-        store.properties = [
+    private static func makeStoreProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("name", .stringAttributeType),
             attribute("icon", .stringAttributeType),
@@ -97,25 +169,29 @@ enum OneCartManagedObjectModel {
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
             attribute("deletedAt", .dateAttributeType),
-            storeFamily,
-            storeLists,
-            storeProducts,
-            storeHistory,
+            rels.storeFamily,
+            rels.storeLists,
+            rels.storeProducts,
+            rels.storeHistory,
         ]
+    }
 
-        list.properties = [
+    private static func makeListProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("title", .stringAttributeType),
             attribute("status", .stringAttributeType),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
             attribute("deletedAt", .dateAttributeType),
-            listFamily,
-            listStore,
-            listProducts,
+            rels.listFamily,
+            rels.listStore,
+            rels.listProducts,
         ]
+    }
 
-        product.properties = [
+    private static func makeProductProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("name", .stringAttributeType),
             attribute("quantity", .doubleAttributeType),
@@ -136,12 +212,14 @@ enum OneCartManagedObjectModel {
             attribute("purchasedByName", .stringAttributeType),
             attribute("createdByName", .stringAttributeType),
             attribute("deletedAt", .dateAttributeType),
-            productFamily,
-            productList,
-            productStore,
+            rels.productFamily,
+            rels.productList,
+            rels.productStore,
         ]
+    }
 
-        history.properties = [
+    private static func makeHistoryProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("total", .doubleAttributeType),
             attribute("date", .dateAttributeType),
@@ -149,12 +227,14 @@ enum OneCartManagedObjectModel {
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
             attribute("deletedAt", .dateAttributeType),
-            historyFamily,
-            historyStore,
-            historyItems,
+            rels.historyFamily,
+            rels.historyStore,
+            rels.historyItems,
         ]
+    }
 
-        historyItem.properties = [
+    private static func makeHistoryItemProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
             attribute("id", .UUIDAttributeType),
             attribute("name", .stringAttributeType),
             attribute("quantity", .doubleAttributeType),
@@ -171,13 +251,12 @@ enum OneCartManagedObjectModel {
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
             attribute("deletedAt", .dateAttributeType),
-            historyItemFamily,
-            itemHistory,
+            rels.historyItemFamily,
+            rels.itemHistory,
         ]
-
-        model.entities = [familySpace, store, list, product, history, historyItem]
-        return model
     }
+
+    // MARK: - Building blocks
 
     private static func entity(_ name: String, _ type: NSManagedObject.Type) -> NSEntityDescription {
         let entity = NSEntityDescription()

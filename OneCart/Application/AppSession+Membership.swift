@@ -199,10 +199,8 @@ extension AppSession {
             group.addTask {
                 for await _ in NotificationCenter.default.notifications(
                     named: .oneCartDidFinishLateLeavePurge
-                ) {
-                    if await self.attemptLeaveRecoveryPass() {
-                        return true
-                    }
+                ) where await self.attemptLeaveRecoveryPass() {
+                    return true
                 }
                 return false
             }

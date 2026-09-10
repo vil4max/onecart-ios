@@ -47,6 +47,6 @@ demo-ipad role="owner":
     fi
     open -a Simulator 2>/dev/null || true
     just build
-    APP_PATH="$(find $HOME/Library/Developer/Xcode/DerivedData -name "OneCart.app" -type d | head -n 1)"
+    APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -name "OneCart.app" -type d | head -n 1)"
     xcrun simctl install "$IPAD_ID" "$APP_PATH"
     xcrun simctl launch "$IPAD_ID" com.vil555tim.onecart -oneCartDemoUI -oneCartDemoRole {{role}}

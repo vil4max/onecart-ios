@@ -105,6 +105,7 @@ extension PersistenceController {
         ) else { return }
 
         logger.error(
+            // swiftlint:disable:next line_length
             "CloudKit env mismatch wipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public) storeFilesExist=\(storeFilesExist)"
         )
         CartSyncLog.action.error(

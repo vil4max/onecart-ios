@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AuthenticationServices
 import CloudKit
 import CoreData
@@ -6,6 +7,7 @@ import Foundation
 import XCTest
 
 @MainActor
+// swiftlint:disable:next type_body_length
 final class AccountDeletionTests: XCTestCase {
     func test_deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)

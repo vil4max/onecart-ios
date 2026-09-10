@@ -140,4 +140,3 @@ public enum OneCartPalette {
         })
     }
 }
-

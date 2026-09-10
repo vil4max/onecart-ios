@@ -69,10 +69,8 @@ enum CloudKitUserFacingError {
     }
 
     static func isProductionSchemaFailure(_ error: Error) -> Bool {
-        for candidate in flattened(error) {
-            if productionSchemaMessage(in: candidate) != nil {
-                return true
-            }
+        for candidate in flattened(error) where productionSchemaMessage(in: candidate) != nil {
+            return true
         }
         return productionSchemaMessage(in: error) != nil
     }
@@ -306,7 +304,6 @@ enum CloudKitUserFacingError {
             || (normalized.contains("could not be completed") && normalized.contains("error"))
     }
 }
-
 
 private extension String {
     var nilIfBlank: String? {

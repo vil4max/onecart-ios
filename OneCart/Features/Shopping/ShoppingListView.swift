@@ -1,5 +1,6 @@
 import SwiftUI
 
+// swiftlint:disable:next type_body_length
 struct ShoppingListView: View {
     @EnvironmentObject private var model: AppSession
     let listID: UUID

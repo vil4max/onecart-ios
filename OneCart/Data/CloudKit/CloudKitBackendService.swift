@@ -180,6 +180,7 @@ final class CloudKitBackendService {
         }
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
+                // swiftlint:disable:next line_length
                 "removeMember skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
             throw OneCartCloudKitError.shareEnvironmentMismatch
@@ -219,6 +220,7 @@ final class CloudKitBackendService {
         let zoneID: CKRecordZone.ID
         if let share = try share(forObjectID: objectID) {
             CartSyncLog.shareACL.info(
+                // swiftlint:disable:next line_length
                 "leaveFamily begin record=\(share.recordID.recordName, privacy: .public) env=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
             )
             zoneID = share.recordID.zoneID
@@ -252,9 +254,7 @@ final class CloudKitBackendService {
         in store: NSPersistentStore,
         timeoutNanoseconds: UInt64 = 22_000_000_000
     ) async throws {
-        try await withCheckedThrowingContinuation { (
-            continuation: CheckedContinuation<Void, Error>
-        ) in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let gate = LeavePurgeSettleGate()
 
             let timeoutTask = Task {
@@ -296,6 +296,7 @@ final class CloudKitBackendService {
         guard let share = try share(for: family) else { return false }
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
+                // swiftlint:disable:next line_length
                 "ensureReadWriteACL skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
             return false
@@ -328,10 +329,12 @@ final class CloudKitBackendService {
         }
         let shareEnv = CloudKitShareEnvironment.of(share)
         CartSyncLog.shareACL.info(
+            // swiftlint:disable:next line_length
             "revokeInvite begin record=\(share.recordID.recordName, privacy: .public) shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public) hasURL=\(share.url != nil)"
         )
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
+                // swiftlint:disable:next line_length
                 "revokeInvite skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
             )
             throw OneCartCloudKitError.shareEnvironmentMismatch
@@ -409,7 +412,6 @@ final class CloudKitBackendService {
     }
 }
 
-
 private final class LeavePurgeSettleGate: @unchecked Sendable {
     private let lock = NSLock()
     private var settled = false
@@ -422,7 +424,6 @@ private final class LeavePurgeSettleGate: @unchecked Sendable {
         return true
     }
 }
-
 
 private extension String {
     var nilIfBlank: String? {
