@@ -164,8 +164,7 @@ extension FamilySpaceRepository {
                 throw RepositoryError.familySpaceNotFound
             }
 
-            let purchased = list.sortedProducts.filter { product in
-                guard product.isPurchasedValue else { return false }
+            let purchased = try Self.fetchPurchasedProducts(listID: listID, in: context).filter { product in
                 guard let cutoff else { return true }
                 let purchasedAt = product.purchasedAt ?? product.updatedAt ?? .distantPast
                 return purchasedAt < cutoff
@@ -238,6 +237,23 @@ extension FamilySpaceRepository {
 
             return historyID
         }
+    }
+
+    private static func fetchPurchasedProducts(
+        listID: UUID,
+        in context: NSManagedObjectContext
+    ) throws -> [ProductEntity] {
+        let request = ProductEntity.fetchRequest()
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "list.id == %@", listID as NSUUID),
+            NSPredicate(format: "isPurchased == YES"),
+            NSPredicate(format: "deletedAt == nil"),
+        ])
+        request.sortDescriptors = [
+            NSSortDescriptor(key: "createdAt", ascending: false),
+        ]
+        request.relationshipKeyPathsForPrefetching = ["list", "store"]
+        return try context.fetch(request)
     }
 
     private static func existingHistoryItems(

@@ -13,6 +13,7 @@ struct ShoppingListView: View {
     @State private var isSavingEdit = false
     @State private var confettiTrigger = 0
     @State private var hasCelebratedCurrentCompletion = false
+    @State private var suggestions: [String] = []
 
     init(listID: UUID) {
         self.listID = listID
@@ -52,17 +53,6 @@ struct ShoppingListView: View {
 
     private var trimmedEditName: String {
         editName.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var suggestions: [String] {
-        CartSuggestionsEngine.suggestions(
-            from: model.history,
-            currentCartProducts: products,
-            query: draftName,
-            defaults: CartSuggestionsEngine.defaultEssentials(
-                languageCode: model.preferences.language.languageCode
-            )
-        )
     }
 
     private var showsEmptyCard: Bool {
@@ -193,6 +183,14 @@ struct ShoppingListView: View {
             }
             .task {
                 await model.syncCart(reason: .appear)
+            }
+            .onChange(of: draftName) {
+                updateSuggestions()
+            }
+            .onChange(of: model.contentRevision) {
+                if isComposingNewItem {
+                    updateSuggestions()
+                }
             }
             .alert(
                 UserAlertKind.error.title,
@@ -403,6 +401,7 @@ struct ShoppingListView: View {
 
         draftName = ""
         isComposingNewItem = true
+        updateSuggestions()
         await Task.yield()
         focusedField = .compose
     }
@@ -424,7 +423,20 @@ struct ShoppingListView: View {
     private func cancelNewItemComposer() {
         isComposingNewItem = false
         draftName = ""
+        suggestions = []
         focusedField = nil
+    }
+
+    @MainActor
+    private func updateSuggestions() {
+        suggestions = CartSuggestionsEngine.suggestions(
+            from: model.history,
+            currentCartProducts: products,
+            query: draftName,
+            defaults: CartSuggestionsEngine.defaultEssentials(
+                languageCode: model.preferences.language.languageCode
+            )
+        )
     }
 
     @MainActor
@@ -445,6 +457,7 @@ struct ShoppingListView: View {
         hasCelebratedCurrentCompletion = false
         draftName = ""
         isComposingNewItem = true
+        updateSuggestions()
         focusedField = .compose
     }
 
@@ -479,6 +492,7 @@ struct ShoppingListView: View {
         draftName = ""
         if startAnother {
             isComposingNewItem = true
+            updateSuggestions()
             await Task.yield()
             focusedField = .compose
         } else {

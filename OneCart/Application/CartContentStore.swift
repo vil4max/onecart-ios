@@ -119,6 +119,7 @@ final class CartContentStore: ObservableObject {
             NSSortDescriptor(key: "isPurchased", ascending: true),
             NSSortDescriptor(key: "createdAt", ascending: false),
         ]
+        request.relationshipKeyPathsForPrefetching = ["list"]
         return try context.fetch(request)
     }
 
@@ -141,6 +142,7 @@ final class CartContentStore: ObservableObject {
             request.fetchOffset = offset
         }
         request.fetchBatchSize = 20
+        request.relationshipKeyPathsForPrefetching = ["items", "items.familySpace"]
         return try context.fetch(request)
     }
 }
