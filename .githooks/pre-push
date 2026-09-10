@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+should_run_smoke=false
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Tag pushes and ref deletions do not publish source changes.
+  if [[ "$local_sha" != "0000000000000000000000000000000000000000" \
+    && "$remote_ref" != refs/tags/* ]]; then
+    should_run_smoke=true
+    break
+  fi
+done
+
+if [[ "$should_run_smoke" != true ]]; then
+  echo "Skipping smoke tests: push contains no branch updates."
+  exit 0
+fi
+
+exec "$ROOT/scripts/smoke-tests.sh"
