@@ -308,7 +308,7 @@ final class PersonalCartContentRestoreTests: XCTestCase {
         let sourceListID = try XCTUnwrap(source.activeLists.first?.id)
         let destinationListID = try XCTUnwrap(destination.activeLists.first?.id)
         let firstID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Bread"))
-        let secondID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Bread"))
+        let secondID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Baguette"))
         let historyProductID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Eggs"))
         try await repository.togglePurchased(id: historyProductID, participantDisplayName: "Shopper")
         let historyResult = try await repository.completePurchased(listID: sourceListID)
@@ -326,7 +326,7 @@ final class PersonalCartContentRestoreTests: XCTestCase {
         await persistence.container.viewContext.perform { persistence.container.viewContext.processPendingChanges() }
         let restored = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID))
         XCTAssertEqual(Set(restored.sortedProducts.compactMap(\.id)), [firstID, secondID, completedID, remoteID])
-        XCTAssertEqual(restored.sortedProducts.filter { $0.displayName == "Bread" }.count, 3)
+        XCTAssertEqual(restored.sortedProducts.filter { $0.displayName == "Bread" }.count, 2)
         XCTAssertTrue(restored.sortedProducts.first { $0.id == completedID }?.isPurchasedValue == true)
         XCTAssertEqual(restored.sortedProducts.first { $0.id == completedID }?.purchasedByName, "Shopper")
         XCTAssertEqual(restored.sortedHistory.map(\.id), [historyID])

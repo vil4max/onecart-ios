@@ -137,7 +137,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(repository.fetchFamilySpace(id: familyID)).sortedProducts.isEmpty)
     }
 
-    func testSameNamedProductsStayAsSeparateCartLines() async throws {
+    func testSameNamedProductsReuseExistingCartLine() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Семья")
         let listID = try XCTUnwrap(
@@ -158,21 +158,116 @@ final class CartItemsTests: XCTestCase {
             draft: draft,
             createdByName: "Анна"
         )
+        // Another member adds the same name with different casing/whitespace:
+        // no second row — the existing line is returned.
         let secondID = try await repository.addProduct(
             to: listID,
-            draft: draft,
+            draft: ProductDraft(
+                name: "  молоко ",
+                quantity: 1,
+                unit: .piece,
+                category: .dairyEggs,
+                estimatedPrice: 40,
+                note: "",
+                sourceURL: "https://shop.example.com/milk"
+            ),
             createdByName: "Игорь"
         )
 
+        XCTAssertEqual(firstID, secondID)
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let milk = space.sortedProducts.filter {
+            FamilyCartMerge.normalizedProductName($0.displayName) == FamilyCartMerge.normalizedProductName("Молоко")
+        }
+        XCTAssertEqual(milk.count, 1, "Identical names must reuse one line")
+        XCTAssertEqual(milk.first?.id, firstID)
+    }
+
+    func testReAddAfterDeleteCreatesNewLine() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Семья")
+        let listID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
+        )
+        let firstID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Молоко")
+        )
+        try await repository.deleteProduct(id: firstID)
+        let secondID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "молоко")
+        )
         XCTAssertNotEqual(firstID, secondID)
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        let milk = space.sortedProducts.filter { $0.displayName == "Молоко" }
-        XCTAssertEqual(milk.count, 2, "Identical names must not be summed into one line")
-        XCTAssertEqual(
-            milk.map(\.quantityValue).reduce(0, +),
-            2,
-            "Each line keeps its own quantity"
+        XCTAssertEqual(space.sortedProducts.count, 1)
+        XCTAssertEqual(space.sortedProducts.first?.id, secondID)
+    }
+
+    func testRenameIntoExistingNameMergesRows() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Семья")
+        let listID = try XCTUnwrap(
+            repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
         )
+        let milkID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Молоко")
+        )
+        let kefirID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Кефир")
+        )
+        try await repository.updateProduct(
+            id: kefirID,
+            draft: productDraft(name: " молоко ")
+        )
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(space.sortedProducts.count, 1)
+        XCTAssertEqual(space.sortedProducts.first?.id, milkID)
+    }
+
+    func testDeduplicateProductsByNameKeepsFirstWriter() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Семья")
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        let listID = try XCTUnwrap(space.activeLists.first?.id)
+        // Simulate two devices adding the same name with different stable IDs
+        // (bypasses addProduct so both rows exist, as CloudKit would deliver).
+        let firstID = UUID()
+        let secondID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let family = try FamilySpaceRepository.requireFamilySpace(id: familyID, in: context)
+            guard let list = try FamilySpaceRepository.fetchList(id: listID, in: context) else {
+                throw RepositoryError.listNotFound
+            }
+            for (stableID, name, offset) in [
+                (firstID, "Молоко", 0.0), (secondID, " молоко ", 60.0),
+            ] as [(UUID, String, TimeInterval)] {
+                let product = ProductEntity(context: context)
+                try persistence.assign(product, toSameStoreAs: family, in: context)
+                product.id = stableID
+                product.name = name
+                product.quantity = NSNumber(value: 1)
+                product.unit = ProductUnit.piece.rawValue
+                product.category = ProductCategory.other.rawValue
+                product.estimatedPrice = NSNumber(value: 0)
+                product.isPurchased = NSNumber(value: false)
+                product.note = ""
+                product.createdAt = Date().addingTimeInterval(offset)
+                product.updatedAt = product.createdAt
+                product.familySpace = family
+                product.list = list
+            }
+        }
+        let merged = try await repository.deduplicateProductsByName()
+        XCTAssertEqual(merged, 1)
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+        let reloaded = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(reloaded.sortedProducts.count, 1)
+        XCTAssertEqual(reloaded.sortedProducts.first?.id, firstID)
     }
 
     func testInvalidNamesAreRejected() async throws {

@@ -108,6 +108,7 @@ final class SessionBootstrapper {
             try await persistence.load()
             host.notifyBootstrapObjectWillChange()
             try await repository.deduplicateStableIDs()
+            _ = try await repository.deduplicateProductsByName()
             host.preferences.reloadFromDefaults()
 
             if let appleName = appleCredential.providedDisplayName {

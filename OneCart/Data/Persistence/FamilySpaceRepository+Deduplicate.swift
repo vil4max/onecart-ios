@@ -42,6 +42,55 @@ extension FamilySpaceRepository {
         }
     }
 
+    /// Merges living rows that share a normalized name within one list.
+    /// Two devices can add «Молоко» / «молоко» concurrently with different
+    /// stable IDs — CloudKit then delivers both records. First writer wins;
+    /// losers become soft-delete tombstones so the merge propagates.
+    /// - Returns: number of rows tombstoned.
+    @discardableResult
+    func deduplicateProductsByName() async throws -> Int {
+        try await persistence.performBackgroundTask(author: "OneCartNameDedup") { context in
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "deletedAt == nil")
+            let products = try context.fetch(request)
+            var groups: [String: [ProductEntity]] = [:]
+            for product in products {
+                guard let rawName = product.name else { continue }
+                let normalized = FamilyCartMerge.normalizedProductName(rawName)
+                guard !normalized.isEmpty else { continue }
+                guard let storeIdentifier = product.objectID.persistentStore?.identifier else { continue }
+                let listKey: String
+                if let listID = product.list?.id {
+                    listKey = "list:\(listID.uuidString)"
+                } else if let familyID = product.familySpace?.id {
+                    listKey = "family:\(familyID.uuidString)"
+                } else {
+                    continue
+                }
+                let key = "\(storeIdentifier)|\(listKey)|\(normalized)"
+                groups[key, default: []].append(product)
+            }
+            var merged = 0
+            let now = Date()
+            for items in groups.values where items.count > 1 {
+                let ordered = items.sorted {
+                    let left = $0.createdAt ?? .distantPast
+                    let right = $1.createdAt ?? .distantPast
+                    if left != right {
+                        return left < right
+                    }
+                    return ($0.id?.uuidString ?? "") < ($1.id?.uuidString ?? "")
+                }
+                for loser in ordered.dropFirst() where loser.deletedAt == nil {
+                    loser.deletedAt = now
+                    loser.updatedAt = now
+                    merged += 1
+                }
+            }
+            return merged
+        }
+    }
+
     static func deduplicate<T: NSManagedObject>(
         request: NSFetchRequest<T>,
         familySpaceID: (T) -> UUID?,

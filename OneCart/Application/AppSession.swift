@@ -237,6 +237,14 @@ final class AppSession: ObservableObject {
     func syncCart(reason: CartSyncReason) async {
         await cloudSync.syncCart(reason: reason)
         switch reason {
+        case .appear, .foreground, .cloudImport:
+            // CloudKit may have delivered a same-name row from another device
+            // with a different stable ID — merge before archiving/presenting.
+            await deduplicateCartIfNeeded()
+        case .pull, .afterToggle, .afterMutation:
+            break
+        }
+        switch reason {
         case .appear, .foreground:
             await archiveStalePurchasedIfNeeded()
         case .pull, .cloudImport, .afterToggle, .afterMutation:

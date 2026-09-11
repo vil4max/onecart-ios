@@ -76,7 +76,13 @@ A newly installed device may create a provisional personal cart while iCloud imp
 
 History and suggestion frequency count each `(family ID, item ID)` once, including when multiple devices independently archive the same purchase. Duplicate transport records may remain in CloudKit.
 
-**Identical cart lines (same cart).** Same `Product.id` within one cart: keep one row. Cross-cart join merge (private → shared LWW) is deferred — accept switches to the shared cart only.
+**Identical cart lines (same cart).** Same normalized name within one cart
+(case/whitespace/diacritic-insensitive — «Молоко» = «молоко»): keep one row.
+Adding an existing name returns the living row and reveals it instead of
+creating a second line; concurrent adds from different devices (different
+`Product.id`) merge first-writer-wins on sync. Same `Product.id` within one
+cart: keep one row. Cross-cart join merge (private → shared LWW) is deferred
+— accept switches to the shared cart only.
 
 ## Technical invite path
 

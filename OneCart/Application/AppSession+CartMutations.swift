@@ -3,16 +3,20 @@ import Foundation
 import OSLog
 
 extension AppSession {
+    /// Adds a product. Returns the living row ID — a new row, or the existing
+    /// row when the normalized name is already on the cart (duplicate
+    /// protection). Returns nil when the mutation is denied or fails.
     @discardableResult
-    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> Bool {
-        guard let listID = list.id else { return false }
+    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> UUID? {
+        guard let listID = list.id else { return nil }
         let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
         CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
+        var addedID: UUID?
         let succeeded = await performMutation(
             action: "addProduct",
             successMessage: String(localized: "alert.product_added")
         ) {
-            try await self.repository.addProduct(
+            addedID = try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
                 createdByName: Self.participantName(
@@ -21,13 +25,14 @@ extension AppSession {
                 )
             )
         }
-        guard succeeded else { return false }
-        let addedIDs = Set(products(inListID: listID).compactMap(\.id)).subtracting(beforeIDs)
-        if let productID = addedIDs.first {
+        guard succeeded, let productID = addedID else { return nil }
+        // Only refine category for genuinely new rows — a duplicate reuses
+        // the existing row untouched so family edits are never overwritten.
+        if !beforeIDs.contains(productID) {
             let name = draft.name
             Task { await self.refineProductCategory(productID: productID, name: name) }
         }
-        return true
+        return productID
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
@@ -127,6 +132,26 @@ extension AppSession {
 
     func products(inListID listID: UUID) -> [ProductEntity] {
         cartContent.products(inListID: listID)
+    }
+
+    /// Merges same-name rows that arrived via CloudKit with different stable
+    /// IDs. No-op when there is nothing to merge or editing is unavailable.
+    func deduplicateCartIfNeeded() async {
+        guard canEdit else { return }
+        do {
+            let merged = try await repository.deduplicateProductsByName()
+            guard merged > 0 else { return }
+            await persistence.container.viewContext.perform {
+                self.persistence.container.viewContext.processPendingChanges()
+            }
+            try reload()
+            cartSync.bumpRevisionAfterLocalChange()
+            CartSyncLog.action.info("deduplicateCart merged=\(merged)")
+        } catch {
+            CartSyncLog.action.error(
+                "deduplicateCart fail error=\(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     func deleteProduct(_ product: ProductEntity) async {

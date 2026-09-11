@@ -54,6 +54,7 @@ struct ProductRow: View {
     var editFocused: FocusState<CartNameFocus?>.Binding
     let isSavingEdit: Bool
     var showsCategoryLabel: Bool = true
+    var isHighlighted: Bool = false
     let onToggle: () -> Void
     let onBeginEdit: () -> Void
     let onSubmitEdit: () -> Void
@@ -128,6 +129,17 @@ struct ProductRow: View {
                 action: onToggle
             )
         }
+        .background {
+            // Even pill behind the content: always in the hierarchy, only its
+            // opacity animates, so the flash fades smoothly in and out and
+            // looks identical in category sections and the flat trolley list.
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(OneCartPalette.primarySoft)
+                .padding(.vertical, -6)
+                .padding(.horizontal, -8)
+                .opacity(isHighlighted ? 1 : 0)
+        }
+        .animation(.easeInOut(duration: 0.3), value: isHighlighted)
         .accessibilityElement(children: .contain)
     }
 

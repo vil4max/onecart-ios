@@ -15,6 +15,7 @@ struct ShoppingListView: View {
     @State private var confettiTrigger = 0
     @State private var hasCelebratedCurrentCompletion = false
     @State private var suggestions: [String] = []
+    @State private var duplicateHighlightID: UUID?
 
     init(listID: UUID) {
         self.listID = listID
@@ -70,145 +71,153 @@ struct ShoppingListView: View {
 
     var body: some View {
         if list != nil {
-            List {
-                if !model.canEdit {
-                    Section {
-                        ReadOnlyBanner()
-                    }
-                }
-
-                if showsEmptyCard {
-                    Section {
-                        EmptyCard(
-                            image: "cart.badge.plus",
-                            title: "cart.empty_title",
-                            message: emptyCartMessage
-                        )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                    }
-                } else {
-                    if isComposingNewItem {
+            ScrollViewReader { proxy in
+                List {
+                    if !model.canEdit {
                         Section {
-                            newItemComposerRow
-                        } header: {
-                            if toBuyProducts.isEmpty {
-                                Text("cart.section_to_buy")
+                            ReadOnlyBanner()
+                        }
+                    }
+
+                    if showsEmptyCard {
+                        Section {
+                            EmptyCard(
+                                image: "cart.badge.plus",
+                                title: "cart.empty_title",
+                                message: emptyCartMessage
+                            )
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+                    } else {
+                        if isComposingNewItem {
+                            Section {
+                                newItemComposerRow
+                            } header: {
+                                if toBuyProducts.isEmpty {
+                                    Text("cart.section_to_buy")
+                                }
+                            }
+                        }
+
+                        ForEach(toBuyCategorySections, id: \.category) { section in
+                            Section {
+                                productRows(section.items, showsCategoryLabel: false)
+                            } header: {
+                                Label(section.category.localizedTitleKey, systemImage: section.category.symbolName)
+                            }
+                        }
+
+                        if isAllPurchased, !isComposingNewItem {
+                            Section {
+                                cartAllPurchasedHeroCard
+                            }
+                        }
+
+                        if !inTrolleyProducts.isEmpty {
+                            Section {
+                                productRows(inTrolleyProducts, showsCategoryLabel: true)
+                            } header: {
+                                Text("cart.section_in_trolley")
+                            } footer: {
+                                Text("cart.trolley_history_hint")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                     }
-
-                    ForEach(toBuyCategorySections, id: \.category) { section in
-                        Section {
-                            productRows(section.items, showsCategoryLabel: false)
-                        } header: {
-                            Label(section.category.localizedTitleKey, systemImage: section.category.symbolName)
+                }
+                .listStyle(.insetGrouped)
+                .animation(.snappy, value: purchasedCount)
+                .scrollContentBackground(.hidden)
+                .background(OneCartPalette.background.ignoresSafeArea())
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if !products.isEmpty || isComposingNewItem {
+                        cartProgressStrip
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if model.canEdit {
+                        Color.clear.frame(height: 72)
+                    }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if model.canEdit {
+                        CartAddFAB(accent: model.preferences.accentColor) {
+                            Task { await beginNewItem() }
+                        }
+                        .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                        .keyboardShortcut("n", modifiers: .command)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 12)
+                    }
+                }
+                .refreshable {
+                    await model.syncCart(reason: .pull)
+                }
+                .disabled(model.isBusy && !isInlineBusy)
+                .overlay {
+                    if model.isBusy, !isInlineBusy {
+                        CartBusyOverlay(messageKey: "cart.updating")
+                    }
+                }
+                .overlay {
+                    CartConfettiView(trigger: confettiTrigger)
+                }
+                .navigationTitle(model.cartTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if model.isCartSyncing {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .accessibilityLabel(Text("cart.updating"))
                         }
                     }
-
-                    if isAllPurchased, !isComposingNewItem {
-                        Section {
-                            cartAllPurchasedHeroCard
-                        }
+                }
+                .background {
+                    Button("") {
+                        Task { await model.syncCart(reason: .pull) }
                     }
-
-                    if !inTrolleyProducts.isEmpty {
-                        Section {
-                            productRows(inTrolleyProducts, showsCategoryLabel: true)
-                        } header: {
-                            Text("cart.section_in_trolley")
-                        } footer: {
-                            Text("cart.trolley_history_hint")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
+                    .keyboardShortcut("r", modifiers: .command)
+                    .opacity(0)
+                    .accessibilityHidden(true)
                 }
-            }
-            .listStyle(.insetGrouped)
-            .animation(.snappy, value: purchasedCount)
-            .scrollContentBackground(.hidden)
-            .background(OneCartPalette.background.ignoresSafeArea())
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if !products.isEmpty || isComposingNewItem {
-                    cartProgressStrip
+                .task {
+                    await model.syncCart(reason: .appear)
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if model.canEdit {
-                    Color.clear.frame(height: 72)
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if model.canEdit {
-                    CartAddFAB(accent: model.preferences.accentColor) {
-                        Task { await beginNewItem() }
-                    }
-                    .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
-                    .keyboardShortcut("n", modifiers: .command)
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 12)
-                }
-            }
-            .refreshable {
-                await model.syncCart(reason: .pull)
-            }
-            .disabled(model.isBusy && !isInlineBusy)
-            .overlay {
-                if model.isBusy, !isInlineBusy {
-                    CartBusyOverlay(messageKey: "cart.updating")
-                }
-            }
-            .overlay {
-                CartConfettiView(trigger: confettiTrigger)
-            }
-            .navigationTitle(model.cartTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    if model.isCartSyncing {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .accessibilityLabel(Text("cart.updating"))
-                    }
-                }
-            }
-            .background {
-                Button("") {
-                    Task { await model.syncCart(reason: .pull) }
-                }
-                .keyboardShortcut("r", modifiers: .command)
-                .opacity(0)
-                .accessibilityHidden(true)
-            }
-            .task {
-                await model.syncCart(reason: .appear)
-            }
-            .onChange(of: draftName) {
-                updateSuggestions()
-            }
-            .onChange(of: model.contentRevision) {
-                if isComposingNewItem {
+                .onChange(of: draftName) {
                     updateSuggestions()
                 }
-            }
-            .alert(
-                UserAlertKind.error.title,
-                isPresented: Binding(
-                    get: { model.sharedCartRemovedMessage != nil },
-                    set: {
-                        if !$0 {
-                            model.dismissSharedCartRemovedMessage()
-                        }
+                .onChange(of: model.contentRevision) {
+                    if isComposingNewItem {
+                        updateSuggestions()
                     }
-                )
-            ) {
-                Button("common.ok", role: .cancel) {
-                    model.dismissSharedCartRemovedMessage()
                 }
-            } message: {
-                Text(model.sharedCartRemovedMessage ?? "")
+                .onChange(of: duplicateHighlightID) {
+                    guard let target = duplicateHighlightID else { return }
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        proxy.scrollTo(Optional(target), anchor: .center)
+                    }
+                }
+                .alert(
+                    UserAlertKind.error.title,
+                    isPresented: Binding(
+                        get: { model.sharedCartRemovedMessage != nil },
+                        set: {
+                            if !$0 {
+                                model.dismissSharedCartRemovedMessage()
+                            }
+                        }
+                    )
+                ) {
+                    Button("common.ok", role: .cancel) {
+                        model.dismissSharedCartRemovedMessage()
+                    }
+                } message: {
+                    Text(model.sharedCartRemovedMessage ?? "")
+                }
             }
         } else {
             ContentUnavailableViewCompat(
@@ -281,6 +290,7 @@ struct ShoppingListView: View {
                 editFocused: $focusedField,
                 isSavingEdit: isSavingEdit,
                 showsCategoryLabel: showsCategoryLabel,
+                isHighlighted: product.id == duplicateHighlightID,
                 onToggle: {
                     let willCompleteCart = !product.isPurchasedValue && toBuyProducts.count == 1
                     if willCompleteCart, !hasCelebratedCurrentCompletion {
@@ -299,6 +309,7 @@ struct ShoppingListView: View {
                     Task { await commitEdit() }
                 }
             )
+            .id(product.id)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 if model.canEdit, !product.isPurchasedValue {
                     Button(role: .destructive) {
@@ -446,6 +457,7 @@ struct ShoppingListView: View {
         guard let list = model.lists.first(where: { $0.id == listID }) else { return }
 
         CartHaptics.light()
+        let existingIDs = Set(products.compactMap(\.id))
         let draft = ProductDraft(
             name: name,
             quantity: 1,
@@ -454,7 +466,11 @@ struct ShoppingListView: View {
             estimatedPrice: 0,
             note: ""
         )
-        _ = await model.addProduct(to: list, draft: draft)
+        if let productID = await model.addProduct(to: list, draft: draft),
+           existingIDs.contains(productID)
+        {
+            flashDuplicateRow(productID)
+        }
         hasCelebratedCurrentCompletion = false
         draftName = ""
         isComposingNewItem = true
@@ -473,6 +489,7 @@ struct ShoppingListView: View {
 
         isAddingDraft = true
         let name = trimmedDraft
+        let existingIDs = Set(products.compactMap(\.id))
         let draft = ProductDraft(
             name: name,
             quantity: 1,
@@ -481,11 +498,19 @@ struct ShoppingListView: View {
             estimatedPrice: 0,
             note: ""
         )
-        let succeeded = await model.addProduct(to: list, draft: draft)
+        guard let productID = await model.addProduct(to: list, draft: draft) else {
+            isAddingDraft = false
+            focusedField = .compose
+            return
+        }
         isAddingDraft = false
 
-        guard succeeded else {
-            focusedField = .compose
+        // Duplicate protection: the name is already on the cart — reveal the
+        // existing row instead of adding a second line.
+        if existingIDs.contains(productID) {
+            draftName = ""
+            cancelNewItemComposer()
+            flashDuplicateRow(productID)
             return
         }
 
@@ -498,6 +523,21 @@ struct ShoppingListView: View {
             focusedField = .compose
         } else {
             cancelNewItemComposer()
+        }
+    }
+
+    @MainActor
+    private func flashDuplicateRow(_ productID: UUID) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            duplicateHighlightID = productID
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            if duplicateHighlightID == productID {
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    duplicateHighlightID = nil
+                }
+            }
         }
     }
 

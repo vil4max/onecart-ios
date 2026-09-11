@@ -2,8 +2,11 @@ import CoreData
 import Foundation
 
 extension FamilySpaceRepository {
-    /// Adds a new cart line item. Same name / catalog URL as an existing row still
-    /// creates a separate unique position — quantities are never summed across members.
+    /// Adds a new cart line item. Idempotent by stable id (CloudKit redelivery)
+    /// and by normalized name within the same list: if «Молоко» is already
+    /// on the cart, adding «молоко» returns the existing row instead of
+    /// creating a second line. Quantities are never summed — there is simply
+    /// one shared row per name.
     @discardableResult
     func addProduct(
         to listID: UUID,
@@ -13,6 +16,7 @@ extension FamilySpaceRepository {
     ) async throws -> UUID {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
+        let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
 
         return try await persistence.performBackgroundTask { context in
             guard let list = try Self.fetchList(id: listID, in: context) else {
@@ -30,6 +34,17 @@ extension FamilySpaceRepository {
                 in: context
             ) {
                 return existing.id ?? id
+            }
+
+            // Duplicate protection: same normalized name in the same list
+            // (case/whitespace/diacritic-insensitive) reuses the living row.
+            // Deleted tombstones are ignored so a re-add after delete works.
+            if let duplicate = try Self.fetchLiveProduct(
+                normalizedName: wantedKey,
+                listID: listID,
+                in: context
+            ), let duplicateID = duplicate.id {
+                return duplicateID
             }
 
             let now = Date()
@@ -55,6 +70,7 @@ extension FamilySpaceRepository {
     func updateProduct(id: UUID, familySpaceID: UUID? = nil, draft: ProductDraft) async throws {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
+        let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
 
         try await persistence.performBackgroundTask { context in
             guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
@@ -62,6 +78,24 @@ extension FamilySpaceRepository {
             }
             try self.requireUpdatePermission(for: product)
             let now = Date()
+            // Rename into an existing living row merges instead of duplicating:
+            // the edited duplicate is tombstoned, the earlier row stays visible.
+            if let listID = product.list?.id,
+               let collision = try Self.fetchLiveProduct(
+                   normalizedName: wantedKey,
+                   listID: listID,
+                   excludingID: id,
+                   in: context
+               )
+            {
+                try self.requireDeletePermission(for: product)
+                product.deletedAt = now
+                product.updatedAt = now
+                collision.updatedAt = now
+                product.list?.updatedAt = now
+                product.familySpace?.updatedAt = now
+                return
+            }
             Self.apply(draft: draft, to: product)
             product.updatedAt = now
             product.list?.updatedAt = now
@@ -236,6 +270,30 @@ extension FamilySpaceRepository {
             }
 
             return historyID
+        }
+    }
+
+    private static func fetchLiveProduct(
+        normalizedName: String,
+        listID: UUID,
+        excludingID: UUID? = nil,
+        in context: NSManagedObjectContext
+    ) throws -> ProductEntity? {
+        guard !normalizedName.isEmpty else { return nil }
+        let request = ProductEntity.fetchRequest()
+        var predicates = [
+            NSPredicate(format: "list.id == %@", listID as NSUUID),
+            NSPredicate(format: "deletedAt == nil"),
+        ]
+        if let excludingID {
+            predicates.append(NSPredicate(format: "id != %@", excludingID as NSUUID))
+        }
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        request.fetchLimit = 50
+        let candidates = try context.fetch(request)
+        return candidates.first { candidate in
+            guard let name = candidate.name else { return false }
+            return FamilyCartMerge.normalizedProductName(name) == normalizedName
         }
     }
 
