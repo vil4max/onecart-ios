@@ -5,6 +5,20 @@ enum CartNameFocus: Hashable {
     case edit
 }
 
+struct ProductToggleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.86 : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
+
+struct ProductTitleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+    }
+}
+
 struct ProductPurchaseToggle: View {
     let isPurchased: Bool
     let canEdit: Bool
@@ -16,10 +30,11 @@ struct ProductPurchaseToggle: View {
                 .font(.system(size: 28, weight: .regular))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.4))
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(ProductToggleButtonStyle())
         .disabled(!canEdit)
         .accessibilityLabel(
             Text(isPurchased ? "cart.unmark_trolley_a11y" : "cart.mark_in_trolley_a11y")
@@ -42,6 +57,7 @@ struct CartCategoryThumbnail: View {
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
             .opacity(isDimmed ? 0.45 : 1)
+            .animation(.easeInOut(duration: 0.25), value: isDimmed)
             .accessibilityHidden(true)
     }
 }
@@ -90,6 +106,7 @@ struct ProductRow: View {
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
             } else {
                 Button(action: onBeginEdit) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -100,6 +117,7 @@ struct ProductRow: View {
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
+                            .animation(.easeInOut(duration: 0.25), value: product.isPurchasedValue)
 
                         if showsCategoryLabel {
                             Text(resolvedCategory.localizedTitleKey)
@@ -119,13 +137,13 @@ struct ProductRow: View {
                     .padding(.vertical, 2)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ProductTitleButtonStyle())
                 .disabled(!canEdit)
             }
 
             ProductPurchaseToggle(
                 isPurchased: product.isPurchasedValue,
-                canEdit: canEdit && !isEditing,
+                canEdit: canEdit,
                 action: onToggle
             )
         }

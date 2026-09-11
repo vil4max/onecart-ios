@@ -111,7 +111,7 @@ struct ShoppingListView: View {
 
                         if isAllPurchased, !isComposingNewItem {
                             Section {
-                                cartAllPurchasedHeroCard
+                                CartAllPurchasedHeroCard()
                             }
                         }
 
@@ -129,12 +129,24 @@ struct ShoppingListView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
-                .animation(.snappy, value: purchasedCount)
+                .scrollDismissesKeyboard(.interactively)
+                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isComposingNewItem)
+                .animation(.spring(response: 0.40, dampingFraction: 0.82), value: purchasedCount)
+                .animation(.spring(response: 0.42, dampingFraction: 0.82), value: toBuyProducts.map(\.id))
+                .animation(.spring(response: 0.42, dampingFraction: 0.82), value: inTrolleyProducts.map(\.id))
+                .animation(.spring(response: 0.40, dampingFraction: 0.82), value: isAllPurchased)
+                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: showsEmptyCard)
                 .scrollContentBackground(.hidden)
                 .background(OneCartPalette.background.ignoresSafeArea())
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if !products.isEmpty || isComposingNewItem {
-                        cartProgressStrip
+                        CartProgressStrip(
+                            isAllPurchased: isAllPurchased,
+                            purchasedCount: purchasedCount,
+                            totalCount: products.count,
+                            familyMembersCount: model.familyMembers.count,
+                            onManageFamily: { model.showFamilyManagement() }
+                        )
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -144,7 +156,10 @@ struct ShoppingListView: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     if model.canEdit {
-                        CartAddFAB(accent: model.preferences.accentColor) {
+                        CartAddFAB(
+                            accent: model.preferences.accentColor,
+                            isComposing: isComposingNewItem && trimmedDraft.isEmpty
+                        ) {
                             Task { await beginNewItem() }
                         }
                         .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
@@ -199,6 +214,11 @@ struct ShoppingListView: View {
                     guard let target = duplicateHighlightID else { return }
                     withAnimation(.easeInOut(duration: 0.35)) {
                         proxy.scrollTo(Optional(target), anchor: .center)
+                    }
+                }
+                .onChange(of: focusedField) {
+                    if focusedField == nil, editingProductID != nil {
+                        Task { await commitEdit() }
                     }
                 }
                 .alert(
@@ -264,7 +284,7 @@ struct ShoppingListView: View {
                                 .background(OneCartPalette.primarySoft)
                                 .clipShape(Capsule())
                             }
-                            .buttonStyle(.borderless)
+                            .buttonStyle(HomePressButtonStyle())
                             .accessibilityLabel(
                                 String(format: String(localized: "cart.suggestion_chip_a11y %@"), item)
                             )
@@ -272,6 +292,7 @@ struct ShoppingListView: View {
                     }
                     .padding(.vertical, 2)
                 }
+                .animation(.easeInOut(duration: 0.25), value: suggestions)
             }
         }
         .padding(.vertical, 4)
@@ -292,15 +313,7 @@ struct ShoppingListView: View {
                 showsCategoryLabel: showsCategoryLabel,
                 isHighlighted: product.id == duplicateHighlightID,
                 onToggle: {
-                    let willCompleteCart = !product.isPurchasedValue && toBuyProducts.count == 1
-                    if willCompleteCart, !hasCelebratedCurrentCompletion {
-                        hasCelebratedCurrentCompletion = true
-                        CartHaptics.success()
-                        confettiTrigger += 1
-                    }
-                    Task {
-                        await model.togglePurchased(product)
-                    }
+                    togglePurchased(product)
                 },
                 onBeginEdit: {
                     beginEditing(product)
@@ -313,6 +326,10 @@ struct ShoppingListView: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 if model.canEdit, !product.isPurchasedValue {
                     Button(role: .destructive) {
+                        if editingProductID == product.id {
+                            focusedField = nil
+                            editingProductID = nil
+                        }
                         Task { await model.deleteProduct(product) }
                     } label: {
                         Label("common.delete", systemImage: "trash")
@@ -323,74 +340,28 @@ struct ShoppingListView: View {
         }
     }
 
-    private var cartProgressStrip: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                if isAllPurchased {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.subheadline)
-                            .foregroundStyle(OneCartPalette.primaryAccent)
-                        Text("cart.all_purchased_title")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(OneCartPalette.primaryAccent)
-                    }
-                } else {
-                    Text(
-                        String(localized: "cart.progress_completed \(purchasedCount) \(products.count)")
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 8)
-
-                if model.familyMembers.count >= 2 {
-                    Button {
-                        model.showFamilyManagement()
-                    } label: {
-                        Text("cart.together \(model.familyMembers.count)")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(OneCartPalette.primaryAccent)
-                }
+    @MainActor
+    private func togglePurchased(_ product: ProductEntity) {
+        let isEditing = editingProductID != nil
+        focusedField = nil
+        if isComposingNewItem, trimmedDraft.isEmpty {
+            cancelNewItemComposer()
+        }
+        let willCompleteCart = !product.isPurchasedValue && toBuyProducts.count == 1
+        if willCompleteCart, !hasCelebratedCurrentCompletion {
+            hasCelebratedCurrentCompletion = true
+            CartHaptics.success()
+            confettiTrigger += 1
+        }
+        if product.isPurchasedValue {
+            hasCelebratedCurrentCompletion = false
+        }
+        Task {
+            if isEditing {
+                await commitEdit()
             }
-
-            ProgressView(
-                value: Double(purchasedCount),
-                total: Double(max(products.count, 1))
-            )
-            .tint(OneCartPalette.primary)
+            await model.togglePurchased(product)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OneCartPalette.background)
-    }
-
-    private var cartAllPurchasedHeroCard: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-                .padding(.top, 4)
-
-            Text("cart.all_purchased_title")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
-
-            Text("cart.all_purchased_subtitle")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 8)
-                .padding(.bottom, 4)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
     @MainActor
@@ -406,13 +377,17 @@ struct ShoppingListView: View {
                 await commitDraftProduct(startAnother: true)
             } else {
                 // Empty name + Done / FAB: dismiss composer, do not save a blank row.
-                cancelNewItemComposer()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                    cancelNewItemComposer()
+                }
             }
             return
         }
 
-        draftName = ""
-        isComposingNewItem = true
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            draftName = ""
+            isComposingNewItem = true
+        }
         updateSuggestions()
         await Task.yield()
         focusedField = .compose
@@ -421,11 +396,14 @@ struct ShoppingListView: View {
     @MainActor
     private func beginEditing(_ product: ProductEntity) {
         guard model.canEdit, let productID = product.id, !isAddingDraft, !isSavingEdit else { return }
-        isComposingNewItem = false
-        draftName = ""
-        editingProductID = productID
-        editName = product.displayName
         Task { @MainActor in
+            if editingProductID != nil, editingProductID != productID {
+                await commitEdit()
+            }
+            isComposingNewItem = false
+            draftName = ""
+            editingProductID = productID
+            editName = product.displayName
             await Task.yield()
             focusedField = .edit
         }
@@ -472,8 +450,10 @@ struct ShoppingListView: View {
             flashDuplicateRow(productID)
         }
         hasCelebratedCurrentCompletion = false
-        draftName = ""
-        isComposingNewItem = true
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            draftName = ""
+            isComposingNewItem = true
+        }
         updateSuggestions()
         focusedField = .compose
     }
@@ -482,7 +462,9 @@ struct ShoppingListView: View {
     private func commitDraftProduct(startAnother: Bool) async {
         guard model.canEdit, !isAddingDraft else { return }
         guard !trimmedDraft.isEmpty else {
-            cancelNewItemComposer()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                cancelNewItemComposer()
+            }
             return
         }
         guard let list = model.lists.first(where: { $0.id == listID }) else { return }
@@ -508,21 +490,30 @@ struct ShoppingListView: View {
         // Duplicate protection: the name is already on the cart — reveal the
         // existing row instead of adding a second line.
         if existingIDs.contains(productID) {
-            draftName = ""
-            cancelNewItemComposer()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                draftName = ""
+                cancelNewItemComposer()
+            }
             flashDuplicateRow(productID)
             return
         }
 
         hasCelebratedCurrentCompletion = false
-        draftName = ""
+        CartHaptics.light()
+
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+            draftName = ""
+            if startAnother {
+                isComposingNewItem = true
+            } else {
+                cancelNewItemComposer()
+            }
+        }
+
         if startAnother {
-            isComposingNewItem = true
             updateSuggestions()
             await Task.yield()
             focusedField = .compose
-        } else {
-            cancelNewItemComposer()
         }
     }
 
@@ -544,26 +535,18 @@ struct ShoppingListView: View {
     @MainActor
     private func commitEdit() async {
         guard model.canEdit, !isSavingEdit else { return }
+        defer {
+            editingProductID = nil
+            focusedField = nil
+        }
         guard let productID = editingProductID,
               let product = products.first(where: { $0.id == productID })
-        else {
-            editingProductID = nil
-            focusedField = nil
-            return
-        }
+        else { return }
         guard !trimmedEditName.isEmpty else {
-            // Empty rename + Done: discard edit, hide keyboard, keep original item.
-            editingProductID = nil
             editName = ""
-            focusedField = nil
             return
         }
-
-        if trimmedEditName == product.displayName {
-            editingProductID = nil
-            focusedField = nil
-            return
-        }
+        guard trimmedEditName != product.displayName else { return }
 
         isSavingEdit = true
         let draft = ProductDraft(
@@ -582,7 +565,5 @@ struct ShoppingListView: View {
         )
         await model.updateProduct(product, draft: draft)
         isSavingEdit = false
-        editingProductID = nil
-        focusedField = nil
     }
 }

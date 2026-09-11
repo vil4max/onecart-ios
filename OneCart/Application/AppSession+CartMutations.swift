@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 import OSLog
+import SwiftUI
 
 extension AppSession {
     /// Adds a product. Returns the living row ID — a new row, or the existing
@@ -112,8 +113,16 @@ extension AppSession {
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
-            try refreshProducts()
-            cartSync.bumpRevisionAfterLocalChange()
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                do {
+                    try refreshProducts()
+                    cartSync.bumpRevisionAfterLocalChange()
+                } catch {
+                    CartSyncLog.cart.error(
+                        "togglePurchased refresh error=\(error.localizedDescription, privacy: .public)"
+                    )
+                }
+            }
             let purchasedCount = products.filter(\.isPurchasedValue).count
             let totalCount = products.count
             CartSyncLog.cart.info(
