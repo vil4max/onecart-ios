@@ -1,6 +1,6 @@
 # Tooling
 
-Agent Runtime slice from [ios-agent-runtime](https://github.com/vil4max/ios-agent-runtime). Not product code.
+Agent Runtime slice from [ios-agent-toolchain](https://github.com/vil4max/ios-agent-toolchain). Not product code.
 
 | Path | Role |
 |------|------|
@@ -40,4 +40,4 @@ just run-sim
 ```
 
 `just harness-update` refreshes this slice from
-`~/Developer/Personal/vil4labs/ios-agent-runtime` or `IOS_AGENT_RUNTIME_ROOT`.
+`~/Developer/Personal/vil4labs/ios-agent-toolchain` or `IOS_AGENT_RUNTIME_ROOT`.

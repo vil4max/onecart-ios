@@ -1,6 +1,6 @@
 # OneCart — agent notes (thin)
 
-Project facts only. Agent behavior lives in the Cursor Brain (`agents-kit`).
+Project facts only. Agent behavior lives in the Cursor Brain (`agent-engineering-kit`).
 
 ## Project
 
