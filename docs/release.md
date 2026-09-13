@@ -4,13 +4,14 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Local release candidate: **1.1 (1)** for both the app and widget extension.
+Local release candidate: **1.2 (1)** for both the app and widget extension.
 Marketing versions use `MAJOR.MINOR`, with both components treated as integers: **2.4 → 2.5 → … → 2.9 → 2.10**. Increment MINOR without rolling MAJOR at 9; never add a third component.
 A new marketing version resets the local build number to **1**; subsequent builds
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
 
-Release notes and candidate status: [1.1](release-notes-1.1.md).
+Release notes and candidate status: [1.2](release-notes-1.2.md).
+Version **1.1 (90)** was confirmed Ready for Distribution in App Store Connect on September 13, 2026.
 App Store Connect version availability, cloud build status, and submission status
 must be checked in an authenticated session before publication.
 
@@ -95,7 +96,7 @@ Physical devices, different iCloud accounts (simulator is UI/local Core Data onl
 3. Go online → items remain; share so both can edit. After remote changes, B can pull-to-refresh or reopen Корзина (nav may show «Updating…») and Completed counts should match.
 4. Tab «Настройки» → «Поделиться корзиной» → Invite → open iCloud share URL on B.
 5. On B: SIWA → accept share → shared cart becomes the only active cart (personal stays on disk, hidden); edits sync both ways (including Completed checkboxes).
-6. Same product name added by A and B → two separate cart rows (not summed).
+6. Same normalized product name added by A and B → one cart row after sync. Re-adding an existing name reveals the same row without changing its purchase state; concurrent duplicates keep the first writer.
 7. Mark items Completed on A → visible on B; next calendar day, open/foreground on either device → yesterday’s Completed move to History by day (read-only).
 8. Remove member on A → B loses access.
 9. On A (owner): **Revoke invite** → confirm → same cart UUID; new joins blocked; B stays on shared cart; A can **Share** again to reopen joining.
@@ -124,7 +125,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Add product visible after viewContext merge | `testAddProductVisibleAfterViewContextMerge` |
 | Offline local persist | `testOfflineRepositorySaveSurvivesContextReset` |
 | Private carts scoped per SIWA account | `testFamilyCacheIsScopedToAuthenticatedUser`, `testSharedCartVisibleAlongsideOwnPrivateCart` |
-| Same product from several members = separate lines | `testSameNamedProductsStayAsSeparateCartLines` |
+| Same normalized product name reuses one line | `testSameNamedProductsReuseExistingCartLine`, `testDeduplicateProductsByNameKeepsFirstWriter` |
 | Shared replaces private (no join merge) | `testEmptyPrivateAutoAdoptsShared`, `testPrivateContentIsNotMergedIntoSharedOnAdopt`, `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` (`SharedCartJoinTests`) |
 | Claim unassigned private carts / skip shared | `testClaimUnassignedFamilySpacesStampsPrivateOnly` |
 | Complete purchased → history, cart keeps the rest | `testCompletePurchasedMovesOnlyCheckedItems`, `testCompletePurchasedWithoutChecksDoesNothing` (`PurchaseSessionTests`) |

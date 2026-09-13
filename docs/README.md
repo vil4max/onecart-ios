@@ -5,6 +5,7 @@
 | [architecture.md](architecture.md) | agents / contributors | MVVM layout, owner files (CartSync / bootstrap / content / cloud sync split), fragile-test matrix F1–F10, Core Data + CloudKit stores |
 | [product.md](product.md) | product + agents | **Thesis**, living cart, Completed → overnight History by day, Household vs Apple Family |
 | [release.md](release.md) | owner | Apple Developer, CloudKit Production, TestFlight / Xcode Cloud, two-device QA |
+| [release-notes-1.2.md](release-notes-1.2.md) | owner | Language-switching fixes, localized What’s New and release status for 1.2 |
 | [release-notes-1.1.md](release-notes-1.1.md) | owner | Candidate status, localized What’s New and TestFlight focus for 1.1 |
 | [legacy.md](legacy.md) | owner | Pre-ASC wipe; SQLite reuse; Supabase cleanup |
 | [review-changelog.md](review-changelog.md) | PR reviewer | Scoped `RCxx` / `NCxx` / `FUxx` checklist |
