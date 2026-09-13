@@ -26,10 +26,4 @@ fix(carplay): preserve status colors during refresh
 refactor(networking): isolate retry policy from request execution
 docs: clarify release checklist
 ```
-
-Canonical source: `agent-engineering-kit/rules/conventional-commits.mdc`. Edit it centrally.
-Repository `.github/copilot-instructions.md` files contain generated delivery
-blocks maintained by `scripts/sync-commit-policy.py`; preserve repository-specific
-instructions outside those blocks. See `agent-engineering-kit/docs/commit-policy.md` for
-hook installation, rollout, and the limits of deterministic validation.
 <!-- agent-engineering-kit:commit-policy:end -->
