@@ -105,7 +105,7 @@ public enum OneCartPalette {
         if scheme == .dark {
             Color(red: 28 / 255, green: 28 / 255, blue: 30 / 255)
         } else {
-            Color(red: 255 / 255, green: 255 / 255, blue: 255 / 255)
+            Color.white
         }
     }
 
