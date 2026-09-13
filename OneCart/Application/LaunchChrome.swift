@@ -37,7 +37,7 @@ struct LaunchCartRideView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "common.loading"))
+        .accessibilityLabel(Text("common.loading"))
         .accessibilityAddTraits(.updatesFrequently)
         .task { await runRide() }
     }
@@ -307,7 +307,7 @@ struct OneCartMark: View {
                 .foregroundStyle(.primary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "common.app_name"))
+        .accessibilityLabel(Text("common.app_name"))
     }
 }
 

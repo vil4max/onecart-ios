@@ -50,18 +50,6 @@ struct EmptyCard: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
 
-    init(image: String, title: LocalizedStringKey, message: LocalizedStringKey) {
-        self.image = image
-        self.title = title
-        self.message = message
-    }
-
-    init(image: String, title: String, message: String) {
-        self.image = image
-        self.title = LocalizedStringKey(title)
-        self.message = LocalizedStringKey(message)
-    }
-
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: image)
@@ -164,12 +152,10 @@ struct CartProgressStrip: View {
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 } else {
-                    Text(
-                        String(localized: "cart.progress_completed \(purchasedCount) \(totalCount)")
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .transition(.opacity)
+                    Text("cart.progress_completed \(purchasedCount) \(totalCount)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
                 }
 
                 Spacer(minLength: 8)
@@ -203,8 +189,8 @@ struct CartProgressStrip: View {
 
 struct ContentUnavailableViewCompat: View {
     let image: String
-    let title: String
-    let message: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
 
     var body: some View {
         EmptyCard(image: image, title: title, message: message)

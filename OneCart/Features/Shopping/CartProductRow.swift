@@ -126,7 +126,7 @@ struct ProductRow: View {
                                 .lineLimit(1)
                         }
 
-                        if !productSubtitle.isEmpty {
+                        if let productSubtitle {
                             Text(productSubtitle)
                                 .font(.system(size: 10))
                                 .foregroundStyle(.tertiary)
@@ -161,22 +161,22 @@ struct ProductRow: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var productSubtitle: String {
+    private var productSubtitle: LocalizedStringKey? {
         if product.isPurchasedValue {
             if let purchasedByName = product.purchasedByName?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                 !purchasedByName.isEmpty
             {
-                return String(localized: "cart.in_trolley_by \(purchasedByName)")
+                return "cart.in_trolley_by \(purchasedByName)"
             }
-            return String(localized: "cart.in_trolley")
+            return "cart.in_trolley"
         }
         if let createdByName = product.createdByName?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !createdByName.isEmpty
         {
-            return String(localized: "cart.added_by \(createdByName)")
+            return "cart.added_by \(createdByName)"
         }
-        return ""
+        return nil
     }
 }

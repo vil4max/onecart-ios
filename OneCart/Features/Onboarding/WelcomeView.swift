@@ -199,7 +199,7 @@ struct WelcomeView: View {
                 .foregroundStyle(OneCartPalette.danger)
                 .multilineTextAlignment(.center)
 
-            Button(String(localized: "welcome.try_again")) {
+            Button("welcome.try_again") {
                 Task { await viewModel.retryWelcome() }
             }
             .buttonStyle(OneCartPrimaryButtonStyle(accent: model.preferences.accentColor))

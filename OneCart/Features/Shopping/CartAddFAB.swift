@@ -39,7 +39,7 @@ struct CartAddFAB: View {
                 .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
         }
         .buttonStyle(CartFABButtonStyle())
-        .accessibilityLabel(String(localized: isComposing ? "common.cancel" : "cart.add_a11y"))
+        .accessibilityLabel(Text(isComposing ? "common.cancel" : "cart.add_a11y"))
         .animation(.easeInOut(duration: 0.35), value: accent)
     }
 }

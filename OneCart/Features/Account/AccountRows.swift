@@ -87,8 +87,8 @@ struct AccountMemberRow: View {
                 }
                 Text(
                     member.access.isOwner
-                        ? String(localized: "cart.owner_role")
-                        : String(localized: "cart.member_role")
+                        ? "cart.owner_role"
+                        : "cart.member_role"
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)

@@ -242,8 +242,8 @@ struct ShoppingListView: View {
         } else {
             ContentUnavailableViewCompat(
                 image: "questionmark.folder",
-                title: String(localized: "cart.list_unavailable_title"),
-                message: String(localized: "cart.list_unavailable_message")
+                title: "cart.list_unavailable_title",
+                message: "cart.list_unavailable_message"
             )
         }
     }
@@ -262,7 +262,7 @@ struct ShoppingListView: View {
                     .submitLabel(.done)
                     .onSubmit { Task { await commitDraftProduct(startAnother: false) } }
                     .disabled(isAddingDraft)
-                    .accessibilityLabel(String(localized: "cart.add_a11y"))
+                    .accessibilityLabel(Text("cart.add_a11y"))
             }
 
             if !suggestions.isEmpty {
@@ -286,7 +286,7 @@ struct ShoppingListView: View {
                             }
                             .buttonStyle(HomePressButtonStyle())
                             .accessibilityLabel(
-                                String(format: String(localized: "cart.suggestion_chip_a11y %@"), item)
+                                Text("cart.suggestion_chip_a11y \(item)")
                             )
                         }
                     }

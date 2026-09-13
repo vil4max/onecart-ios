@@ -75,7 +75,7 @@ struct HistoryProductRow: View {
                     .trimmingCharacters(in: .whitespacesAndNewlines),
                     !boughtBy.isEmpty
                 {
-                    Text(String(localized: "history.bought_by \(boughtBy)"))
+                    Text("history.bought_by \(boughtBy)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
