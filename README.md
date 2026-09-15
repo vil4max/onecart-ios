@@ -6,9 +6,9 @@ One shared family cart on iOS: add what you need, mark items **Completed** at th
 
 ## About this repo
 
-This is a **father–son pet project**: we build and ship a real iOS app together as a way to learn product, SwiftUI, Core Data / CloudKit, and App Store tooling.
+OneCart Family is a production pet project, released on the [App Store](https://apps.apple.com/app/id6793219621) and maintained as a real product: Sign in with Apple, offline-first Core Data with CloudKit private and shared stores, `CKShare` invites, WidgetKit and App Intents, and XCTest regression suites for cart state, sharing, persistence, synchronization errors, and deletion recovery.
 
-Keep that framing **here** (README / contributor docs). Do **not** put “learning project”, “demo for my kid”, classroom, or similar wording in App Store Connect metadata, review notes, screenshots, or in-app marketing copy — describe OneCart Family as a normal family shopping cart product so Review does not treat the listing as incomplete or non-app content.
+It is developed independently through an agentic SDLC: coding agents implement changes, while architecture decisions, code review, defect investigation, and release verification stay with the owner.
 
 ## Screenshots
 
