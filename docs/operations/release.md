@@ -212,7 +212,7 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 > • Mark products Completed as they go into the trolley
 > • Completed items move to History automatically the next day when the app opens
 > • Browse a read-only purchase history grouped by day
-> • Invite up to four people from Settings using an iCloud share link
+> • Invite family members from Settings using an iCloud share link
 >
 > OneCart Family uses Sign in with Apple and iCloud to keep the household cart private and synchronized. Store prices, catalogs, budgeting, and messaging are intentionally not part of the app.
 
@@ -265,6 +265,6 @@ Own server, Supabase, GitHub Actions, fastlane, email/password auth, multi-cart 
 
 ## 7. Ongoing
 
-- Watch CloudKit quotas (fine for ~4 people).
+- Watch CloudKit quotas (fine for household-sized carts).
 - After Core Data model changes → deploy schema to Production again.
 - Ship via Xcode Cloud (or local Archive fallback).

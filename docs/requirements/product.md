@@ -12,7 +12,7 @@ Four entities, one loop:
 
 | Entity | Role |
 |--------|------|
-| **Family** (`FamilySpace`) | Up to four people via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner revokes the link or removes the member. The cart entity is durable — never deleted/recreated. |
+| **Family** (`FamilySpace`) | People joined via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner revokes the link or removes the member. The cart entity is durable — never deleted/recreated. |
 | **Cart** | One per family; lives forever; never “closes” |
 | **Item** | A name plus state: still needed, or **Completed** (checked) |
 | **History day** | Purchases grouped by the calendar day they were marked completed |
@@ -70,7 +70,7 @@ Nav title is the cart name. Personal cart starts as `cart.personal_title` from t
 5. Background preparation reads an existing open invite only; it never creates a share or reopens a revoked link. Explicitly invite from **Настройки → Корзина**.
 6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
 
-Up to four people share one cart; changes sync via CloudKit.
+Family members share one cart; changes sync via CloudKit.
 
 A newly installed device may create a provisional personal cart while iCloud imports. When an older personal cart arrives for the same account, its list becomes active after local provisional products and history are copied by stable identifiers. The provisional source is retained. Selecting a shared cart also retains other shared families on disk; selection never deletes another family.
 
