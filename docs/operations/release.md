@@ -149,9 +149,9 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 
 ### Preferred: Xcode Cloud → TestFlight
 
-Not local Archive. ADP includes 25 compute hours/month. No GitHub Actions / fastlane in this repo (**NC09**: CI is Xcode Cloud; pre-merge GH Actions are intentionally out).
+Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archives and uploads; tests run in GitHub Actions ([`tests.yml`](../../.github/workflows/tests.yml)) — see [ADR 0003](../decisions/0003-ci-split.md). No fastlane.
 
-**Prerequisites:** shared scheme `OneCart` with Archive; ASC app record; CloudKit Production schema; no `ci_scripts` needed.
+**Prerequisites:** shared scheme `OneCart` with Archive; ASC app record; CloudKit Production schema. `OneCart/ci_scripts/ci_post_clone.sh` writes `CI_BUILD_NUMBER` into `CURRENT_PROJECT_VERSION`.
 
 ```bash
 xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -json
@@ -166,9 +166,10 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
 | Start condition | Branch changes → `main` |
-| Action 1 | Test (iOS), scheme `OneCart`, required |
-| Action 2 | Archive (iOS), scheme `OneCart` → TestFlight (internal) |
+| Action | Archive (iOS), scheme `OneCart` → TestFlight (internal) |
 | Post | Internal TestFlight → group **Friends&Family** |
+
+No Test action: remove `Test - iOS` only after GitHub Actions `Tests` is green on `main` (ADR 0003). Before selecting a TestFlight build, confirm the `Tests` run for that commit is green.
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
 
@@ -261,7 +262,7 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 
 ## 6. Not needed for this pet project
 
-Own server, Supabase, GitHub Actions, fastlane, email/password auth, multi-cart UX (code can hold multiple spaces; UI hides creating a second group).
+Own server, Supabase, fastlane, email/password auth, multi-cart UX (code can hold multiple spaces; UI hides creating a second group).
 
 ## 7. Ongoing
 
