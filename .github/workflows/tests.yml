@@ -1,0 +1,79 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+  SIMULATOR_NAME: iPhone 17
+  SIMULATOR_OS: "26.5"
+  XCODEBUILD_FLAGS: >-
+    -project OneCart/OneCart.xcodeproj
+    -scheme OneCart
+    -configuration Debug
+    -skipPackagePluginValidation
+    -skipMacroValidation
+    -enableCodeCoverage YES
+    -parallel-testing-enabled NO
+    CODE_SIGN_IDENTITY=-
+    DEVELOPMENT_TEAM=
+
+# Ad-hoc signing instead of CODE_SIGNING_ALLOWED=NO: an unsigned test host has no
+# Keychain access, so AppleSignInTests keychain cases fail.
+#
+# GitHub Actions owns tests; Xcode Cloud only archives and uploads to TestFlight
+# (docs/decisions/0003-ci-split.md). The project has no Swift packages, so there
+# is no DerivedData cache: a fresh checkout rebuilds every source anyway.
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Boots in the background while the app builds.
+      - name: Start simulator boot
+        run: scripts/ci-boot-simulator.sh "$SIMULATOR_NAME" "$SIMULATOR_OS"
+
+      - name: Build for testing
+        run: |
+          xcodebuild $XCODEBUILD_FLAGS -destination "id=$SIM_UDID" \
+            -derivedDataPath "$DERIVED_DATA" build-for-testing
+
+      - name: Run tests
+        run: |
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          xcodebuild $XCODEBUILD_FLAGS -destination "id=$SIM_UDID" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath build/results/unit.xcresult \
+            test-without-building
+
+      - name: Coverage summary
+        if: success()
+        run: |
+          {
+            echo '## Coverage'
+            echo '```'
+            xcrun xccov view --report --only-targets build/results/unit.xcresult
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-test-results
+          path: build/results
+          retention-days: 7
