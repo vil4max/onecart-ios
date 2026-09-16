@@ -32,9 +32,10 @@ env:
 # Ad-hoc signing instead of CODE_SIGNING_ALLOWED=NO: an unsigned test host has no
 # Keychain access, so AppleSignInTests keychain cases fail.
 #
-# GitHub Actions owns tests; Xcode Cloud only archives and uploads to TestFlight
-# (docs/decisions/0003-ci-split.md). The project has no Swift packages, so there
-# is no DerivedData cache: a fresh checkout rebuilds every source anyway.
+# GitHub Actions owns tests; Xcode Cloud archives from the testflight and release
+# branches that CI moves (docs/decisions/0003-ci-split.md). The project has no
+# Swift packages, so there is no DerivedData cache: a fresh checkout rebuilds
+# every source anyway.
 jobs:
   unit-tests:
     name: Unit tests
@@ -77,3 +78,27 @@ jobs:
           name: unit-test-results
           path: build/results
           retention-days: 7
+
+  # Xcode Cloud builds TestFlight from testflight, so only verified main commits
+  # reach testers. Fast-forward only: rerunning an old run cannot move it back.
+  promote-testflight:
+    name: Promote to testflight branch
+    needs: [unit-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward testflight
+        run: |
+          if git fetch origin testflight 2>/dev/null \
+            && git merge-base --is-ancestor "${GITHUB_SHA}" FETCH_HEAD; then
+            echo "testflight already contains ${GITHUB_SHA}"
+            exit 0
+          fi
+          git push origin "${GITHUB_SHA}:refs/heads/testflight"
