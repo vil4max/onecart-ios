@@ -5,7 +5,7 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 ## Preflight (this branch)
 
 Local release candidate: **1.2 (1)** for both the app and widget extension.
-Marketing versions use `MAJOR.MINOR`, with both components treated as integers: **2.4 → 2.5 → … → 2.9 → 2.10**. Increment MINOR without rolling MAJOR at 9; never add a third component.
+Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers. A feature release increments MINOR and resets PATCH to `0`; a fix-only release increments PATCH instead. Do not roll MAJOR without an explicit request.
 A new marketing version resets the local build number to **1**; subsequent builds
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
