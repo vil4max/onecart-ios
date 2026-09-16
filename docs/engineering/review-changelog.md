@@ -44,7 +44,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](../README.md). Tooling configs
 - NC06 Deployment target iOS 26 (was iOS 15; aligned project/tests with app target)
 - NC07 No Apple Family member-list / same-family / share-to-all-family APIs
 - NC08 No IAP / Family Sharing subscriptions in this PR
-- NC09 CI stays Xcode Cloud release-only (no pre-merge GitHub Actions in this train)
+- NC09 CI stays Xcode Cloud release-only (no pre-merge GitHub Actions in this train) — superseded 2026-09-16 by [ADR 0003](../decisions/0003-ci-split.md)
 - NC10 Keep CKShare link-join `publicPermission = .readWrite` while the invite door is open; owner **Revoke invite** sets `.none` until Share again (ACL heal must not reopen)
 
 ## Changes
@@ -159,7 +159,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - FU09 Catalog-first add / WebKit price refresh as optional path (not blocking quick name add)
 - FU10 Rich product editor fields (qty/unit/price/notes) behind a secondary “details” action
 - FU11 Optional Settings surface (appearance) only if system appearance proves insufficient
-- FU12 Pre-merge GitHub Actions (blocked by NC09 for this train; Xcode Cloud release-only)
+- FU12 Pre-merge GitHub Actions — done 2026-09-16, see [ADR 0003](../decisions/0003-ci-split.md)
 - FU13 Swift 6 language mode / strict concurrency across targets
 - FU14 MetricKit / XCUITest smoke beyond unit fragile suite
 

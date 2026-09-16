@@ -93,7 +93,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `CartSyncOutcome` + failed ≠ synchronized | Coalesced callers receive the final queued refresh outcome; recovery mode keeps `.failed` |
 | History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
 | Device-local profile | Display name and local avatar/banner preferences are separate from CloudKit membership |
-| NC09: no pre-merge GitHub Actions | Xcode Cloud release-only for this personal train |
+| CI split ([ADR 0003](../decisions/0003-ci-split.md), supersedes NC09) | GitHub Actions runs tests on push/PR; Xcode Cloud only archives to TestFlight |
 
 ## Fragile-test matrix (living checklist)
 
