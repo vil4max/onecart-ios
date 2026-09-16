@@ -10,12 +10,12 @@ A new marketing version resets the local build number to **1**; subsequent build
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
 
-Release notes and candidate status: [1.2](release-notes-1.2.md).
+Release notes and candidate status: [1.2](releases/1.2.md).
 Version **1.2 (91)** was confirmed Ready for Distribution in App Store Connect on September 16, 2026.
 App Store Connect version availability, cloud build status, and submission status
 must be checked in an authenticated session before publication.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, appearance preferences, local family activity notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](product.md). Do not block release on restoring those features.
+**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, appearance preferences, local family activity notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](../requirements/product.md). Do not block release on restoring those features.
 
 ### Build 88 Highlights (Quick Suggestion Chips)
 - **1-Tap Add Suggestions:** Frequently purchased items appear directly below the text input inside the composer card when adding an item.
@@ -23,16 +23,16 @@ must be checked in an authenticated session before publication.
 - **Real-Time Text Filtering:** Suggestions filter as the user types with prefix-match priority.
 - **Clean Inset-Grouped Layout:** Integrated into the composer row cell with `.buttonStyle(.borderless)` — no bottom overlay, no floating tab bar collision, and no drag jitter.
 - **Screenshots:**
-  - ![Integrated composer suggestions](screenshots/suggestions_integrated.png)
-  - ![Suggestions added in 1 tap](screenshots/suggestions_chips_added.png)
+  - ![Integrated composer suggestions](../screenshots/suggestions_integrated.png)
+  - ![Suggestions added in 1 tap](../screenshots/suggestions_chips_added.png)
 
 ### Build 87 Highlights (Smart Family Notifications)
 - **Item added by partner:** Local notification when the app observes newly imported items from a family member (*«Маша добавила «Сыр» в корзину»*).
 - **All items purchased:** Local celebration notification when the app observes a partner completing the last remaining item (*«Всё куплено! 🎉»*).
 - **Anti-spam:** Ignores self-actions, seeds baseline on first install, suppresses single-user carts, aggregates multiple items into one concise banner.
 - **Screenshots:**
-  - ![Item added notification](screenshots/push_item_added.png)
-  - ![All purchased notification](screenshots/push_all_purchased.png)
+  - ![Item added notification](../screenshots/push_item_added.png)
+  - ![All purchased notification](../screenshots/push_all_purchased.png)
 
 On a Mac with Xcode:
 
@@ -232,7 +232,7 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
   there is no developer-issued username or password; explain this in Review notes.
 - Contact: Maksim Vilchevskiy, `vil4max@gmail.com`, `<redacted-phone>`.
 - Review attachment: ready at
-  [`assets/store/review/delete-account-physical-2026-09-01.mp4`](../assets/store/review/delete-account-physical-2026-09-01.mp4)
+  [`assets/store/review/delete-account-physical-2026-09-01.mp4`](../../assets/store/review/delete-account-physical-2026-09-01.mp4)
   (physical device, ~21s, 1290×2796, **1.0 (84)**). Upload in App Store Connect → App Review
   Information → Attachment. Shows Sign in with Apple, Settings with separate Session / Account
   deletion sections, Delete Account, and return to Welcome.

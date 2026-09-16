@@ -23,11 +23,11 @@ Each row is one logical repair and one commit. Historical RC entries below descr
 | 11 | Widget counts include products outside its display window | WidgetSnapshotTests |
 | 12 | Clear widget data on sign-out/account deletion | WidgetPrivacyCleanupTests |
 
-Run `just verify` for the combined code state. Signed-device checks and release status remain separate; see [release.md](release.md).
+Run `just verify` for the combined code state. Signed-device checks and release status remain separate; see [release.md](../operations/release.md).
 
 ## Current layout (post-reorg)
 
-Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs under `Tooling/`. Root `justfile` imports `Tooling/justfile`.
+Product: `OneCart/`. Docs index: [docs/README.md](../README.md). Tooling configs under `Tooling/`. Root `justfile` imports `Tooling/justfile`.
 
 ## How to review
 1. Read this file top to bottom by ID.
@@ -103,7 +103,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 
 ### RC10 — CKShare publicPermission .none + Apple Family positioning docs
 - Status: superseded by RC21
-- Paths: OneCart/Data/CloudKit/CloudKitServices.swift, docs/product.md
+- Paths: OneCart/Data/CloudKit/CloudKitServices.swift, docs/requirements/product.md
 - What changed: `publicPermission = .none`; docs state positioning vs missing Family APIs
 - How to verify: grep publicPermission; read product doc
 
@@ -127,7 +127,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](README.md). Tooling configs un
 
 ### RC14 — Docs architecture + product + ADR sync
 - Status: done
-- Paths: docs/architecture.md, docs/product.md, docs/release.md, docs/legacy.md, docs/README.md, README.md, AGENTS.md, docs/review-changelog.md
+- Paths: docs/engineering/architecture.md, docs/requirements/product.md, docs/operations/release.md, docs/planning/legacy-migration.md, docs/README.md, README.md, AGENTS.md, docs/engineering/review-changelog.md
 - How to verify: read docs/README.md; AGENTS points there
 
 ### RC15 — Xcode project under OneCart/ (single product directory)
@@ -165,9 +165,9 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 
 ### RC16 — Stability-first minimal shell (docs + UX)
 - Status: done (this train)
-- Paths: `RootView` tabs, `QuickAddProductSheet`, `docs/product.md`, `docs/architecture.md`, `docs/release.md`
+- Paths: `RootView` tabs, `QuickAddProductSheet`, `docs/requirements/product.md`, `docs/engineering/architecture.md`, `docs/operations/release.md`
 - What changed: Cart+Settings only; thumb FAB + name-only add; invite on cart; history in Settings; documented cuts toward stability
-- How to verify: read [product.md](product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
+- How to verify: read [product.md](../requirements/product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
 - Do not invent scope: restoring Stores/catalog is FU08/FU09, not required for merge
 
 ### RC17 — Cart-only shell (no Settings prefs)
@@ -179,7 +179,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 
 ### RC18 — Surface CloudKit Production schema failure as alert
 - Status: done (this train)
-- Paths: `CloudKitServices.swift`, `AppSession.swift`, `OneCartTests.swift`, `docs/release.md`
+- Paths: `CloudKitServices.swift`, `AppSession.swift`, `OneCartTests.swift`, `docs/operations/release.md`
 - What changed: detect `CD_*` production-schema errors from nested userInfo; show one session alert on mirroring failure (was only `lastSyncError`); build **1.2.1 (3)**
 - How to verify: unit test `testCloudKitUserFacingErrorMapsProductionSchema*`; on TF without Deploy, alert mentions CloudKit Console Deploy
 - Do not invent scope: **Deploy Schema Changes to Production** is still a Console-only owner action — code cannot create `CD_ShoppingList` in Production
@@ -199,28 +199,28 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 
 ### RC21 — CKShare link-join for forwarded invites
 - Status: done (this train); RC23 closes re-share ACL gap
-- Paths: `CloudKitServices.swift`, `docs/product.md`, `docs/architecture.md`, `docs/adr/0002-cloudkit-native-backend.md`, `README.md`, `docs/review-changelog.md`
+- Paths: `CloudKitServices.swift`, `docs/requirements/product.md`, `docs/engineering/architecture.md`, `docs/decisions/0002-cloudkit-native-backend.md`, `README.md`, `docs/engineering/review-changelog.md`
 - What changed: `publicPermission = .readWrite` so anyone with the share URL can Accept (Telegram/Messages forwards); supersedes RC10 `.none` ACL; Apple Family positioning still forbids Family Sharing membership APIs
 - How to verify: `grep publicPermission` shows `.readWrite`; owner opens Share once on a build with RC23 so existing shares persist ACL; invitee taps forwarded `icloud.com/share/...` → Accept → shared cart
 - Do not invent scope: no Universal Links, custom schemes, or `UICloudSharingController`
 
 ### RC23 — Persist link-join ACL on existing share URL fast path
 - Status: done (this train); RC28 upgrades participant write ACL
-- Paths: `CloudKitServices.swift`, `docs/review-changelog.md`
+- Paths: `CloudKitServices.swift`, `docs/engineering/review-changelog.md`
 - What changed: reusing an already-published share URL now background-persists `publicPermission = .readWrite` (and branding), not branding alone — fixes Item Unavailable on Telegram forwards for pre-RC21 shares
 - How to verify: owner Share again from Account; same or updated link opens for a second Apple ID that is not a private invitee
 - Do not invent scope: no new share UX, no deleting old CKShares
 
 ### RC28 — Upgrade CKShare participant write permission (fix readOnly invitees)
 - Status: done (this train)
-- Paths: `CloudKitServices.swift`, `SharedCartJoinTests.swift`, `docs/review-changelog.md`
+- Paths: `CloudKitServices.swift`, `SharedCartJoinTests.swift`, `docs/engineering/review-changelog.md`
 - What changed: `applyReadWriteACL` now also sets every non-owner `participant.permission = .readWrite` (not only `publicPermission`); invite fast path / finalize awaits `persistUpdatedShare` (8s ceiling, then background retry) before handing out the URL — fixes «You don't have permission to edit this cart» when `canUpdateRecord` is false for readOnly members
 - How to verify: owner opens «Поделиться корзиной» once on this build (upgrades existing members); invitee can check items / quick-add without permission alert; `ShareLinkJoinACLTests` green
 - Do not invent scope: no CloudKit Dashboard changes, no UICloudSharingController, no new invite UX
 
 ### RC24 — Scene-based CKShare accept delivery
 - Status: done (this train)
-- Paths: `SceneDelegate.swift`, `AppDelegate.swift`, `OneCart.xcodeproj`, `docs/review-changelog.md`
+- Paths: `SceneDelegate.swift`, `AppDelegate.swift`, `OneCart.xcodeproj`, `docs/engineering/review-changelog.md`
 - What changed: SwiftUI scene apps receive share metadata via `windowScene(_:userDidAcceptCloudKitShareWith:)` and cold-start `connectionOptions.cloudKitShareMetadata`; AppDelegate path kept as fallback; existing `acceptPendingCloudKitShares` → `adoptSharedFamilyCartIfNeeded` unchanged (one living cart)
 - How to verify: invitee taps `icloud.com/share/...` (cold or warm) → Accept → shared cart replaces private starter; items from owner visible
 - Do not invent scope: no Universal Links
@@ -233,42 +233,42 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 
 ### RC27 — Remove share-join confirm alert
 - Status: done (this train)
-- Paths: `AppSession.swift`, `RootView.swift`, `SharedCartJoinTests.swift`, `docs/product.md`, `docs/review-changelog.md`
+- Paths: `AppSession.swift`, `RootView.swift`, `SharedCartJoinTests.swift`, `docs/requirements/product.md`, `docs/engineering/review-changelog.md`
 - What changed: after shared cart is available locally, always `adoptSharedFamilyCartIfNeeded` (merge/archive private); no Join/Cancel UI
 - How to verify: invitee Accept → shared items without alert; `SharedCartJoinTests` cover empty adopt + content merge
 - Do not invent scope: no new Account CTA
 
 ### RC22 — Deployment target iOS 26
 - Status: done (this train)
-- Paths: `OneCart.xcodeproj/project.pbxproj`, `ShoppingViews.swift`, `ProfileView.swift`, `README.md`, `docs/review-changelog.md`
+- Paths: `OneCart.xcodeproj/project.pbxproj`, `ShoppingViews.swift`, `ProfileView.swift`, `README.md`, `docs/engineering/review-changelog.md`
 - What changed: project + test targets aligned to `IPHONEOS_DEPLOYMENT_TARGET = 26.0` (app target already 26.0); clears XC Cloud `CKRecord`/`Sendable` availability warnings; drop iOS 16 `#available` for medium sheet
 - How to verify: all `IPHONEOS_DEPLOYMENT_TARGET` = 26.0; Archive without CKRecord Sendable warnings
 - Do not invent scope: no `@Observable` migration (FU02)
 
 ### RC29 — Shared cart sync UI, ACL heal, delete cart, decompose, audit hygiene
 - Status: done (this train)
-- Paths: `CartSyncService.swift`, `FamilyShareOrchestrator.swift`, `CloudKit/*.swift` (split), `AppSession.swift`, `ShoppingViews.swift`, `HistoryViews.swift`, `CartChromeViews.swift`, `MoreView.swift`, `PersistenceController.swift`, `Localizable.xcstrings`, `Info.plist`, `PrivacyInfo.xcprivacy`, splash assets, `docs/architecture.md`, `docs/legacy.md`, `docs/product.md`, `docs/privacy.md`, `docs/release.md`, `README.md`, `AGENTS.md`
+- Paths: `CartSyncService.swift`, `FamilyShareOrchestrator.swift`, `CloudKit/*.swift` (split), `AppSession.swift`, `ShoppingViews.swift`, `HistoryViews.swift`, `CartChromeViews.swift`, `MoreView.swift`, `PersistenceController.swift`, `Localizable.xcstrings`, `Info.plist`, `PrivacyInfo.xcprivacy`, splash assets, `docs/engineering/architecture.md`, `docs/planning/legacy-migration.md`, `docs/requirements/product.md`, `docs/privacy.md`, `docs/operations/release.md`, `README.md`, `AGENTS.md`
 - What changed: StoreTrump on viewContext; hard cart sync (pull/appear/import/foreground) with nav Updating chrome; owner ACL heal; owner Delete cart rotates invite URL; invitee shared-gone fallback alert; CloudKit god-file split + CartSync/Share orchestration extract; History/CartChrome UI split; removed LegacyMigration + CoreLocation/location plist; dropped PreciseLocation/PhysicalAddress from PrivacyInfo; `CKError.retryAfterSeconds` in share retry; splash PNG compress; CartSync/ShareACL `os.Logger` (no full share URLs); docs aligned to new layout
 - How to verify: unit tests green; Max check → Tim pull/appear sees trolley counts; Tim edits without permission alert; Max Delete cart → Tim fallback alert + new Share URL; files under CloudKit/ and Shopping/ are smaller than pre-split monoliths
 - Do not invent scope: no GitHub Actions / Xcode Cloud config change (see NC09); no MetricKit/XCUITest/Swift 6 strict; no revert of link-join `.readWrite`
 
 ### RC30 — Recovery sync safety + session split + history pages
 - Status: done (this train)
-- Paths: `PersistenceController.swift`, `CartSyncService.swift`, `CartContentStore.swift`, `SessionBootstrapper.swift`, `CloudSyncCoordinator.swift`, `ProfileStore.swift`, `AppSession.swift`, `HistoryViews.swift`, `FragileStoreLoadTests.swift`, `FragileSyncOutcomeTests.swift`, `HistoryPaginationTests.swift`, `ProfileStoreTests.swift`, `docs/architecture.md`, `docs/review-changelog.md`
+- Paths: `PersistenceController.swift`, `CartSyncService.swift`, `CartContentStore.swift`, `SessionBootstrapper.swift`, `CloudSyncCoordinator.swift`, `ProfileStore.swift`, `AppSession.swift`, `HistoryViews.swift`, `FragileStoreLoadTests.swift`, `FragileSyncOutcomeTests.swift`, `HistoryPaginationTests.swift`, `ProfileStoreTests.swift`, `docs/engineering/architecture.md`, `docs/engineering/review-changelog.md`
 - What changed: non-destructive store `load()` + diagnostics before explicit wipe; `CartSyncOutcome` so failed hard-refresh ≠ synchronized; extracted bootstrap / content / cloud sync / profile stores; history fetch page size 30 + `loadMoreHistory`; fragile-test matrix documented
 - How to verify: F1–F10 green via `test_sim`; grep checklist — no `hardReset` in `load()` / `prepare`; sync failure leaves `.failed`
 - Do not invent scope: NC09 still no pre-merge GitHub Actions; Swift 6 strict and MetricKit remain FU
 
 ### RC31 — God-file split train (composition root ~200)
 - Status: done (this train)
-- Paths: `AppSession.swift` + `AppSession+*.swift`, `HouseholdCartCoordinator.swift`, `InviteLinkPreparer.swift`, `SessionTypes.swift`, `HomeView.swift` / `ShoppingListView.swift` / `QuickAddProductSheet.swift`, `FamilySpaceRepository+*.swift`, `OneCartManagedObjectModel.swift`, `PersistenceController+*.swift`, `LaunchChrome.swift`, `CartShareActivityBridge.swift`, `HistoryDetailViews.swift`, `ConnectivityMonitor.swift`, characterization tests under `OneCart/Tests/`, `docs/architecture.md`, `docs/review-changelog.md`
+- Paths: `AppSession.swift` + `AppSession+*.swift`, `HouseholdCartCoordinator.swift`, `InviteLinkPreparer.swift`, `SessionTypes.swift`, `HomeView.swift` / `ShoppingListView.swift` / `QuickAddProductSheet.swift`, `FamilySpaceRepository+*.swift`, `OneCartManagedObjectModel.swift`, `PersistenceController+*.swift`, `LaunchChrome.swift`, `CartShareActivityBridge.swift`, `HistoryDetailViews.swift`, `ConnectivityMonitor.swift`, characterization tests under `OneCart/Tests/`, `docs/engineering/architecture.md`, `docs/engineering/review-changelog.md`
 - What changed: split former god-files under hard trigger 400+; `AppSession` composition root ~200 lines; coordinators/extensions own household, invite warm-up, mutations, membership, selection; shopping / persistence / soft-band UI extracts; F1–F10 invariants unchanged
 - How to verify: F1–F10 + `just verify`; `AppSession.swift` ≤ ~200; former ≥400 owners under 400 (entity subclasses in `ManagedObjects.swift` remain data-model density)
 - Do not invent scope: no product feature restore (stores/catalog/price UI); no silent/soft-fail policy changes; NC09 unchanged
 
 ### RC32 — Completed + overnight History by day (Metro categories)
 - Status: done (this train)
-- Paths: `ShoppingListView.swift`, `HistoryViews.swift`, `HistoryDetailViews.swift`, `FamilySpaceRepository+Products.swift`, `AppSession+CartMutations.swift`, `AppSession.swift`, `ManagedObjects.swift`, `CategoryClassifier.swift`, `Localizable.xcstrings`, `PurchaseSessionTests.swift`, `CartItemsTests.swift`, `ProductCategoryInferenceTests.swift`, `docs/product.md`, `docs/architecture.md`, `docs/release.md`, `README.md`, `AGENTS.md`
+- Paths: `ShoppingListView.swift`, `HistoryViews.swift`, `HistoryDetailViews.swift`, `FamilySpaceRepository+Products.swift`, `AppSession+CartMutations.swift`, `AppSession.swift`, `ManagedObjects.swift`, `CategoryClassifier.swift`, `Localizable.xcstrings`, `PurchaseSessionTests.swift`, `CartItemsTests.swift`, `ProductCategoryInferenceTests.swift`, `docs/requirements/product.md`, `docs/engineering/architecture.md`, `docs/operations/release.md`, `README.md`, `AGENTS.md`
 - What changed: no manual «Finish shopping»; section **Completed**; FAB `+` without bottom plate; overnight `archivePurchasedBefore` on appear/foreground; History grouped by purchase day (read-only); Metro-style categories + icons; Completed cannot swipe-delete; dead QuickAdd sheet / history-delete UI removed
 - How to verify: `just verify`; PurchaseSession / CartItems / ProductCategory suites; manual: check → Completed → next day open → History day cell → product list; no Delete day
 - Do not invent scope: no restore of Done CTA, history delete, stores/catalog/price UI
@@ -285,7 +285,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Manual (RC30): failed sync shows failed state (not “synced”); welcome network retry does not wipe SQLite; History “show more” loads next page
 - Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; connectivity offline→online still schedules reload
 - Manual (RC32): no Finish shopping / Delete day; History caption explains overnight archive; category icon + label on cart rows
-- See also [release.md](release.md) § Preflight + §3
+- See also [release.md](../operations/release.md) § Preflight + §3
 
 ### RC30 — Cart-as-core (durable cart, no Recreate)
 - Status: done (this train)
@@ -296,21 +296,21 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 
 ### RC33 — Cart To Buy by category sections
 - Status: done (this train)
-- Paths: ShoppingListView, ProductCategory.groupedSections, ProductCategoryInferenceTests, docs/product.md
+- Paths: ShoppingListView, ProductCategory.groupedSections, ProductCategoryInferenceTests, docs/requirements/product.md
 - What changed: living cart To Buy groups into Metro category sections; Completed and History stay flat lists; row category caption hidden under section headers
 - How to verify: unit test grouping order; device — milk/bread/other land in separate To Buy sections; mark Completed → flat Completed list; History unchanged
 - Do not invent scope: no category grouping in History or Completed
 
 ### RC34 — Revoke door vs ACL heal + notify seed
 - Status: done (this train)
-- Paths: CloudKitShareSupport.applyReadWriteACL, CloudKitBackendService.revokeInviteLink, MemberJoinDiff, AppSession+Membership rename personal, docs/product.md, SharedCartJoinTests
+- Paths: CloudKitShareSupport.applyReadWriteACL, CloudKitBackendService.revokeInviteLink, MemberJoinDiff, AppSession+Membership rename personal, docs/requirements/product.md, SharedCartJoinTests
 - What changed: ACL heal no longer reopens `publicPermission = .none`; invite create passes `reopenInviteDoor`; revoke no-share/env mismatch throws; member-join first snapshot seeds without notify; personal Rename edits nickname (one title pattern)
 - How to verify: ShareLinkJoinACLTests preserve/reopen; MemberJoinDiffTests seed; rename personal → `cart.personal_title`; device revoke then syncCart leave door closed until Share again
 - Do not invent scope: Production schema deploy remains ops
 
 ### RC35 — Accept = shared only; defer join merge
 - Status: done (this train)
-- Paths: AppSession+FamilySelection.reload, HouseholdCartCoordinator.adoptSharedFamilyCartIfNeeded, MoreView Account cart title, SharedCartJoinTests, docs/product.md
+- Paths: AppSession+FamilySelection.reload, HouseholdCartCoordinator.adoptSharedFamilyCartIfNeeded, MoreView Account cart title, SharedCartJoinTests, docs/requirements/product.md
 - What changed: while any shared cart exists, session list/active cart are shared only (personal stays on disk for Leave); join no longer merges private products into shared; Account shows active cart title
 - How to verify: accept/ensure → active shared, `familySpaces` has no personal; private products absent from living list; leave → personal returns
 - Do not invent scope: restore LWW join merge later (FU / backlog)

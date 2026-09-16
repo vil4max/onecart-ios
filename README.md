@@ -36,7 +36,7 @@ CloudKit container: `iCloud.com.vil555tim.onecart`
 
 Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`).
 
-For device / TestFlight: App ID capabilities and CloudKit Production — see [docs/release.md](docs/release.md).
+For device / TestFlight: App ID capabilities and CloudKit Production — see [docs/operations/release.md](docs/operations/release.md).
 
 ## Layout
 

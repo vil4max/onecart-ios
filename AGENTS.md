@@ -11,11 +11,24 @@ Project facts only. Agent behavior lives in the Cursor Brain (`agent-engineering
 - Runtime: `Tooling/` (ios-engineering-runtime 0.2.2)
 - Docs index: [docs/README.md](docs/README.md)
 
+## Spec pyramid
+
+Start from [`docs/core.md`](docs/core.md) (approved 2026-09-16). Layers:
+core → `docs/requirements/` + `docs/decisions/` → tests named with
+`REQ-<AREA>-NNN` → code. Index: [`docs/README.md`](docs/README.md). Method:
+kit skill `spec-pyramid`.
+
+- Change starts at the highest affected layer; propose, do not approve, core
+  or requirement edits.
+- Bug → failing spec with a REQ ID first, then the fix.
+- Record a lesson only when a check or upper layer changed:
+  [`docs/lessons.md`](docs/lessons.md).
+
 ## Review
 
-For PR review (alex / review agent), start at [docs/review-changelog.md](docs/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
+For PR review (alex / review agent), start at [docs/engineering/review-changelog.md](docs/engineering/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
 
-**Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Аккаунт — see [docs/product.md](docs/product.md).
+**Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Аккаунт — see [docs/requirements/product.md](docs/requirements/product.md).
 
 ## Config
 

@@ -1,16 +1,18 @@
 # Docs
 
-| Doc | Audience | Contents |
-|-----|----------|----------|
-| [architecture.md](architecture.md) | agents / contributors | MVVM layout, owner files (CartSync / bootstrap / content / cloud sync split), fragile-test matrix F1–F10, Core Data + CloudKit stores |
-| [product.md](product.md) | product + agents | **Thesis**, living cart, Completed → overnight History by day, Household vs Apple Family |
-| [release.md](release.md) | owner | Apple Developer, CloudKit Production, TestFlight / Xcode Cloud, two-device QA |
-| [release-notes-1.2.md](release-notes-1.2.md) | owner | Language-switching fixes, localized What’s New and release status for 1.2 |
-| [release-notes-1.1.md](release-notes-1.1.md) | owner | Candidate status, localized What’s New and TestFlight focus for 1.1 |
-| [legacy.md](legacy.md) | owner | Pre-ASC wipe; SQLite reuse; Supabase cleanup |
-| [review-changelog.md](review-changelog.md) | PR reviewer | Scoped `RCxx` / `NCxx` / `FUxx` checklist |
-| [adr/0002-cloudkit-native-backend.md](adr/0002-cloudkit-native-backend.md) | archive | Why CloudKit (accepted decision) |
+Spec pyramid: each layer details the one above it. Change starts at the
+highest affected layer; evidence from operations flows back up.
 
-**Working agreement:** ship a reliable SIWA → one living cart → name-only add → mark Completed → overnight History → invite/sync loop before restoring Stores/catalog/price UX. Details in [product.md](product.md).
+| Layer | Question | Source |
+|---|---|---|
+| L0 core | Goal, language, priorities, constraints | [core.md](core.md) (approved 2026-09-16) |
+| L1 requirements | Thesis, living cart, Completed → History, membership, widgets | [requirements/product.md](requirements/product.md) |
+| L1 decisions | Why CloudKit | [decisions/0002-cloudkit-native-backend.md](decisions/0002-cloudkit-native-backend.md) |
+| L2 specs | Which tests prove the requirements? | `OneCart/Tests/` — name tests with `REQ-<AREA>-NNN` |
+| Engineering | MVVM layout, owner files, fragile-test matrix; PR review checklist | [engineering/architecture.md](engineering/architecture.md), [engineering/review-changelog.md](engineering/review-changelog.md) |
+| Operations | Apple Developer, CloudKit Production, TestFlight, release notes | [operations/release.md](operations/release.md), [operations/releases/](operations/releases/) |
+| Planning | Legacy migration and cleanup | [planning/legacy-migration.md](planning/legacy-migration.md) |
+| Lessons | Failures that changed a check or an upper layer | [lessons.md](lessons.md) |
+| Public surface | Privacy policy (App Store URL points here — do not move) | [privacy.md](privacy.md), `privacy.html` |
 
 Engineering Runtime (just / Brewfile / host adapters): [`Tooling/README.md`](../Tooling/README.md).
