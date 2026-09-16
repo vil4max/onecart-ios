@@ -167,7 +167,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Status: done (this train)
 - Paths: `RootView` tabs, `QuickAddProductSheet`, `docs/requirements/product.md`, `docs/engineering/architecture.md`, `docs/operations/release.md`
 - What changed: Cart+Settings only; thumb FAB + name-only add; invite on cart; history in Settings; documented cuts toward stability
-- How to verify: read [product.md](../requirements/product.md) § Priority; app has two tabs; + opens quick add; no Stores tab
+- How to verify: read [core.md](../core.md) P4; + opens name-only add; no Stores tab. Tab layout superseded — current shell has three tabs, see [product.md](../requirements/product.md) § Shell
 - Do not invent scope: restoring Stores/catalog is FU08/FU09, not required for merge
 
 ### RC17 — Cart-only shell (no Settings prefs)

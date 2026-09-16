@@ -40,6 +40,10 @@ Welcome copy and iCloud-unavailable errors must say that SIWA alone is not enoug
 
 ## Clarification (2026-07-26) — stability before features
 
-CloudKit sharing and dual identity are already complex enough. Product scope for the current train prefers a **cart-only shell** (one cart, name-only add, share from home) over Settings prefs / stores / catalog / multi-list surfaces that enlarge the sync graph and UI failure modes. Re-expand only after the two-device invite path is reliable — see [product.md](../requirements/product.md) § Priority.
+CloudKit sharing and dual identity are already complex enough. Product scope for the current train prefers a **cart-only shell** (one cart, name-only add, share from home) over Settings prefs / stores / catalog / multi-list surfaces that enlarge the sync graph and UI failure modes. Re-expand only after the two-device invite path is reliable — see [core.md](../core.md) P4.
+
+## Clarification (2026-09-16) — shell after the stability train
+
+The cart-only shell above is superseded: the app has three tabs (Корзина / История / Настройки). Invite, members and revoke live in **Настройки → Корзина**, not on the cart home; appearance, icon and language preferences returned to Настройки. Stability first remains priority P4 in [core.md](../core.md).
 
 See [architecture.md](../engineering/architecture.md), [product.md](../requirements/product.md), [release.md](../operations/release.md).

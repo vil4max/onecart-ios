@@ -28,7 +28,7 @@ kit skill `spec-pyramid`.
 
 For PR review (alex / review agent), start at [docs/engineering/review-changelog.md](docs/engineering/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
 
-**Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Аккаунт — see [docs/requirements/product.md](docs/requirements/product.md).
+**Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Настройки — see [docs/requirements/product.md](docs/requirements/product.md).
 
 ## Config
 
