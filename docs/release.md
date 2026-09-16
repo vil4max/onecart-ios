@@ -4,14 +4,14 @@ Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.
 
 ## Preflight (this branch)
 
-Local release candidate: **1.2 (1)** for both the app and widget extension.
+Local release candidate: **1.2.1 (1)** for both the app and widget extension.
 Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers. A feature release increments MINOR and resets PATCH to `0`; a fix-only release increments PATCH instead. Do not roll MAJOR without an explicit request.
 A new marketing version resets the local build number to **1**; subsequent builds
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
 
 Release notes and candidate status: [1.2](release-notes-1.2.md).
-Version **1.1 (90)** was confirmed Ready for Distribution in App Store Connect on September 13, 2026.
+Version **1.2 (91)** was confirmed Ready for Distribution in App Store Connect on September 16, 2026.
 App Store Connect version availability, cloud build status, and submission status
 must be checked in an authenticated session before publication.
 
