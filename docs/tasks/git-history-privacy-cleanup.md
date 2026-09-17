@@ -42,8 +42,10 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 - 2026-09-17, owner direct in session github-privacy-revision, relayed by that session:
   "подтверждаю - исправляй, отправляй сессиям задания" — approves the removal list below, removing
   the review video, the rewrite plan, and preparing the GitHub Support text.
-- 2026-09-17, owner direct in the same session, answering whether the second author e-mail is the
-  owner's address: "убирай" — map that identity to the primary one.
+- 2026-09-17, owner direct in the same session: "катору в авторах комитах нормально - не нормально
+  в коде" — the second author identity stays in commit metadata (no author remap, superseding an
+  earlier "убирай"); the identity's user name and the owner's local user name must not appear in
+  file content on `HEAD` or in history.
 - Still required in this session before execution: the owner's direct yes to the force push and
   tag re-creation. Owner-only: revoking the retired Supabase key, sending the GitHub Support
   request.
@@ -57,7 +59,7 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 | String | owner phone number in `docs/release.md`, `docs/operations/release.md` | `--replace-text` |
 | String | the local user path in `justfile` | `--replace-text` → `$HOME/` |
 | String | retired Supabase publishable key and project ref (`SupabaseServices.swift`, `docs/legacy.md`, `NATIVE_IOS.md`) | `--replace-text` → `<redacted>` |
-| Identity | the second author/committer identity (28 commits, `ebd4583`…`723c88d`) | `--mailmap` → `Max Vilchevskiy <vil4max@gmail.com>`; Copilot, Cursor Agent, cursor[bot] and GitHub committer entries unchanged |
+| String | the second identity's user name and e-mail user part, and the owner's local user name (Latin spelling), in file content | `--replace-text` (regex, case-insensitive); commit author/committer metadata unchanged |
 
 ## Rewrite plan (approved scope; not executed)
 
@@ -70,8 +72,8 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 4. Rewrite in one `git filter-repo` run with the approved removal list (expressions and mailmap
    files stay in `work/`, never in the repository).
 5. Verify in the mirror: the audit scan finds none of the removed strings or paths;
-   counting the second identity's e-mail in `git log --all --format='%ae%n%ce'` gives 0 and a
-   content scan for its user name is 0 (the pre-rewrite scan already found no content matches); `git fsck`; `main` tree equals
+   `git grep` over every revision for the removed user names returns nothing (commit metadata is
+   not rewritten and keeps the second author identity); `git fsck`; `main` tree equals
    the pre-rewrite `main` tree apart from removed paths and strings.
 6. Refs that change: every commit from the first affected one (`ebd4583` if `qa/` or the author
    map is included, otherwise `d155ff5`) onward, so `main`, `testflight`, `release`, `v1.2.0`,
@@ -112,3 +114,12 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
   `~/Developer/Personal/agent-artifacts/2026-09-17/github-privacy-revision/work/onecart/`
   (SHA-256 `8afe91f1…5b60`, identical to the committed file) and removed from `HEAD`; links in
   `docs/operations/release.md` and `assets/store/README.md` updated.
+- Latin user name removed from file content on `HEAD`: `AGENTS.md`, `docs/engineering/review-changelog.md`,
+  test fixture name in `OneCart/Tests/CartActivityDiffTests.swift`.
+
+## Open finding for the owner
+
+- The Cyrillic spelling of the same first name is used as a test fixture display name in
+  `OneCart/Tests/CartAccessTests.swift`, `SharedCartJoinTests.swift` and `WidgetSnapshotTests.swift`
+  (and in removed web-prototype files). It was not in the approved scope, so it is unchanged;
+  decide whether to rename it on `HEAD` and add it to `--replace-text`.
