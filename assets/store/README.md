@@ -28,4 +28,4 @@ Captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to
 Demo launch args:
 
 - Owner (default): `-oneCartDemoUI` and optional `-oneCartDemoTab cart|history|account`
-- Guest / member of someone else’s cart: `-oneCartDemoUI -oneCartDemoRole member` (Tim on **Max's Cart**, Leave / no Rename / no Revoke)
+- Guest / member of someone else’s cart: `-oneCartDemoUI -oneCartDemoRole member` (Sam on **Alex's Cart**, Leave / no Rename / no Revoke)

@@ -30,7 +30,7 @@ final class WelcomeViewModel: ObservableObject {
         let credential = AppleSignInCredential(
             userID: "onecart-demo-owner",
             email: nil,
-            givenName: "Max",
+            givenName: "Alex",
             familyName: nil
         )
         await session.completeAppleSignIn(credential: credential)

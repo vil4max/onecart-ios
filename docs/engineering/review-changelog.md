@@ -249,7 +249,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Status: done (this train)
 - Paths: `CartSyncService.swift`, `FamilyShareOrchestrator.swift`, `CloudKit/*.swift` (split), `AppSession.swift`, `ShoppingViews.swift`, `HistoryViews.swift`, `CartChromeViews.swift`, `MoreView.swift`, `PersistenceController.swift`, `Localizable.xcstrings`, `Info.plist`, `PrivacyInfo.xcprivacy`, splash assets, `docs/engineering/architecture.md`, `docs/planning/legacy-migration.md`, `docs/requirements/product.md`, `docs/privacy.md`, `docs/operations/release.md`, `README.md`, `AGENTS.md`
 - What changed: StoreTrump on viewContext; hard cart sync (pull/appear/import/foreground) with nav Updating chrome; owner ACL heal; owner Delete cart rotates invite URL; invitee shared-gone fallback alert; CloudKit god-file split + CartSync/Share orchestration extract; History/CartChrome UI split; removed LegacyMigration + CoreLocation/location plist; dropped PreciseLocation/PhysicalAddress from PrivacyInfo; `CKError.retryAfterSeconds` in share retry; splash PNG compress; CartSync/ShareACL `os.Logger` (no full share URLs); docs aligned to new layout
-- How to verify: unit tests green; Max check → Tim pull/appear sees trolley counts; Tim edits without permission alert; Max Delete cart → Tim fallback alert + new Share URL; files under CloudKit/ and Shopping/ are smaller than pre-split monoliths
+- How to verify: unit tests green; owner check → member pull/appear sees trolley counts; member edits without permission alert; owner Delete cart → member fallback alert + new Share URL; files under CloudKit/ and Shopping/ are smaller than pre-split monoliths
 - Do not invent scope: no GitHub Actions / Xcode Cloud config change (see NC09); no MetricKit/XCUITest/Swift 6 strict; no revert of link-join `.readWrite`
 
 ### RC30 — Recovery sync safety + session split + history pages
@@ -281,7 +281,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Manual: Welcome → SIWA → Корзина → `+` → name → keyboard Done → check row → **Completed** → next calendar day open app → item in **History** by day (read-only)
 - Manual (device): «Аккаунт» → Поделиться корзиной → accept on second device → shared cart replaces/merges private starter; invitee can add/check items (not readOnly); errors via system alert
 - Manual (existing readOnly member): owner opens «Поделиться корзиной» once after RC28 → invitee retries edit without re-accept
-- Manual (RC29): Max marks Completed → Tim appear/pull sees Updating + matching counts; owner Delete cart rotates link
+- Manual (RC29): owner marks Completed → member appear/pull sees Updating + matching counts; owner Delete cart rotates link
 - Manual (RC30): failed sync shows failed state (not “synced”); welcome network retry does not wipe SQLite; History “show more” loads next page
 - Manual (RC31): launch ride → welcome/main unchanged; invite share sheet still works; connectivity offline→online still schedules reload
 - Manual (RC32): no Finish shopping / Delete day; History caption explains overnight archive; category icon + label on cart rows
@@ -291,7 +291,7 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - Status: done (this train)
 - Paths: HouseholdCartCoordinator, FamilySpaceRepository+Merge, FamilyShareOrchestrator, AppSession+Membership, MoreView, FamilyCartMerge, CartHaptics, MemberJoinNotifier, docs
 - What changed: accept/ensure always adopts shared as active; personal FamilySpace kept on join; LWW join merge; Recreate removed; Revoke invite closes door; participants can share link; owner rename cart; personal default title; local notify on new member; haptics on primary actions; history never cleared (FU15)
-- How to verify: unit tests above; two-device accept → Tim sees Max cart as member; leave → same personal UUID; revoke → new joins blocked
+- How to verify: unit tests above; two-device accept → member sees owner cart as member; leave → same personal UUID; revoke → new joins blocked
 - Do not invent scope: multi-cart UI is FU01 only
 
 ### RC33 — Cart To Buy by category sections

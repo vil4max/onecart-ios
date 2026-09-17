@@ -163,7 +163,7 @@ struct WelcomeView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "person.crop.circle.badge.checkmark")
-                        Text("Войти как Max (Тестовый аккаунт)")
+                        Text("Войти как Alex (Тестовый аккаунт)")
                     }
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(OneCartPalette.primaryAccent(accent: model.preferences.accentColor))

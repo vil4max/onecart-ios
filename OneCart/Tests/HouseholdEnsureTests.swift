@@ -8,7 +8,7 @@ final class HouseholdEnsureTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let session = AppSession(
             persistence: persistence,
             preferences: DevicePreferences(defaults: defaults),
@@ -29,7 +29,7 @@ final class HouseholdEnsureTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -58,7 +58,7 @@ final class HouseholdEnsureTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -108,7 +108,7 @@ final class HouseholdEnsureTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
 
         let oldSharedID = UUID()
         let newSharedID = UUID()

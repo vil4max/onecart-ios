@@ -75,7 +75,7 @@ final class SharedCartJoinTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -110,7 +110,7 @@ final class SharedCartJoinTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         let sharedID = try await seedSharedCart(
             persistence: persistence,
             name: "Семейная",
@@ -160,7 +160,7 @@ final class SharedCartJoinTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -222,7 +222,7 @@ final class SharedCartJoinTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -272,7 +272,7 @@ final class SharedCartJoinTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -459,7 +459,7 @@ final class MemberJoinDiffTests: XCTestCase {
     func testFirstSnapshotSeedsWithoutNotify() {
         let member = FamilyMember(
             id: UUID(),
-            displayName: "Tim",
+            displayName: "Sam",
             access: .member,
             joinedAt: Date(),
             isCurrentUser: false,
@@ -481,7 +481,7 @@ final class MemberJoinDiffTests: XCTestCase {
         let newID = UUID()
         let existing = FamilyMember(
             id: existingID,
-            displayName: "Max",
+            displayName: "Alex",
             access: .owner,
             joinedAt: Date(),
             isCurrentUser: true,
@@ -490,7 +490,7 @@ final class MemberJoinDiffTests: XCTestCase {
         )
         let joined = FamilyMember(
             id: newID,
-            displayName: "Tim",
+            displayName: "Sam",
             access: .member,
             joinedAt: Date(),
             isCurrentUser: false,

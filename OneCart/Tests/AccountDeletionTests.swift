@@ -26,10 +26,10 @@ final class AccountDeletionTests: XCTestCase {
             accountLocalStorePreparer: stores
         )
 
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.account = account
         session.needsWelcome = false
-        session.preferences.participantDisplayName = "Max"
+        session.preferences.participantDisplayName = "Alex"
         defaults.set(
             UUID().uuidString,
             forKey: session.activeFamilyKey(accountID: account.id)
@@ -70,10 +70,10 @@ final class AccountDeletionTests: XCTestCase {
             accountLocalStorePreparer: stores
         )
 
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.account = account
         session.needsWelcome = false
-        session.preferences.participantDisplayName = "Max"
+        session.preferences.participantDisplayName = "Alex"
         defaults.set("keep", forKey: session.activeFamilyKey(accountID: account.id))
 
         await session.deleteAccount()
@@ -85,7 +85,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(session.account?.id, account.id)
         XCTAssertFalse(session.needsWelcome)
         XCTAssertEqual(apple.clearCount, 0)
-        XCTAssertEqual(session.preferences.participantDisplayName, "Max")
+        XCTAssertEqual(session.preferences.participantDisplayName, "Alex")
         XCTAssertEqual(session.userAlert?.kind, .error)
         XCTAssertEqual(session.userAlert?.message, String(localized: "account.delete_failed"))
         XCTAssertFalse(session.isDeletingAccount)
@@ -107,7 +107,7 @@ final class AccountDeletionTests: XCTestCase {
             accountCloudDataDeleter: cloud,
             accountLocalStorePreparer: stores
         )
-        session.account = OneCartAccount(id: UUID(), displayName: "Max")
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
 
         await session.deleteAccount()
@@ -136,7 +136,7 @@ final class AccountDeletionTests: XCTestCase {
             accountCloudDataDeleter: cloud,
             accountLocalStorePreparer: stores
         )
-        session.account = OneCartAccount(id: UUID(), displayName: "Max")
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
 
         await session.deleteAccount()
@@ -168,7 +168,7 @@ final class AccountDeletionTests: XCTestCase {
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
         )
-        session.account = OneCartAccount(id: UUID(), displayName: "Max")
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
 
         async let first: Void = session.deleteAccount()
@@ -193,7 +193,7 @@ final class AccountDeletionTests: XCTestCase {
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
         )
-        session.account = OneCartAccount(id: UUID(), displayName: "Max")
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
         session.online = false
 
@@ -212,7 +212,7 @@ final class AccountDeletionTests: XCTestCase {
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
         let cloud = RecordingAccountCloudDeleter()
-        let account = OneCartAccount(id: UUID(), displayName: "Tim")
+        let account = OneCartAccount(id: UUID(), displayName: "Sam")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -271,7 +271,7 @@ final class AccountDeletionTests: XCTestCase {
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
         )
-        session.account = OneCartAccount(id: UUID(), displayName: "Max")
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
         session.online = true
 
@@ -436,7 +436,7 @@ final class AccountDeletionTests: XCTestCase {
         let apple = TrackingAppleSignIn()
         let account = try OneCartAccount(
             id: XCTUnwrap(apple.storedCredential()).accountID,
-            displayName: "Max"
+            displayName: "Alex"
         )
         let familyID = try await repository.createFamilySpace(
             name: "Personal",
@@ -643,7 +643,7 @@ private final class TrackingAppleSignIn: AppleSignInAuthenticating {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
         userID: "delete-account-user",
         email: nil,
-        givenName: "Max",
+        givenName: "Alex",
         familyName: nil
     )
     private(set) var clearCount = 0

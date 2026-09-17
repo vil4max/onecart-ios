@@ -59,7 +59,7 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 | String | owner phone number in `docs/release.md`, `docs/operations/release.md` | `--replace-text` |
 | String | the local user path in `justfile` | `--replace-text` → `$HOME/` |
 | String | retired Supabase publishable key and project ref (`SupabaseServices.swift`, `docs/legacy.md`, `NATIVE_IOS.md`) | `--replace-text` → `<redacted>` |
-| String | the second identity's user name and e-mail user part, and the owner's local user name (Latin spelling), in file content | `--replace-text` (regex, case-insensitive); commit author/committer metadata unchanged |
+| String | the second identity's user name and e-mail user part, and the owner's local user name (Latin and Cyrillic spellings), in file content | `--replace-text` (regex, case-insensitive); commit author/committer metadata unchanged |
 
 ## Rewrite plan (approved scope; not executed)
 
@@ -116,10 +116,7 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
   `docs/operations/release.md` and `assets/store/README.md` updated.
 - Latin user name removed from file content on `HEAD`: `AGENTS.md`, `docs/engineering/review-changelog.md`,
   test fixture name in `OneCart/Tests/CartActivityDiffTests.swift`.
-
-## Open finding for the owner
-
-- The Cyrillic spelling of the same first name is used as a test fixture display name in
-  `OneCart/Tests/CartAccessTests.swift`, `SharedCartJoinTests.swift` and `WidgetSnapshotTests.swift`
-  (and in removed web-prototype files). It was not in the approved scope, so it is unchanged;
-  decide whether to rename it on `HEAD` and add it to `--replace-text`.
+- Cyrillic spelling of the same first name renamed in test fixtures, and personal first names in
+  demo data, the debug test account, tests and docs replaced with neutral ones (owner direct in
+  this session, 2026-09-17: rename it in tests and keep the project neutral, not tied to specific
+  people); `just verify` passed.

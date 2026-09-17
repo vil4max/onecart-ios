@@ -27,7 +27,7 @@ final class GuestMemberSessionTests: XCTestCase {
         await fixture.session.renameActiveCart("Хак")
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(fixture.session.cartTitle, "Семейная")
-        XCTAssertEqual(fixture.session.account?.displayName, "Tim")
+        XCTAssertEqual(fixture.session.account?.displayName, "Sam")
 
         await fixture.session.revokeInviteLink()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sharedID)
@@ -53,7 +53,7 @@ final class GuestMemberSessionTests: XCTestCase {
             persistence.container.viewContext.fetch(familySpaceRequest(id: sharedID)).first
         )
         let backend = CloudKitBackendService(persistence: persistence)
-        let account = OneCartAccount(id: UUID(), displayName: "Tim")
+        let account = OneCartAccount(id: UUID(), displayName: "Sam")
         XCTAssertEqual(backend.access(for: space), .member)
 
         let members = try backend.familyMembers(for: space, account: account)
@@ -136,7 +136,7 @@ final class GuestMemberSessionTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Tim")
+        let account = OneCartAccount(id: UUID(), displayName: "Sam")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()

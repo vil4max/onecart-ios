@@ -10,7 +10,7 @@ final class WidgetSnapshotTests: XCTestCase {
             name: "Молоко 3.2%",
             isPurchased: false,
             categoryRaw: ProductCategory.dairyEggs.rawValue,
-            subtitle: "добавил(а) Алекс"
+            subtitle: "добавил(а) Саша"
         )
         let item2 = WidgetItemSnapshot(
             id: UUID(),
@@ -27,7 +27,7 @@ final class WidgetSnapshotTests: XCTestCase {
             isSyncing: true,
             lastUpdated: Date(),
             familyMemberCount: 2,
-            activePartnerName: "Алекс в магазине",
+            activePartnerName: "Саша в магазине",
             items: [item1, item2]
         )
 
@@ -41,7 +41,7 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.progress, 0.5, accuracy: 0.001)
         XCTAssertFalse(decoded.isEmpty)
         XCTAssertFalse(decoded.isAllPurchased)
-        XCTAssertEqual(decoded.activePartnerName, "Алекс в магазине")
+        XCTAssertEqual(decoded.activePartnerName, "Саша в магазине")
         XCTAssertEqual(decoded.items.count, 2)
         XCTAssertEqual(decoded.items[0].name, "Молоко 3.2%")
         XCTAssertFalse(decoded.items[0].isPurchased)
@@ -318,11 +318,11 @@ extension WidgetSnapshotTests {
         try fixture.store.enqueuePurchase(request)
         try await fixture.session.repository.setPurchased(
             id: request.productID, familySpaceID: request.familyID, isPurchased: true,
-            participantDisplayName: "Max", purchasedAt: request.createdAt
+            participantDisplayName: "Alex", purchasedAt: request.createdAt
         )
         // Simulate a saved command whose acknowledgement was interrupted, followed by an app edit.
         try await fixture.session.repository.togglePurchased(
-            id: request.productID, familySpaceID: request.familyID, participantDisplayName: "Max"
+            id: request.productID, familySpaceID: request.familyID, participantDisplayName: "Alex"
         )
 
         try await fixture.session.performWidgetPurchase(request)
@@ -454,7 +454,7 @@ private extension XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let defaults = try makeDefaults()
         let store = try makeWidgetStore().store
-        let account = OneCartAccount(id: OneCartStableID.uuid(for: "onecart.in-memory-user"), displayName: "Max")
+        let account = OneCartAccount(id: OneCartStableID.uuid(for: "onecart.in-memory-user"), displayName: "Alex")
         let familyID = try await repository.createFamilySpace(
             name: "Personal", cachedForUserID: account.id, isHouseholdDefault: true
         )
@@ -498,7 +498,7 @@ private struct WidgetSessionFixture {
 
 private final class WidgetAppleSignIn: AppleSignInAuthenticating {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
-        userID: "widget-user", email: nil, givenName: "Max", familyName: nil
+        userID: "widget-user", email: nil, givenName: "Alex", familyName: nil
     )
 
     func storedCredential() -> AppleSignInCredential? {
