@@ -24,13 +24,15 @@ fail() {
   exit 1
 }
 
-# Prints success, failure, pending, or missing for the Tests runs of a push of $1 to main.
+# Prints success, pending, cancelled, failure, or missing for the Tests runs of a push of $1 to main.
+# The API reports each run's latest attempt, so a successful rerun turns cancelled into success.
 tests_state() {
   gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${TESTS_WORKFLOW}/runs?head_sha=${1}&event=push&branch=main" \
     --jq '[.workflow_runs[] | {status, conclusion}] as $runs
       | if ($runs | length) == 0 then "missing"
         elif any($runs[]; .conclusion == "success") then "success"
         elif any($runs[]; .status != "completed") then "pending"
+        elif all($runs[]; .conclusion == "cancelled") then "cancelled"
         else "failure" end'
 }
 
@@ -57,8 +59,12 @@ for ((attempt = 1; ; attempt++)); do
       fail "Tests failed for ${sha:0:7}; fix main, bump PATCH, and tag the fixed commit"
       ;;
   esac
-  # A commit inside a multi-commit push has no run of its own and stays "missing".
+  # A commit inside a multi-commit push has no run of its own and stays "missing";
+  # a cancelled run waits like a pending one in case someone reruns it.
   if ((attempt >= WAIT_ATTEMPTS)); then
+    if [[ "$state" == cancelled ]]; then
+      fail "Tests for ${sha:0:7} was cancelled; rerun it (gh run rerun), then rerun this workflow"
+    fi
     fail "no successful Tests run for a push of ${sha:0:7} to main ($state); tag the commit a Tests run verified, or rerun this workflow once it is green"
   fi
   echo "waiting for Tests on ${sha:0:7}: $state ($attempt/$WAIT_ATTEMPTS)"
