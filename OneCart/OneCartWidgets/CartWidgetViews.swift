@@ -20,6 +20,12 @@ struct CartWidgetRootView: View {
             MediumHomeWidgetView(snapshot: entry.snapshot)
         case .systemLarge, .systemExtraLarge:
             LargeHomeWidgetView(snapshot: entry.snapshot)
+        // The iOS 27 SDK (Swift 6.4, Xcode 27) adds this case; GitHub Actions still builds
+        // with Xcode 26.6, where it does not exist. Not in supportedFamilies.
+        #if compiler(>=6.4)
+            case .systemExtraLargePortrait:
+                LargeHomeWidgetView(snapshot: entry.snapshot)
+        #endif
         @unknown default:
             MediumHomeWidgetView(snapshot: entry.snapshot)
         }
