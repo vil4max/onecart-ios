@@ -12,6 +12,7 @@ on:
         required: true
 
 permissions:
+  actions: read # promote-release.sh reads the Tests run of the tagged commit
   contents: write
 
 concurrency:
@@ -31,4 +32,5 @@ jobs:
       - name: Promote verified tag
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: scripts/promote-release.sh "$TAG"
