@@ -42,7 +42,7 @@ one worktree, no stale local or remote branches, no stashes, no build artifacts 
 | `4c956c1` | Widget switch handles iOS 27 `systemExtraLargePortrait` (archive warning removed) |
 | #34 | Xcode Cloud workflows renamed by the commits they build |
 | #35, #36 | 1.2.1 release notes, tag `v1.2.1`, submission record, branch hygiene rule |
-| #37 | Git history privacy audit and rewrite plan (open) |
+| #37 | Git history privacy audit and rewrite plan; phone number removed from the runbook (rewrite itself blocked on owner) |
 
 Session learnings were contributed to agent-engineering-kit (`cd9027c`, the reference above) and
 to its spec-pyramid and agent-coordination shakedown experiment.
