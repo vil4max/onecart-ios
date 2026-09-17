@@ -12,6 +12,7 @@ number in Xcode Cloud / App Store Connect before selecting it for submission.
 
 Release notes and candidate status: [1.2.1](releases/1.2.1.md) (previous: [1.2](releases/1.2.md)).
 Version **1.2 (91)** was confirmed Ready for Distribution in App Store Connect on September 16, 2026.
+Version **1.2.1 (105)** was submitted for App Review on September 17, 2026 (tag `v1.2.1`).
 App Store Connect version availability, cloud build status, and submission status
 must be checked in an authenticated session before publication.
 
