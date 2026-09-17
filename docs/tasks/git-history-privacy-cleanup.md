@@ -27,9 +27,9 @@ e-mail addresses, phone numbers and `/Users/` paths; frames extracted from both 
 | `docs/release.md` → `docs/operations/release.md` (line "Contact: … phone") | `d155ff5` (2026-09-01) / still at `HEAD` | Owner's personal phone number in a public file | Remove from `HEAD` now (this PR); rewrite the string out of history |
 | `assets/store/review/delete-account-physical-2026-09-01.mp4` | `4a0a9cb` / still at `HEAD` | App Review screen recording from a physical device shows the owner's Apple Account name and profile photo in the Sign in with Apple sheet | Owner decides: keep (review evidence) or remove from `HEAD` and history |
 | `qa/onecart-backup.json`, `qa/onecart-lists.csv`, `qa/dogfood-report.md` | `ebd4583` / removed in `bf2eaf1` | Web-prototype seed data with family first names as users; store addresses are public shops | Low; owner decides |
-| `justfile` (`$HOME/Library/Developer/…`) | `e1a37bc` / removed in `3bfaf91` | Local machine user path | Low; rewrite the string if history is rewritten anyway |
+| `justfile` (a `/Users/<local user>/Library/Developer/…` path) | `e1a37bc` / removed in `3bfaf91` | Local machine user path | Low; rewrite the string if history is rewritten anyway |
 | `ios/App/App/SupabaseServices.swift` (`sb_publishable_…`), `docs/legacy.md`, `NATIVE_IOS.md` (Supabase project ref) | `ebd4583` / removed by `bf2eaf1` and later docs | Supabase publishable (client) key and project ref of the retired backend; publishable keys are designed to ship in clients | Revoke the key / delete the retired Supabase project instead of relying on a rewrite |
-| Commit author `alex member <member@gmail.com>` (28 commits) | `ebd4583` / `723c88d` | Second personal e-mail address in commit metadata | Owner decides: keep, or map to the primary identity with `--mailbox-map` |
+| Second commit author identity with a personal e-mail (28 commits) | `ebd4583` / `723c88d` | Second personal e-mail address in commit metadata | Owner decides: keep, or map to the primary identity with `--mailbox-map` |
 | Local `refs/codex/*`, `refs/copilot/*` (25 refs) | agent checkpoints | Dead local artifacts; not on GitHub | Delete locally (owner approval) |
 
 Not sensitive: `vil4max@gmail.com` (public support contact and primary author), bundle ID, team
@@ -42,7 +42,7 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 - 2026-09-17, owner direct in session github-privacy-revision, relayed by that session:
   "подтверждаю - исправляй, отправляй сессиям задания" — approves the removal list below, removing
   the review video, the rewrite plan, and preparing the GitHub Support text.
-- 2026-09-17, owner direct in the same session, answering whether `member@gmail.com` is the
+- 2026-09-17, owner direct in the same session, answering whether the second author e-mail is the
   owner's address: "убирай" — map that identity to the primary one.
 - Still required in this session before execution: the owner's direct yes to the force push and
   tag re-creation. Owner-only: revoking the retired Supabase key, sending the GitHub Support
@@ -55,9 +55,9 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 | Path | `assets/store/review/delete-account-physical-2026-09-01.mp4` | `--invert-paths --path` |
 | Path | `qa/onecart-backup.json`, `qa/onecart-lists.csv`, `qa/dogfood-report.md` | `--invert-paths --path` |
 | String | owner phone number in `docs/release.md`, `docs/operations/release.md` | `--replace-text` |
-| String | `$HOME/` in `justfile` | `--replace-text` → `$HOME/` |
+| String | the local user path in `justfile` | `--replace-text` → `$HOME/` |
 | String | retired Supabase publishable key and project ref (`SupabaseServices.swift`, `docs/legacy.md`, `NATIVE_IOS.md`) | `--replace-text` → `<redacted>` |
-| Identity | author and committer `alex member <member@gmail.com>` (28 commits, `ebd4583`…`723c88d`) | `--mailmap` → `Max Vilchevskiy <vil4max@gmail.com>`; Copilot, Cursor Agent, cursor[bot] and GitHub committer entries unchanged |
+| Identity | the second author/committer identity (28 commits, `ebd4583`…`723c88d`) | `--mailmap` → `Max Vilchevskiy <vil4max@gmail.com>`; Copilot, Cursor Agent, cursor[bot] and GitHub committer entries unchanged |
 
 ## Rewrite plan (approved scope; not executed)
 
@@ -70,8 +70,8 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 4. Rewrite in one `git filter-repo` run with the approved removal list (expressions and mailmap
    files stay in `work/`, never in the repository).
 5. Verify in the mirror: the audit scan finds none of the removed strings or paths;
-   `git log --all --format='%ae%n%ce' | grep -c member` is 0 and a content scan for `member`
-   is 0 (the pre-rewrite scan already found no content matches); `git fsck`; `main` tree equals
+   counting the second identity's e-mail in `git log --all --format='%ae%n%ce'` gives 0 and a
+   content scan for its user name is 0 (the pre-rewrite scan already found no content matches); `git fsck`; `main` tree equals
    the pre-rewrite `main` tree apart from removed paths and strings.
 6. Refs that change: every commit from the first affected one (`ebd4583` if `qa/` or the author
    map is included, otherwise `d155ff5`) onward, so `main`, `testflight`, `release`, `v1.2.0`,
