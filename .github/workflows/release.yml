@@ -1,0 +1,34 @@
+name: Release
+
+# Pushing an annotated vMAJOR.MINOR.PATCH tag moves the release branch, which
+# Xcode Cloud archives for App Store Connect. See docs/decisions/0003-ci-split.md.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to promote, for example v1.3.0
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  promote-release:
+    name: Promote tag to release branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Promote verified tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: scripts/promote-release.sh "$TAG"

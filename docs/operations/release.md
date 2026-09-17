@@ -149,7 +149,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 
 ### Preferred: Xcode Cloud → TestFlight
 
-Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archives and uploads; tests run in GitHub Actions ([`tests.yml`](../../.github/workflows/tests.yml)) — see [ADR 0003](../decisions/0003-ci-split.md). No fastlane.
+Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archives and uploads; tests run in GitHub Actions ([`tests.yml`](../../.github/workflows/tests.yml)). Xcode Cloud starts from the `testflight` and `release` branches, which only CI moves; release by pushing an annotated `vMAJOR.MINOR.PATCH` tag — see [ADR 0003](../decisions/0003-ci-split.md). No fastlane.
 
 **Prerequisites:** shared scheme `OneCart` with Archive; ASC app record; CloudKit Production schema. `OneCart/ci_scripts/ci_post_clone.sh` writes `CI_BUILD_NUMBER` into `CURRENT_PROJECT_VERSION`.
 
@@ -165,11 +165,11 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 |-------|-------|
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Start condition | Branch changes → `main` |
-| Action | Archive (iOS), scheme `OneCart` → TestFlight (internal) |
+| Workflows | "AppStore Connect + TestFlight" (branch `testflight`), "Release" (branch `release`) |
+| Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends&Family** |
 
-No Test action: remove `Test - iOS` only after GitHub Actions `Tests` is green on `main` (ADR 0003). Before selecting a TestFlight build, confirm the `Tests` run for that commit is green.
+Both branches are fast-forwarded by GitHub Actions only after `Tests` is green (ADR 0003). Submit App Store builds from the "Release" workflow.
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
 
@@ -268,4 +268,4 @@ Own server, Supabase, fastlane, email/password auth, multi-cart UX (code can hol
 
 - Watch CloudKit quotas (fine for household-sized carts).
 - After Core Data model changes → deploy schema to Production again.
-- Ship via Xcode Cloud (or local Archive fallback).
+- Ship via a version tag → Xcode Cloud "Release" (or local Archive fallback).
