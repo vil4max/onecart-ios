@@ -49,6 +49,8 @@ the owner's approval and an update of this table in the same change.
   `CODE_SIGNING_ALLOWED=NO` the test host loses Keychain access and the
   `AppleSignInTests` keychain cases fail.
 - Coverage is printed with `xccov` into the job summary; it is not a gate.
+- Pull request runs cancel superseded runs; push runs on `main` never do (one concurrency group
+  per commit), so every commit pushed to `main` gets a finished `Tests` run a tag can rely on.
 
 ### Releasing a version
 
@@ -72,6 +74,7 @@ the owner's approval and an update of this table in the same change.
 | `Release` fails "not vMAJOR.MINOR.PATCH" / "annotated" / "does not match MARKETING_VERSION" / "not on main" | The tag is invalid | The owner deletes the tag and pushes a correct one |
 | `Release` fails "Tests failed" | `Tests` for the tagged commit is red | Fix on `main`, bump PATCH, tag the fixed commit |
 | `Release` fails "no successful Tests run" | `Tests` still running after 45 minutes, or the tag is on a commit without its own run | Still running: wait for green, then run `Release` manually with the tag. No run: the owner moves the tag to the pushed commit |
+| `Release` fails "was cancelled" | The `Tests` run of the tagged commit was cancelled (manually, or before PR-only cancellation was introduced) | `gh run rerun <run id>`; when it is green, run `Release` manually with the tag |
 | `Release` fails "passed Tests but is not on testflight" | `promote-testflight` failed in that run | Check that job; see the `promote-testflight` row |
 | `Release` succeeds with "release already contains" | The tag is older than `release` (an older tag after a newer one) | Nothing to do; releases only move forward |
 | `Release` push rejected | `release` has a commit that is not an ancestor of the tag (manual push) | Stop; the owner decides how to realign — do not force-push |

@@ -9,9 +9,11 @@ on:
 permissions:
   contents: read
 
+# PR runs cancel superseded runs; every push to main runs to completion in its own
+# group, because a release tag needs a finished Tests run for that exact commit.
 concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  group: tests-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
