@@ -232,7 +232,7 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 
 - Sign-in required: **on**. Reviewers authenticate through the system Sign in with Apple sheet;
   there is no developer-issued username or password; explain this in Review notes.
-- Contact: Maksim Vilchevskiy, `vil4max@gmail.com`, `<redacted-phone>`.
+- Contact: Maksim Vilchevskiy, `vil4max@gmail.com` (phone kept in App Store Connect only).
 - Review attachment: ready at
   [`assets/store/review/delete-account-physical-2026-09-01.mp4`](../../assets/store/review/delete-account-physical-2026-09-01.mp4)
   (physical device, ~21s, 1290×2796, **1.0 (84)**). Upload in App Store Connect → App Review
