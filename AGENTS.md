@@ -38,6 +38,9 @@ Source: [ADR 0003](docs/decisions/0003-ci-split.md). GitHub Actions tests; Xcode
 - `testflight` and `release` are moved only by GitHub Actions, only by fast-forward. Never push,
   force-push, reset, or delete them.
 - Version tags `vMAJOR.MINOR.PATCH` are created and pushed only by the owner; an agent does not tag.
+- Branches and worktrees exist only while work is in progress: delete merged branches locally and on
+  GitHub right away. Permanent branches are `main`, `testflight`, `release`. No leftover build
+  artifacts in the working tree.
 - Xcode Cloud workflow settings live in App Store Connect, not in the repo; change them only with
   the owner's explicit approval and update ADR 0003 in the same change.
 
