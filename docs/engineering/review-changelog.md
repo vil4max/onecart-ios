@@ -2,7 +2,7 @@
 
 Historical scope: `feat/living-cart-and-tabs` against `main` (RC/NC/FU entries below).
 Current audit fixes are tracked separately in the table below.
-Audience: human reviewer + review agent (alex)
+Audience: human reviewer + review agent
 
 ## September 2026 reliability audit
 

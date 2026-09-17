@@ -21,5 +21,5 @@ Avatars and banners stay device-local — not migrated to CloudKit.
 
 `SupabaseServices.swift`, `supabase/`, and `invite-site/` are gone from `main`. A publishable key from commit `ebd4583` may still exist in git history.
 
-1. In [Supabase Dashboard](https://supabase.com/dashboard) for project `<redacted>` — rotate / revoke the publishable key; pause or delete the project if unused.
+1. In [Supabase Dashboard](https://supabase.com/dashboard) for the retired OneCart project — rotate / revoke the publishable key; pause or delete the project if unused.
 2. History rewrite requires explicit owner confirmation.
