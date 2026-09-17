@@ -17,9 +17,9 @@ split CI this way and runs green on hosted `macos-26` runners.
 | System | Owns | Trigger | Config |
 |--------|------|---------|--------|
 | GitHub Actions `Tests` | Build for testing, `OneCartTests`, coverage summary; then fast-forwards `testflight` | Push to `main`, pull requests (promotion only on `main`) | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
-| Xcode Cloud "Internal TestFlight" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
+| Xcode Cloud "Internal TestFlight (verified main)" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
 | GitHub Actions `Release` | Validates a `vMAJOR.MINOR.PATCH` tag, then fast-forwards `release` | Push of a version tag, or manual run with `tag` | [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`scripts/promote-release.sh`](../../scripts/promote-release.sh) |
-| Xcode Cloud "App Store Release" | Archive of the tagged version for App Store Connect (+ internal TestFlight) | Push to `release` | App Store Connect workflow |
+| Xcode Cloud "App Store candidate (release tag)" | Archive of the tagged version for App Store Connect (+ internal TestFlight) | Push to `release` | App Store Connect workflow |
 
 ### Branch rules
 
@@ -37,10 +37,10 @@ split CI this way and runs green on hosted `macos-26` runners.
 
 | Workflow | Description | Start condition | Actions | Post-actions |
 |----------|-------------|-----------------|---------|--------------|
-| Internal TestFlight | Archives each commit that passed GitHub Actions Tests (CI-moved testflight branch) and uploads it to internal TestFlight (Friends and Family). No tests here. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
-| App Store Release | Archives the version-tagged commit (CI-moved release branch, vMAJOR.MINOR.PATCH) for App Store Connect submission; also uploads to internal TestFlight. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
+| Internal TestFlight (verified main) | Archives every main commit that passed GitHub Actions "Tests" (CI fast-forwards the testflight branch) and uploads it to TestFlight internal testing, group Friends and Family. Does not run tests. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
+| App Store candidate (release tag) | Archives the commit of a verified vMAJOR.MINOR.PATCH tag (release.yml fast-forwards the release branch) and uploads it to App Store Connect as the App Store submission candidate; also available in TestFlight internal testing. Does not run tests. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
 
-Names and descriptions state what each workflow does, not how it was created. Neither
+Names and descriptions say which commits each workflow builds (verified `main`, release tag), matching regional-check; both share the upload mechanics, so those do not name them. Neither
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.
 
@@ -96,7 +96,7 @@ the owner's approval and an update of this table in the same change.
 - A red `Tests` run on `main` leaves `testflight` where it was, so no TestFlight build
   is made from that commit.
 - A release tag builds twice in Xcode Cloud if its commit was also a `testflight` build;
-  submit the build from the "App Store Release" workflow.
+  submit the build from the "App Store candidate (release tag)" workflow.
 - `scripts/ci-boot-simulator.sh` is shared with regional-check; keep them in sync.
 - `Release` checks the `Tests` run of the tagged commit itself (GitHub API, `actions: read`), not
   only ancestry of `testflight`: a later green commit would otherwise let a red tagged commit

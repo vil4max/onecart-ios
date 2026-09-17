@@ -165,11 +165,11 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 |-------|-------|
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Workflows | "Internal TestFlight" (exact branch `testflight`), "App Store Release" (exact branch `release`); exact settings in [ADR 0003](../decisions/0003-ci-split.md) |
+| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`), "App Store candidate (release tag)" (exact branch `release`); exact settings in [ADR 0003](../decisions/0003-ci-split.md) |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
-| Post | Internal TestFlight → group **Friends&Family** |
+| Post | Internal TestFlight → group **Friends and Family** |
 
-Both branches are fast-forwarded by GitHub Actions only after `Tests` is green; never push them by hand (ADR 0003). Submit App Store builds from the "App Store Release" workflow; release steps and failure handling are in ADR 0003.
+Both branches are fast-forwarded by GitHub Actions only after `Tests` is green; never push them by hand (ADR 0003). Submit App Store builds from the "App Store candidate (release tag)" workflow; release steps and failure handling are in ADR 0003.
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
 
@@ -268,4 +268,4 @@ Own server, Supabase, fastlane, email/password auth, multi-cart UX (code can hol
 
 - Watch CloudKit quotas (fine for household-sized carts).
 - After Core Data model changes → deploy schema to Production again.
-- Ship via a version tag → Xcode Cloud "App Store Release" (or local Archive fallback).
+- Ship via a version tag → Xcode Cloud "App Store candidate (release tag)" (or local Archive fallback).
