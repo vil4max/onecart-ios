@@ -27,7 +27,8 @@ split CI this way and runs green on hosted `macos-26` runners.
 2. `testflight` is moved only by the `promote-testflight` job, only for a push to `main` whose
    `Tests` run passed, and only by fast-forward. PR runs never promote.
 3. `release` is moved only by `scripts/promote-release.sh`, only to an annotated version tag
-   whose commit is already on `testflight`, and only by fast-forward.
+   whose exact commit has a successful `Tests` run for a push to `main` (and is therefore on
+   `testflight`), and only by fast-forward.
 4. Nobody pushes, force-pushes, resets, or deletes `testflight` or `release` by hand: they
    record which commits passed the checks.
 5. Only the owner creates and pushes version tags.
@@ -56,8 +57,11 @@ the owner's approval and an update of this table in the same change.
 2. Push an annotated tag on that `main` commit: `git tag -a v1.3.0 -m "OneCart 1.3.0"`,
    then `git push origin v1.3.0`. The tag can be pushed right after the commit.
 3. `Release` rejects lightweight tags, version mismatches, and commits outside `main`,
-   waits up to 45 minutes for the commit to reach `testflight`, then moves `release`.
-   If the checks took longer, rerun `Release` manually with the tag as input.
+   waits up to 45 minutes for a successful `Tests` run of that exact commit, confirms it is on
+   `testflight`, then moves `release`. If the checks took longer, rerun `Release` manually
+   with the tag as input.
+4. Tag the commit that was pushed to `main` (for a PR, the merge commit). A commit inside a
+   multi-commit push has no `Tests` run of its own and is rejected.
 
 ### Failure handling
 
@@ -66,7 +70,9 @@ the owner's approval and an update of this table in the same change.
 | `Tests` red on `main` | `testflight` stays on the last green commit; no TestFlight build | Fix on `main`; the next green push promotes |
 | `promote-testflight` push rejected | `testflight` has a commit that is not on `main` (manual push or rewritten `main`) | Stop; the owner decides how to realign — do not force-push |
 | `Release` fails "not vMAJOR.MINOR.PATCH" / "annotated" / "does not match MARKETING_VERSION" / "not on main" | The tag is invalid | The owner deletes the tag and pushes a correct one |
-| `Release` fails "has not reached testflight" | `Tests` for that commit is red or took over 45 minutes | Still running: wait for green, then run `Release` manually with the tag. Red: fix on `main`, bump PATCH, tag the fixed commit |
+| `Release` fails "Tests failed" | `Tests` for the tagged commit is red | Fix on `main`, bump PATCH, tag the fixed commit |
+| `Release` fails "no successful Tests run" | `Tests` still running after 45 minutes, or the tag is on a commit without its own run | Still running: wait for green, then run `Release` manually with the tag. No run: the owner moves the tag to the pushed commit |
+| `Release` fails "passed Tests but is not on testflight" | `promote-testflight` failed in that run | Check that job; see the `promote-testflight` row |
 | `Release` succeeds with "release already contains" | The tag is older than `release` (an older tag after a newer one) | Nothing to do; releases only move forward |
 | `Release` push rejected | `release` has a commit that is not an ancestor of the tag (manual push) | Stop; the owner decides how to realign — do not force-push |
 
@@ -88,6 +94,6 @@ the owner's approval and an update of this table in the same change.
 - A release tag builds twice in Xcode Cloud if its commit was also a `testflight` build;
   submit the build from the "Release" workflow.
 - `scripts/ci-boot-simulator.sh` is shared with regional-check; keep them in sync.
-- Known gap: `promote-release.sh` checks that the tagged commit is an ancestor of `testflight`,
-  not that its own `Tests` run passed. If a red commit is tagged and a later green commit is
-  promoted, `Release` would accept the red tag. Tag only a commit whose `Tests` run is green.
+- `Release` checks the `Tests` run of the tagged commit itself (GitHub API, `actions: read`), not
+  only ancestry of `testflight`: a later green commit would otherwise let a red tagged commit
+  through.
