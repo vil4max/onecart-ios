@@ -3,7 +3,7 @@
 Assignee: onecart-e1
 State: blocked
 Requested by: agent-engineering-kit-40 relaying owner request (2026-09-17)
-Evidence: audit and plan below (blocked on owner approval of the removal list); no history rewrite or force push done
+Evidence: #37 (phone removed from HEAD), review video removed from HEAD; history rewrite blocked until 1.2.1 App Review ends and the owner says yes to the force push in this session
 
 ## Goal
 
@@ -37,18 +37,42 @@ ID, `fastlane/Appfile`, `invite-site/.openai/hosting.json` (empty bindings), `de
 `tf-welcome-siwa.mp4` (simulator recording), Supabase migrations (`service_role` grants are SQL,
 not keys). No private keys, tokens, `.env` or certificate files were ever committed.
 
-## Rewrite plan (not executed; needs owner approval)
+## Approvals
+
+- 2026-09-17, owner direct in session github-privacy-revision, relayed by that session:
+  "подтверждаю - исправляй, отправляй сессиям задания" — approves the removal list below, removing
+  the review video, the rewrite plan, and preparing the GitHub Support text.
+- 2026-09-17, owner direct in the same session, answering whether `member@gmail.com` is the
+  owner's address: "убирай" — map that identity to the primary one.
+- Still required in this session before execution: the owner's direct yes to the force push and
+  tag re-creation. Owner-only: revoking the retired Supabase key, sending the GitHub Support
+  request.
+
+## Approved removal list
+
+| Kind | Target | filter-repo option |
+|---|---|---|
+| Path | `assets/store/review/delete-account-physical-2026-09-01.mp4` | `--invert-paths --path` |
+| Path | `qa/onecart-backup.json`, `qa/onecart-lists.csv`, `qa/dogfood-report.md` | `--invert-paths --path` |
+| String | owner phone number in `docs/release.md`, `docs/operations/release.md` | `--replace-text` |
+| String | `$HOME/` in `justfile` | `--replace-text` → `$HOME/` |
+| String | retired Supabase publishable key and project ref (`SupabaseServices.swift`, `docs/legacy.md`, `NATIVE_IOS.md`) | `--replace-text` → `<redacted>` |
+| Identity | author and committer `alex member <member@gmail.com>` (28 commits, `ebd4583`…`723c88d`) | `--mailmap` → `Max Vilchevskiy <vil4max@gmail.com>`; Copilot, Cursor Agent, cursor[bot] and GitHub committer entries unchanged |
+
+## Rewrite plan (approved scope; not executed)
 
 1. Owner approves the final removal list from the table above.
 2. Tool: `git filter-repo` (already installed at `/opt/homebrew/bin/git-filter-repo`).
 3. Work in a fresh mirror clone under
-   `~/Developer/Personal/agent-artifacts/2026-09-17/onecart-history-cleanup/work/`:
+   `~/Developer/Personal/agent-artifacts/2026-09-17/github-privacy-revision/work/onecart/`:
    `git clone --mirror https://github.com/vil4max/OneCart.git`, then a backup
    `git bundle create onecart-before-rewrite.bundle --all` kept in `outputs/`.
-4. Rewrite: `--replace-text` for the phone number and the `/Users/…` path, `--invert-paths
-   --path …` for approved files, optional `--mailbox-map` for the author identity.
-5. Verify in the mirror: re-run the audit scan (no matches), `git fsck`, both tags still point
-   at commits with the same trees except removed paths.
+4. Rewrite in one `git filter-repo` run with the approved removal list (expressions and mailmap
+   files stay in `work/`, never in the repository).
+5. Verify in the mirror: the audit scan finds none of the removed strings or paths;
+   `git log --all --format='%ae%n%ce' | grep -c member` is 0 and a content scan for `member`
+   is 0 (the pre-rewrite scan already found no content matches); `git fsck`; `main` tree equals
+   the pre-rewrite `main` tree apart from removed paths and strings.
 6. Refs that change: every commit from the first affected one (`ebd4583` if `qa/` or the author
    map is included, otherwise `d155ff5`) onward, so `main`, `testflight`, `release`, `v1.2.0`,
    `v1.2.1` all get new SHAs.
@@ -65,9 +89,26 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
    - Every local clone and session must re-clone or hard-reset; announce before and after.
    - GitHub keeps the old commits reachable through the 36 `refs/pull/*` refs and cached views
      until GitHub Support purges them; request that only after the force push.
-8. Owner approvals required separately: removal list, running the rewrite, each force push,
-   tag re-creation, disabling Xcode Cloud workflows, contacting GitHub Support.
+8. After the push: every local clone and worktree is re-cloned (this checkout included), and the
+   audit is re-run against `origin`.
+
+## GitHub Support request (owner sends it after the force push)
+
+> Subject: Remove cached views and pull request refs after a history rewrite — vil4max/OneCart
+>
+> Hello, I rewrote the history of my public repository https://github.com/vil4max/OneCart to
+> remove personal data (a phone number, a screen recording showing my account name and photo,
+> seed data with family names, a local machine path, a retired API key, and a second e-mail
+> address in commit metadata). The rewritten branches and tags are already force-pushed.
+> Old commits are still reachable through the repository's `refs/pull/*` refs (pull requests
+> #1–#38) and cached commit and file views. Please run garbage collection and purge cached views
+> and pull request refs that point to the pre-rewrite commits. The repository has no forks.
+> Thank you.
 
 ## Done in this brief
 
-- Phone number removed from `docs/operations/release.md` at `HEAD`.
+- Phone number removed from `docs/operations/release.md` at `HEAD` (#37).
+- Review video copied to
+  `~/Developer/Personal/agent-artifacts/2026-09-17/github-privacy-revision/work/onecart/`
+  (SHA-256 `8afe91f1…5b60`, identical to the committed file) and removed from `HEAD`; links in
+  `docs/operations/release.md` and `assets/store/README.md` updated.
