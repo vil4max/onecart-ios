@@ -136,7 +136,7 @@
             }
             let sharedID = UUID()
             let listID = UUID()
-            let sharedName = "Max's Cart"
+            let sharedName = "Alex's Cart"
             let now = Date()
 
             do {
@@ -172,7 +172,7 @@
                 model.familyMembers = [
                     FamilyMember(
                         id: ownerID,
-                        displayName: "Max",
+                        displayName: "Alex",
                         access: .owner,
                         joinedAt: now.addingTimeInterval(-86400),
                         isCurrentUser: false,
@@ -259,14 +259,14 @@
                 credential = AppleSignInCredential(
                     userID: "onecart-demo-owner",
                     email: nil,
-                    givenName: "Max",
+                    givenName: "Alex",
                     familyName: nil
                 )
             case .member:
                 credential = AppleSignInCredential(
                     userID: "onecart-demo-member",
                     email: nil,
-                    givenName: "Tim",
+                    givenName: "Sam",
                     familyName: nil
                 )
             case .welcome:
@@ -299,7 +299,7 @@
             let cred = AppleSignInCredential(
                 userID: "onecart-demo-owner",
                 email: nil,
-                givenName: "Max",
+                givenName: "Alex",
                 familyName: nil
             )
             credential = cred
@@ -313,7 +313,7 @@
             return AppleSignInCredential(
                 userID: "onecart-demo-owner",
                 email: nil,
-                givenName: "Max",
+                givenName: "Alex",
                 familyName: nil
             )
         }

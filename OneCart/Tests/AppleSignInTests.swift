@@ -105,10 +105,10 @@ final class AppleSignInTests: XCTestCase {
         await viewModel.signInWithTestAccount()
 
         XCTAssertFalse(session.needsWelcome)
-        XCTAssertEqual(session.account?.displayName, "Max")
+        XCTAssertEqual(session.account?.displayName, "Alex")
         let expectedCartName = try AppSession.householdCartName(for: XCTUnwrap(session.account))
         XCTAssertEqual(session.activeFamilySpace?.displayName, expectedCartName)
-        XCTAssertEqual(store.load()?.givenName, "Max")
+        XCTAssertEqual(store.load()?.givenName, "Alex")
 
         // Clean up
         session.signOut()

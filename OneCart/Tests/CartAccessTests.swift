@@ -37,7 +37,7 @@ final class CartAccessTests: XCTestCase {
             permissionAuthorizer: DenyAllPermissionAuthorizer()
         )
         do {
-            try await denyRepository.togglePurchased(id: productID, participantDisplayName: "Tim")
+            try await denyRepository.togglePurchased(id: productID, participantDisplayName: "Sam")
             XCTFail("expected permission denied")
         } catch let error as RepositoryError {
             XCTAssertEqual(error, .permissionDenied)
@@ -55,7 +55,7 @@ final class CartAccessTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -86,7 +86,7 @@ final class CartAccessTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -105,15 +105,15 @@ final class CartAccessTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         await session.renameActiveCart("Дом")
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
-        XCTAssertEqual(session.account?.displayName, "Max")
+        XCTAssertEqual(session.account?.displayName, "Alex")
         XCTAssertEqual(session.cartTitle, "Дом")
     }
 
     func testPersonalCartNameUsesAccountDisplayName() {
-        let account = OneCartAccount(id: UUID(), displayName: "Алекс")
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
         XCTAssertEqual(
             AppSession.householdCartName(for: account),
-            String(localized: "cart.personal_title \("Алекс")")
+            String(localized: "cart.personal_title \("Саша")")
         )
     }
 
@@ -121,7 +121,7 @@ final class CartAccessTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
@@ -140,7 +140,7 @@ final class CartAccessTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         XCTAssertEqual(
             session.cartTitle,
-            String(localized: "cart.personal_title \("Max")")
+            String(localized: "cart.personal_title \("Alex")")
         )
 
         await session.updateParticipantDisplayName("Папа")
@@ -157,7 +157,7 @@ final class CartAccessTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Max")
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
         let repository = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: AllowAllPermissionAuthorizer()
