@@ -157,7 +157,7 @@ Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archive
 xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -json
 ```
 
-**First-time (Xcode UI):** push `main` → open `OneCart/OneCart.xcodeproj` → Report navigator → Cloud → Get Started → product `OneCart` / team `BTHRDS7254` → grant repo access → commit generated `OneCart/OneCart.xcodeproj/xcshareddata/xcodecloud/manifest.json`.
+**First-time (Xcode UI):** push `main` → open `OneCart/OneCart.xcodeproj` → Report navigator → Cloud → Get Started → product `OneCart` / team `BTHRDS7254` → grant repo access → commit generated `OneCart/OneCart.xcodeproj/xcshareddata/xcodecloud/manifest.json`. After setup, the start conditions must match ADR 0003 (`testflight` / `release`, never `main`).
 
 **Target workflow** (App Store Connect → Xcode Cloud → Manage Workflows):
 
@@ -165,11 +165,11 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 |-------|-------|
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Workflows | "AppStore Connect + TestFlight" (branch `testflight`), "Release" (branch `release`) |
+| Workflows | "AppStore Connect + TestFlight" (exact branch `testflight`), "Release" (exact branch `release`); exact settings in [ADR 0003](../decisions/0003-ci-split.md) |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends&Family** |
 
-Both branches are fast-forwarded by GitHub Actions only after `Tests` is green (ADR 0003). Submit App Store builds from the "Release" workflow.
+Both branches are fast-forwarded by GitHub Actions only after `Tests` is green; never push them by hand (ADR 0003). Submit App Store builds from the "Release" workflow; release steps and failure handling are in ADR 0003.
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
 

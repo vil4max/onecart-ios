@@ -30,6 +30,17 @@ For PR review (alex / review agent), start at [docs/engineering/review-changelog
 
 **Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Настройки — see [docs/requirements/product.md](docs/requirements/product.md).
 
+## CI and releases
+
+Source: [ADR 0003](docs/decisions/0003-ci-split.md). GitHub Actions tests; Xcode Cloud only archives.
+
+- `main` — development. `Tests` (`.github/workflows/tests.yml`) runs on every push and PR.
+- `testflight` and `release` are moved only by GitHub Actions, only by fast-forward. Never push,
+  force-push, reset, or delete them.
+- Version tags `vMAJOR.MINOR.PATCH` are created and pushed only by the owner; an agent does not tag.
+- Xcode Cloud workflow settings live in App Store Connect, not in the repo; change them only with
+  the owner's explicit approval and update ADR 0003 in the same change.
+
 ## Config
 
 Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
