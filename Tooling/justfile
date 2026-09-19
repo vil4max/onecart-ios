@@ -124,12 +124,12 @@ reset:
     echo "reset.sh not found under $root" >&2
     exit 1
 
-release:
+release *args:
     #!/usr/bin/env bash
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/release.sh" ]]; then exec "$d/release.sh"; fi
+      if [[ -x "$d/release.sh" ]]; then exec "$d/release.sh" {{args}}; fi
     done
     echo "release.sh not found under $root" >&2
     exit 1

@@ -61,13 +61,16 @@ fi
 xtc="$(cap_field host.xcode_tools configured)"
 if [[ "$xtc" == true ]]; then
   add_check host.xcode_tools.configured true "Apple xcode-tools MCP configured"
-else
-  # Required on Cursor hosts; treat missing as fail for personal Mac workflow
+elif is_cursor_host; then
+  # Documented contract: required on Cursor hosts only.
   add_check host.xcode_tools.configured false "enable Apple xcode-tools MCP in Cursor"
+else
+  WARNINGS+=("xcode-tools MCP not configured — optional outside Cursor")
+  add_check host.xcode_tools.configured true "xcode-tools MCP optional: not a Cursor session"
 fi
 
 xth="$(cap_field host.xcode_tools healthy)"
-if [[ "$xth" != true ]]; then
+if [[ "$xtc" == true && "$xth" != true ]]; then
   WARNINGS+=("xcode-tools configured but not healthy for execute (open Xcode with project); using xcodebuild")
 fi
 
@@ -91,10 +94,12 @@ done
 CHECKS_JSON+="]"
 
 WARN_JSON="["
-for i in "${!WARNINGS[@]}"; do
-  [[ $i -gt 0 ]] && WARN_JSON+=","
-  WARN_JSON+=$(printf '%s' "${WARNINGS[$i]}" | jq -Rs .)
-done
+if have jq; then
+  for i in "${!WARNINGS[@]}"; do
+    [[ $i -gt 0 ]] && WARN_JSON+=","
+    WARN_JSON+=$(printf '%s' "${WARNINGS[$i]}" | jq -Rs .)
+  done
+fi
 WARN_JSON+="]"
 
 if $JSON; then

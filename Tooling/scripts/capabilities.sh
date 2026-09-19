@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
+# Cursor sessions expose these markers; xcode-tools MCP is required only there.
+is_cursor_host() {
+  [[ -n "${CURSOR_TRACE_ID:-}" || -n "${CURSOR_AGENT:-}" ]]
+}
+
 cap_json_obj() {
   local configured="$1" available="$2" healthy="$3"
   printf '{"configured":%s,"available":%s,"healthy":%s}' "$configured" "$available" "$healthy"
@@ -104,7 +109,7 @@ xcodebuild_mcp_cap() {
   if have npx; then
     available=true
   fi
-  # Execute via this provider is opt-in; never auto-healthy in 0.1
+  # Execute via this provider is opt-in; never auto-healthy
   healthy=false
   cap_json_obj "$configured" "$available" "$healthy"
 }

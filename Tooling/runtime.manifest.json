@@ -18,7 +18,7 @@
     { "name": "profile", "availability": "stub" },
     { "name": "harness-update", "availability": "ready" }
   ],
-  "profiles": ["minimal", "personal"],
+  "profiles": ["minimal"],
   "capabilities_declared": [
     "xcodebuild",
     "swift",

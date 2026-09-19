@@ -12,7 +12,12 @@ PROJ="$(find_xcodeproj)"
 WS="$(find_xcworkspace)"
 DEST="$(destination_spec)"
 
-ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug build)
+ACTION=build
+if [[ "${RUNTIME_XCODEBUILD_BUILD_FOR_TESTING:-false}" == true ]]; then
+  ACTION=build-for-testing
+fi
+
+ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug "$ACTION")
 if [[ -n "$WS" ]]; then
   ARGS=(-workspace "$WS" "${ARGS[@]}")
 elif [[ -n "$PROJ" ]]; then
