@@ -84,6 +84,7 @@ extension AppSession {
         if let deletedAccountID {
             defaults.removeObject(forKey: activeFamilyKey(accountID: deletedAccountID))
             MemberJoinNotifier.clearSeenMembers(accountID: deletedAccountID, defaults: defaults)
+            HouseholdCartCoordinator.clearKnownSharedFamilies(accountID: deletedAccountID, defaults: defaults)
         }
         preferences.participantDisplayName = ""
         appleSignIn.clearCredential()

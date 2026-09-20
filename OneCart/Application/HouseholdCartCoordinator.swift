@@ -262,25 +262,44 @@ final class HouseholdCartCoordinator {
 
     private func adoptSharedFamilyCartIfNeeded(for account: OneCartAccount) async throws {
         guard let host else { return }
+        // With shared spaces present this reload already activates the stored shared cart, or the first one.
         try host.reloadHousehold(preferredFamilySpaceID: nil)
 
-        guard let sharedFamily = host.familySpaces.first(where: {
-            persistence.scope(for: $0) == .shared
-        }), let sharedID = sharedFamily.id else {
-            return
+        let sharedIDs = host.familySpaces
+            .filter { persistence.scope(for: $0) == .shared }
+            .compactMap(\.id)
+        guard !sharedIDs.isEmpty else { return }
+
+        // This runs on every cloud import and spaces arrive sorted by `updatedAt`, so picking the
+        // first shared space would flip the active cart to whichever family was edited last.
+        // Only a shared space this device has not seen yet (a fresh join) may take over.
+        let knownKey = Self.knownSharedFamiliesKey(accountID: account.id)
+        let knownIDs = Set(defaults.stringArray(forKey: knownKey) ?? [])
+        defaults.set(sharedIDs.map(\.uuidString), forKey: knownKey)
+
+        if let joinedID = sharedIDs.first(where: { !knownIDs.contains($0.uuidString) }),
+           joinedID != host.activeFamilySpace?.id
+        {
+            defaults.set(
+                joinedID.uuidString,
+                forKey: host.activeFamilyKey(accountID: account.id)
+            )
+            // Other shared families remain intact; selection must never mutate their mirrored data.
+            try host.reloadHousehold(preferredFamilySpaceID: joinedID)
         }
-
-        defaults.set(
-            sharedID.uuidString,
-            forKey: host.activeFamilyKey(accountID: account.id)
-        )
-        try host.reloadHousehold(preferredFamilySpaceID: sharedID)
-
-        // Other shared families remain intact; selection must never mutate their mirrored data.
-        try host.reloadHousehold(preferredFamilySpaceID: sharedID)
         await host.refreshFamilyMetadata(showErrors: false)
         CartSyncLog.cart.info(
-            "adoptShared active=\(sharedID.uuidString, privacy: .public) personalKeptHidden"
+            "adoptShared active=\(host.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public) personalKeptHidden"
         )
+    }
+
+    /// Sign-out keeps the known set so signing back in does not switch carts again;
+    /// account deletion removes it with the rest of the account's local state.
+    static func clearKnownSharedFamilies(accountID: UUID, defaults: UserDefaults) {
+        defaults.removeObject(forKey: knownSharedFamiliesKey(accountID: accountID))
+    }
+
+    private static func knownSharedFamiliesKey(accountID: UUID) -> String {
+        "onecart.known-shared-family-space-ids.\(accountID.uuidString)"
     }
 }

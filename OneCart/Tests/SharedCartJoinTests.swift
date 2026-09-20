@@ -311,7 +311,105 @@ final class SharedCartJoinTests: XCTestCase {
         return (session, account, privateID, sharedID)
     }
 
-    private func seedSharedCart(
+    private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
+        let request = FamilySpace.fetchRequest()
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "id == %@", id as NSUUID),
+            NSPredicate(format: "deletedAt == nil"),
+        ])
+        request.fetchLimit = 1
+        return request
+    }
+
+    private func persistenceScope(
+        for space: FamilySpace?,
+        in persistence: PersistenceController
+    ) -> PersistentStoreScope? {
+        guard let space else { return nil }
+        return persistence.scope(for: space)
+    }
+}
+
+@MainActor
+final class SharedCartSelectionTests: XCTestCase {
+    func testCloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
+        let chosenID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Выбранная",
+            productName: "Chosen",
+            updatedAt: Date().addingTimeInterval(-3600)
+        )
+        let otherID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Другая",
+            productName: "Other",
+            updatedAt: Date()
+        )
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        try await session.offerSharedCartJoinIfNeededForTesting()
+        let chosen = try XCTUnwrap(session.familySpaces.first { $0.id == chosenID })
+        session.setActiveFamilySpace(chosen)
+        XCTAssertEqual(session.activeFamilySpace?.id, chosenID)
+
+        // Every cloud import runs the same join offer; the other cart stays the most recently edited.
+        try await session.offerSharedCartJoinIfNeededForTesting()
+        try await session.offerSharedCartJoinIfNeededForTesting()
+
+        XCTAssertEqual(session.activeFamilySpace?.id, chosenID)
+        XCTAssertEqual(
+            defaults.string(forKey: activeFamilyKey(accountID: account.id)),
+            chosenID.uuidString
+        )
+        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Chosen"])
+        XCTAssertEqual(Set(session.familySpaces.compactMap(\.id)), [chosenID, otherID])
+    }
+
+    func testNewlyJoinedSharedCartBecomesActiveOverCurrentSharedCart() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let account = OneCartAccount(id: UUID(), displayName: "Саша")
+        let currentID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Текущая",
+            productName: "Current",
+            updatedAt: Date()
+        )
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+        try session.bootstrapTestingSession(account: account)
+        try await session.offerSharedCartJoinIfNeededForTesting()
+        XCTAssertEqual(session.activeFamilySpace?.id, currentID)
+
+        // Older updatedAt proves selection follows the join, not the sort order.
+        let joinedID = try await seedSharedCart(
+            persistence: persistence,
+            name: "Новая",
+            productName: "Joined",
+            updatedAt: Date().addingTimeInterval(-3600)
+        )
+        try await session.offerSharedCartJoinIfNeededForTesting()
+
+        XCTAssertEqual(session.activeFamilySpace?.id, joinedID)
+        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Joined"])
+    }
+}
+
+@MainActor
+private extension XCTestCase {
+    func seedSharedCart(
         persistence: PersistenceController,
         name: String,
         productName: String?,
@@ -360,26 +458,8 @@ final class SharedCartJoinTests: XCTestCase {
         return sharedID
     }
 
-    private func activeFamilyKey(accountID: UUID) -> String {
+    func activeFamilyKey(accountID: UUID) -> String {
         "onecart.active-family-space-id.\(accountID.uuidString)"
-    }
-
-    private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return request
-    }
-
-    private func persistenceScope(
-        for space: FamilySpace?,
-        in persistence: PersistenceController
-    ) -> PersistentStoreScope? {
-        guard let space else { return nil }
-        return persistence.scope(for: space)
     }
 }
 
