@@ -39,6 +39,34 @@ final class ProductCategoryInferenceTests: XCTestCase {
         XCTAssertEqual(ProductCategory.inferred(from: "Laundry detergent"), .household)
     }
 
+    func testShortKeywordsDoNotMatchInsideUnrelatedWords() {
+        // "tea" inside "steak", "ham" inside "shampoo", "oil" inside "toilet"/"foil".
+        XCTAssertEqual(ProductCategory.inferred(from: "Steak"), .meatPoultry)
+        XCTAssertEqual(ProductCategory.inferred(from: "Shampoo"), .household)
+        XCTAssertEqual(ProductCategory.inferred(from: "Toilet paper"), .other)
+        XCTAssertEqual(ProductCategory.inferred(from: "Foil"), .other)
+        // "oat" inside "goat", "egg" inside "veggie", "bun" inside "bundle".
+        XCTAssertEqual(ProductCategory.inferred(from: "Goat cheese"), .dairyEggs)
+        XCTAssertEqual(ProductCategory.inferred(from: "Veggie mix"), .other)
+        // "сок" inside "носок"/"кусок", "рис" inside "барбарис".
+        XCTAssertEqual(ProductCategory.inferred(from: "носок"), .other)
+        XCTAssertEqual(ProductCategory.inferred(from: "кусок сыра"), .dairyEggs)
+        XCTAssertEqual(ProductCategory.inferred(from: "барбарис"), .other)
+    }
+
+    func testShortKeywordsStillMatchWholeWordsAndInflections() {
+        XCTAssertEqual(ProductCategory.inferred(from: "Green tea"), .hotDrinks)
+        XCTAssertEqual(ProductCategory.inferred(from: "Teabags"), .hotDrinks)
+        XCTAssertEqual(ProductCategory.inferred(from: "Ham"), .meatPoultry)
+        XCTAssertEqual(ProductCategory.inferred(from: "Eggs"), .dairyEggs)
+        XCTAssertEqual(ProductCategory.inferred(from: "Sunflower oil"), .oilCanned)
+        XCTAssertEqual(ProductCategory.inferred(from: "Cheesecake"), .sweetsSnacks)
+        XCTAssertEqual(ProductCategory.inferred(from: "Swordfish"), .fishSeafood)
+        XCTAssertEqual(ProductCategory.inferred(from: "чай зелёный"), .hotDrinks)
+        XCTAssertEqual(ProductCategory.inferred(from: "апельсиновый сок"), .coldDrinks)
+        XCTAssertEqual(ProductCategory.inferred(from: "рисовая мука"), .grocery)
+    }
+
     func testLegacyStoredCategories() {
         XCTAssertEqual(ProductCategory.resolved(storedRawValue: "produce"), .produce)
         XCTAssertEqual(ProductCategory.resolved(storedRawValue: "fresh"), .produce)

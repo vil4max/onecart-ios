@@ -122,7 +122,8 @@ enum ProductCategory: String, CaseIterable, Identifiable {
 
     static func inferred(from productName: String) -> ProductCategory {
         let value = productName.lowercased()
-        for rule in inferenceRules where rule.matches(value) {
+        let tokens = value.split { !$0.isLetter && !$0.isNumber }
+        for rule in inferenceRules where rule.matches(value, tokens: tokens) {
             return rule.category
         }
         return .other
@@ -135,9 +136,25 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         let prefixes: [String]
         let category: ProductCategory
 
-        func matches(_ value: String) -> Bool {
-            keywords.contains { value.contains($0) }
+        func matches(_ value: String, tokens: [Substring]) -> Bool {
+            keywords.contains { Self.keyword($0, matches: value, tokens: tokens) }
                 || prefixes.contains { value.hasPrefix($0) }
+        }
+
+        /// Short keywords collide inside unrelated words ("tea" in "steak",
+        /// "ham" in "shampoo", "oil" in "toilet"), so they match on word
+        /// boundaries only. Stems of up to three characters must start a word;
+        /// four-character ones may also end it ("cheesecake", "swordfish").
+        /// Longer keywords keep substring matching for compounds and inflections.
+        private static func keyword(_ keyword: String, matches value: String, tokens: [Substring]) -> Bool {
+            switch keyword.count {
+            case ...3:
+                tokens.contains { $0.hasPrefix(keyword) }
+            case 4:
+                tokens.contains { $0.hasPrefix(keyword) || $0.hasSuffix(keyword) }
+            default:
+                value.contains(keyword)
+            }
         }
     }
 
