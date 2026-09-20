@@ -46,7 +46,7 @@ struct ShoppingListView: View {
     }
 
     private var isAllPurchased: Bool {
-        !products.isEmpty && toBuyProducts.isEmpty
+        CartCelebration.isAllPurchased(totalCount: products.count, toBuyCount: toBuyProducts.count)
     }
 
     private var trimmedDraft: String {
@@ -347,7 +347,10 @@ struct ShoppingListView: View {
         if isComposingNewItem, trimmedDraft.isEmpty {
             cancelNewItemComposer()
         }
-        let willCompleteCart = !product.isPurchasedValue && toBuyProducts.count == 1
+        let willCompleteCart = CartCelebration.willCompleteCart(
+            togglingPurchasedItem: product.isPurchasedValue,
+            toBuyCount: toBuyProducts.count
+        )
         if willCompleteCart, !hasCelebratedCurrentCompletion {
             hasCelebratedCurrentCompletion = true
             CartHaptics.success()
