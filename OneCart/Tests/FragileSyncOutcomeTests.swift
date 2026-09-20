@@ -133,6 +133,47 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(calls, 2)
     }
 
+    func testCloudReloadScheduledRightAfterCancelStillRuns() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        cartSync.onHardRefresh = {}
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let host = ReloadCountingHost()
+        coordinator.bind(host: host)
+
+        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
+        coordinator.cancel()
+        // The cancelled task has not run its cleanup yet; the new request must not be dropped.
+        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
+
+        try await waitForReloads(1, on: host)
+        XCTAssertEqual(host.reloadCount, 1)
+    }
+
+    func testShorterCloudReloadDelayReschedulesPendingReload() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        cartSync.onHardRefresh = {}
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let host = ReloadCountingHost()
+        coordinator.bind(host: host)
+        defer { coordinator.cancel() }
+
+        coordinator.scheduleCloudReload(delayNanoseconds: 30_000_000_000)
+        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
+
+        try await waitForReloads(1, on: host)
+        XCTAssertEqual(host.reloadCount, 1)
+    }
+
+    private func waitForReloads(_ count: Int, on host: ReloadCountingHost) async throws {
+        for _ in 0 ..< 100 where host.reloadCount < count {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+    }
+
     func testSoftRefreshCartProductsBumpsRevision() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
@@ -194,5 +235,41 @@ final class FragileSyncOutcomeTests: XCTestCase {
         }
         XCTAssertFalse(session.products.isEmpty)
         XCTAssertEqual(session.products.first?.displayName, "Хлеб")
+    }
+}
+
+@MainActor
+private final class ReloadCountingHost: CloudSyncHost {
+    let account: OneCartAccount? = OneCartAccount(id: UUID(), displayName: "Reload")
+    var isOnline = true
+    var syncState: OneCartSyncState = .synchronized
+    private(set) var reloadCount = 0
+
+    func applySyncState(_ state: OneCartSyncState) {
+        syncState = state
+    }
+
+    func applyLastSyncError(_: String?) {}
+
+    func presentSyncAlert(_: String) {}
+
+    func presentProductionSchemaAlertIfNeeded(_: String) {}
+
+    func drainWidgetPendingToggles() async {}
+
+    func softRefreshCartProducts() {}
+
+    func refreshFamilyMetadata(showErrors _: Bool) async {}
+
+    func offerSharedCartJoinIfNeeded(for _: OneCartAccount) async throws {
+        reloadCount += 1
+    }
+
+    func userFacingMessage(for error: Error) -> String {
+        error.localizedDescription
+    }
+
+    func applyConnectivityOnline(_ isOnline: Bool) {
+        self.isOnline = isOnline
     }
 }

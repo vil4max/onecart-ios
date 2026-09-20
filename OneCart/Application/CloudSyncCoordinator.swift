@@ -31,7 +31,13 @@ final class CloudSyncCoordinator {
     private var objectsDidChangeObserver: NSObjectProtocol?
     private var scheduledReloadTask: Task<Void, Never>?
     private var softRefreshTask: Task<Void, Never>?
-    private var cloudReloadPending = false
+    /// Identifies the task that owns `scheduledReloadTask`; a cancelled or replaced task must not
+    /// clear the slot of its successor when its cleanup finally runs.
+    private var scheduledReloadGeneration = 0
+    /// Shortest delay requested since the reload loop last went to sleep; nil means nothing pending.
+    private var pendingReloadDelay: UInt64?
+    /// Delay the reload loop is currently sleeping on; nil while it is syncing.
+    private var sleepingReloadDelay: UInt64?
     private var didPresentProductionSchemaAlert = false
 
     init(persistence: PersistenceController, cartSync: CartSyncService) {
@@ -45,8 +51,13 @@ final class CloudSyncCoordinator {
 
     func cancel() {
         scheduledReloadTask?.cancel()
+        // Free the slot now: the cancelled task runs its cleanup later, and a reload
+        // requested in between would otherwise be dropped.
+        scheduledReloadTask = nil
+        scheduledReloadGeneration += 1
+        pendingReloadDelay = nil
+        sleepingReloadDelay = nil
         softRefreshTask?.cancel()
-        cloudReloadPending = false
         if let remoteChangeObserver {
             NotificationCenter.default.removeObserver(remoteChangeObserver)
             self.remoteChangeObserver = nil
@@ -173,18 +184,33 @@ final class CloudSyncCoordinator {
 
     func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
         guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
-        cloudReloadPending = true
-        guard scheduledReloadTask == nil else { return }
+        pendingReloadDelay = min(pendingReloadDelay ?? .max, delayNanoseconds)
+        if scheduledReloadTask != nil {
+            // Only a sleeping loop is replaced, and only by a shorter request. A loop that is
+            // already syncing picks the pending delay up on its next pass.
+            guard let sleepingReloadDelay, delayNanoseconds < sleepingReloadDelay else { return }
+            scheduledReloadTask?.cancel()
+            self.sleepingReloadDelay = nil
+        }
+        scheduledReloadGeneration += 1
+        let generation = scheduledReloadGeneration
         scheduledReloadTask = Task { [weak self] in
             defer {
-                self?.scheduledReloadTask = nil
+                if let self, scheduledReloadGeneration == generation {
+                    scheduledReloadTask = nil
+                    sleepingReloadDelay = nil
+                }
             }
             while let self, !Task.isCancelled {
-                guard cloudReloadPending else { return }
-                cloudReloadPending = false
-                try? await Task.sleep(nanoseconds: delayNanoseconds)
-                guard !Task.isCancelled, !persistence.accountDeletionRecoveryRequired else { return }
-                if cloudReloadPending {
+                guard let delay = pendingReloadDelay else { return }
+                pendingReloadDelay = nil
+                sleepingReloadDelay = delay
+                try? await Task.sleep(nanoseconds: delay)
+                // A cancelled task no longer owns the shared state; leave it to its successor.
+                guard !Task.isCancelled else { return }
+                sleepingReloadDelay = nil
+                guard !persistence.accountDeletionRecoveryRequired else { return }
+                if pendingReloadDelay != nil {
                     continue
                 }
                 guard let host, let account = host.account else { return }
