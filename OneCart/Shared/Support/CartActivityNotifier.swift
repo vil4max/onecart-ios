@@ -60,7 +60,8 @@ public enum CartActivityDiff {
 
         let baseline = previous.isEmpty ? stored : previous
         let baselineIDs = Set(baseline.map(\.id))
-        let baselineMap = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
+        // Replica rows can share an id until launch dedupe runs; keep the first instead of trapping.
+        let baselineMap = Dictionary(baseline.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let normalizedUser = currentUserName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         var events: [CartActivityEvent] = []

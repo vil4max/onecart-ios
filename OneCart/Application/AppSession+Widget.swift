@@ -8,7 +8,10 @@ extension AppSession {
     ) {
         let activeTheme = themeOverride ?? preferences.theme
         let activeAccent = accentOverride ?? preferences.accentColor
-        guard isReady, let accountID = account?.id, let familyID = activeFamilySpace?.id,
+        // Bootstrap reloads run before account state is restored; an empty write here would
+        // outlive a process suspended mid-launch and blank the widget.
+        guard isReady else { return }
+        guard let accountID = account?.id, let familyID = activeFamilySpace?.id,
               let list = activeLists.first ?? lists.first
         else {
             let emptySnapshot = WidgetCartSnapshot(

@@ -190,6 +190,21 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded?.preferredColorScheme, .dark)
     }
 
+    @MainActor
+    func testUpdateWidgetSnapshotBeforeReadyKeepsStoredSnapshot() throws {
+        let store = try makeWidgetStore().store
+        store.save(snapshot: .placeholder)
+        let session = AppSession(widgetStore: store)
+        session.isReady = false
+        session.updateWidgetSnapshot()
+        XCTAssertEqual(store.loadSnapshot()?.totalCount, WidgetCartSnapshot.placeholder.totalCount)
+        XCTAssertFalse(try XCTUnwrap(store.loadSnapshot()).isEmpty)
+
+        session.isReady = true
+        session.updateWidgetSnapshot()
+        XCTAssertTrue(try XCTUnwrap(store.loadSnapshot()).isEmpty)
+    }
+
     func testAccentColorRoundtripAndFallback() throws {
         let berrySnapshot = WidgetCartSnapshot(
             cartTitle: "Berry Cart",

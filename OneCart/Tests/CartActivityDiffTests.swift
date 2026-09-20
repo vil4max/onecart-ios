@@ -264,4 +264,32 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertFalse(diff.shouldNotify)
         XCTAssertTrue(diff.events.isEmpty)
     }
+
+    func testDuplicateBaselineIDsDoNotTrap() {
+        // Two live rows can share a Product.id until launch dedupe removes the replica.
+        let id = UUID()
+        let baseline = [
+            CartItemSnapshot(id: id, name: "Хлеб", isPurchased: false, createdByName: myName),
+            CartItemSnapshot(id: id, name: "Хлеб", isPurchased: false, createdByName: myName),
+        ]
+        let updated = [
+            CartItemSnapshot(
+                id: id,
+                name: "Хлеб",
+                isPurchased: true,
+                createdByName: myName,
+                purchasedByName: partnerName
+            ),
+        ]
+
+        let diff = CartActivityDiff.evaluate(
+            previous: baseline,
+            stored: baseline,
+            current: updated,
+            currentUserName: myName,
+            isSharedCart: true
+        )
+
+        XCTAssertEqual(diff.events, [.allPurchased(author: partnerName)])
+    }
 }

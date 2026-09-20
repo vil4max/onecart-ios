@@ -18,9 +18,12 @@ final class AccountViewModel: ObservableObject {
     @Published var draftCartName = ""
 
     private let session: AppSession
+    private let shareTimeoutNanoseconds: UInt64
+    private var shareGeneration = 0
 
-    init(session: AppSession) {
+    init(session: AppSession, shareTimeoutNanoseconds: UInt64 = 48_000_000_000) {
         self.session = session
+        self.shareTimeoutNanoseconds = shareTimeoutNanoseconds
     }
 
     var needsAccountName: Bool {
@@ -198,8 +201,10 @@ final class AccountViewModel: ObservableObject {
         isSharing = true
         CartHaptics.light()
         CartSyncLog.action.info("shareCart UI start")
+        shareGeneration += 1
+        let generation = shareGeneration
         let work = Task { @MainActor in
-            defer { isSharing = false }
+            defer { finishShare(generation: generation) }
             do {
                 let link = try await session.createFamilyInviteLink()
                 guard !Task.isCancelled else { return }
@@ -224,16 +229,21 @@ final class AccountViewModel: ObservableObject {
             }
         }
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 48_000_000_000)
-            guard !work.isCancelled else { return }
-            if isSharing {
-                work.cancel()
-                isSharing = false
-                CartSyncLog.action.error("shareCart UI timeout")
-                if let message = OneCartCloudKitError.shareTimedOut.errorDescription {
-                    shareAlert = .error(message)
-                }
+            try? await Task.sleep(nanoseconds: shareTimeoutNanoseconds)
+            guard generation == shareGeneration else { return }
+            work.cancel()
+            finishShare(generation: generation)
+            CartSyncLog.action.error("shareCart UI timeout")
+            if let message = OneCartCloudKitError.shareTimedOut.errorDescription {
+                shareAlert = .error(message)
             }
         }
+    }
+
+    /// Retires the attempt so its watchdog and a late-finishing cancelled task cannot touch a newer share.
+    private func finishShare(generation: Int) {
+        guard generation == shareGeneration else { return }
+        shareGeneration += 1
+        isSharing = false
     }
 }
