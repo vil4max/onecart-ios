@@ -289,7 +289,10 @@ extension FamilySpaceRepository {
             predicates.append(NSPredicate(format: "id != %@", excludingID as NSUUID))
         }
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        request.fetchLimit = 50
+        // No fetch limit: normalization (case, whitespace, diacritics) cannot be expressed as a
+        // predicate, so every live row of the list must be compared. Oldest first keeps the
+        // first writer as the surviving row when several match.
+        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
         let candidates = try context.fetch(request)
         return candidates.first { candidate in
             guard let name = candidate.name else { return false }

@@ -373,6 +373,20 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(products.first?.displayName, "Яйца")
     }
 
+    func testDuplicateNameIsDetectedBeyondFiftyLiveRows() async throws {
+        let (_, repository) = try await makeInMemoryRepository()
+        let (_, listID, _) = try await seedCart(repository: repository)
+
+        for index in 0 ..< 60 {
+            try await repository.addProduct(to: listID, draft: productDraft(name: "Filler \(index)"))
+        }
+        let lateID = try await repository.addProduct(to: listID, draft: productDraft(name: "Кефир"))
+
+        let duplicateID = try await repository.addProduct(to: listID, draft: productDraft(name: " кефир "))
+
+        XCTAssertEqual(duplicateID, lateID)
+    }
+
     func testBusyFlagStaysSetUntilLastOverlappingOperationEnds() throws {
         let defaults = try makeDefaults()
         let session = AppSession(
