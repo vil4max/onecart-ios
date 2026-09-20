@@ -36,17 +36,3 @@ demo-tab role="owner" tab="cart":
             done
         fi
     fi
-
-demo-ipad role="owner":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    IPAD_ID="$(xcrun simctl list devices available -j | /usr/bin/python3 -c "import json, sys; data=json.load(sys.stdin); print(next((d['udid'] for devs in data.get('devices', {}).values() for d in devs if 'iPad' in d.get('name', '') and d.get('state') == 'Booted'), ''))" 2>/dev/null || true)"
-    if [[ -z "$IPAD_ID" ]]; then
-        IPAD_ID="$(xcrun simctl list devices available -j | /usr/bin/python3 -c "import json, sys; data=json.load(sys.stdin); print(next((d['udid'] for devs in data.get('devices', {}).values() for d in devs if 'iPad' in d.get('name', '') and d.get('isAvailable', True)), ''))" 2>/dev/null || true)"
-        xcrun simctl boot "$IPAD_ID" 2>/dev/null || true
-    fi
-    open -a Simulator 2>/dev/null || true
-    just build
-    APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -name "OneCart.app" -type d | head -n 1)"
-    xcrun simctl install "$IPAD_ID" "$APP_PATH"
-    xcrun simctl launch "$IPAD_ID" com.vil555tim.onecart -oneCartDemoUI -oneCartDemoRole {{role}}
