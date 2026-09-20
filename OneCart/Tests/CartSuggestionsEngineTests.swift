@@ -43,6 +43,21 @@ struct CartSuggestionsEngineTests {
         #expect(!suggestions.contains("Сыр"))
     }
 
+    @Test("Excludes cart items with the same diacritic-insensitive normalization as cart dedupe")
+    func excludesCurrentCartItemsIgnoringDiacritics() {
+        let history = ["Crème brûlée", "Jalapeño", "Milk"]
+        let currentCart = ["creme brulee", " JALAPENO "]
+
+        let suggestions = CartSuggestionsEngine.suggestions(
+            historyItemNames: history,
+            currentCartItemNames: currentCart,
+            defaults: ["Crème brûlée"],
+            limit: 5
+        )
+
+        #expect(suggestions == ["Milk"])
+    }
+
     @Test("Falls back to defaults when history is empty")
     func defaultsWhenHistoryEmpty() {
         let defaults = ["Хлеб", "Молоко", "Яйца", "Сыр"]

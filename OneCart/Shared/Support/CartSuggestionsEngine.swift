@@ -54,9 +54,11 @@ enum CartSuggestionsEngine {
         defaults: [String] = defaultEssentials(),
         limit: Int = 8
     ) -> [String] {
+        // Same normalization as cart dedupe, so a name the cart would reject as a
+        // duplicate ("Creme brulee" vs "Crème brûlée") is never suggested.
         let excludedSet = Set(
             currentCartItemNames
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .map(FamilyCartMerge.normalizedProductName)
                 .filter { !$0.isEmpty }
         )
 
@@ -112,7 +114,7 @@ enum CartSuggestionsEngine {
         //    - Matches query (if query is provided)
         let filtered = candidates.filter { name in
             let key = name.lowercased()
-            if excludedSet.contains(key) {
+            if excludedSet.contains(FamilyCartMerge.normalizedProductName(name)) {
                 return false
             }
             if trimmedQuery.isEmpty {
