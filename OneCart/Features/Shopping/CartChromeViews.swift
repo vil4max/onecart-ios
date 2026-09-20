@@ -182,7 +182,6 @@ struct CartProgressStrip: View {
         .padding(.top, 8)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OneCartPalette.background)
         .animation(.spring(response: 0.38, dampingFraction: 0.8), value: isAllPurchased)
     }
 }

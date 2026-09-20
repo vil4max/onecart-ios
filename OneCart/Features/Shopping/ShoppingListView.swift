@@ -138,7 +138,7 @@ struct ShoppingListView: View {
                 .animation(.spring(response: 0.38, dampingFraction: 0.82), value: showsEmptyCard)
                 .scrollContentBackground(.hidden)
                 .background(OneCartPalette.background.ignoresSafeArea())
-                .safeAreaInset(edge: .top, spacing: 0) {
+                .safeAreaBar(edge: .top, spacing: 0) {
                     if !products.isEmpty || isComposingNewItem {
                         CartProgressStrip(
                             isAllPurchased: isAllPurchased,
