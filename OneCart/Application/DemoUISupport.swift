@@ -83,17 +83,16 @@
                 if let defaults = UserDefaults(suiteName: suiteName) {
                     defaults.removePersistentDomain(forName: suiteName)
                 }
-                AppleSignInService.shared.clearCredential()
-            }
-            let signIn = DemoAppleSignInService(role: role)
-            if let credential = signIn.storedCredential() {
-                AppleSignInService.shared.save(credential)
             }
             let session = AppSession(
-                persistence: PersistenceController(inMemory: role == .welcome, cloudKitEnabled: false),
+                persistence: PersistenceController(
+                    inMemory: role == .welcome,
+                    storeDirectoryURL: role == .welcome ? nil : storeDirectoryURL(for: role),
+                    cloudKitEnabled: false
+                ),
                 preferences: DevicePreferences(defaults: .standard),
                 defaults: UserDefaults(suiteName: suiteName) ?? .standard,
-                appleSignIn: signIn
+                appleSignIn: DemoAppleSignInService(role: role)
             )
             if let initialAccent {
                 session.preferences.accentColor = initialAccent
@@ -106,6 +105,14 @@
                 session.welcomePhase = .signIn
             }
             return session
+        }
+
+        /// Demo stores live apart from `NSPersistentContainer.defaultDirectoryURL()`: seeded rows
+        /// written to the real OneCart stores would export to CloudKit on the next normal launch.
+        private static func storeDirectoryURL(for role: Role) -> URL {
+            URL.applicationSupportDirectory
+                .appendingPathComponent("OneCartDemo", isDirectory: true)
+                .appendingPathComponent(role.rawValue, isDirectory: true)
         }
 
         @MainActor
@@ -251,6 +258,8 @@
     }
 
     // Unchecked: DEBUG-only demo double, used from the main actor.
+    // The credential stays in memory: demo mode must never touch the real
+    // Sign in with Apple Keychain item.
     final class DemoAppleSignInService: AppleSignInAuthenticating, @unchecked Sendable {
         private var credential: AppleSignInCredential?
 
@@ -281,12 +290,10 @@
 
         func save(_ credential: AppleSignInCredential) {
             self.credential = credential
-            AppleSignInService.shared.save(credential)
         }
 
         func clearCredential() {
             credential = nil
-            AppleSignInService.shared.clearCredential()
         }
 
         func credentialState(for _: String) async -> AppleSignInCredentialState {
