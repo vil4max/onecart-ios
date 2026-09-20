@@ -69,10 +69,6 @@ extension PersistenceController {
         )
     }
 
-    func resetLocalStoreFiles() throws {
-        try hardResetPersistentStores()
-    }
-
     static func shouldWipeLocalStoresForCloudKitEnvironment(
         previous: String?,
         current: String,

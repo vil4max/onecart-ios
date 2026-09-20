@@ -42,10 +42,6 @@ final class FamilySpace: NSManagedObject {
         deletedAt != nil
     }
 
-    var needsRemoteCreationValue: Bool {
-        needsRemoteCreation?.boolValue ?? false
-    }
-
     var isHouseholdDefaultValue: Bool {
         isHouseholdDefault?.boolValue ?? false
     }
@@ -125,22 +121,6 @@ final class StoreEntity: NSManagedObject {
         name?.nilIfBlank ?? String(localized: "common.default_store")
     }
 
-    var displayIcon: String {
-        icon?.nilIfBlank ?? String(displayName.prefix(2)).uppercased()
-    }
-
-    var displayColorHex: String {
-        colorHex?.nilIfBlank ?? "#34785B"
-    }
-
-    var latitudeValue: Double? {
-        latitude?.doubleValue
-    }
-
-    var longitudeValue: Double? {
-        longitude?.doubleValue
-    }
-
     var isPinnedValue: Bool {
         isPinned?.boolValue ?? false
     }
@@ -155,14 +135,6 @@ final class StoreEntity: NSManagedObject {
 
     var isDeletedValue: Bool {
         deletedAt != nil
-    }
-
-    var activeList: ShoppingListEntity? {
-        let values = lists?.allObjects as? [ShoppingListEntity] ?? []
-        return values
-            .filter { !$0.isDeletedValue && $0.statusValue == .active }
-            .sorted { $0.updatedDate > $1.updatedDate }
-            .first
     }
 }
 
@@ -226,10 +198,6 @@ final class ShoppingListEntity: NSManagedObject {
             return $0.createdDate > $1.createdDate
         }
     }
-
-    var estimatedTotal: Double {
-        sortedProducts.reduce(0) { $0 + $1.estimatedPriceValue }
-    }
 }
 
 enum ProductUnit: String, CaseIterable, Identifiable {
@@ -244,17 +212,6 @@ enum ProductUnit: String, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
-    }
-
-    var localizedName: String {
-        switch self {
-        case .piece: String(localized: "common.unit.piece")
-        case .kg: String(localized: "common.unit.kg")
-        case .g: String(localized: "common.unit.g")
-        case .l: String(localized: "common.unit.l")
-        case .ml: String(localized: "common.unit.ml")
-        case .pack: String(localized: "common.unit.pack")
-        }
     }
 }
 
@@ -310,33 +267,6 @@ final class ProductEntity: NSManagedObject {
 
     var estimatedPriceValue: Double {
         max(estimatedPrice?.doubleValue ?? 0, 0)
-    }
-
-    var originalPriceValue: Double? {
-        if let promotionEndsAt, promotionEndsAt <= Date() {
-            return nil
-        }
-        guard let value = originalPrice?.doubleValue, value > estimatedPriceValue else { return nil }
-        return value
-    }
-
-    var loyaltyPriceValue: Double? {
-        if let promotionEndsAt, promotionEndsAt <= Date() {
-            return nil
-        }
-        guard let value = loyaltyPrice?.doubleValue,
-              value > 0,
-              value < estimatedPriceValue else { return nil }
-        return value
-    }
-
-    var isCatalogPriceStale: Bool {
-        guard sourceURLValue != nil else { return false }
-        guard let catalogFetchedAt else { return true }
-        if let promotionEndsAt, promotionEndsAt <= Date() {
-            return true
-        }
-        return Date().timeIntervalSince(catalogFetchedAt) > 5 * 60
     }
 
     var imageURLValue: URL? {
@@ -399,10 +329,6 @@ final class PurchaseHistoryEntity: NSManagedObject {
 
     var purchaseDate: Date {
         date ?? createdAt ?? .distantPast
-    }
-
-    var membersDisplay: String {
-        memberNames?.nilIfBlank ?? String(localized: "common.default_group")
     }
 
     var createdDate: Date {
@@ -475,11 +401,6 @@ final class HistoryItemEntity: NSManagedObject {
 
     var estimatedPriceValue: Double {
         max(estimatedPrice?.doubleValue ?? 0, 0)
-    }
-
-    var originalPriceValue: Double? {
-        guard let value = originalPrice?.doubleValue, value > estimatedPriceValue else { return nil }
-        return value
     }
 
     var imageURLValue: URL? {

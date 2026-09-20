@@ -76,13 +76,6 @@ final class CloudKitBackendService: Sendable {
         persistence.scope(for: family) == .shared ? .member : .owner
     }
 
-    func createFamilyInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
-        try await createFamilyInviteLink(
-            objectID: family.objectID,
-            displayName: family.displayName
-        )
-    }
-
     /// Prefer calling this after flushing the view context and reading `objectID` / name
     /// on the MainActor so CloudKit work does not hold the UI actor.
     func createFamilyInviteLink(
@@ -318,10 +311,6 @@ final class CloudKitBackendService: Sendable {
         return true
     }
 
-    func revokeInviteLink(_ family: FamilySpace) async throws {
-        try await revokeInviteLink(objectID: family.objectID)
-    }
-
     func revokeInviteLink(objectID: NSManagedObjectID) async throws {
         if persistence.inMemory {
             return
@@ -357,14 +346,6 @@ final class CloudKitBackendService: Sendable {
             )
             throw error
         }
-    }
-
-    func stopSharing(_ family: FamilySpace) async throws {
-        try await stopSharing(objectID: family.objectID)
-    }
-
-    func stopSharing(objectID: NSManagedObjectID) async throws {
-        try await revokeInviteLink(objectID: objectID)
     }
 
     private func share(for family: FamilySpace) throws -> CKShare? {
