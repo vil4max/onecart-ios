@@ -13,7 +13,7 @@ final class AppSession: ObservableObject {
     )
 
     @Published var isReady = false
-    @Published var isBusy = false
+    @Published private(set) var isBusy = false
     @Published var needsWelcome = false
     @Published var welcomePhase: WelcomePhase = .signIn
     @Published var account: OneCartAccount?
