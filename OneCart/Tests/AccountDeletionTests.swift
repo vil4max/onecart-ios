@@ -308,6 +308,69 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
     }
 
+    func test_deleteAccount_whenCloudFailsBeforeDestructiveRequest_leavesNoMarkerAndKeepsMirroring() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
+        fixture.cloud.failurePoint = .beforeDestructiveRequest
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.session.account?.id, fixture.account.id)
+        XCTAssertEqual(fixture.session.userAlert?.message, String(localized: "account.delete_failed"))
+        XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+        XCTAssertFalse(fixture.persistence.accountDeletionRecoveryRequired)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.persistence.accountDeletionMarkerURL.path))
+
+        let relaunched = PersistenceController(
+            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
+            cloudKitEnabled: true
+        )
+        XCTAssertFalse(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
+        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
+            $0.cloudKitContainerOptions != nil
+        })
+    }
+
+    func test_deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
+        fixture.cloud.failurePoint = .afterDestructiveRequestStarted
+
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.session.account?.id, fixture.account.id)
+        XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+        XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .pendingCloud)
+
+        let relaunched = PersistenceController(
+            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
+            cloudKitEnabled: true
+        )
+        XCTAssertTrue(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
+        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
+            $0.cloudKitContainerOptions == nil
+        })
+    }
+
+    func test_deleteAccount_whenRetryFailsBeforeDestructiveRequest_keepsEarlierPendingMarker() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
+        fixture.cloud.failurePoint = .afterDestructiveRequestStarted
+        await fixture.session.deleteAccount()
+
+        fixture.cloud.failurePoint = .beforeDestructiveRequest
+        await fixture.session.deleteAccount()
+
+        XCTAssertEqual(fixture.cloud.callCount, 2)
+        XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .pendingCloud)
+        XCTAssertTrue(fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
+            $0.cloudKitContainerOptions == nil
+        })
+    }
+
     func test_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
@@ -388,6 +451,8 @@ final class AccountDeletionTests: XCTestCase {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+        // The process died while the zone deletion request was in flight.
+        try fixture.persistence.writeAccountDeletionPhase(.pendingCloud)
         let relaunched = PersistenceController(
             storeDirectoryURL: fixture.persistence.storeDirectoryURL,
             cloudKitEnabled: true
@@ -447,6 +512,7 @@ final class AccountDeletionTests: XCTestCase {
         let productID = try await repository.addProduct(to: listID, draft: productDraft(name: "Unsynced milk"))
         let defaults = try makeDefaults()
         let cloud = RecordingAccountCloudDeleter()
+        cloud.requestMarker = persistence
         let session = AppSession(
             persistence: persistence,
             preferences: DevicePreferences(defaults: defaults),
@@ -457,6 +523,61 @@ final class AccountDeletionTests: XCTestCase {
         try session.bootstrapTestingSession(account: account)
         session.needsWelcome = false
         return (persistence, repository, session, cloud, apple, account, familyID, productID)
+    }
+
+    func test_deleteAccountZones_marksDestructiveRequestBeforeSendingIt() async throws {
+        let zoneID = CKRecordZone(zoneName: "cart").zoneID
+        let marker = RecordingDeletionRequestMarker()
+
+        try await CloudKitBackendService.deleteAccountZones([zoneID], marker: marker) { zoneIDs in
+            XCTAssertEqual(marker.markCount, 1)
+            return Dictionary(uniqueKeysWithValues: zoneIDs.map { ($0, .success(())) })
+        }
+
+        XCTAssertEqual(marker.markCount, 1)
+    }
+
+    func test_deleteAccountZones_whenRequestFails_hasAlreadyMarkedDestructiveRequest() async {
+        let zoneID = CKRecordZone(zoneName: "cart").zoneID
+        let marker = RecordingDeletionRequestMarker()
+
+        do {
+            try await CloudKitBackendService.deleteAccountZones([zoneID], marker: marker) { _ in
+                throw TestAccountDeletionError.simulated
+            }
+            XCTFail("A failed zone deletion request must propagate")
+        } catch {
+            XCTAssertEqual(marker.markCount, 1)
+        }
+    }
+
+    func test_deleteAccountZones_whenNoDeletableZones_neitherMarksNorSendsRequest() async throws {
+        let marker = RecordingDeletionRequestMarker()
+
+        try await CloudKitBackendService.deleteAccountZones([], marker: marker) { _ in
+            XCTFail("No request is expected without deletable zones")
+            return [:]
+        }
+
+        XCTAssertEqual(marker.markCount, 0)
+    }
+
+    func test_deleteAccountZones_whenMarkerCannotBePersisted_doesNotSendRequest() async {
+        let marker = RecordingDeletionRequestMarker()
+        marker.errorToThrow = TestAccountDeletionError.simulated
+
+        do {
+            try await CloudKitBackendService.deleteAccountZones(
+                [CKRecordZone(zoneName: "cart").zoneID],
+                marker: marker
+            ) { _ in
+                XCTFail("Zones must not be deleted without a persisted marker")
+                return [:]
+            }
+            XCTFail("The marker failure must propagate")
+        } catch {
+            XCTAssertEqual(marker.markCount, 1)
+        }
     }
 
     func test_recordZoneIDsForAccountDeletion_skipsDefaultZone() {
@@ -595,7 +716,15 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unc
     var callCount = 0
     var errorToThrow: Error?
     var delayNanoseconds: UInt64 = 0
+    var failurePoint: FailurePoint = .afterDestructiveRequestStarted
     weak var storeRecorder: RecordingLocalStorePreparer?
+    /// Mirrors the production deleter, which records the pending phase right before deleting zones.
+    var requestMarker: (any AccountDeletionRequestMarking)?
+
+    enum FailurePoint {
+        case beforeDestructiveRequest
+        case afterDestructiveRequestStarted
+    }
 
     func deletePrivateAccountCloudData() async throws {
         callCount += 1
@@ -603,6 +732,21 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unc
         if delayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: delayNanoseconds)
         }
+        if errorToThrow == nil || failurePoint == .afterDestructiveRequestStarted {
+            try requestMarker?.markDestructiveCloudDeletionRequestStarting()
+        }
+        if let errorToThrow {
+            throw errorToThrow
+        }
+    }
+}
+
+private final class RecordingDeletionRequestMarker: AccountDeletionRequestMarking, @unchecked Sendable {
+    var markCount = 0
+    var errorToThrow: Error?
+
+    func markDestructiveCloudDeletionRequestStarting() throws {
+        markCount += 1
         if let errorToThrow {
             throw errorToThrow
         }

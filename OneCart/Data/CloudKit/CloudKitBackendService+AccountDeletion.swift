@@ -17,6 +17,18 @@ extension CloudKitBackendService {
         let database = cloudContainer.privateCloudDatabase
         let zones = try await database.allRecordZones()
         let zoneIDs = Self.recordZoneIDsForAccountDeletion(from: zones)
+        try await Self.deleteAccountZones(zoneIDs, marker: persistence) { zoneIDs in
+            try await database.modifyRecordZones(saving: [], deleting: zoneIDs).deleteResults
+        }
+    }
+
+    /// Everything before `marker` fires is provably non-destructive; failures there must not
+    /// disable mirroring. The marker is persisted immediately before the request is sent.
+    static func deleteAccountZones(
+        _ zoneIDs: [CKRecordZone.ID],
+        marker: any AccountDeletionRequestMarking,
+        sendDeleteRequest: @Sendable ([CKRecordZone.ID]) async throws -> [CKRecordZone.ID: Result<Void, Error>]
+    ) async throws {
         guard !zoneIDs.isEmpty else {
             CartSyncLog.shareACL.info("deletePrivateAccountCloudData no deletable zones")
             return
@@ -25,12 +37,13 @@ extension CloudKitBackendService {
         CartSyncLog.shareACL.info(
             "deletePrivateAccountCloudData begin zones=\(zoneIDs.count)"
         )
+        try marker.markDestructiveCloudDeletionRequestStarting()
         do {
-            let result = try await database.modifyRecordZones(saving: [], deleting: zoneIDs)
-            try Self.validateAccountDeletionResults(result.deleteResults, requestedZoneIDs: zoneIDs)
+            let deleteResults = try await sendDeleteRequest(zoneIDs)
+            try validateAccountDeletionResults(deleteResults, requestedZoneIDs: zoneIDs)
             CartSyncLog.shareACL.info("deletePrivateAccountCloudData done")
         } catch {
-            if Self.isIdempotentAccountDeletionFailure(error) {
+            if isIdempotentAccountDeletionFailure(error) {
                 CartSyncLog.shareACL.info(
                     // swiftlint:disable:next line_length
                     "deletePrivateAccountCloudData treat already-gone error=\(error.localizedDescription, privacy: .public)"

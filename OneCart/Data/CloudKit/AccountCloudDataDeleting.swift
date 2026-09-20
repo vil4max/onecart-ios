@@ -8,6 +8,11 @@ protocol AccountCloudDataDeleting: AnyObject, Sendable {
 
 extension CloudKitBackendService: AccountCloudDataDeleting {}
 
+/// Records the boundary between harmless preparation and the destructive zone deletion request.
+protocol AccountDeletionRequestMarking: AnyObject, Sendable {
+    func markDestructiveCloudDeletionRequestStarting() throws
+}
+
 /// Unloads / reloads local Core Data stores around CloudKit account deletion.
 protocol AccountLocalStorePreparing: AnyObject, Sendable {
     func detachLocalStoresForCloudAccountDeletion() async throws
@@ -15,7 +20,7 @@ protocol AccountLocalStorePreparing: AnyObject, Sendable {
     func restoreLocalStoresAfterFailedCloudAccountDeletion() async throws
 }
 
-extension PersistenceController: AccountLocalStorePreparing {
+extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequestMarking {
     func detachLocalStoresForCloudAccountDeletion() async throws {
         if try readAccountDeletionPhase() == .cloudDeleted {
             try beginAccountStoreDeletion()
@@ -23,7 +28,7 @@ extension PersistenceController: AccountLocalStorePreparing {
         }
         try beginAccountStoreDeletion()
         do {
-            try writeAccountDeletionPhase(.pendingCloud)
+            // No marker yet: until the zone deletion request is sent, a failure or relaunch must keep mirroring.
             let context = container.viewContext
             try await context.perform {
                 if context.hasChanges {
@@ -57,6 +62,13 @@ extension PersistenceController: AccountLocalStorePreparing {
         finishAccountStoreDeletion()
         rebuildContainerAfterAccountDeletion(cloudKitEnabled: cloudKitEnabled && !accountDeletionRecoveryRequired)
         try await load()
+    }
+
+    /// Any outcome from here on may have deleted zones, so reloads stay local-only until deletion completes.
+    /// A marker left by an earlier attempt is never downgraded or cleared by a later pre-request failure.
+    func markDestructiveCloudDeletionRequestStarting() throws {
+        guard try readAccountDeletionPhase() == nil else { return }
+        try writeAccountDeletionPhase(.pendingCloud)
     }
 
     enum AccountDeletionPhase: String, Codable {
