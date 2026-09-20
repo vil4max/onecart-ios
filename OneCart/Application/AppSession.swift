@@ -32,6 +32,9 @@ final class AppSession: ObservableObject {
     @Published var isDeletingAccount = false
     @Published var isReconcilingPersonalCart = false
     var pendingCartMutationCount = 0
+    /// Backs `isBusy` for operations that may overlap, so the first one to finish
+    /// does not clear the flag while another is still running.
+    private(set) var busyOperationCount = 0
 
     var alertMessage: String? {
         userAlert?.message
@@ -249,6 +252,18 @@ final class AppSession: ObservableObject {
             await archiveStalePurchasedIfNeeded()
         case .pull, .cloudImport, .afterToggle, .afterMutation:
             break
+        }
+    }
+
+    func beginBusyOperation() {
+        busyOperationCount += 1
+        isBusy = true
+    }
+
+    func endBusyOperation() {
+        busyOperationCount = max(0, busyOperationCount - 1)
+        if busyOperationCount == 0 {
+            isBusy = false
         }
     }
 

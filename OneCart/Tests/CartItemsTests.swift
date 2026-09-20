@@ -373,6 +373,31 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(products.first?.displayName, "Яйца")
     }
 
+    func testBusyFlagStaysSetUntilLastOverlappingOperationEnds() throws {
+        let defaults = try makeDefaults()
+        let session = AppSession(
+            persistence: PersistenceController(inMemory: true, cloudKitEnabled: false),
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults
+        )
+
+        session.beginBusyOperation()
+        session.beginBusyOperation()
+        XCTAssertTrue(session.isBusy)
+
+        session.endBusyOperation()
+        XCTAssertTrue(session.isBusy, "One operation is still running")
+
+        session.endBusyOperation()
+        XCTAssertFalse(session.isBusy)
+
+        // An unbalanced end must not push the counter below zero and wedge the flag.
+        session.endBusyOperation()
+        session.beginBusyOperation()
+        session.endBusyOperation()
+        XCTAssertFalse(session.isBusy)
+    }
+
     private func purchasedBuyerSnapshot(
         productID: UUID,
         in context: NSManagedObjectContext

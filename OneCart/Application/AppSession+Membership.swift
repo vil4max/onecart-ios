@@ -18,8 +18,8 @@ extension AppSession {
             return
         }
         CartSyncLog.action.info("revokeInvite session begin")
-        isBusy = true
-        defer { isBusy = false }
+        beginBusyOperation()
+        defer { endBusyOperation() }
         do {
             try await shareOrchestrator.revokeInviteLink(for: family)
             clearPreparedInviteLink()
@@ -42,8 +42,8 @@ extension AppSession {
         let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        isBusy = true
-        defer { isBusy = false }
+        beginBusyOperation()
+        defer { endBusyOperation() }
         do {
             try await repository.renameFamilySpace(id: familyID, name: trimmed)
             try reload(preferredFamilySpaceID: familyID)
@@ -59,9 +59,9 @@ extension AppSession {
         guard persistence.isLoaded else { return }
         let metadata = AppDelegate.takePendingShareMetadata()
         guard !metadata.isEmpty else { return }
-        isBusy = true
+        beginBusyOperation()
         syncState = .syncing
-        defer { isBusy = false }
+        defer { endBusyOperation() }
 
         let alreadyAccepted = metadata.allSatisfy { $0.participantStatus == .accepted }
         let toAccept = metadata.filter { $0.participantStatus != .accepted }
@@ -115,8 +115,8 @@ extension AppSession {
         }
 
         CartSyncLog.action.info("removeMember start id=\(member.id.uuidString, privacy: .public)")
-        isBusy = true
-        defer { isBusy = false }
+        beginBusyOperation()
+        defer { endBusyOperation() }
         do {
             try await backend.removeMember(member, fromFamily: family.objectID)
             await refreshFamilyMetadata(showErrors: false)
@@ -139,8 +139,8 @@ extension AppSession {
         CartSyncLog.action.info(
             "leaveFamily start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
-        isBusy = true
-        defer { isBusy = false }
+        beginBusyOperation()
+        defer { endBusyOperation() }
         do {
             let discardLeftovers = try await backend.leaveFamily(objectID: family.objectID)
             if discardLeftovers, let familyID {

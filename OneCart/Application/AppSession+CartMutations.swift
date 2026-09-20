@@ -247,10 +247,10 @@ extension AppSession {
             return false
         }
 
-        isBusy = true
+        beginBusyOperation()
         pendingCartMutationCount += 1
         defer {
-            isBusy = false
+            endBusyOperation()
             finishCartMutation()
         }
 
