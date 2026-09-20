@@ -44,8 +44,9 @@ extension FamilySpaceRepository {
 
     /// Merges living rows that share a normalized name within one list.
     /// Two devices can add «Молоко» / «молоко» concurrently with different
-    /// stable IDs — CloudKit then delivers both records. First writer wins;
-    /// losers become soft-delete tombstones so the merge propagates.
+    /// stable IDs — CloudKit then delivers both records. First writer wins and
+    /// inherits a loser's purchase state; losers become soft-delete tombstones so
+    /// the merge propagates. Groups the participant may not update are skipped.
     /// - Returns: number of rows tombstoned.
     @discardableResult
     func deduplicateProductsByName() async throws -> Int {
@@ -80,6 +81,22 @@ extension FamilySpaceRepository {
                         return left < right
                     }
                     return ($0.id?.uuidString ?? "") < ($1.id?.uuidString ?? "")
+                }
+                // Read-only participants cannot export these writes; leave the merge to a writer's device.
+                guard let winner = ordered.first,
+                      ordered.allSatisfy({ self.permissionAuthorizer.canUpdate($0.objectID) })
+                else {
+                    continue
+                }
+                // A loser may carry the only Completed tick (checked off on another device).
+                let latestPurchase = ordered.dropFirst()
+                    .filter(\.isPurchasedValue)
+                    .max { ($0.purchasedAt ?? .distantPast) < ($1.purchasedAt ?? .distantPast) }
+                if !winner.isPurchasedValue, let latestPurchase {
+                    winner.isPurchased = NSNumber(value: true)
+                    winner.purchasedAt = latestPurchase.purchasedAt ?? now
+                    winner.purchasedByName = latestPurchase.purchasedByName
+                    winner.updatedAt = now
                 }
                 for loser in ordered.dropFirst() where loser.deletedAt == nil {
                     loser.deletedAt = now
