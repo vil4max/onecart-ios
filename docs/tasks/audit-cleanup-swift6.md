@@ -9,9 +9,9 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: cleanup, README fix, Swift 6 language mode and the first audit fixes pass
-`just verify`; store-load classification and account-deletion marker fixes are in progress;
-widget localization, iOS 26 Liquid Glass chrome and REQ IDs are pending.
+Current outcome: cleanup, Swift 6 language mode, the audit fixes, widget localization, system
+chrome, test isolation and dead-code removal are committed; REQ IDs, the iOS 27 deployment
+target and the icon remain open.
 Authorized scope: owner, direct, 2026-09-20 — audit the app, remove junk, fix the README, check the
 architecture, migrate to Swift 6, raise the minimum OS to iOS 27, redesign for iOS 27, new icon,
 fix the remaining audit findings. The owner delegated the four open decisions below to the agent.
@@ -20,7 +20,7 @@ Permitted deviations: commit and push are not authorized; the work stays in the 
 Material assumptions: GitHub-hosted `macos-26` runners offer no Xcode 27; only the preview label
 `xcode-27` does (checked against the runner-images README on 2026-09-20). Recheck before raising
 the deployment target.
-Next step: integrate the two running fix slices, then widget localization.
+Next step: owner decisions on REQ IDs, the iOS 27 deployment target and the icon.
 Requirements: none — `docs/requirements/product.md` defines no `REQ-<AREA>-NNN` IDs yet, so the
 audit reports and the architecture document served as the source of intent.
 Acceptance specs: see Evidence history.
@@ -68,10 +68,31 @@ chose stays active across sync."
 - [x] Widget accessibility labels and empty state, Reduce Motion, History grouping, row category
 - [x] Name dedupe keeps purchase state and honours permissions
 - [x] Active shared cart selection
-- [ ] Store-load failure classification for the wipe gate
-- [ ] Account-deletion marker written only once the destructive request starts
-- [ ] Widget localization
-- [ ] Glass add button and progress strip
+- [x] Store-load failure classification for the wipe gate
+- [x] Account-deletion marker written only once the destructive request starts
+- [x] Widget localization
+- [x] Partial store-load retry, dropped cloud reloads, `isBusy` counter, duplicate-name lookup
+      without a row cap, guarded `CKShare` key access
+- [x] One notification authorization path, unknown sign-in errors surfaced, demo account out of
+      Release, word-boundary category inference, widget store without a silent defaults fallback
+- [x] Demo mode uses its own stores and an in-memory credential
+- [x] System chrome: glass add button, safe-area progress strip, accented widgets, system list
+      chrome for Cart and History, system button styles, tab bar minimize
+- [x] Test isolation (one session factory, suite cleanup, deterministic timing, no silent skips)
+- [x] Unreferenced code removed
 - [ ] `REQ-<AREA>-NNN` IDs in `product.md` (proposal for owner approval)
 - [ ] Minimum iOS 27 (deferred, see decisions)
 - [ ] Icon built in Icon Composer from concept B layers (owner step)
+
+## Open items found during the work
+
+- `WidgetSnapshotStore.save`/`clear` call `WidgetCenter.reloadAllTimelines()` directly and
+  `DevicePreferences.theme` writes to the App Group regardless of the injected suite, so tests
+  cannot isolate those two paths.
+- The participant upgrade loop in `applyReadWriteACL` has no unit coverage: `CKShare.Participant`
+  has no public initializer.
+- Catalog keys `common.unit.g`, `kg`, `l`, `ml`, `pack`, `piece` have no remaining reference.
+- Widgets were never placed on a Home Screen; accented and clear rendering are unverified. The demo
+  cannot reach the busy overlay, the read-only banner, connect-failed or History "show more".
+- Prefix collisions in category inference remain ("eggplant" matches "egg").
+- Rows that earlier demo runs wrote into a developer's real stores are not cleaned up.
