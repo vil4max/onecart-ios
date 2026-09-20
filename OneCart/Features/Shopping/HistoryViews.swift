@@ -17,6 +17,8 @@ struct HistoryView: View {
     }
 
     var body: some View {
+        // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
+        let groups = dayGroups
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -26,7 +28,7 @@ struct HistoryView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isStaticText)
 
-                    if dayGroups.isEmpty {
+                    if groups.isEmpty {
                         EmptyCard(
                             image: "clock",
                             title: "history.empty_title",
@@ -35,11 +37,11 @@ struct HistoryView: View {
                     } else {
                         if isRegular {
                             LazyVGrid(columns: gridColumns, spacing: 16) {
-                                cardsContent
+                                cardsContent(groups)
                             }
                         } else {
                             LazyVStack(alignment: .leading, spacing: 16) {
-                                cardsContent
+                                cardsContent(groups)
                             }
                         }
 
@@ -66,8 +68,8 @@ struct HistoryView: View {
         }
     }
 
-    private var cardsContent: some View {
-        ForEach(dayGroups) { group in
+    private func cardsContent(_ groups: [HistoryDayGroup]) -> some View {
+        ForEach(groups) { group in
             NavigationLink {
                 HistoryDayDetailView(group: group)
             } label: {

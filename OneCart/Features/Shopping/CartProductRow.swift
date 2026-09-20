@@ -76,12 +76,15 @@ struct ProductRow: View {
     let onSubmitEdit: () -> Void
 
     private var resolvedCategory: ProductCategory {
-        let name = isEditing ? editName : product.displayName
-        let inferred = ProductCategory.inferred(from: name)
-        if inferred != .other {
-            return inferred
+        // The stored category drives section grouping, so the icon must agree with it.
+        // Keyword inference only previews an in-progress rename or fills a missing category.
+        let stored = product.categoryValue
+        let isRenaming = isEditing && editName != product.displayName
+        if stored != .other, !isRenaming {
+            return stored
         }
-        return product.categoryValue
+        let inferred = ProductCategory.inferred(from: isEditing ? editName : product.displayName)
+        return inferred != .other ? inferred : stored
     }
 
     var body: some View {

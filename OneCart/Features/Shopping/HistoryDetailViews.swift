@@ -25,15 +25,17 @@ struct HistoryDayDetailView: View {
     }
 
     var body: some View {
+        // Regrouping the whole history is not free; resolve the live group once per body pass.
+        let liveGroup = liveGroup
         ScrollView {
             Group {
                 if isRegular {
                     LazyVGrid(columns: gridColumns, spacing: 12) {
-                        rowsContent
+                        rowsContent(liveGroup.items)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
-                        rowsContent
+                        rowsContent(liveGroup.items)
                     }
                 }
             }
@@ -46,8 +48,8 @@ struct HistoryDayDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var rowsContent: some View {
-        ForEach(liveGroup.items, id: \.objectID) { item in
+    private func rowsContent(_ items: [HistoryItemEntity]) -> some View {
+        ForEach(items, id: \.objectID) { item in
             HistoryProductRow(item: item)
         }
     }

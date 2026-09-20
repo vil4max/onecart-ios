@@ -32,13 +32,21 @@ struct CartWidgetRootView: View {
     }
 }
 
+private func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
+    item.isPurchased
+        ? Text("Снять отметку «куплено»: \(item.name)")
+        : Text("Отметить как купленное: \(item.name)")
+}
+
 // MARK: - Lock Screen Widgets
 
 struct InlineLockScreenWidgetView: View {
     let snapshot: WidgetCartSnapshot
 
     var body: some View {
-        if snapshot.isEmpty || snapshot.isAllPurchased {
+        if snapshot.isEmpty {
+            Text("🛒 Корзина пуста")
+        } else if snapshot.isAllPurchased {
             Text("🛒 Все куплено")
         } else {
             let firstItem = snapshot.items.first(where: { !$0.isPurchased })?.name ?? ""
@@ -83,7 +91,7 @@ struct RectangularLockScreenWidgetView: View {
 
             let displayItems = Array(snapshot.items.prefix(2))
             if displayItems.isEmpty {
-                Text("Все куплено!")
+                Text(snapshot.isEmpty ? "Корзина пуста" : "Все куплено!")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -99,6 +107,7 @@ struct RectangularLockScreenWidgetView: View {
                                 .font(.system(size: 13))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(toggleAccessibilityLabel(for: item))
                         .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)
@@ -206,6 +215,7 @@ struct SmallHomeWidgetView: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(toggleAccessibilityLabel(for: item))
                             .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
@@ -337,9 +347,12 @@ struct MediumHomeWidgetView: View {
                         Image(systemName: "cart.badge.plus")
                             .font(.title2)
                             .foregroundStyle(.tertiary)
-                        Text("Все покупки сделаны!")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        // The left column already says the cart is empty.
+                        if !snapshot.isEmpty {
+                            Text("Все покупки сделаны!")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -362,6 +375,7 @@ struct MediumHomeWidgetView: View {
                                     )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(toggleAccessibilityLabel(for: item))
                             .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
@@ -468,6 +482,7 @@ struct LargeHomeWidgetView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(toggleAccessibilityLabel(for: item))
                         .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)

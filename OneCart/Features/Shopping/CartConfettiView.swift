@@ -20,6 +20,7 @@ struct ConfettiParticle: Identifiable {
 struct CartConfettiView: View {
     let trigger: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var particles: [ConfettiParticle] = []
     @State private var isAnimating: Bool = false
     @State private var startDate: Date = .now
@@ -91,7 +92,7 @@ struct CartConfettiView: View {
         .allowsHitTesting(false)
         .ignoresSafeArea()
         .onChange(of: trigger) { _, newTrigger in
-            guard newTrigger > 0 else { return }
+            guard newTrigger > 0, !reduceMotion else { return }
             fireConfetti(width: containerWidth)
         }
     }
