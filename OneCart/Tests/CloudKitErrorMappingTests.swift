@@ -354,4 +354,19 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
         XCTAssertEqual(CloudKitShareEnvironment.fromDiagnostic("plain share"), .unknown)
     }
+
+    func testShareDiagnosticSurvivesMissingPrivateKeys() {
+        let zoneID = CKRecordZone.ID(zoneName: "DiagnosticZone", ownerName: CKCurrentUserDefaultName)
+        let root = CKRecord(recordType: "FamilySpace", recordID: CKRecord.ID(recordName: "root", zoneID: zoneID))
+        let share = CKShare(rootRecord: root)
+
+        // A key the OS does not implement must be skipped instead of raising through KVC.
+        XCTAssertNil(
+            CloudKitShareEnvironment.guardedValue(forKey: "oneCartKeyRemovedByFutureOS", of: share)
+        )
+        XCTAssertTrue(
+            CloudKitShareEnvironment.diagnostic(for: share).contains(String(describing: share))
+        )
+        XCTAssertTrue(CloudKitShareEnvironment.canMutateInProcess(share))
+    }
 }

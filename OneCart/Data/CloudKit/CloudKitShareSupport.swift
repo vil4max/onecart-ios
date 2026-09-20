@@ -30,12 +30,23 @@ enum CloudKitShareEnvironment: String {
 
     static func diagnostic(for share: CKShare) -> String {
         var parts = [String(describing: share)]
-        for key in ["containerID", "containerIdentifier", "_containerID"] {
-            if let value = share.value(forKey: key) {
+        for key in privateContainerKeys {
+            if let value = guardedValue(forKey: key, of: share) {
                 parts.append("\(key)=\(String(describing: value))")
             }
         }
         return parts.joined(separator: " ")
+    }
+
+    /// Undocumented CKShare accessors that may disappear in any OS release. KVC on a missing key
+    /// raises an Objective-C exception Swift cannot catch, so each key is read only while the
+    /// share still responds to its getter; otherwise the description alone decides.
+    static let privateContainerKeys = ["containerID", "containerIdentifier", "_containerID"]
+
+    /// Test seam: same guard as `diagnostic(for:)`, for arbitrary keys.
+    static func guardedValue(forKey key: String, of share: CKShare) -> Any? {
+        guard share.responds(to: NSSelectorFromString(key)) else { return nil }
+        return share.value(forKey: key)
     }
 
     static func of(_ share: CKShare) -> CloudKitShareEnvironment {
