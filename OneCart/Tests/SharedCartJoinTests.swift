@@ -505,27 +505,20 @@ final class ShareLinkJoinACLTests: XCTestCase {
         XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
     }
 
-    func testApplyReadWriteACLUpgradesReadOnlyParticipants() {
+    /// The participant upgrade loop is not reachable from a unit test: `CKShare.Participant`
+    /// has no public initializer, and `oneTimeURLParticipant()` raises without the
+    /// `com.apple.developer.icloud-extended-share-access` entitlement. This covers only the
+    /// owner-only share, which must report no change and leave the owner alone.
+    func testApplyReadWriteACLLeavesOwnerOnlyOpenShareUnchanged() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
         share.publicPermission = .readWrite
+        XCTAssertEqual(share.participants.map(\.role), [.owner])
+        let ownerPermission = share.owner.permission
 
-        let readOnlyMembers = share.participants.filter {
-            $0.role != .owner && $0.permission != .readWrite
-        }
-        if readOnlyMembers.isEmpty {
-            XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-            XCTAssertEqual(share.publicPermission, .readWrite)
-            return
-        }
-
-        for participant in readOnlyMembers {
-            participant.permission = .readOnly
-        }
-        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-        for participant in share.participants where participant.role != .owner {
-            XCTAssertEqual(participant.permission, .readWrite)
-        }
         XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
+        XCTAssertEqual(share.publicPermission, .readWrite)
+        XCTAssertEqual(share.participants.map(\.role), [.owner])
+        XCTAssertEqual(share.owner.permission, ownerPermission)
     }
 }
 
