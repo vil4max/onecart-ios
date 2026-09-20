@@ -32,6 +32,45 @@ final class FragileStoreLoadTests: XCTestCase {
         }
     }
 
+    func testPartialLoadFailureAllowsRetryInSameProcess() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneCartFragilePartial-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        // Only the shared path is blocked, so the private store loads and the shared one fails.
+        let privateURL = directory.appendingPathComponent("OneCart-private.sqlite")
+        let sharedURL = directory.appendingPathComponent("OneCart-shared.sqlite")
+        try FileManager.default.createDirectory(at: sharedURL, withIntermediateDirectories: true)
+
+        let persistence = PersistenceController(
+            inMemory: false,
+            storeDirectoryURL: directory,
+            cloudKitEnabled: false
+        )
+
+        do {
+            try await persistence.load()
+            throw XCTSkip("Load unexpectedly succeeded with a directory occupying the sqlite path")
+        } catch is XCTSkip {
+            throw XCTSkip("Load unexpectedly succeeded with a directory occupying the sqlite path")
+        } catch {
+            XCTAssertFalse(persistence.isLoaded)
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
+        XCTAssertTrue(
+            persistence.container.persistentStoreCoordinator.persistentStores.isEmpty,
+            "A failed load must not leave a half-loaded coordinator behind"
+        )
+
+        try FileManager.default.removeItem(at: sharedURL)
+        try await persistence.load()
+
+        XCTAssertTrue(persistence.isLoaded)
+        XCTAssertNoThrow(try persistence.store(for: .private))
+        XCTAssertNoThrow(try persistence.store(for: .shared))
+    }
+
     func testDiagnosticsSnapshotCreatedBeforeExplicitHardReset() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileDiag-\(UUID().uuidString)", isDirectory: true)

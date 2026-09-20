@@ -298,11 +298,34 @@ final class PersistenceController: @unchecked Sendable {
                 result = .failure(error)
             }
         }
+        if case .failure = result {
+            detachPartiallyLoadedStores()
+        }
 
         loading = false
         let waiters = loadWaiters
         loadWaiters.removeAll()
         waiters.forEach { $0.resume(returning: result) }
+    }
+
+    /// A store that loaded next to one that failed stays attached to the coordinator, and the next
+    /// `loadPersistentStores` then fails it with Cocoa 134081 ("can't add the same store twice").
+    /// Detaching keeps a retry in the same process possible. `remove(_:)` only closes the store;
+    /// the files stay on disk (invariant F1).
+    private func detachPartiallyLoadedStores() {
+        let coordinator = container.persistentStoreCoordinator
+        for store in coordinator.persistentStores {
+            do {
+                try coordinator.remove(store)
+            } catch {
+                logger.error(
+                    // swiftlint:disable:next line_length
+                    "Unable to detach \(store.url?.lastPathComponent ?? "store", privacy: .public) after a failed load: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
+        privateStore = nil
+        sharedStore = nil
     }
 
     /// Cocoa codes that mean the on-disk store cannot be opened with the current model.
