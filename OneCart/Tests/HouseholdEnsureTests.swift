@@ -232,11 +232,11 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)
         fixture.session.pendingCartMutationCount = 0
-        fixture.session.isBusy = true
+        fixture.session.beginBusyOperation()
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)
 
-        fixture.session.isBusy = false
+        fixture.session.endBusyOperation()
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, importedID)
     }

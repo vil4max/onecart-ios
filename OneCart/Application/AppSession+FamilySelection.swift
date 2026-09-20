@@ -15,8 +15,8 @@ extension AppSession {
 
     func createFamilySpace(name: String) async {
         guard let account else { return }
-        isBusy = true
-        defer { isBusy = false }
+        beginBusyOperation()
+        defer { endBusyOperation() }
         do {
             let id = try await repository.createFamilySpace(
                 name: name,

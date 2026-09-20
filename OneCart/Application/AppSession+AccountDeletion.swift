@@ -19,10 +19,10 @@ extension AppSession {
         }
 
         isDeletingAccount = true
-        isBusy = true
+        beginBusyOperation()
         defer {
             isDeletingAccount = false
-            isBusy = false
+            endBusyOperation()
         }
 
         CartSyncLog.action.info("deleteAccount start")

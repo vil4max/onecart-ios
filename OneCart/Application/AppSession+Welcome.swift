@@ -57,16 +57,19 @@ extension AppSession {
         needsWelcome = true
         welcomePhase = .connecting
         isReady = true
-        isBusy = true
-        defer { isBusy = false }
-        appleSignIn.save(credential)
-        if let providedName = credential.providedDisplayName {
-            preferences.participantDisplayName = providedName
-        } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
-            preferences.participantDisplayName = ""
+        do {
+            // The busy operation ends before reconciliation: the coordinator skips
+            // reconciling while the session reports busy.
+            beginBusyOperation()
+            defer { endBusyOperation() }
+            appleSignIn.save(credential)
+            if let providedName = credential.providedDisplayName {
+                preferences.participantDisplayName = providedName
+            } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
+                preferences.participantDisplayName = ""
+            }
+            await bootstrapper.prepare(appleCredential: credential)
         }
-        await bootstrapper.prepare(appleCredential: credential)
-        isBusy = false
         if let account {
             try? await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
         }
