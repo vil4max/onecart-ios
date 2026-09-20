@@ -38,7 +38,7 @@ struct ProfileAvatarView: View {
     private var initialsView: some View {
         Text(initials)
             .font(.system(size: size * 0.34, weight: .bold, design: .rounded))
-            .foregroundColor(.white)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(OneCartPalette.primary(for: colorScheme, accent: accent))
     }

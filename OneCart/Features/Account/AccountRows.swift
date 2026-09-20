@@ -174,7 +174,6 @@ struct AccountAccentPickerRow: View {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             selection = color
                         }
-                        CartHaptics.light()
                     } label: {
                         ZStack {
                             Circle()
@@ -204,6 +203,7 @@ struct AccountAccentPickerRow: View {
             .padding(.vertical, 2)
         }
         .padding(.vertical, 4)
+        .sensoryFeedback(.impact(weight: .light), trigger: selection)
     }
 }
 
@@ -236,7 +236,6 @@ struct AccountAppIconPickerRow: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             selection = option
                         }
-                        CartHaptics.light()
                         Task {
                             _ = await AppIconManager.setAlternateIcon(to: option)
                         }
@@ -278,6 +277,7 @@ struct AccountAppIconPickerRow: View {
             .padding(.vertical, 2)
         }
         .padding(.vertical, 4)
+        .sensoryFeedback(.impact(weight: .light), trigger: selection)
         .animation(.easeInOut(duration: 0.35), value: accent)
     }
 }

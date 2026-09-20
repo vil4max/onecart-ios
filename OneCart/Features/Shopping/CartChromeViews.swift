@@ -18,10 +18,7 @@ struct CartBusyOverlay: View {
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
-            .background(
-                OneCartPalette.surface,
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-            )
+            .glassEffect(.regular, in: .rect(cornerRadius: 20, style: .continuous))
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(messageKey))
@@ -32,7 +29,7 @@ struct ReadOnlyBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "lock.fill")
-                .foregroundColor(.orange)
+                .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 3) {
                 Text("cart.read_only_title")
                     .font(.subheadline.bold())
@@ -53,7 +50,7 @@ struct EmptyCard: View {
         VStack(spacing: 10) {
             Image(systemName: image)
                 .font(.system(size: 28))
-                .foregroundColor(OneCartPalette.primary)
+                .foregroundStyle(OneCartPalette.primary)
                 .frame(width: 52, height: 52)
                 .background(
                     OneCartPalette.primarySoft,

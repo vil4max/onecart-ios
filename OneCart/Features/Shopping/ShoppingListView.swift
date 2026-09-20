@@ -175,6 +175,7 @@ struct ShoppingListView: View {
                 .overlay {
                     CartConfettiView(trigger: confettiTrigger)
                 }
+                .sensoryFeedback(.success, trigger: confettiTrigger)
                 .navigationTitle(model.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -348,7 +349,6 @@ struct ShoppingListView: View {
         )
         if willCompleteCart, !hasCelebratedCurrentCompletion {
             hasCelebratedCurrentCompletion = true
-            CartHaptics.success()
             confettiTrigger += 1
         }
         if product.isPurchasedValue {
