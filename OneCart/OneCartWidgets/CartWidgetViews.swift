@@ -38,6 +38,26 @@ private func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
         : Text("widget.toggle_mark_a11y \(item.name)")
 }
 
+/// Accented and vibrant rendering keep only the alpha of every color, so an opaque
+/// fill behind a label would swallow it. Outside full color the fill becomes a wash.
+private struct WidgetBadgeFill: ViewModifier {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    let color: Color
+    let shape: AnyShape
+
+    func body(content: Content) -> some View {
+        content
+            .background(color.opacity(renderingMode == .fullColor ? 1 : 0.2), in: shape)
+            .widgetAccentable()
+    }
+}
+
+private extension View {
+    func widgetBadge(_ color: Color, in shape: some Shape) -> some View {
+        modifier(WidgetBadgeFill(color: color, shape: AnyShape(shape)))
+    }
+}
+
 // MARK: - Lock Screen Widgets
 
 struct InlineLockScreenWidgetView: View {
@@ -66,9 +86,10 @@ struct CircularLockScreenWidgetView: View {
             Image(systemName: "cart.fill")
         } currentValueLabel: {
             Text("\(snapshot.remainingCount)")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(.callout, design: .rounded, weight: .bold))
         }
         .gaugeStyle(.accessoryCircular)
+        .widgetAccentable()
     }
 }
 
@@ -87,6 +108,7 @@ struct RectangularLockScreenWidgetView: View {
                 Text("widget.remaining \(snapshot.remainingCount)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .widgetAccentable()
             }
 
             let displayItems = Array(snapshot.items.prefix(2))
@@ -104,14 +126,15 @@ struct RectangularLockScreenWidgetView: View {
                             isPurchased: !item.isPurchased
                         )) {
                             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 13))
+                                .font(.footnote)
+                                .widgetAccentable(item.isPurchased)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(toggleAccessibilityLabel(for: item))
                         .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)
-                            .font(.system(size: 12))
+                            .font(.caption)
                             .strikethrough(item.isPurchased)
                             .foregroundStyle(item.isPurchased ? .secondary : .primary)
                             .lineLimit(1)
@@ -137,11 +160,12 @@ struct SmallHomeWidgetView: View {
             // Header: Icon + Title + Status Pill
             HStack(spacing: 5) {
                 Image(systemName: "cart.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
+                    .widgetAccentable()
 
                 Text(snapshot.cartTitle)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.footnote.weight(.bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .foregroundStyle(.primary)
@@ -150,17 +174,17 @@ struct SmallHomeWidgetView: View {
 
                 if snapshot.remainingCount > 0 {
                     Text("\(snapshot.remainingCount)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(.caption2, design: .rounded, weight: .bold))
                         .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                 } else if !snapshot.isEmpty {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(3)
-                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Circle())
+                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Circle())
                 }
             }
 
@@ -171,10 +195,10 @@ struct SmallHomeWidgetView: View {
                 VStack(spacing: 4) {
                     Spacer(minLength: 0)
                     Image(systemName: "cart")
-                        .font(.system(size: 22))
+                        .font(.title2)
                         .foregroundStyle(.tertiary)
                     Text("widget.empty")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                 }
@@ -183,13 +207,14 @@ struct SmallHomeWidgetView: View {
                 VStack(spacing: 3) {
                     Spacer(minLength: 0)
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
+                        .font(.title2)
                         .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
+                        .widgetAccentable()
                     Text("widget.all_purchased")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.primary)
                     Text("widget.in_trolley \(snapshot.totalCount) \(snapshot.totalCount)")
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                 }
@@ -206,20 +231,21 @@ struct SmallHomeWidgetView: View {
                                 isPurchased: !item.isPurchased
                             )) {
                                 Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 15))
+                                    .font(.subheadline)
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(
                                         item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
                                             .secondary
                                             .opacity(0.4)
                                     )
+                                    .widgetAccentable(item.isPurchased)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel(toggleAccessibilityLabel(for: item))
                             .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.caption2.weight(.medium))
                                 .strikethrough(item.isPurchased)
                                 .foregroundStyle(item.isPurchased ? .secondary : .primary)
                                 .lineLimit(1)
@@ -248,21 +274,23 @@ struct SmallHomeWidgetView: View {
                             Capsule()
                                 .fill(OneCartPalette.primary(for: scheme, accent: accent))
                                 .frame(width: max(0, geo.size.width * CGFloat(snapshot.progress)))
+                                .widgetAccentable()
                         }
                     }
                     .frame(height: 3.5)
 
                     HStack {
                         Text("widget.in_trolley \(snapshot.purchasedCount) \(snapshot.totalCount)")
-                            .font(.system(size: 9.5))
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
 
                         Spacer(minLength: 2)
 
                         if let partner = snapshot.activePartnerName, !partner.isEmpty {
                             Text(partner)
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.caption2.weight(.medium))
                                 .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                                 .lineLimit(1)
                         }
@@ -288,17 +316,17 @@ struct MediumHomeWidgetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Image(systemName: "cart.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 34, height: 34)
-                        .background(
+                        .widgetBadge(
                             OneCartPalette.primary(for: scheme, accent: accent),
                             in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                         )
                 }
 
                 Text(snapshot.cartTitle)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.callout.weight(.bold))
                     .lineLimit(1)
                     .foregroundStyle(.primary)
 
@@ -315,19 +343,20 @@ struct MediumHomeWidgetView: View {
                     HStack(spacing: 6) {
                         ProgressView(value: snapshot.progress)
                             .tint(OneCartPalette.primary(for: scheme, accent: accent))
+                            .widgetAccentable()
 
                         Text("\(Int(snapshot.progress * 100))%")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(.system(.caption2, design: .rounded, weight: .semibold))
                             .foregroundStyle(.secondary)
                     }
 
                     if let partner = snapshot.activePartnerName, !partner.isEmpty {
                         Text(partner)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+                            .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                             .lineLimit(1)
                     }
                 }
@@ -366,20 +395,21 @@ struct MediumHomeWidgetView: View {
                                 isPurchased: !item.isPurchased
                             )) {
                                 Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 20))
+                                    .font(.title3)
                                     .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(
                                         item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
                                             .secondary
                                             .opacity(0.4)
                                     )
+                                    .widgetAccentable(item.isPurchased)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel(toggleAccessibilityLabel(for: item))
                             .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                             Text(item.name)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.footnote.weight(.medium))
                                 .strikethrough(item.isPurchased)
                                 .foregroundStyle(item.isPurchased ? .secondary : .primary)
                                 .lineLimit(1)
@@ -414,10 +444,10 @@ struct LargeHomeWidgetView: View {
             HStack {
                 HStack(spacing: 8) {
                     Image(systemName: "cart.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 32, height: 32)
-                        .background(
+                        .widgetBadge(
                             OneCartPalette.primary(for: scheme, accent: accent),
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                         )
@@ -441,12 +471,13 @@ struct LargeHomeWidgetView: View {
                         .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
                 }
             }
 
             ProgressView(value: snapshot.progress)
                 .tint(OneCartPalette.primary(for: scheme, accent: accent))
+                .widgetAccentable()
 
             Divider()
 
@@ -473,20 +504,21 @@ struct LargeHomeWidgetView: View {
                             isPurchased: !item.isPurchased
                         )) {
                             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 20))
+                                .font(.title3)
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundStyle(
                                     item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
                                         .secondary
                                         .opacity(0.4)
                                 )
+                                .widgetAccentable(item.isPurchased)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(toggleAccessibilityLabel(for: item))
                         .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
 
                         Text(item.name)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.subheadline.weight(.medium))
                             .strikethrough(item.isPurchased)
                             .foregroundStyle(item.isPurchased ? .secondary : .primary)
                             .lineLimit(1)
