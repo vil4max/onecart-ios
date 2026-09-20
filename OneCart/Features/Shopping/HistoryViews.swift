@@ -2,86 +2,55 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var model: AppSession
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var dayGroups: [HistoryDayGroup] {
         HistoryDayGroup.groups(from: model.history)
-    }
-
-    private var isRegular: Bool {
-        horizontalSizeClass == .regular
-    }
-
-    private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 16)]
     }
 
     var body: some View {
         // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
         let groups = dayGroups
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("history.how_it_works")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isStaticText)
-
-                    if groups.isEmpty {
+            List {
+                if groups.isEmpty {
+                    Section {
                         EmptyCard(
                             image: "clock",
                             title: "history.empty_title",
                             message: "history.empty_message"
                         )
-                        .padding(8)
-                        .background(
-                            OneCartPalette.surface,
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        )
-                    } else {
-                        if isRegular {
-                            LazyVGrid(columns: gridColumns, spacing: 16) {
-                                cardsContent(groups)
-                            }
-                        } else {
-                            LazyVStack(alignment: .leading, spacing: 16) {
-                                cardsContent(groups)
+                    } footer: {
+                        howItWorksFooter
+                    }
+                } else {
+                    // Read-only by requirement: rows carry no swipe actions and no delete.
+                    Section {
+                        ForEach(groups) { group in
+                            NavigationLink {
+                                HistoryDayDetailView(group: group)
+                            } label: {
+                                HistoryDayRow(group: group)
                             }
                         }
 
                         if model.historyHasMore {
-                            Button {
+                            Button("history.show_more") {
                                 model.loadMoreHistory()
-                            } label: {
-                                Text("history.show_more")
-                                    .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(OneCartSecondaryButtonStyle())
-                            .frame(maxWidth: isRegular ? 400 : .infinity)
-                            .frame(maxWidth: .infinity, alignment: .center)
                         }
+                    } footer: {
+                        howItWorksFooter
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
             }
-            .background(OneCartPalette.background.ignoresSafeArea())
+            .listStyle(.insetGrouped)
             .navigationTitle("history.nav_title")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    private func cardsContent(_ groups: [HistoryDayGroup]) -> some View {
-        ForEach(groups) { group in
-            NavigationLink {
-                HistoryDayDetailView(group: group)
-            } label: {
-                HistoryDayCard(group: group)
-            }
-            .buttonStyle(HomePressButtonStyle())
-        }
+    private var howItWorksFooter: some View {
+        Text("history.how_it_works")
     }
 }
 
@@ -140,12 +109,12 @@ enum HistoryDayFormatting {
     }
 }
 
-private struct HistoryDayCard: View {
+private struct HistoryDayRow: View {
     @Environment(\.locale) private var locale
     let group: HistoryDayGroup
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(group.title(locale: locale))
                     .font(.body.weight(.semibold))
@@ -156,12 +125,6 @@ private struct HistoryDayCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
             }
 
             Text(productNamesLine)
@@ -170,18 +133,7 @@ private struct HistoryDayCard: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 

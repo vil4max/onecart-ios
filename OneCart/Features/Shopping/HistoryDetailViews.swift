@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HistoryDayDetailView: View {
     @EnvironmentObject private var model: AppSession
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.locale) private var locale
     let group: HistoryDayGroup
 
@@ -16,42 +15,19 @@ struct HistoryDayDetailView: View {
         .current
     }
 
-    private var isRegular: Bool {
-        horizontalSizeClass == .regular
-    }
-
-    private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 12)]
-    }
-
     var body: some View {
         // Regrouping the whole history is not free; resolve the live group once per body pass.
         let liveGroup = liveGroup
-        ScrollView {
-            Group {
-                if isRegular {
-                    LazyVGrid(columns: gridColumns, spacing: 12) {
-                        rowsContent(liveGroup.items)
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 10) {
-                        rowsContent(liveGroup.items)
-                    }
+        List {
+            Section {
+                ForEach(liveGroup.items, id: \.objectID) { item in
+                    HistoryProductRow(item: item)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 28)
         }
-        .background(OneCartPalette.background.ignoresSafeArea())
+        .listStyle(.insetGrouped)
         .navigationTitle(liveGroup.title(locale: locale))
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func rowsContent(_ items: [HistoryItemEntity]) -> some View {
-        ForEach(items, id: \.objectID) { item in
-            HistoryProductRow(item: item)
-        }
     }
 }
 
@@ -62,7 +38,7 @@ struct HistoryProductRow: View {
         HStack(spacing: 12) {
             OfficialProductThumbnail(
                 category: item.categoryValue,
-                size: 52
+                size: 40
             )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -85,16 +61,7 @@ struct HistoryProductRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
+        .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
     }
 }
