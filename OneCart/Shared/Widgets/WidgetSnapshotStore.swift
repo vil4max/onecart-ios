@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Synchronization
 #if canImport(WidgetKit)
     import WidgetKit
@@ -12,8 +13,12 @@ public final class WidgetSnapshotStore: Sendable {
     private let pendingDirectoryURL: URL?
     private let mutex = Mutex<Void>(())
 
+    private static let logger = Logger(subsystem: "com.vil555tim.onecart", category: "WidgetSnapshot")
+
+    /// No fallback to `.standard`: in the extension that is a different domain, so a
+    /// fallback would hide a broken App Group behind a widget that never updates.
     private var userDefaults: UserDefaults? {
-        UserDefaults(suiteName: suiteName) ?? .standard
+        UserDefaults(suiteName: suiteName)
     }
 
     public init(
@@ -24,6 +29,13 @@ public final class WidgetSnapshotStore: Sendable {
         self.pendingDirectoryURL = pendingDirectoryURL ?? FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: OneCartAppGroup.identifier)?
             .appendingPathComponent("WidgetPurchases", isDirectory: true)
+        // Logged once per store; `shared` lives for the whole process.
+        if UserDefaults(suiteName: suiteName) == nil {
+            Self.logger.fault("Widget defaults suite unavailable: \(suiteName, privacy: .public)")
+        }
+        if self.pendingDirectoryURL == nil {
+            Self.logger.fault("App Group container unavailable; widget purchases are disabled")
+        }
     }
 
     public func save(snapshot: WidgetCartSnapshot) {
@@ -126,18 +138,37 @@ public final class WidgetSnapshotStore: Sendable {
                 do {
                     let request = try JSONDecoder().decode(WidgetPurchaseRequest.self, from: Data(contentsOf: url))
                     guard UUID(uuidString: url.deletingPathExtension().lastPathComponent) == request.id else {
-                        try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("invalid"))
+                        Self.quarantine(url)
                         continue
                     }
                     requests.append(request)
                 } catch is DecodingError {
                     // Keep malformed data for inspection; one damaged request must not block valid purchases.
-                    try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("invalid"))
+                    Self.quarantine(url)
+                } catch {
+                    // A read failure can be transient (file protection while locked), so the
+                    // file stays in place for the next pass instead of being quarantined.
+                    let reason = error.localizedDescription
+                    Self.logger.error("Skipping unreadable widget purchase: \(reason, privacy: .public)")
                 }
             }
             return requests.sorted {
                 $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
             }
+        }
+    }
+
+    /// Never throws: a file that cannot be moved aside is skipped on this pass
+    /// rather than failing every valid command next to it.
+    private static func quarantine(_ url: URL) {
+        let destination = url.appendingPathExtension("invalid")
+        do {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.moveItem(at: url, to: destination)
+        } catch {
+            logger.error("Could not quarantine widget purchase: \(error.localizedDescription, privacy: .public)")
         }
     }
 

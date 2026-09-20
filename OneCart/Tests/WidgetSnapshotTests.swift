@@ -292,6 +292,24 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(FileManager.default.fileExists(atPath: malformedURL.appendingPathExtension("invalid").path))
         XCTAssertEqual(try fixture.store.pendingPurchases(), [request])
     }
+
+    func test_pendingPurchases_withBlockedQuarantineOrUnreadableEntry_keepsValidCommandsAvailable() throws {
+        let fixture = try makeWidgetStore()
+        let request = WidgetPurchaseRequest(accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true)
+        try fixture.store.enqueuePurchase(request)
+        let malformedURL = fixture.directory.appendingPathComponent("damaged.json")
+        let quarantinedURL = malformedURL.appendingPathExtension("invalid")
+        try Data("{invalid".utf8).write(to: malformedURL)
+        try Data("older".utf8).write(to: quarantinedURL)
+        // A directory named like a command fails with a read error, not a DecodingError.
+        let unreadableURL = fixture.directory.appendingPathComponent("unreadable.json", isDirectory: true)
+        try FileManager.default.createDirectory(at: unreadableURL, withIntermediateDirectories: true)
+
+        XCTAssertEqual(try fixture.store.pendingPurchases(), [request])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: malformedURL.path))
+        XCTAssertEqual(try Data(contentsOf: quarantinedURL), Data("{invalid".utf8))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: unreadableURL.path))
+    }
 }
 
 private extension XCTestCase {
