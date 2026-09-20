@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class WidgetSnapshotTests: XCTestCase {
     func testSnapshotEncodingAndDecoding() throws {
         let item1 = WidgetItemSnapshot(
@@ -496,7 +497,7 @@ private struct WidgetSessionFixture {
     }
 }
 
-private final class WidgetAppleSignIn: AppleSignInAuthenticating {
+private final class WidgetAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
         userID: "widget-user", email: nil, givenName: "Alex", familyName: nil
     )

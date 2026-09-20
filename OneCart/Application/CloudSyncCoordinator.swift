@@ -106,9 +106,11 @@ final class CloudSyncCoordinator {
             object: persistence.container.viewContext,
             queue: .main
         ) { [weak self] notification in
-            Task { @MainActor in
-                guard let self, Self.productPurchasedStateChanged(in: notification) else { return }
-                self.scheduleSoftProductRefresh(delayNanoseconds: 50_000_000)
+            // Delivered on the main queue. Read synchronously: `changedValuesForCurrentEvent()`
+            // only describes the change while this notification is being posted.
+            guard Self.productPurchasedStateChanged(in: notification) else { return }
+            MainActor.assumeIsolated {
+                self?.scheduleSoftProductRefresh(delayNanoseconds: 50_000_000)
             }
         }
 
@@ -117,16 +119,21 @@ final class CloudSyncCoordinator {
             object: persistence.container,
             queue: .main
         ) { [weak self] notification in
-            Task { @MainActor in
+            // Delivered on the main queue. The event object is not Sendable, so only its
+            // values cross into the main-actor closure.
+            guard let event = notification.userInfo?[
+                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+            ] as? NSPersistentCloudKitContainer.Event else { return }
+            let isFinished = event.endDate != nil
+            let eventError = event.error
+            let eventType = event.type
+            MainActor.assumeIsolated {
                 guard let self,
                       let host = self.host,
-                      !self.persistence.accountDeletionRecoveryRequired,
-                      let event = notification.userInfo?[
-                          NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-                      ] as? NSPersistentCloudKitContainer.Event else { return }
-                if event.endDate == nil {
+                      !self.persistence.accountDeletionRecoveryRequired else { return }
+                if !isFinished {
                     host.applySyncState(.syncing)
-                } else if let error = event.error {
+                } else if let error = eventError {
                     host.applySyncState(
                         CloudKitUserFacingError.isNetworkError(error) ? .offline : .failed
                     )
@@ -139,7 +146,7 @@ final class CloudSyncCoordinator {
                     host.applySyncState(host.isOnline ? .synchronized : .offline)
                     host.applyLastSyncError(nil)
                     if CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                        type: event.type,
+                        type: eventType,
                         ended: true,
                         error: nil
                     ) {
@@ -195,7 +202,7 @@ final class CloudSyncCoordinator {
         }
     }
 
-    private static func productPurchasedStateChanged(in notification: Notification) -> Bool {
+    private nonisolated static func productPurchasedStateChanged(in notification: Notification) -> Bool {
         let keys: [String] = [
             NSUpdatedObjectsKey,
             NSRefreshedObjectsKey,

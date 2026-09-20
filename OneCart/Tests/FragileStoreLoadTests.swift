@@ -141,7 +141,7 @@ final class FragileStoreLoadTests: XCTestCase {
     }
 }
 
-private final class SoftRetryAppleSignIn: AppleSignInAuthenticating {
+private final class SoftRetryAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private let credential = AppleSignInCredential(
         userID: "fragile-retry-user",
         email: nil,

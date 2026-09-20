@@ -2,6 +2,8 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+/// Main-actor isolated so main-actor test cases do not send `self` across isolation.
+@MainActor
 extension XCTestCase {
     func makeInMemoryRepository() async throws
         -> (PersistenceController, FamilySpaceRepository)
@@ -59,7 +61,7 @@ extension XCTestCase {
         return nil
     }
 
-    func makeDefaults() throws -> UserDefaults {
+    nonisolated func makeDefaults() throws -> UserDefaults {
         let suiteName = "OneCartTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)

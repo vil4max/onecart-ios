@@ -118,7 +118,7 @@ enum OneCartShareLinkJoin {
 
 /// Unstructured workers let the caller finish even when an SDK callback ignores cancellation.
 enum CloudKitDeadline {
-    static func run<Value>(
+    static func run<Value: Sendable>(
         timeoutNanoseconds: UInt64,
         timeoutError: Error = OneCartCloudKitError.shareTimedOut,
         operation: @escaping @Sendable () async throws -> Value
@@ -130,7 +130,7 @@ enum CloudKitDeadline {
         )
     }
 
-    static func run<Value>(
+    static func run<Value: Sendable>(
         timeout: @escaping @Sendable () async throws -> Void,
         timeoutError: Error = OneCartCloudKitError.shareTimedOut,
         operation: @escaping @Sendable () async throws -> Value
@@ -157,7 +157,7 @@ enum CloudKitDeadline {
     }
 }
 
-private final class DeadlineResultGate<Value>: @unchecked Sendable {
+private final class DeadlineResultGate<Value: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var result: Result<Value, Error>?
     private var continuation: CheckedContinuation<Value, Error>?

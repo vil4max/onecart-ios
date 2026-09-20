@@ -2,18 +2,11 @@ import CoreData
 import Foundation
 
 enum OneCartManagedObjectModel {
-    private static let lock = NSLock()
-    private static var cachedModel: NSManagedObjectModel?
+    /// Built once, shared by every container, and never mutated afterwards.
+    private nonisolated(unsafe) static let cachedModel = buildModel()
 
     static func makeModel() -> NSManagedObjectModel {
-        lock.lock()
-        defer { lock.unlock() }
-        if let cachedModel {
-            return cachedModel
-        }
-        let model = buildModel()
-        cachedModel = model
-        return model
+        cachedModel
     }
 
     private static func buildModel() -> NSManagedObjectModel {

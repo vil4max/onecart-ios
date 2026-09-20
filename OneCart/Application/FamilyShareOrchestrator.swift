@@ -25,7 +25,7 @@ final class FamilyShareOrchestrator {
             return
         }
         do {
-            let changed = try await backend.ensureReadWriteACL(for: family)
+            let changed = try await backend.ensureReadWriteACL(objectID: family.objectID)
             if changed {
                 CartSyncLog.shareACL.info(
                     "owner ACL heal persisted hasURL=true scope=\(scope.rawValue, privacy: .public)"

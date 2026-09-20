@@ -5,8 +5,8 @@ import Foundation
 #endif
 
 public struct ToggleProductPurchasedIntent: LiveActivityIntent {
-    public static var title: LocalizedStringResource = "Отметить покупку"
-    public static var description = IntentDescription("Помечает товар в корзине как купленный или возвращает в список.")
+    public static let title: LocalizedStringResource = "Отметить покупку"
+    public static let description = IntentDescription("Помечает товар в корзине как купленный или возвращает в список.")
 
     @Parameter(title: "Product ID")
     public var productID: String

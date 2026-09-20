@@ -168,13 +168,13 @@ final class PersistenceController: @unchecked Sendable {
         context.name = author
         context.transactionAuthor = author
         context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
         return context
     }
 
-    func performBackgroundTask<T>(
+    func performBackgroundTask<T: Sendable>(
         author: String = "OneCartRepository",
-        _ block: @escaping (NSManagedObjectContext) throws -> T
+        _ block: @escaping @Sendable (NSManagedObjectContext) throws -> T
     ) async throws -> T {
         try checkAccountDeletionAllowsStoreAccess()
         return try await withCheckedThrowingContinuation { continuation in
@@ -197,7 +197,8 @@ final class PersistenceController: @unchecked Sendable {
 
     func acceptShareInvitations(from metadata: [CKShare.Metadata]) async throws {
         guard !inMemory else { return }
-        let sharedStore = try store(for: .shared)
+        // The store reference is only handed back to the container; it is never mutated here.
+        nonisolated(unsafe) let sharedStore = try store(for: .shared)
         try await CloudKitDeadline.run(timeoutNanoseconds: 22_000_000_000) {
             try await self.acceptShareInvitationsWithoutTimeout(metadata, into: sharedStore)
         }
@@ -354,7 +355,7 @@ final class PersistenceController: @unchecked Sendable {
         context.name = "OneCartViewContext"
         context.transactionAuthor = "OneCartUI"
         context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
+        context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
         context.shouldDeleteInaccessibleFaults = true
     }
 }

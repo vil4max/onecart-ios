@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-public enum AppAccentColor: String, CaseIterable, Identifiable {
+public enum AppAccentColor: String, CaseIterable, Identifiable, Sendable {
     case emerald
     case ocean
     case sunset

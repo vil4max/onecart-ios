@@ -206,22 +206,24 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         let fixture = try await makeFixture()
         let sourceID = fixture.session.activeFamilySpace?.id
         let importedID = UUID()
-        try await fixture.persistence.performBackgroundTask { context in
+        let persistence = fixture.persistence
+        let accountID = fixture.account.id
+        try await persistence.performBackgroundTask { context in
             let family = FamilySpace(context: context)
-            try fixture.persistence.assign(family, to: .private, in: context)
+            try persistence.assign(family, to: .private, in: context)
             family.id = importedID
             family.name = "Importing"
-            family.cachedForUserID = fixture.account.id
+            family.cachedForUserID = accountID
             family.createdAt = Date(timeIntervalSince1970: 1000)
         }
 
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)
         XCTAssertFalse(fixture.session.isReconcilingPersonalCart)
-        try await fixture.persistence.performBackgroundTask { context in
+        try await persistence.performBackgroundTask { context in
             let family = try FamilySpaceRepository.requireFamilySpace(id: importedID, in: context)
             let list = ShoppingListEntity(context: context)
-            try fixture.persistence.assign(list, toSameStoreAs: family, in: context)
+            try persistence.assign(list, toSameStoreAs: family, in: context)
             list.id = UUID()
             list.status = ShoppingListStatus.active.rawValue
             list.familySpace = family

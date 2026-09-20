@@ -37,7 +37,7 @@ final class InviteLinkPreparer: ObservableObject {
         isOnline: @escaping () -> Bool,
         family: @escaping () -> FamilySpace?,
         familyStillActive: @escaping (UUID) -> Bool,
-        fetch: @escaping (FamilySpace) async throws -> FamilyInviteLink
+        fetch: @escaping @MainActor (FamilySpace) async throws -> FamilyInviteLink
     ) {
         invitePrepareTask?.cancel()
         invitePrepareTask = Task { @MainActor in
@@ -71,7 +71,7 @@ final class InviteLinkPreparer: ObservableObject {
         isOnline: Bool,
         family: FamilySpace?,
         familyStillActive: (UUID) -> Bool,
-        fetch: (FamilySpace) async throws -> FamilyInviteLink
+        fetch: @MainActor (FamilySpace) async throws -> FamilyInviteLink
     ) async {
         guard isOnline else { return }
         guard let family, let familyID = family.id else { return }

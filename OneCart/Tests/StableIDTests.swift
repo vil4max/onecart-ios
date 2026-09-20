@@ -3,6 +3,7 @@ import CoreData
 @testable import OneCart
 import XCTest
 
+@MainActor
 final class StableIDTests: XCTestCase {
     func testStableIDIsDeterministic() {
         let first = OneCartStableID.uuid(for: "apple:user-1")
@@ -107,7 +108,7 @@ final class StableIDTests: XCTestCase {
         XCTAssertEqual(tombstones.first?.displayName, "Старый")
     }
 
-    private static func fetchFamilySpace(
+    private nonisolated static func fetchFamilySpace(
         id: UUID,
         in context: NSManagedObjectContext
     ) throws -> FamilySpace? {
@@ -120,7 +121,7 @@ final class StableIDTests: XCTestCase {
         return try context.fetch(request).first
     }
 
-    private static func fetchList(
+    private nonisolated static func fetchList(
         id: UUID,
         in context: NSManagedObjectContext
     ) throws -> ShoppingListEntity? {

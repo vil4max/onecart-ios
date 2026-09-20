@@ -2,14 +2,14 @@ import CoreData
 import Foundation
 
 /// Deletes the signed-in user's private CloudKit account data.
-protocol AccountCloudDataDeleting: AnyObject {
+protocol AccountCloudDataDeleting: AnyObject, Sendable {
     func deletePrivateAccountCloudData() async throws
 }
 
 extension CloudKitBackendService: AccountCloudDataDeleting {}
 
 /// Unloads / reloads local Core Data stores around CloudKit account deletion.
-protocol AccountLocalStorePreparing: AnyObject {
+protocol AccountLocalStorePreparing: AnyObject, Sendable {
     func detachLocalStoresForCloudAccountDeletion() async throws
     func attachEmptyLocalStoresAfterCloudAccountDeletion() async throws
     func restoreLocalStoresAfterFailedCloudAccountDeletion() async throws

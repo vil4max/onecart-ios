@@ -1,7 +1,7 @@
 import CoreData
 import Foundation
 
-protocol PermissionAuthorizing: AnyObject {
+protocol PermissionAuthorizing: AnyObject, Sendable {
     func canUpdate(_ objectID: NSManagedObjectID) -> Bool
     func canDelete(_ objectID: NSManagedObjectID) -> Bool
 }
@@ -60,7 +60,7 @@ struct ProductDraft: Equatable {
     var promotionEndsAt: Date?
 }
 
-final class FamilySpaceRepository {
+final class FamilySpaceRepository: Sendable {
     let persistence: PersistenceController
     let permissionAuthorizer: PermissionAuthorizing
 

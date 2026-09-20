@@ -1,30 +1,33 @@
 import CloudKit
 import CoreData
 import Foundation
+import Synchronization
 
-final class CloudKitBackendService {
+final class CloudKitBackendService: Sendable {
     let persistence: PersistenceController
     private let injectedCloudContainer: CKContainer?
-    private var cachedCloudContainer: CKContainer?
+    private let cachedCloudContainer = Mutex<CKContainer?>(nil)
 
     /// Lazily created — constructing `CKContainer` in unit tests / Xcode Cloud without iCloud can SEGV.
     var cloudContainer: CKContainer {
         if let injectedCloudContainer {
             return injectedCloudContainer
         }
-        if let cachedCloudContainer {
-            return cachedCloudContainer
+        return cachedCloudContainer.withLock { cached in
+            if let cached {
+                return cached
+            }
+            let created = CKContainer(
+                identifier: PersistenceController.cloudKitContainerIdentifier
+            )
+            cached = created
+            return created
         }
-        let created = CKContainer(
-            identifier: PersistenceController.cloudKitContainerIdentifier
-        )
-        cachedCloudContainer = created
-        return created
     }
 
     /// Exposed for tests: true only after a real `CKContainer` was constructed or injected.
     var cloudContainerInitializedForTesting: Bool {
-        injectedCloudContainer != nil || cachedCloudContainer != nil
+        injectedCloudContainer != nil || cachedCloudContainer.withLock { $0 != nil }
     }
 
     init(
@@ -173,8 +176,9 @@ final class CloudKitBackendService {
         }
     }
 
-    func removeMember(_ member: FamilyMember, from family: FamilySpace) async throws {
-        let objectID = family.objectID
+    /// Async share mutations take the object ID: a view-context `FamilySpace` must not
+    /// leave the main actor.
+    func removeMember(_ member: FamilyMember, fromFamily objectID: NSManagedObjectID) async throws {
         guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
@@ -211,12 +215,11 @@ final class CloudKitBackendService {
     }
 
     @discardableResult
-    func leaveFamily(_ family: FamilySpace) async throws -> Bool {
+    func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool {
         if persistence.inMemory {
             return true
         }
 
-        let objectID = family.objectID
         let zoneID: CKRecordZone.ID
         if let share = try share(forObjectID: objectID) {
             CartSyncLog.shareACL.info(
@@ -292,8 +295,8 @@ final class CloudKitBackendService {
     }
 
     @discardableResult
-    func ensureReadWriteACL(for family: FamilySpace) async throws -> Bool {
-        guard let share = try share(for: family) else { return false }
+    func ensureReadWriteACL(objectID: NSManagedObjectID) async throws -> Bool {
+        guard let share = try share(forObjectID: objectID) else { return false }
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             CartSyncLog.shareACL.error(
                 // swiftlint:disable:next line_length
@@ -309,7 +312,7 @@ final class CloudKitBackendService {
             needsPersist = true
         }
         guard needsPersist else { return false }
-        let storeScope = persistence.scope(for: family) ?? .private
+        let storeScope = persistence.scope(for: objectID) ?? .private
         let store = try persistence.store(for: storeScope)
         _ = try await persist(share, in: store)
         return true
@@ -377,14 +380,18 @@ final class CloudKitBackendService {
         in store: NSPersistentStore,
         timeoutNanoseconds: UInt64 = 22_000_000_000
     ) async throws -> CKShare {
-        try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
-            try await self.persistWithoutTimeout(share, in: store)
+        let persistence = persistence
+        // The store reference is only handed back to the container; it is never mutated here.
+        nonisolated(unsafe) let store = store
+        return try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
+            try await Self.persistWithoutTimeout(share, in: store, persistence: persistence)
         }
     }
 
-    private func persistWithoutTimeout(
+    private static func persistWithoutTimeout(
         _ share: CKShare,
-        in store: NSPersistentStore
+        in store: NSPersistentStore,
+        persistence: PersistenceController
     ) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
             persistence.container.persistUpdatedShare(share, in: store) { savedShare, error in

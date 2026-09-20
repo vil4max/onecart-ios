@@ -55,7 +55,7 @@ protocol AppleSignInCredentialStoring: AnyObject {
     func clear()
 }
 
-protocol AppleSignInAuthenticating: AnyObject {
+protocol AppleSignInAuthenticating: AnyObject, Sendable {
     func storedCredential() -> AppleSignInCredential?
     func save(_ credential: AppleSignInCredential)
     func clearCredential()
@@ -155,7 +155,9 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     }
 }
 
-final class AppleSignInService: NSObject, AppleSignInAuthenticating {
+// Unchecked: the credential store is immutable, and the continuation is touched only by the
+// main-actor `signIn()` and the AuthenticationServices delegate callbacks it triggers.
+final class AppleSignInService: NSObject, AppleSignInAuthenticating, @unchecked Sendable {
     static let shared = AppleSignInService()
 
     private let store: AppleSignInCredentialStoring
@@ -305,7 +307,7 @@ enum AppleSignInPresentationAnchor {
         let orderedScenes = preferredScenes.isEmpty ? scenes : preferredScenes
 
         for scene in orderedScenes {
-            if let window = scene.windows.first(where: \.isKeyWindow) {
+            if let window = scene.windows.first(where: { $0.isKeyWindow }) {
                 return window
             }
         }

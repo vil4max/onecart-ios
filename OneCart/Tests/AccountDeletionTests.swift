@@ -591,7 +591,7 @@ private enum TestAccountDeletionError: Error {
     case simulated
 }
 
-private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting {
+private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unchecked Sendable {
     var callCount = 0
     var errorToThrow: Error?
     var delayNanoseconds: UInt64 = 0
@@ -609,7 +609,7 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting {
     }
 }
 
-private final class RecordingLocalStorePreparer: AccountLocalStorePreparing {
+private final class RecordingLocalStorePreparer: AccountLocalStorePreparing, @unchecked Sendable {
     var detachCount = 0
     var attachCount = 0
     var restoreCount = 0
@@ -639,7 +639,7 @@ private final class RecordingLocalStorePreparer: AccountLocalStorePreparing {
     }
 }
 
-private final class TrackingAppleSignIn: AppleSignInAuthenticating {
+private final class TrackingAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
         userID: "delete-account-user",
         email: nil,

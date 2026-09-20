@@ -1,9 +1,19 @@
 import SwiftUI
+import Synchronization
 import UIKit
 
 public enum OneCartPalette {
     /// Active accent color across the app.
-    public static var currentAccent: AppAccentColor = {
+    public static var currentAccent: AppAccentColor {
+        get { accentStorage.withLock { $0 } }
+        set { accentStorage.withLock { $0 = newValue } }
+    }
+
+    /// Widget timeline providers and share branding read the accent off the main actor
+    /// while the app writes it from preferences, so the storage is lock-protected.
+    private static let accentStorage = Mutex<AppAccentColor>(storedAccent())
+
+    private static func storedAccent() -> AppAccentColor {
         if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
            let accent = AppAccentColor(rawValue: raw)
         {
@@ -15,7 +25,7 @@ public enum OneCartPalette {
             return accent
         }
         return .emerald
-    }()
+    }
 
     /// Filled surfaces that carry white content.
     public static var primary: Color {

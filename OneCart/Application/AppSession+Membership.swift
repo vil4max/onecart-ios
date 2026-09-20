@@ -118,7 +118,7 @@ extension AppSession {
         isBusy = true
         defer { isBusy = false }
         do {
-            try await backend.removeMember(member, from: family)
+            try await backend.removeMember(member, fromFamily: family.objectID)
             await refreshFamilyMetadata(showErrors: false)
             CartHaptics.success()
             CartSyncLog.action.info("removeMember done")
@@ -142,7 +142,7 @@ extension AppSession {
         isBusy = true
         defer { isBusy = false }
         do {
-            let discardLeftovers = try await backend.leaveFamily(family)
+            let discardLeftovers = try await backend.leaveFamily(objectID: family.objectID)
             if discardLeftovers, let familyID {
                 do {
                     try await repository.discardLocalSharedFamilySpace(id: familyID)

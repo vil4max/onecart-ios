@@ -383,6 +383,7 @@ final class SharedCartJoinTests: XCTestCase {
     }
 }
 
+@MainActor
 final class ShareLinkJoinACLTests: XCTestCase {
     func test_backgroundInvitePreparation_keepsRevokedShareClosed() {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
@@ -455,6 +456,7 @@ final class ShareLinkJoinACLTests: XCTestCase {
     }
 }
 
+@MainActor
 final class MemberJoinDiffTests: XCTestCase {
     func testFirstSnapshotSeedsWithoutNotify() {
         let member = FamilyMember(

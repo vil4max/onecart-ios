@@ -33,7 +33,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         completionHandler(.newData)
     }
 
-    func userNotificationCenter(
+    /// UserNotifications may call its delegate off the main thread.
+    nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void

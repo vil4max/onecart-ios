@@ -250,7 +250,8 @@
         }
     }
 
-    final class DemoAppleSignInService: AppleSignInAuthenticating {
+    // Unchecked: DEBUG-only demo double, used from the main actor.
+    final class DemoAppleSignInService: AppleSignInAuthenticating, @unchecked Sendable {
         private var credential: AppleSignInCredential?
 
         init(role: DemoUIMode.Role) {
