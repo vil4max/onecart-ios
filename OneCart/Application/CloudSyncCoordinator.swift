@@ -93,7 +93,7 @@ final class CloudSyncCoordinator {
                 host.presentSyncAlert(message)
             case .foreground where previousState == .synchronized || previousState == .syncing:
                 host.presentSyncAlert(message)
-            case .foreground, .appear, .cloudImport, .afterToggle, .afterMutation:
+            case .foreground, .appear, .cloudImport:
                 break
             }
         }

@@ -244,13 +244,13 @@ final class AppSession: ObservableObject {
             // CloudKit may have delivered a same-name row from another device
             // with a different stable ID — merge before archiving/presenting.
             await deduplicateCartIfNeeded()
-        case .pull, .afterToggle, .afterMutation:
+        case .pull:
             break
         }
         switch reason {
         case .appear, .foreground:
             await archiveStalePurchasedIfNeeded()
-        case .pull, .cloudImport, .afterToggle, .afterMutation:
+        case .pull, .cloudImport:
             break
         }
     }
@@ -269,12 +269,5 @@ final class AppSession: ObservableObject {
 
     func dismissSharedCartRemovedMessage() {
         sharedCartRemovedMessage = nil
-    }
-}
-
-private extension String {
-    var nilIfBlank: String? {
-        let value = trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
     }
 }

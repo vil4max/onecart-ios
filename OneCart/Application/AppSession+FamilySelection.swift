@@ -13,24 +13,6 @@ extension AppSession {
         }
     }
 
-    func createFamilySpace(name: String) async {
-        guard let account else { return }
-        beginBusyOperation()
-        defer { endBusyOperation() }
-        do {
-            let id = try await repository.createFamilySpace(
-                name: name,
-                cachedForUserID: account.id,
-                serverRole: FamilyAccess.owner.rawValue,
-                needsRemoteCreation: false
-            )
-            defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
-            try reload(preferredFamilySpaceID: id)
-        } catch {
-            show(error)
-        }
-    }
-
     func clearAccountData() {
         clearPreparedInviteLink()
         familySpaces = []

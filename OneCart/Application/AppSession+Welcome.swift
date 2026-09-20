@@ -18,10 +18,6 @@ extension AppSession {
         startupTask = nil
     }
 
-    func retryStartup() async {
-        await retryWelcome()
-    }
-
     func ensureHouseholdCartIfNeeded() async {
         await household.ensureHouseholdCartIfNeeded()
     }
@@ -229,10 +225,6 @@ extension AppSession {
             return String(localized: "welcome.core_data_failed")
         }
         return CloudKitUserFacingError.message(for: error)
-    }
-
-    private func isNetworkError(_ error: Error) -> Bool {
-        CloudKitUserFacingError.isNetworkError(error)
     }
 }
 

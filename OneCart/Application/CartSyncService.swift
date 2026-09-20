@@ -7,8 +7,6 @@ enum CartSyncReason: String {
     case appear
     case cloudImport
     case foreground
-    case afterToggle
-    case afterMutation
 }
 
 enum CartSyncOutcome: Equatable {
@@ -88,7 +86,7 @@ final class CartSyncService: ObservableObject {
         switch reason {
         case .pull, .appear, .foreground:
             true
-        case .cloudImport, .afterToggle, .afterMutation:
+        case .cloudImport:
             false
         }
     }
@@ -98,7 +96,7 @@ final class CartSyncService: ObservableObject {
             switch reason {
             case .pull: 4
             case .foreground: 3
-            case .cloudImport, .afterToggle, .afterMutation: 2
+            case .cloudImport: 2
             case .appear: 1
             }
         }
@@ -147,7 +145,7 @@ final class CartSyncService: ObservableObject {
     private func waitForCloudImportBestEffort(reason: CartSyncReason) async {
         guard !persistence.inMemory else { return }
         let nanoseconds: UInt64 = switch reason {
-        case .cloudImport, .afterToggle, .afterMutation:
+        case .cloudImport:
             700_000_000
         case .pull, .appear, .foreground:
             250_000_000
