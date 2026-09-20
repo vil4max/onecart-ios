@@ -48,13 +48,28 @@ final class SessionBootstrapper {
         self.host = host
     }
 
-    nonisolated static func shouldHardResetStores(for previousPhase: WelcomePhase) -> Bool {
-        if case let .failed(message) = previousPhase,
-           message == String(localized: "welcome.core_data_failed")
-        {
-            return true
-        }
-        return false
+    /// Cause of the most recent welcome failure reported by this bootstrapper.
+    private(set) var lastFailureCause: WelcomeFailureCause = .other
+
+    nonisolated static func shouldHardResetStores(
+        for previousPhase: WelcomePhase,
+        cause: WelcomeFailureCause
+    ) -> Bool {
+        guard case .failed = previousPhase else { return false }
+        return cause == .storeLoad
+    }
+
+    nonisolated static func failureCause(forLoadError error: Error) -> WelcomeFailureCause {
+        PersistenceController.isUserFacingCoreDataFailure(error) ? .storeLoad : .other
+    }
+
+    func willHardResetStores(for previousPhase: WelcomePhase) -> Bool {
+        Self.shouldHardResetStores(for: previousPhase, cause: lastFailureCause)
+    }
+
+    /// Failures reported outside `prepare` (for example Sign in with Apple) never arm the wipe.
+    func disarmStoreWipe() {
+        lastFailureCause = .other
     }
 
     func start() async {
@@ -88,7 +103,10 @@ final class SessionBootstrapper {
         }
         host.applyWelcomeConnecting()
 
-        if Self.shouldHardResetStores(for: previousPhase) {
+        // The armed cause is consumed here so one load failure authorizes at most one wipe.
+        let shouldHardReset = willHardResetStores(for: previousPhase)
+        lastFailureCause = .other
+        if shouldHardReset {
             do {
                 _ = try? persistence.copyStoreFilesForDiagnostics()
                 try persistence.hardResetPersistentStores()
@@ -104,8 +122,18 @@ final class SessionBootstrapper {
 
     func prepare(appleCredential: AppleSignInCredential) async {
         guard let host else { return }
+        lastFailureCause = .other
         do {
             try await persistence.load()
+        } catch {
+            // Only a failure of `load()` itself may arm the wipe; later steps can fail with
+            // Cocoa save or merge errors while the stores still hold unexported edits.
+            lastFailureCause = Self.failureCause(forLoadError: error)
+            host.clearBootstrapAccount()
+            host.applyWelcomeFailed(host.userFacingMessage(for: error))
+            return
+        }
+        do {
             host.notifyBootstrapObjectWillChange()
             try await repository.deduplicateStableIDs()
             _ = try await repository.deduplicateProductsByName()

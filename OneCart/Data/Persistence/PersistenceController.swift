@@ -305,33 +305,35 @@ final class PersistenceController: @unchecked Sendable {
         waiters.forEach { $0.resume(returning: result) }
     }
 
+    /// Cocoa codes that mean the on-disk store cannot be opened with the current model.
+    /// Save, merge, and validation codes are excluded on purpose: they must never arm the store wipe.
+    private static let storeLoadFailureCodes: Set<Int> = [
+        NSPersistentStoreInvalidTypeError,
+        NSPersistentStoreIncompatibleSchemaError,
+        NSPersistentStoreOpenError,
+        NSPersistentStoreIncompatibleVersionHashError,
+        NSMigrationError,
+        NSMigrationMissingSourceModelError,
+        NSMigrationMissingMappingModelError,
+        NSInferredMappingModelError,
+        NSFileReadCorruptFileError,
+        NSFileReadUnknownError,
+    ]
+
+    /// Decides by error domain and code only; localized descriptions differ per device language.
     static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
-        if error is CKError {
-            return false
+        if case let PersistenceError.loadFailed(underlying) = error {
+            return isUserFacingCoreDataFailure(underlying)
         }
-        let nsError = error as NSError
-        if nsError.domain == CKError.errorDomain {
+        if error is CKError {
             return false
         }
         if CloudKitUserFacingError.isProductionSchemaFailure(error) {
             return false
         }
-        let text = nsError.localizedDescription.lowercased()
-        if text.contains("mirroring delegate")
-            || text.contains("production schema")
-            || text.contains("cannot create or modify field")
-            || text.contains("ckerror")
-            || text.contains("partial failure")
-        {
-            return false
-        }
-        if nsError.domain == NSCocoaErrorDomain {
-            return true
-        }
-        return text.contains("core data")
-            || text.contains("incompatible")
-            || text.contains("migration")
-            || text.contains("unique constraint")
+        let nsError = error as NSError
+        guard nsError.domain == NSCocoaErrorDomain else { return false }
+        return storeLoadFailureCodes.contains(nsError.code)
     }
 
     private func identifyStores() throws {

@@ -89,7 +89,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 
 | Choice | Why |
 |--------|-----|
-| `load()` preserves stores on transient failures | Explicit welcome recovery requires a Core Data failure and diagnostics copy; a confirmed account-deletion marker finishes previously authorized cleanup before reopening |
+| `load()` preserves stores on transient failures | Explicit welcome recovery requires a store-load failure (`WelcomeFailureCause.storeLoad`, armed only by `persistence.load()` and consumed by one Retry) and a diagnostics copy; errors from later bootstrap steps never arm the wipe, because they can come from unsynced local edits; a confirmed account-deletion marker finishes previously authorized cleanup before reopening |
 | `CartSyncOutcome` + failed ≠ synchronized | Coalesced callers receive the final queued refresh outcome; recovery mode keeps `.failed` |
 | History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
 | Device-local profile | Display name and local avatar/banner preferences are separate from CloudKit membership |
@@ -100,7 +100,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | ID | Invariant | Tests |
 |----|-----------|-------|
 | F1 | Failed `load()` does not destroy store files | `FragileStoreLoadTests.testLoadFailureDoesNotDestroyStoreFiles` |
-| F2 | Explicit wipe only on Core Data welcome failure | `testIsUserFacingCoreDataFailureIgnoresCloudKit`, `testRetryWelcomeDoesNotWipeUnlessCoreDataFailure`, `testShouldHardResetStoresOnlyForCoreDataWelcomeFailure` |
+| F2 | Explicit wipe only when `persistence.load()` itself failed with a store-load Cocoa code; classified by error code, never by localized text | `testIsUserFacingCoreDataFailureIgnoresCloudKit`, `testRetryWelcomeDoesNotWipeUnlessCoreDataFailure`, `testShouldHardResetStoresOnlyForCoreDataWelcomeFailure`, `testWrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure`, `testPostLoadCocoaSaveErrorDoesNotArmHardReset`, `testFailureCauseArmsOnlyForStoreLoadCodes`, `testStoreLoadFailureArmsHardResetAndRetryRecovers` |
 | F3 | Diagnostics snapshot before explicit hard reset | `testDiagnosticsSnapshotCreatedBeforeExplicitHardReset` |
 | F4 | Sync failure → `.failed`, not fake synchronized | `FragileSyncOutcomeTests.testSyncCartPullFailureSetsFailedState` (+ appear no alert) |
 | F5 | After `viewContext.reset`, products republish | `SharedCartJoinTests.testRefreshFromServerPicksUpToggledPurchasedState`, `testCartContentStorePublishesAfterReload` |

@@ -32,10 +32,16 @@ extension AppSession {
 
     func retryWelcome() async {
         let previousPhase = welcomePhase
+        if bootstrapper.willHardResetStores(for: previousPhase) {
+            // The reset replaces the container; drop observers bound to the old coordinator
+            // so `installCloudObservers()` registers against the new one.
+            cloudSync.cancel()
+        }
         await bootstrapper.retry(previousPhase: previousPhase)
     }
 
     func reportWelcomeFailure(_ message: String) {
+        bootstrapper.disarmStoreWipe()
         needsWelcome = true
         welcomePhase = .failed(message)
         isReady = true
@@ -71,6 +77,7 @@ extension AppSession {
             let credential = try appleSignIn.makeCredential(from: authorization)
             await completeAppleSignIn(credential: credential)
         } catch {
+            bootstrapper.disarmStoreWipe()
             needsWelcome = true
             if let localized = error as? LocalizedError,
                let description = localized.errorDescription?.nilIfBlank

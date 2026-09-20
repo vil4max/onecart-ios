@@ -66,6 +66,54 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(cocoa))
     }
 
+    func testWrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure() {
+        let underlying = NSError(
+            domain: NSCocoaErrorDomain,
+            code: NSPersistentStoreIncompatibleVersionHashError,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Das zum Anlegen des Speichers verwendete Modell passt nicht zum aktuellen Modell.",
+            ]
+        )
+        XCTAssertTrue(
+            PersistenceController.isUserFacingCoreDataFailure(
+                PersistenceError.loadFailed(underlying: underlying)
+            )
+        )
+    }
+
+    func testPostLoadCocoaSaveErrorDoesNotArmHardReset() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneCartFragilePostLoad-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let persistence = PersistenceController(
+            inMemory: false,
+            storeDirectoryURL: directory,
+            cloudKitEnabled: false
+        )
+        try await persistence.load()
+        let containerBeforeRetry = persistence.container
+
+        let defaults = try makeDefaults()
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: SoftRetryAppleSignIn()
+        )
+        let saveError = NSError(
+            domain: NSCocoaErrorDomain,
+            code: NSValidationMissingMandatoryPropertyError
+        )
+        session.reportWelcomeFailure(session.userFacingMessage(for: saveError))
+        await session.retryWelcome()
+
+        // A hard reset replaces the container; the same instance proves the stores were kept.
+        XCTAssertTrue(persistence.container === containerBeforeRetry)
+    }
+
     func testShouldWipeLocalStoresWhenCloudKitEnvironmentChanges() {
         XCTAssertFalse(
             PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
@@ -102,14 +150,89 @@ final class FragileStoreLoadTests: XCTestCase {
     }
 
     func testShouldHardResetStoresOnlyForCoreDataWelcomeFailure() {
-        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .signIn))
-        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .connecting))
-        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .failed("network blip")))
-        XCTAssertTrue(
+        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .signIn, cause: .storeLoad))
+        XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .connecting, cause: .storeLoad))
+        XCTAssertFalse(
+            SessionBootstrapper.shouldHardResetStores(for: .failed("network blip"), cause: .other)
+        )
+        // The localized Core Data message alone must not arm the wipe.
+        XCTAssertFalse(
             SessionBootstrapper.shouldHardResetStores(
-                for: .failed(String(localized: "welcome.core_data_failed"))
+                for: .failed(String(localized: "welcome.core_data_failed")),
+                cause: .other
             )
         )
+        XCTAssertTrue(
+            SessionBootstrapper.shouldHardResetStores(
+                for: .failed(String(localized: "welcome.core_data_failed")),
+                cause: .storeLoad
+            )
+        )
+    }
+
+    func testFailureCauseArmsOnlyForStoreLoadCodes() {
+        let incompatible = PersistenceError.loadFailed(
+            underlying: NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSPersistentStoreIncompatibleVersionHashError
+            )
+        )
+        XCTAssertEqual(SessionBootstrapper.failureCause(forLoadError: incompatible), .storeLoad)
+
+        let timeout = PersistenceError.loadFailed(
+            underlying: NSError(domain: NSCocoaErrorDomain, code: NSPersistentStoreTimeoutError)
+        )
+        XCTAssertEqual(SessionBootstrapper.failureCause(forLoadError: timeout), .other)
+
+        for code in [
+            NSValidationMissingMandatoryPropertyError,
+            NSManagedObjectMergeError,
+            NSManagedObjectConstraintMergeError,
+            NSPersistentStoreSaveError,
+        ] {
+            let saveError = NSError(domain: NSCocoaErrorDomain, code: code)
+            XCTAssertFalse(PersistenceController.isUserFacingCoreDataFailure(saveError), "code \(code)")
+        }
+    }
+
+    func testStoreLoadFailureArmsHardResetAndRetryRecovers() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneCartFragileArm-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        // A directory occupying the sqlite path makes `load()` fail with a Cocoa file-read error.
+        let privateURL = directory.appendingPathComponent("OneCart-private.sqlite")
+        try FileManager.default.createDirectory(at: privateURL, withIntermediateDirectories: true)
+
+        let persistence = PersistenceController(
+            inMemory: false,
+            storeDirectoryURL: directory,
+            cloudKitEnabled: false
+        )
+        let defaults = try makeDefaults()
+        let session = AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: SoftRetryAppleSignIn()
+        )
+
+        await session.start()
+        guard case .failed = session.welcomePhase else {
+            return XCTFail("Expected a failed welcome phase, got \(session.welcomePhase)")
+        }
+        XCTAssertEqual(session.bootstrapper.lastFailureCause, .storeLoad)
+        XCTAssertTrue(session.bootstrapper.willHardResetStores(for: session.welcomePhase))
+        XCTAssertFalse(persistence.isLoaded)
+
+        await session.retryWelcome()
+
+        XCTAssertTrue(persistence.isLoaded)
+        XCTAssertEqual(session.bootstrapper.lastFailureCause, .other)
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path, isDirectory: &isDirectory))
+        XCTAssertFalse(isDirectory.boolValue)
     }
 
     func testRetryWelcomeDoesNotWipeUnlessCoreDataFailure() async throws {

@@ -268,3 +268,10 @@ enum WelcomePhase: Equatable {
     case connecting
     case failed(String)
 }
+
+/// Why the welcome flow failed. Only `.storeLoad` may arm the explicit store wipe on Retry,
+/// so the decision never depends on a localized message.
+enum WelcomeFailureCause: Equatable {
+    case storeLoad
+    case other
+}

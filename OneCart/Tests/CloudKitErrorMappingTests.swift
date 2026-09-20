@@ -251,12 +251,18 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(cocoa))
 
+        let migration = PersistenceError.loadFailed(
+            underlying: NSError(domain: NSCocoaErrorDomain, code: NSMigrationError)
+        )
+        XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(migration))
+
+        // Description text never decides: it is localized on device.
         let migrationText = NSError(
             domain: "OneCartTest",
             code: 1,
             userInfo: [NSLocalizedDescriptionKey: "Core Data migration failed"]
         )
-        XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(migrationText))
+        XCTAssertFalse(PersistenceController.isUserFacingCoreDataFailure(migrationText))
     }
 
     func testMirroringAbortWithCreatedByNameIsSchemaNotLocalDatabase() {
