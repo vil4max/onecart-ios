@@ -6,24 +6,29 @@ The physical-device Delete Account recording (~21s, 1290×2796, HEVC, app **1.0 
 stored here: it shows the owner's Apple Account name and photo. The owner keeps it outside the
 repository and attaches it under App Review Information.
 
+## App Store Connect: iPhone 6.9" (1320 × 2868)
+
+Current set, light theme, English (app `developmentRegion = en`). The repository
+README shows these files.
+
+| # | File in `screenshots/asc-6.9/` | Screen |
+|---|--------------------------------|--------|
+| 1 | `01-welcome.png` | Welcome + Sign in with Apple |
+| 2 | `02-cart.png` | Cart |
+| 3 | `03-history.png` | History |
+| 4 | `04-settings.png` | Settings |
+
 ## App Store Connect: iPhone 6.5" (1284 × 2778)
 
-Default locale shots are **English** (app `developmentRegion = en`), light + dark.
+Earlier capture of the same four screens (`01-welcome.png` … `04-account.png`) in both
+themes. It predates the Settings tab and the Completed section; recapture before
+uploading it again.
 
-Upload order (first 3 = install sheet). **One theme is enough** — current set is dark only:
+Folders: [`screenshots/asc-6.5/dark/`](screenshots/asc-6.5/dark/),
+[`screenshots/asc-6.5/light/`](screenshots/asc-6.5/light/). Raw simulator captures:
+[`screenshots/raw/`](screenshots/raw/) (`en-*`).
 
-| # | File in `asc-6.5/` | Theme | Screen |
-|---|--------------------|-------|--------|
-| 1 | `01-welcome-dark.png` | dark | Welcome + Sign in with Apple |
-| 2 | `02-cart-dark.png` | dark | Cart |
-| 3 | `03-history-dark.png` | dark | History |
-| 4 | `04-account-dark.png` | dark | Account |
-
-Optional light set (`05`–`08`) can be added later.
-
-Folders: [`asc-6.5/dark/`](asc-6.5/dark/), [`asc-6.5/light/`](asc-6.5/light/). Raw: [`raw/`](raw/) (`en-*`).
-
-Captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**.
+The 6.5" set was captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**.
 
 Demo launch args:
 

@@ -133,7 +133,7 @@ There is **no public API to force** a CloudKit import/export mirror ([TN3163](ht
 
 `CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. Join product merge is deferred. See [product.md](../requirements/product.md) and [privacy.md](../privacy.md).
 
-Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV6`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
+Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV7`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, plus system `CKShare` on root `FamilySpace`. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 
 ## Recovery, deadlines and widget writes
 

@@ -13,10 +13,10 @@ It is developed independently through an agentic SDLC: coding agents implement c
 ## Screenshots
 
 <p>
-  <img src="assets/store/screenshots/asc-6.5/01-welcome-dark.png" alt="Welcome" width="180" />
-  <img src="assets/store/screenshots/asc-6.5/02-cart-dark.png" alt="Cart" width="180" />
-  <img src="assets/store/screenshots/asc-6.5/03-history-dark.png" alt="History" width="180" />
-  <img src="assets/store/screenshots/asc-6.5/04-account-dark.png" alt="Account" width="180" />
+  <img src="assets/store/screenshots/asc-6.9/01-welcome.png" alt="Welcome" width="180" />
+  <img src="assets/store/screenshots/asc-6.9/02-cart.png" alt="Cart" width="180" />
+  <img src="assets/store/screenshots/asc-6.9/03-history.png" alt="History" width="180" />
+  <img src="assets/store/screenshots/asc-6.9/04-settings.png" alt="Settings" width="180" />
 </p>
 
 Store masters and ASC sizes: [`assets/store/`](assets/store/).
