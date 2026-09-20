@@ -49,9 +49,8 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertTrue(decoded.items[1].isPurchased)
     }
 
-    func testSnapshotStoreSaveAndLoad() {
-        let suite = "test.onecart.widget.\(UUID().uuidString)"
-        let store = WidgetSnapshotStore(suiteName: suite)
+    func testSnapshotStoreSaveAndLoad() throws {
+        let store = try makeWidgetStore().store
 
         XCTAssertNil(store.loadSnapshot())
 
@@ -64,9 +63,8 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded?.items.count, snapshot.items.count)
     }
 
-    func testOptimisticSnapshotToggle() {
-        let suite = "test.onecart.widget.\(UUID().uuidString)"
-        let store = WidgetSnapshotStore(suiteName: suite)
+    func testOptimisticSnapshotToggle() throws {
+        let store = try makeWidgetStore().store
 
         let testID = UUID()
         let snapshot = WidgetCartSnapshot(
@@ -93,10 +91,8 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(toggledItem?.isPurchased, true)
     }
 
-    func test_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() {
-        let suite = "test.onecart.widget.\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let store = WidgetSnapshotStore(suiteName: suite)
+    func test_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() throws {
+        let store = try makeWidgetStore().store
         let id = UUID()
         store.save(snapshot: WidgetCartSnapshot(
             cartTitle: "Family", totalCount: 15, purchasedCount: 10,

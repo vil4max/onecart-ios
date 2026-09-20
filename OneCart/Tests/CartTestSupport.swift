@@ -62,10 +62,18 @@ extension XCTestCase {
     }
 
     nonisolated func makeDefaults() throws -> UserDefaults {
+        try XCTUnwrap(UserDefaults(suiteName: makeDefaultsSuiteName()))
+    }
+
+    /// Registers removal of the suite so test runs do not accumulate preference files.
+    nonisolated func makeDefaultsSuiteName() throws -> String {
         let suiteName = "OneCartTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
-        return defaults
+        addTeardownBlock {
+            UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        }
+        return suiteName
     }
 }
 
