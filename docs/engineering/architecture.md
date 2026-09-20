@@ -109,6 +109,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | F8 | CartContentStore publish after reload | `testCartContentStorePublishesAfterReload` |
 | F9 | History default page 30 + loadMore appends | `HistoryPaginationTests` |
 | F10 | New Application files in Sources | Stage DoD via `test_sim` compile |
+| F11 | A partial store-load failure detaches the stores that did load (files stay on disk, F1), so `load()` can be retried in the same process instead of failing with Cocoa 134081 ("can't add the same store twice") | `FragileStoreLoadTests.testPartialLoadFailureAllowsRetryInSameProcess` |
 
 ## Purchase completion / History
 
@@ -126,6 +127,8 @@ Same SQLite filenames as older installs (no rename):
 |------|----------------|
 | `OneCart-private.sqlite` | private database |
 | `OneCart-shared.sqlite` | shared database |
+
+DEBUG demo mode (`-oneCartDemoUI`) opens the same filenames under `Application Support/OneCartDemo/<role>/` and keeps its Sign in with Apple credential in memory, so seeded demo rows never reach the real stores, CloudKit, or the Keychain.
 
 New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online.
 
