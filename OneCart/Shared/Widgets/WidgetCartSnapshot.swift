@@ -90,7 +90,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     }
 
     public static let placeholder = WidgetCartSnapshot(
-        cartTitle: "Наши покупки",
+        cartTitle: String(localized: "widget.sample.cart_title"),
         totalCount: 7,
         purchasedCount: 3,
         isSyncing: false,
@@ -100,28 +100,28 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         items: [
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-                name: "Молоко 3.2%",
+                name: String(localized: "widget.sample.milk"),
                 isPurchased: true,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
-                name: "Хлеб бородинский",
+                name: String(localized: "widget.sample.bread"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.bakery.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
-                name: "Яйца С0",
+                name: String(localized: "widget.sample.eggs"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
-                name: "Сыр твердый",
+                name: String(localized: "widget.sample.cheese"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
                 subtitle: nil

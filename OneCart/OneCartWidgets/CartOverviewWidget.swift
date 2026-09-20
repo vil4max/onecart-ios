@@ -55,8 +55,8 @@ struct CartOverviewWidget: Widget {
         StaticConfiguration(kind: kind, provider: CartWidgetProvider()) { entry in
             CartWidgetContainerView(entry: entry)
         }
-        .configurationDisplayName("Корзина OneCart")
-        .description("Быстрый доступ к семейной корзине и вычеркивание покупок на ходу.")
+        .configurationDisplayName("widget.display_name")
+        .description("widget.description")
         .supportedFamilies([
             .accessoryInline,
             .accessoryCircular,

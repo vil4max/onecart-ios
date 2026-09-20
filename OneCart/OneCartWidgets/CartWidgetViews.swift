@@ -34,8 +34,8 @@ struct CartWidgetRootView: View {
 
 private func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
     item.isPurchased
-        ? Text("Снять отметку «куплено»: \(item.name)")
-        : Text("Отметить как купленное: \(item.name)")
+        ? Text("widget.toggle_unmark_a11y \(item.name)")
+        : Text("widget.toggle_mark_a11y \(item.name)")
 }
 
 // MARK: - Lock Screen Widgets
@@ -45,12 +45,12 @@ struct InlineLockScreenWidgetView: View {
 
     var body: some View {
         if snapshot.isEmpty {
-            Text("🛒 Корзина пуста")
+            Text("widget.inline_empty")
         } else if snapshot.isAllPurchased {
-            Text("🛒 Все куплено")
+            Text("widget.inline_all_purchased")
         } else {
             let firstItem = snapshot.items.first(where: { !$0.isPurchased })?.name ?? ""
-            Text("🛒 \(snapshot.remainingCount) ост.: \(firstItem)")
+            Text("widget.inline_remaining \(snapshot.remainingCount) \(firstItem)")
         }
     }
 }
@@ -84,14 +84,14 @@ struct RectangularLockScreenWidgetView: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                 Spacer()
-                Text("\(snapshot.remainingCount) ост.")
+                Text("widget.remaining \(snapshot.remainingCount)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 
             let displayItems = Array(snapshot.items.prefix(2))
             if displayItems.isEmpty {
-                Text(snapshot.isEmpty ? "Корзина пуста" : "Все куплено!")
+                Text(snapshot.isEmpty ? "widget.empty" : "widget.all_purchased")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -173,7 +173,7 @@ struct SmallHomeWidgetView: View {
                     Image(systemName: "cart")
                         .font(.system(size: 22))
                         .foregroundStyle(.tertiary)
-                    Text("Корзина пуста")
+                    Text("widget.empty")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
@@ -185,10 +185,10 @@ struct SmallHomeWidgetView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
                         .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
-                    Text("Все куплено!")
+                    Text("widget.all_purchased")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.primary)
-                    Text("\(snapshot.totalCount) из \(snapshot.totalCount) в тележке")
+                    Text("widget.in_trolley \(snapshot.totalCount) \(snapshot.totalCount)")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
@@ -253,7 +253,7 @@ struct SmallHomeWidgetView: View {
                     .frame(height: 3.5)
 
                     HStack {
-                        Text("\(snapshot.purchasedCount) из \(snapshot.totalCount) в тележке")
+                        Text("widget.in_trolley \(snapshot.purchasedCount) \(snapshot.totalCount)")
                             .font(.system(size: 9.5))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -303,11 +303,11 @@ struct MediumHomeWidgetView: View {
                     .foregroundStyle(.primary)
 
                 if snapshot.isEmpty {
-                    Text("Корзина пуста")
+                    Text("widget.empty")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(snapshot.purchasedCount) из \(snapshot.totalCount) в тележке")
+                    Text("widget.in_trolley \(snapshot.purchasedCount) \(snapshot.totalCount)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -349,7 +349,7 @@ struct MediumHomeWidgetView: View {
                             .foregroundStyle(.tertiary)
                         // The left column already says the cart is empty.
                         if !snapshot.isEmpty {
-                            Text("Все покупки сделаны!")
+                            Text("widget.all_done")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -427,7 +427,7 @@ struct LargeHomeWidgetView: View {
                             .font(.headline.weight(.bold))
                             .lineLimit(1)
                         let pct = Int(snapshot.progress * 100)
-                        Text("\(snapshot.purchasedCount) из \(snapshot.totalCount) в тележке (\(pct)%)")
+                        Text("widget.in_trolley_percent \(snapshot.purchasedCount) \(snapshot.totalCount) \(pct)")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -457,7 +457,7 @@ struct LargeHomeWidgetView: View {
                     Image(systemName: "cart.badge.plus")
                         .font(.largeTitle)
                         .foregroundStyle(.tertiary)
-                    Text("Корзина пуста")
+                    Text("widget.empty")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
