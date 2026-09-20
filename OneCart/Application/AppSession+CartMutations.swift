@@ -37,7 +37,10 @@ extension AppSession {
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
-        guard let id = product.id, let familyID = product.familySpace?.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else {
+            logStaleProduct(action: "updateProduct")
+            return
+        }
         CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
             try await self.repository.updateProduct(id: id, familySpaceID: familyID, draft: draft)
@@ -89,7 +92,10 @@ extension AppSession {
     }
 
     func togglePurchased(_ product: ProductEntity) async {
-        guard let id = product.id, let familyID = product.familySpace?.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else {
+            logStaleProduct(action: "togglePurchased")
+            return
+        }
         guard canEdit else {
             CartSyncLog.cart.error("togglePurchased denied canEdit=false")
             CartSyncLog.action.error("togglePurchased denied canEdit=false")
@@ -139,6 +145,12 @@ extension AppSession {
         }
     }
 
+    /// A hard refresh resets the view context, so a row captured by an in-flight tap loses its
+    /// identifiers. The tap is dropped; the log keeps that visible in diagnostics.
+    private func logStaleProduct(action: String) {
+        CartSyncLog.action.error("\(action, privacy: .public) dropped staleProduct=true")
+    }
+
     func products(inListID listID: UUID) -> [ProductEntity] {
         cartContent.products(inListID: listID)
     }
@@ -164,7 +176,10 @@ extension AppSession {
     }
 
     func deleteProduct(_ product: ProductEntity) async {
-        guard let id = product.id, let familyID = product.familySpace?.id else { return }
+        guard let id = product.id, let familyID = product.familySpace?.id else {
+            logStaleProduct(action: "deleteProduct")
+            return
+        }
         guard !product.isPurchasedValue else {
             CartSyncLog.action.info("deleteProduct skipped purchased id=\(id.uuidString, privacy: .public)")
             return
