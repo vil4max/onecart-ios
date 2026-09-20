@@ -114,7 +114,8 @@ private struct HomeConnectFailedPanel: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button("welcome.try_again", action: onRetry)
-                .buttonStyle(OneCartSecondaryButtonStyle())
+                .buttonStyle(.bordered)
+                .controlSize(.large)
         }
         .frame(maxWidth: .infinity)
         .padding(24)

@@ -202,7 +202,9 @@ struct WelcomeView: View {
             Button("welcome.try_again") {
                 Task { await viewModel.retryWelcome() }
             }
-            .buttonStyle(OneCartPrimaryButtonStyle(accent: model.preferences.accentColor))
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(OneCartPalette.primary(accent: model.preferences.accentColor))
         }
     }
 
