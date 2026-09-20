@@ -35,9 +35,7 @@ final class HistoryPaginationTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "History")
         let context = persistence.container.viewContext
-        guard let space = try repository.fetchFamilySpace(id: familyID) else {
-            throw XCTSkip("missing family space")
-        }
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID), "The fixture family space must exist")
 
         let now = Date()
         for index in 0 ..< entryCount {

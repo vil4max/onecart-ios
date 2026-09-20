@@ -25,11 +25,11 @@ final class FragileStoreLoadTests: XCTestCase {
 
         do {
             try await persistence.load()
-            throw XCTSkip("Load unexpectedly succeeded with a directory occupying the sqlite path")
-        } catch {
-            XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path))
-            XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
-        }
+            // A fixture that stops failing would leave invariant F1 untested behind a green run.
+            XCTFail("Load must fail while a directory occupies the sqlite path")
+        } catch {}
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
     }
 
     func testPartialLoadFailureAllowsRetryInSameProcess() async throws {
@@ -51,12 +51,9 @@ final class FragileStoreLoadTests: XCTestCase {
 
         do {
             try await persistence.load()
-            throw XCTSkip("Load unexpectedly succeeded with a directory occupying the sqlite path")
-        } catch is XCTSkip {
-            throw XCTSkip("Load unexpectedly succeeded with a directory occupying the sqlite path")
-        } catch {
-            XCTAssertFalse(persistence.isLoaded)
-        }
+            XCTFail("Load must fail while a directory occupies the shared sqlite path")
+        } catch {}
+        XCTAssertFalse(persistence.isLoaded)
         XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
         XCTAssertTrue(
             persistence.container.persistentStoreCoordinator.persistentStores.isEmpty,
