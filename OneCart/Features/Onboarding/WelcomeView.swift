@@ -211,13 +211,15 @@ struct WelcomeView: View {
         case let .success(authorization):
             Task { await viewModel.completeAppleSignIn(authorization: authorization) }
         case let .failure(error):
-            #if targetEnvironment(simulator)
+            if Self.isSignInDismissed(error) {
+                viewModel.dismissWelcomeSignInAttempt()
+                return
+            }
+            #if DEBUG && targetEnvironment(simulator)
+                // A simulator without an Apple ID cannot finish Sign in with Apple;
+                // debug builds fall back to the demo account. Never compiled into Release.
                 Task { await viewModel.signInWithTestAccount() }
             #else
-                if Self.isSignInDismissed(error) {
-                    viewModel.dismissWelcomeSignInAttempt()
-                    return
-                }
                 viewModel.reportWelcomeFailure(
                     (error as? LocalizedError)?.errorDescription
                         ?? String(localized: "welcome.sign_in_failed")
@@ -226,16 +228,10 @@ struct WelcomeView: View {
         }
     }
 
+    /// Only `.canceled` means the user closed the sheet. `.unknown` is a real
+    /// failure and must surface the error with Retry.
     private static func isSignInDismissed(_ error: Error) -> Bool {
-        guard let authError = error as? ASAuthorizationError else { return false }
-        switch authError.code {
-        case .canceled:
-            return true
-        case .unknown:
-            return true
-        default:
-            return false
-        }
+        (error as? ASAuthorizationError)?.code == .canceled
     }
 }
 

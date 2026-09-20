@@ -26,13 +26,15 @@ final class WelcomeViewModel: ObservableObject {
         session.dismissWelcomeSignInAttempt()
     }
 
-    func signInWithTestAccount() async {
-        let credential = AppleSignInCredential(
-            userID: "onecart-demo-owner",
-            email: nil,
-            givenName: "Alex",
-            familyName: nil
-        )
-        await session.completeAppleSignIn(credential: credential)
-    }
+    #if DEBUG
+        func signInWithTestAccount() async {
+            let credential = AppleSignInCredential(
+                userID: "onecart-demo-owner",
+                email: nil,
+                givenName: "Alex",
+                familyName: nil
+            )
+            await session.completeAppleSignIn(credential: credential)
+        }
+    #endif
 }
