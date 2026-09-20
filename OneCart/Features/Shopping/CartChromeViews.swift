@@ -161,10 +161,3 @@ struct CartProgressStrip: View {
         .animation(.spring(response: 0.38, dampingFraction: 0.8), value: isAllPurchased)
     }
 }
-
-extension View {
-    func oneCartMediumSheet() -> some View {
-        presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-    }
-}

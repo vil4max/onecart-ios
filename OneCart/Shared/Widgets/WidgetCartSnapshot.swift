@@ -186,8 +186,4 @@ public struct WidgetItemSnapshot: Codable, Sendable, Identifiable, Equatable {
         self.categoryRaw = categoryRaw
         self.subtitle = subtitle
     }
-
-    public var symbolName: String {
-        ProductCategory(rawValue: categoryRaw)?.symbolName ?? "cart.fill"
-    }
 }

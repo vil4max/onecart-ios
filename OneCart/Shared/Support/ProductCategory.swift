@@ -44,27 +44,6 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         }
     }
 
-    var localizedName: String {
-        switch self {
-        case .meatPoultry: String(localized: "common.category.meatPoultry")
-        case .fishSeafood: String(localized: "common.category.fishSeafood")
-        case .dairyEggs: String(localized: "common.category.dairyEggs")
-        case .grocery: String(localized: "common.category.grocery")
-        case .oilCanned: String(localized: "common.category.oilCanned")
-        case .produce: String(localized: "common.category.produce")
-        case .frozen: String(localized: "common.category.frozen")
-        case .bakery: String(localized: "common.category.bakery")
-        case .saucesSpices: String(localized: "common.category.saucesSpices")
-        case .alcohol: String(localized: "common.category.alcohol")
-        case .coldDrinks: String(localized: "common.category.coldDrinks")
-        case .hotDrinks: String(localized: "common.category.hotDrinks")
-        case .sweetsSnacks: String(localized: "common.category.sweetsSnacks")
-        case .babyFood: String(localized: "common.category.babyFood")
-        case .household: String(localized: "common.category.household")
-        case .other: String(localized: "common.category.other")
-        }
-    }
-
     var symbolName: String {
         switch self {
         case .meatPoultry: "fork.knife"

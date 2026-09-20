@@ -193,10 +193,6 @@ public enum CartActivityNotifier {
         }
     }
 
-    public static func clearSnapshot(cartID: UUID, defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: snapshotKey(cartID: cartID))
-    }
-
     private static func loadStoredSnapshot(cartID: UUID, defaults: UserDefaults) -> [CartItemSnapshot] {
         guard let data = defaults.data(forKey: snapshotKey(cartID: cartID)),
               let items = try? JSONDecoder().decode([CartItemSnapshot].self, from: data)

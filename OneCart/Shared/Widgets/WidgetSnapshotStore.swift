@@ -194,15 +194,6 @@ public final class WidgetSnapshotStore: Sendable {
             WidgetCenter.shared.reloadAllTimelines()
         #endif
     }
-
-    public func clearPendingPurchases() throws {
-        try mutex.withLock { _ in
-            if let pendingDirectoryURL, FileManager.default.fileExists(atPath: pendingDirectoryURL.path) {
-                try FileManager.default.removeItem(at: pendingDirectoryURL)
-            }
-            userDefaults?.removeObject(forKey: "onecart.widget.pending_toggles")
-        }
-    }
 }
 
 public enum WidgetPurchaseError: LocalizedError {

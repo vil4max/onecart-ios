@@ -62,10 +62,6 @@ struct HistoryDayGroup: Identifiable {
         dayStart
     }
 
-    var title: String {
-        title()
-    }
-
     func title(locale: Locale? = nil) -> String {
         HistoryDayFormatting.title(for: dayStart, locale: locale)
     }

@@ -32,12 +32,6 @@ enum CartSuggestionsEngine {
         return defaultEnglishSuggestions
     }
 
-    static func defaultEssentials(
-        isRussian: Bool
-    ) -> [String] {
-        isRussian ? defaultRussianSuggestions : defaultEnglishSuggestions
-    }
-
     /// Pure suggestion extraction and ranking.
     ///
     /// - Parameters:
