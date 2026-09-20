@@ -203,15 +203,25 @@ final class InviteLinkPreparerTests: XCTestCase {
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         let preparer = InviteLinkPreparer()
+        let fetchFailed = expectation(description: "Warm-up reached the failing fetch")
+        var fetchCount = 0
         preparer.schedulePreparation(
             delayNanoseconds: 5_000_000,
             isOnline: { true },
             family: { family },
             familyStillActive: { $0 == familyID },
-            fetch: { _ in throw InviteLinkError.offline }
+            fetch: { _ in
+                fetchCount += 1
+                // Nothing suspends between this throw and the preparer's catch, so the
+                // warm-up has finished by the time the test regains the main actor.
+                fetchFailed.fulfill()
+                throw InviteLinkError.offline
+            }
         )
-        try await Task.sleep(nanoseconds: 80_000_000)
+        await fulfillment(of: [fetchFailed], timeout: 5)
+        XCTAssertEqual(fetchCount, 1)
         XCTAssertNil(preparer.preparedInviteLink)
+        XCTAssertNil(preparer.preparedInviteFamilyID)
     }
 }
 

@@ -156,7 +156,14 @@ final class AccountDeletionTests: XCTestCase {
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
         let cloud = RecordingAccountCloudDeleter()
-        cloud.delayNanoseconds = 200_000_000
+        let cloudDeletionStarted = expectation(description: "First deletion is suspended in the cloud request")
+        var release: CheckedContinuation<Void, Never>?
+        cloud.suspendFirstCall = {
+            await withCheckedContinuation { continuation in
+                release = continuation
+                cloudDeletionStarted.fulfill()
+            }
+        }
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults,
@@ -166,12 +173,20 @@ final class AccountDeletionTests: XCTestCase {
         session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         session.needsWelcome = false
 
-        async let first: Void = session.deleteAccount()
-        try await Task.sleep(nanoseconds: 20_000_000)
-        async let second: Void = session.deleteAccount()
-        _ = await (first, second)
+        let first = Task { await session.deleteAccount() }
+        await fulfillment(of: [cloudDeletionStarted], timeout: 5)
+        XCTAssertTrue(session.isDeletingAccount)
 
+        // The duplicate returns while the first request is still suspended.
+        await session.deleteAccount()
         XCTAssertEqual(cloud.callCount, 1)
+        XCTAssertTrue(session.isDeletingAccount, "The duplicate must not end the in-flight deletion")
+        XCTAssertNotNil(session.account)
+
+        release?.resume()
+        await first.value
+        XCTAssertEqual(cloud.callCount, 1)
+        XCTAssertFalse(session.isDeletingAccount)
         XCTAssertNil(session.account)
     }
 
@@ -706,6 +721,8 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unc
     var callCount = 0
     var errorToThrow: Error?
     var delayNanoseconds: UInt64 = 0
+    /// Holds only the first call so a wrongly admitted duplicate fails the count instead of hanging.
+    var suspendFirstCall: (@MainActor () async -> Void)?
     var failurePoint: FailurePoint = .afterDestructiveRequestStarted
     weak var storeRecorder: RecordingLocalStorePreparer?
     /// Mirrors the production deleter, which records the pending phase right before deleting zones.
@@ -721,6 +738,9 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unc
         storeRecorder?.events.append("cloud")
         if delayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        if callCount == 1, let suspendFirstCall {
+            await suspendFirstCall()
         }
         if errorToThrow == nil || failurePoint == .afterDestructiveRequestStarted {
             try requestMarker?.markDestructiveCloudDeletionRequestStarting()

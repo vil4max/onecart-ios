@@ -81,19 +81,49 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
+        let firstSuspended = expectation(description: "First refresh is suspended")
+        let secondRequested = expectation(description: "Second sync is requested while the first is in flight")
+        var release: CheckedContinuation<Void, Never>?
         var refreshCount = 0
+        var firstReturned = false
+        var firstRefreshWasCancelled = true
+        var firstReturnedBeforeSecondRefresh = true
         cartSync.onHardRefresh = {
             refreshCount += 1
-            try? await Task.sleep(nanoseconds: 80_000_000)
+            if refreshCount == 1 {
+                await withCheckedContinuation { continuation in
+                    release = continuation
+                    firstSuspended.fulfill()
+                }
+                firstRefreshWasCancelled = Task.isCancelled
+            } else {
+                firstReturnedBeforeSecondRefresh = firstReturned
+            }
         }
 
-        async let first = cartSync.syncCart(reason: .cloudImport)
-        try? await Task.sleep(nanoseconds: 10_000_000)
-        async let second = cartSync.syncCart(reason: .pull)
-        let outcomes = await (first, second)
+        let first = Task {
+            let outcome = await cartSync.syncCart(reason: .cloudImport)
+            firstReturned = true
+            return outcome
+        }
+        await fulfillment(of: [firstSuspended], timeout: 5)
+        XCTAssertEqual(refreshCount, 1)
+        // Same-actor calls do not suspend, so the second request is queued behind the
+        // suspended refresh before this test regains the main actor.
+        let second = Task {
+            secondRequested.fulfill()
+            return await cartSync.syncCart(reason: .pull)
+        }
+        await fulfillment(of: [secondRequested], timeout: 5)
+        XCTAssertEqual(refreshCount, 1, "The joined request must not start a parallel refresh")
+        release?.resume()
+        let outcomes = await (first.value, second.value)
 
         XCTAssertEqual(outcomes.0, .succeeded)
         XCTAssertEqual(outcomes.1, .succeeded)
+        XCTAssertFalse(firstRefreshWasCancelled, "The in-flight refresh must not be cancelled by the second request")
+        // Sequential syncs would let the first caller return before the second refresh starts.
+        XCTAssertFalse(firstReturnedBeforeSecondRefresh, "The pending pull must run inside the first caller's loop")
         XCTAssertEqual(refreshCount, 2)
         XCTAssertEqual(cartSync.contentRevision, 2)
     }
