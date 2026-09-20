@@ -3519,6 +3519,29 @@
         }
       }
     },
+    "notify.items_added_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart Family"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart Family"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart Family"
+          }
+        }
+      }
+    },
     "notify.member_joined_body %@": {
       "extractionState": "manual",
       "localizations": {

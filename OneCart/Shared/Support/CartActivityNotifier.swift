@@ -150,7 +150,7 @@ public enum CartActivityNotifier {
 
                 switch event {
                 case let .itemsAdded(author, itemNames):
-                    content.title = "OneCart Family"
+                    content.title = String(localized: "notify.items_added_title")
                     if itemNames.count == 1, let single = itemNames.first {
                         content.body = String(
                             localized: "notify.item_added_single \(author) \(single)"
