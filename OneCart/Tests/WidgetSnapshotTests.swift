@@ -177,7 +177,7 @@ final class WidgetSnapshotTests: XCTestCase {
     @MainActor
     func testUpdateWidgetSnapshotThemeOverride() throws {
         let store = try makeWidgetStore().store
-        let session = AppSession(widgetStore: store)
+        let session = try makeTestSession(widgetStore: store)
         session.isReady = true
         session.preferences.theme = .light
         session.updateWidgetSnapshot(themeOverride: .dark)
@@ -190,7 +190,7 @@ final class WidgetSnapshotTests: XCTestCase {
     func testUpdateWidgetSnapshotBeforeReadyKeepsStoredSnapshot() throws {
         let store = try makeWidgetStore().store
         store.save(snapshot: .placeholder)
-        let session = AppSession(widgetStore: store)
+        let session = try makeTestSession(widgetStore: store)
         session.isReady = false
         session.updateWidgetSnapshot()
         XCTAssertEqual(store.loadSnapshot()?.totalCount, WidgetCartSnapshot.placeholder.totalCount)
@@ -244,7 +244,7 @@ final class WidgetSnapshotTests: XCTestCase {
     @MainActor
     func testUpdateWidgetSnapshotAccentOverride() throws {
         let store = try makeWidgetStore().store
-        let session = AppSession(widgetStore: store)
+        let session = try makeTestSession(widgetStore: store)
         session.isReady = true
         session.preferences.accentColor = .sunset
         session.updateWidgetSnapshot(accentOverride: .ocean)
@@ -490,7 +490,7 @@ private extension XCTestCase {
         )
         let listID = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
         let productID = try await repository.addProduct(to: listID, draft: productDraft())
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence, defaults: defaults, appleSignIn: WidgetAppleSignIn(), widgetStore: store
         )
         if started {

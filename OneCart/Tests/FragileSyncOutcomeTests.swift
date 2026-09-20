@@ -8,9 +8,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         let account = OneCartAccount(id: UUID(), displayName: "Sync")
@@ -40,9 +39,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Sync"))
@@ -66,9 +64,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Sync"))
@@ -189,9 +186,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -220,9 +216,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)

@@ -17,9 +17,8 @@ final class AccountDeletionTests: XCTestCase {
         let cloud = RecordingAccountCloudDeleter()
         let stores = RecordingLocalStorePreparer()
         cloud.storeRecorder = stores
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud,
@@ -61,9 +60,8 @@ final class AccountDeletionTests: XCTestCase {
         let cloud = RecordingAccountCloudDeleter()
         cloud.errorToThrow = TestAccountDeletionError.simulated
         let stores = RecordingLocalStorePreparer()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud,
@@ -99,9 +97,8 @@ final class AccountDeletionTests: XCTestCase {
         let cloud = RecordingAccountCloudDeleter()
         let stores = RecordingLocalStorePreparer()
         stores.detachError = TestAccountDeletionError.simulated
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud,
@@ -128,9 +125,8 @@ final class AccountDeletionTests: XCTestCase {
         let cloud = RecordingAccountCloudDeleter()
         let stores = RecordingLocalStorePreparer()
         stores.attachError = TestAccountDeletionError.simulated
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud,
@@ -161,9 +157,8 @@ final class AccountDeletionTests: XCTestCase {
         let apple = TrackingAppleSignIn()
         let cloud = RecordingAccountCloudDeleter()
         cloud.delayNanoseconds = 200_000_000
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
@@ -186,9 +181,8 @@ final class AccountDeletionTests: XCTestCase {
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
         let cloud = RecordingAccountCloudDeleter()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
@@ -234,9 +228,8 @@ final class AccountDeletionTests: XCTestCase {
         persistence.container.viewContext.processPendingChanges()
         defaults.set(privateID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
@@ -264,9 +257,8 @@ final class AccountDeletionTests: XCTestCase {
         let apple = TrackingAppleSignIn()
         let cloud = RecordingAccountCloudDeleter()
         cloud.errorToThrow = OneCartCloudKitError.accountUnavailable(.noAccount)
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud
@@ -459,9 +451,8 @@ final class AccountDeletionTests: XCTestCase {
         )
         let defaults = try makeDefaults()
         let cloud = RecordingAccountCloudDeleter()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: relaunched,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: fixture.apple,
             accountCloudDataDeleter: cloud
@@ -513,9 +504,8 @@ final class AccountDeletionTests: XCTestCase {
         let defaults = try makeDefaults()
         let cloud = RecordingAccountCloudDeleter()
         cloud.requestMarker = persistence
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: apple,
             accountCloudDataDeleter: cloud

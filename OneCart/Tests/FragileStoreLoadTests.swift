@@ -136,9 +136,8 @@ final class FragileStoreLoadTests: XCTestCase {
         let containerBeforeRetry = persistence.container
 
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: SoftRetryAppleSignIn()
         )
@@ -250,9 +249,8 @@ final class FragileStoreLoadTests: XCTestCase {
             cloudKitEnabled: false
         )
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: SoftRetryAppleSignIn()
         )
@@ -290,9 +288,8 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
 
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: SoftRetryAppleSignIn()
         )

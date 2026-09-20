@@ -66,9 +66,8 @@ final class CartAccessTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -97,9 +96,8 @@ final class CartAccessTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -132,9 +130,8 @@ final class CartAccessTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -168,9 +165,8 @@ final class CartAccessTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)

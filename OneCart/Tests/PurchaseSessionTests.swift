@@ -242,9 +242,8 @@ final class PurchaseSessionTests: XCTestCase {
             product.purchasedAt = yesterday
         }
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)

@@ -9,9 +9,8 @@ final class HouseholdEnsureTests: XCTestCase {
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -40,9 +39,8 @@ final class HouseholdEnsureTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -72,9 +70,8 @@ final class HouseholdEnsureTests: XCTestCase {
             privateID.uuidString,
             forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
         )
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -135,9 +132,8 @@ final class HouseholdEnsureTests: XCTestCase {
             oldSharedID.uuidString,
             forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
         )
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -180,9 +176,8 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
     func testProvisionalAndRestoredChoicesSurviveRestartAndPersonalFallback() async throws {
         let fixture = try await makeFixture(useFinishSetup: true)
         let sourceID = try XCTUnwrap(fixture.session.activeFamilySpace?.id)
-        let restarted = AppSession(
+        let restarted = try makeTestSession(
             persistence: fixture.persistence,
-            preferences: DevicePreferences(defaults: fixture.defaults),
             defaults: fixture.defaults
         )
         restarted.online = false
@@ -282,9 +277,8 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Restore")
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         session.online = false

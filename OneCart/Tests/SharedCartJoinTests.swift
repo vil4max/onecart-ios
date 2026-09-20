@@ -86,9 +86,8 @@ final class SharedCartJoinTests: XCTestCase {
             isHouseholdDefault: true
         )
         defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -118,9 +117,8 @@ final class SharedCartJoinTests: XCTestCase {
         )
         defaults.set(sharedID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -193,9 +191,8 @@ final class SharedCartJoinTests: XCTestCase {
         )
         defaults.set(oldSharedID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -241,9 +238,8 @@ final class SharedCartJoinTests: XCTestCase {
         )
         defaults.set(familyID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -301,9 +297,8 @@ final class SharedCartJoinTests: XCTestCase {
         )
         defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -349,9 +344,8 @@ final class SharedCartSelectionTests: XCTestCase {
             productName: "Other",
             updatedAt: Date()
         )
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
@@ -384,9 +378,8 @@ final class SharedCartSelectionTests: XCTestCase {
             productName: "Current",
             updatedAt: Date()
         )
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)

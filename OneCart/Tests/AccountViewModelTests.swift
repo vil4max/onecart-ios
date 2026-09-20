@@ -7,9 +7,8 @@ final class AccountViewModelTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         session.account = OneCartAccount(id: UUID(), displayName: "Owner")
@@ -26,9 +25,8 @@ final class AccountViewModelTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         session.account = OneCartAccount(id: UUID(), displayName: "Guest")
@@ -45,9 +43,8 @@ final class AccountViewModelTests: XCTestCase {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         let viewModel = AccountViewModel(session: session, shareTimeoutNanoseconds: 200_000_000)

@@ -1,3 +1,4 @@
+import AuthenticationServices
 import CoreData
 @testable import OneCart
 import XCTest
@@ -61,6 +62,40 @@ extension XCTestCase {
         return nil
     }
 
+    /// The only sanctioned way to build an `AppSession` in tests: the defaults and the
+    /// sign-in service never fall back to `.standard`, the App Group, or the Keychain.
+    func makeTestSession(
+        persistence: PersistenceController? = nil,
+        defaults: UserDefaults? = nil,
+        appleSignIn: AppleSignInAuthenticating? = nil,
+        accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
+        accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
+        widgetStore: WidgetSnapshotStore? = nil
+    ) throws -> AppSession {
+        let defaults = try defaults ?? makeDefaults()
+        return try AppSession(
+            persistence: persistence ?? PersistenceController(inMemory: true, cloudKitEnabled: false),
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
+            accountCloudDataDeleter: accountCloudDataDeleter,
+            accountLocalStorePreparer: accountLocalStorePreparer,
+            widgetStore: widgetStore ?? makeIsolatedWidgetStore()
+        )
+    }
+
+    /// Both halves of the store are isolated: the defaults suite and the pending-purchase
+    /// directory, which otherwise resolves to the real App Group container.
+    nonisolated func makeIsolatedWidgetStore() throws -> WidgetSnapshotStore {
+        let suiteName = try makeDefaultsSuiteName()
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(suiteName, isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: directory)
+        }
+        return WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: directory)
+    }
+
     nonisolated func makeDefaults() throws -> UserDefaults {
         try XCTUnwrap(UserDefaults(suiteName: makeDefaultsSuiteName()))
     }
@@ -74,6 +109,40 @@ extension XCTestCase {
             UserDefaults.standard.removePersistentDomain(forName: suiteName)
         }
         return suiteName
+    }
+}
+
+/// Keychain-free sign-in double; starts signed out, like a clean device.
+final class InMemoryAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
+    private let lock = NSLock()
+    private var credential: AppleSignInCredential?
+
+    init(credential: AppleSignInCredential? = nil) {
+        self.credential = credential
+    }
+
+    func storedCredential() -> AppleSignInCredential? {
+        lock.withLock { credential }
+    }
+
+    func save(_ credential: AppleSignInCredential) {
+        lock.withLock { self.credential = credential }
+    }
+
+    func clearCredential() {
+        lock.withLock { credential = nil }
+    }
+
+    func credentialState(for userID: String) async -> AppleSignInCredentialState {
+        storedCredential()?.userID == userID ? .authorized : .notFound
+    }
+
+    func signIn() async throws -> AppleSignInCredential {
+        throw AppleSignInError.failed
+    }
+
+    func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
+        throw AppleSignInError.failed
     }
 }
 

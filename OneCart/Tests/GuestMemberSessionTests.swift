@@ -192,9 +192,8 @@ final class GuestMemberSessionTests: XCTestCase {
         persistence.container.viewContext.processPendingChanges()
         defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
 
-        let session = AppSession(
+        let session = try makeTestSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: account)
