@@ -1,4 +1,5 @@
 @testable import OneCart
+import SwiftUI
 import XCTest
 
 final class DevicePreferencesTests: XCTestCase {
@@ -125,20 +126,18 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertFalse(InviteLinkError.offline.localizedDescription.isEmpty)
     }
 
-    func testIPadSupportedOrientationsDeclaredInBundle() {
+    func testIPhoneSupportedOrientationsDeclaredInBundle() throws {
         let appBundle = Bundle(for: AppDelegate.self)
         let infoPlistURL = appBundle.bundleURL.appendingPathComponent("Info.plist")
-        guard let data = try? Data(contentsOf: infoPlistURL),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-              let orientations = plist["UISupportedInterfaceOrientations~ipad"] as? [String]
-        else {
-            XCTFail("UISupportedInterfaceOrientations~ipad must be declared in Info.plist at \(infoPlistURL.path)")
-            return
-        }
-        XCTAssertTrue(orientations.contains("UIInterfaceOrientationPortrait"))
-        XCTAssertTrue(orientations.contains("UIInterfaceOrientationPortraitUpsideDown"))
-        XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeLeft"))
-        XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeRight"))
+        let data = try Data(contentsOf: infoPlistURL)
+        let plist = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        )
+        // iPhone only (TARGETED_DEVICE_FAMILY = 1): the app is laid out for portrait.
+        XCTAssertEqual(
+            plist["UISupportedInterfaceOrientations"] as? [String],
+            ["UIInterfaceOrientationPortrait"]
+        )
     }
 
     func testCartInviteActivityItemProperties() throws {
@@ -209,14 +208,47 @@ final class DevicePreferencesTests: XCTestCase {
     }
 
     func testAppAccentColorProperties() {
-        for accent in AppAccentColor.allCases {
+        typealias Palette = (light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat))
+        func key(_ rgb: (CGFloat, CGFloat, CGFloat)) -> String {
+            "\(rgb.0)-\(rgb.1)-\(rgb.2)"
+        }
+        let tables: [(name: String, value: (AppAccentColor) -> Palette)] = [
+            ("primary", { $0.primaryRGB }),
+            ("primaryStrong", { $0.primaryStrongRGB }),
+            ("primaryAccent", { $0.primaryAccentRGB }),
+            ("primarySoft", { $0.primarySoftRGB }),
+        ]
+        let accents = AppAccentColor.allCases
+
+        XCTAssertEqual(Set(accents.map(\.id)).count, accents.count)
+        for accent in accents {
             XCTAssertFalse(accent.id.isEmpty)
             XCTAssertFalse(accent.title.isEmpty)
-            XCTAssertNotNil(accent.swatchColor)
-            XCTAssertEqual(accent.primaryRGB.light.0, accent.primaryRGB.light.0)
-            XCTAssertEqual(accent.primaryStrongRGB.light.0, accent.primaryStrongRGB.light.0)
-            XCTAssertEqual(accent.primaryAccentRGB.light.0, accent.primaryAccentRGB.light.0)
-            XCTAssertEqual(accent.primarySoftRGB.light.0, accent.primarySoftRGB.light.0)
+            let primary = accent.primaryRGB.light
+            XCTAssertEqual(
+                accent.swatchColor,
+                Color(red: primary.0 / 255, green: primary.1 / 255, blue: primary.2 / 255)
+            )
+        }
+        for table in tables {
+            for accent in accents {
+                let palette = table.value(accent)
+                for channel in [
+                    palette.light.0, palette.light.1, palette.light.2,
+                    palette.dark.0, palette.dark.1, palette.dark.2,
+                ] {
+                    XCTAssertTrue((0 ... 255).contains(channel), "\(accent.id) \(table.name) channel \(channel)")
+                }
+            }
+            // A picked accent must be visible: no two accents may share a colour in any role.
+            XCTAssertEqual(
+                Set(accents.map { key(table.value($0).light) }).count, accents.count,
+                "\(table.name) light colours must differ between accents"
+            )
+            XCTAssertEqual(
+                Set(accents.map { key(table.value($0).dark) }).count, accents.count,
+                "\(table.name) dark colours must differ between accents"
+            )
         }
     }
 
