@@ -41,7 +41,6 @@ struct ReadOnlyBanner: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .oneCartCard()
     }
 }
 
@@ -69,15 +68,7 @@ struct EmptyCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .padding(18)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
+        .padding(.vertical, 10)
     }
 }
 
@@ -109,19 +100,7 @@ struct CartAllPurchasedHeroCard: View {
             .padding(.bottom, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .padding(.vertical, 8)
         .transition(
             .asymmetric(
                 insertion: .opacity.combined(with: .scale(scale: 0.94)).combined(with: .offset(y: 8)),
@@ -183,19 +162,6 @@ struct CartProgressStrip: View {
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(response: 0.38, dampingFraction: 0.8), value: isAllPurchased)
-    }
-}
-
-struct ContentUnavailableViewCompat: View {
-    let image: String
-    let title: LocalizedStringKey
-    let message: LocalizedStringKey
-
-    var body: some View {
-        EmptyCard(image: image, title: title, message: message)
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(OneCartPalette.background)
     }
 }
 

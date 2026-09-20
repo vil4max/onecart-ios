@@ -34,6 +34,11 @@ struct HistoryView: View {
                             title: "history.empty_title",
                             message: "history.empty_message"
                         )
+                        .padding(8)
+                        .background(
+                            OneCartPalette.surface,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
                     } else {
                         if isRegular {
                             LazyVGrid(columns: gridColumns, spacing: 16) {

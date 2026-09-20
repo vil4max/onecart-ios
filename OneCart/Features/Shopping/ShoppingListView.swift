@@ -86,9 +86,6 @@ struct ShoppingListView: View {
                                 title: "cart.empty_title",
                                 message: emptyCartMessage
                             )
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
                         }
                     } else {
                         if isComposingNewItem {
@@ -136,8 +133,6 @@ struct ShoppingListView: View {
                 .animation(.spring(response: 0.42, dampingFraction: 0.82), value: inTrolleyProducts.map(\.id))
                 .animation(.spring(response: 0.40, dampingFraction: 0.82), value: isAllPurchased)
                 .animation(.spring(response: 0.38, dampingFraction: 0.82), value: showsEmptyCard)
-                .scrollContentBackground(.hidden)
-                .background(OneCartPalette.background.ignoresSafeArea())
                 .safeAreaBar(edge: .top, spacing: 0) {
                     if !products.isEmpty || isComposingNewItem {
                         CartProgressStrip(
@@ -240,11 +235,11 @@ struct ShoppingListView: View {
                 }
             }
         } else {
-            ContentUnavailableViewCompat(
-                image: "questionmark.folder",
-                title: "cart.list_unavailable_title",
-                message: "cart.list_unavailable_message"
-            )
+            ContentUnavailableView {
+                Label("cart.list_unavailable_title", systemImage: "questionmark.folder")
+            } description: {
+                Text("cart.list_unavailable_message")
+            }
         }
     }
 
