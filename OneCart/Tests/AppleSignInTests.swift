@@ -28,9 +28,8 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertEqual(withoutName.displayName, String(localized: "common.default_user"))
     }
 
-    func testKeychainAppleSignInCredentialStorePersistsCredential() {
-        let service = "onecart.tests.\(UUID().uuidString)"
-        let store = KeychainAppleSignInCredentialStore(service: service)
+    func testKeychainAppleSignInCredentialStorePersistsCredential() throws {
+        let store = try makeKeychainStore().store
         let credential = AppleSignInCredential(
             userID: "001234.abcd",
             email: nil,
@@ -44,10 +43,7 @@ final class AppleSignInTests: XCTestCase {
     }
 
     func testKeychainStoreFallsBackToUserDefaultsBackup() throws {
-        let service = "onecart.tests.\(UUID().uuidString)"
-        let defaultsSuite = "onecart.tests.suite.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: defaultsSuite))
-        let store = KeychainAppleSignInCredentialStore(service: service, defaults: defaults)
+        let (store, defaults, service) = try makeKeychainStore()
         let credential = AppleSignInCredential(
             userID: "user.backup.test",
             email: "backup@example.com",
@@ -74,32 +70,30 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertNil(loaded?.givenName)
         XCTAssertNil(loaded?.familyName)
 
-        // Clean up
         store.clear()
         XCTAssertNil(store.load())
-        defaults.removePersistentDomain(forName: defaultsSuite)
+        XCTAssertNil(defaults.string(forKey: store.backupKey))
     }
 
-    func testSimulatorCredentialStateReturnsAuthorized() async {
+    func testCredentialStateForNeverIssuedUserID() async throws {
+        let service = try AppleSignInService(store: makeKeychainStore().store)
+        let state = await service.credentialState(for: "onecart.tests.\(UUID().uuidString)")
         #if targetEnvironment(simulator)
-            let service = AppleSignInService()
-            let state = await service.credentialState(for: "any-user")
+            // The simulator has no Apple ID provider, so the service short-circuits.
             XCTAssertEqual(state, .authorized)
+        #else
+            XCTAssertNotEqual(state, .authorized, "A user ID Apple never issued must not read as authorized")
         #endif
     }
 
     @MainActor
     func testWelcomeViewModelSignInWithTestAccountBootstrapsSession() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        let service = "onecart.tests.\(UUID().uuidString)"
-        let defaultsSuite = "onecart.tests.suite.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: defaultsSuite))
-        let store = KeychainAppleSignInCredentialStore(service: service, defaults: defaults)
-        let appleSignIn = AppleSignInService(store: store)
-        let session = AppSession(
+        let (store, defaults, _) = try makeKeychainStore()
+        let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults,
-            appleSignIn: appleSignIn
+            appleSignIn: AppleSignInService(store: store)
         )
         let viewModel = WelcomeViewModel(session: session)
         await viewModel.signInWithTestAccount()
@@ -110,10 +104,25 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertEqual(session.activeFamilySpace?.displayName, expectedCartName)
         XCTAssertEqual(store.load()?.givenName, "Alex")
 
-        // Clean up
         session.signOut()
         XCTAssertTrue(session.needsWelcome)
         XCTAssertNil(store.load())
-        defaults.removePersistentDomain(forName: defaultsSuite)
+    }
+
+    /// A unique Keychain service per test plus an isolated backup suite; teardown removes
+    /// the items even when the test throws before its own `clear()`.
+    private func makeKeychainStore() throws
+        -> (store: KeychainAppleSignInCredentialStore, defaults: UserDefaults, service: String)
+    {
+        let service = "onecart.tests.\(UUID().uuidString)"
+        let defaults = try makeDefaults()
+        addTeardownBlock {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+            ]
+            SecItemDelete(query as CFDictionary)
+        }
+        return (KeychainAppleSignInCredentialStore(service: service, defaults: defaults), defaults, service)
     }
 }
