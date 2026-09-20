@@ -17,18 +17,15 @@ struct CartWidgetProvider: TimelineProvider {
             return
         }
         let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
-        OneCartPalette.currentAccent = snapshot.accentColor
         completion(CartWidgetEntry(date: Date(), snapshot: snapshot))
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<CartWidgetEntry>) -> Void) {
         let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
-        OneCartPalette.currentAccent = snapshot.accentColor
         let entry = CartWidgetEntry(date: Date(), snapshot: snapshot)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())
-            ?? Date().addingTimeInterval(900)
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        completion(timeline)
+        // Only the app and the toggle intent write the snapshot, and both reload the
+        // timelines, so a periodic refresh would re-read unchanged data.
+        completion(Timeline(entries: [entry], policy: .never))
     }
 }
 
