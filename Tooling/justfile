@@ -64,12 +64,13 @@ build:
     echo "build.sh not found under $root" >&2
     exit 1
 
-test:
+[positional-arguments]
+test *args:
     #!/usr/bin/env bash
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/test.sh" ]]; then exec "$d/test.sh"; fi
+      if [[ -x "$d/test.sh" ]]; then exec "$d/test.sh" "$@"; fi
     done
     echo "test.sh not found under $root" >&2
     exit 1

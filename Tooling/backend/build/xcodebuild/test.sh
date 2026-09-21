@@ -17,7 +17,9 @@ if [[ "${RUNTIME_XCODEBUILD_WITHOUT_BUILDING:-false}" == true ]]; then
   ACTION=test-without-building
 fi
 
-ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug "$ACTION")
+ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug)
+while IFS= read -r flag; do ARGS+=("$flag"); done < <(xcodebuild_validation_flags)
+ARGS+=("$ACTION")
 if [[ -n "$WS" ]]; then
   ARGS=(-workspace "$WS" "${ARGS[@]}")
 elif [[ -n "$PROJ" ]]; then
@@ -26,6 +28,10 @@ else
   echo "no .xcodeproj / .xcworkspace found" >&2
   exit 1
 fi
+
+# Extra arguments select a subset (-only-testing:Target/Class); without this
+# passthrough agents bypass the Runtime with raw xcodebuild for one test.
+ARGS+=("$@")
 
 if have xcbeautify; then
   xcodebuild "${ARGS[@]}" | xcbeautify
