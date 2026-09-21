@@ -8,7 +8,7 @@ highest affected layer; evidence from operations flows back up.
 | L0 core | Goal, language, priorities, constraints | [core.md](core.md) (approved 2026-09-16) |
 | L1 requirements | Thesis, living cart, Completed → History, membership, widgets | [requirements/product.md](requirements/product.md) |
 | L1 decisions | Why CloudKit; which CI owns tests vs TestFlight | [decisions/0002-cloudkit-native-backend.md](decisions/0002-cloudkit-native-backend.md), [decisions/0003-ci-split.md](decisions/0003-ci-split.md) |
-| L2 specs | Which tests prove the requirements? | `OneCart/Tests/` — name tests with `REQ-<AREA>-NNN` |
+| L2 specs | Which tests prove the requirements? | `OneCart/Tests/` — XCTest `func test_REQ_<AREA>_<NNN>_…()`, Swift Testing `@Test("REQ-<AREA>-<NNN>: …")`; IDs and the per-requirement test list live in [requirements/product.md](requirements/product.md#coverage) |
 | Engineering | MVVM layout, owner files, fragile-test matrix; PR review checklist | [engineering/architecture.md](engineering/architecture.md), [engineering/review-changelog.md](engineering/review-changelog.md) |
 | Operations | Apple Developer, CloudKit Production, TestFlight, release notes | [operations/release.md](operations/release.md), [operations/releases/](operations/releases/) |
 | Planning | Current project state; legacy migration and cleanup | [planning/project-state.md](planning/project-state.md), [planning/legacy-migration.md](planning/legacy-migration.md) |

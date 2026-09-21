@@ -22,7 +22,8 @@ A behavior carries one ID, placed at its canonical statement. Prose elsewhere
 that summarizes the same behavior is left unlabelled rather than given a second
 ID. Scope statements — non-goals, deferred work, the stability context and the
 "not this train" ideas — carry no IDs, because they describe what is *not* built
-and there is no behavior to test. Tests cite these IDs by name.
+and there is no behavior to test. Tests cite these IDs by name; see
+[Coverage](#coverage).
 
 ## Business skeleton
 
@@ -149,6 +150,78 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](../planning/legacy-migration.md).
 - **REQ-CART-120** Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
+
+## Coverage
+
+Which tests prove each requirement above. A row lists the suite and, inside it,
+each covering test's name with its own `test_REQ_<AREA>_<NNN>_` prefix stripped —
+the full XCTest name is that prefix plus the listed suffix. Swift Testing cases
+carry the ID in their `@Test` display name instead. `none` means no test asserts
+the requirement today; the note says what is missing rather than implying a gap
+that a rename could close.
+
+Renaming a test never changed an assertion: only the identifiers moved. Tests
+outside this table keep their original names — the table covers the fragile-test
+matrix in [engineering/architecture.md](../engineering/architecture.md) and the
+core path from [core.md](../core.md), not every suite.
+
+| REQ ID | Covering tests |
+|--------|----------------|
+| REQ-AUTH-010 | `AppleSignInTests` → `welcomeViewModelSignInWithTestAccountBootstrapsSession`; `FragileStoreLoadTests` → `failureCauseArmsOnlyForStoreLoadCodes`, `isUserFacingCoreDataFailureIgnoresCloudKit`, `postLoadCocoaSaveErrorDoesNotArmHardReset`, `retryWelcomeDoesNotWipeUnlessCoreDataFailure`, `shouldHardResetStoresOnlyForCoreDataWelcomeFailure`, `storeLoadFailureArmsHardResetAndRetryRecovers`, `wrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure` |
+| REQ-AUTH-020 | `AppleSignInTests` → `credentialStateForNeverIssuedUserID`, `keychainAppleSignInCredentialStorePersistsCredential`, `keychainStoreFallsBackToUserDefaultsBackup` |
+| REQ-AUTH-030 | `AccountDeletionTests` → `deleteAccount_whenICloudUnavailable_showsSpecificMessage`; `InviteLinkPreparerTests` → `offlineThrows` |
+| REQ-AUTH-040 | `AppleSignInTests` → `appleSignInCredentialBuildsDisplayNameAndAccountID` |
+| REQ-AUTH-050 | `CartAccessTests` → `familyCacheIsScopedToAuthenticatedUser`, `sharedCartVisibleAlongsideOwnPrivateCart`; `FamilyCartLifecycleTests` → `claimUnassignedFamilySpacesStampsPrivateOnly` |
+| REQ-AUTH-060 | `WidgetSnapshotTests` → `signOut_clearsWidgetDataAndRejectsLateWidgetAction` |
+| REQ-AUTH-070 | `AccountDeletionTests` → `deleteAccount_whenCloudSucceeds_removesDiskProduct`, `deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState`, `deleteAccount_whenMember_leavesSharedBeforeCloudDelete`; `WidgetSnapshotTests` → `deleteAccount_clearsWidgetSnapshotAndPendingPurchases` |
+| REQ-AUTH-080 | `AccountDeletionTests` → `deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud`, `deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring`, `deleteAccount_whenCloudFails_keepsSignedInAndLocalState`, `deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct`, `detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery`, `load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores`; `FragileStoreLoadTests` → `diagnosticsSnapshotCreatedBeforeExplicitHardReset`, `loadFailureDoesNotDestroyStoreFiles`, `partialLoadFailureAllowsRetryInSameProcess` |
+| REQ-CART-010 | `FamilyCartLifecycleTests` → `archiveFamilySpaceHidesCartAndSoftDeletesChildren` |
+| REQ-CART-020 | `CartItemsTests` → `updateProductRewritesFields` |
+| REQ-CART-030 | `CartItemsTests` → `addProductVisibleAfterViewContextMerge`, `invalidNamesAreRejected` |
+| REQ-CART-040 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer` |
+| REQ-CART-050 | `CartItemsTests` → `deleteProductSkipsPurchasedItems` |
+| REQ-CART-060 | `none` — no test asserts the absence of price UI — a negative UI constraint with no unit-testable surface |
+| REQ-CART-070 | `HouseholdEnsureTests` → `ensureHouseholdCreatesCartWhenEmpty` |
+| REQ-CART-080 | `HouseholdEnsureTests` → `ensureHouseholdNoOpWhenActiveFamilyExists` |
+| REQ-CART-090 | `CartItemsTests` → `deduplicateProductsByNameKeepsFirstWriter`, `duplicateNameIsDetectedBeyondFiftyLiveRows`, `reAddAfterDeleteCreatesNewLine`, `renameIntoExistingNameMergesRows`, `sameNamedProductsReuseExistingCartLine`; `CartSuggestionsEngineTests` → `@Test "Excludes cart items with the same diacritic-insensitive normalization as cart dedupe"`; `FamilyCartMergeTests` → `mergeFamilyContentLWWSameNormalizedName` |
+| REQ-CART-100 | `CartAccessTests` → `customCartNameStopsFollowingParticipantNickname`, `personalCartNameUsesAccountDisplayName`, `renamingParticipantUpdatesPersonalCartTitleWhileAutoNamed` |
+| REQ-CART-110 | `CartAccessTests` → `renameActiveCartUpdatesFamilySpaceName`; `GuestMemberSessionTests` → `guestCannotRenameOrRevokeSharedCart` |
+| REQ-CART-120 | `FamilyCartMergeTests` → `contentSummaryAndLegacyNameMigrationRules` |
+| REQ-HIST-010 | `PurchaseSessionTests` → `historyDayGroupsByPurchasedAt` |
+| REQ-HIST-020 | `PurchaseSessionTests` → `archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `archivePurchasedBeforeMovesOnlyStaleCheckedItems`, `archiveStalePurchasedIfNeededViaSession` |
+| REQ-HIST-030 | `HistoryPaginationTests` → `fetchHistoryDefaultLimitIs30`, `loadMoreHistoryAppends` |
+| REQ-HIST-040 | `CartSuggestionsEngineTests` → `@Test "Counts replicated purchases once per family when ranking suggestions"`; `PurchaseSessionTests` → `archiveRetryReusesExistingPurchaseAndArchivesOnlyNewItems`, `historyGroupsChooseSamePurchaseAcrossArchiveSessions`, `historyIdentityPreservesOtherFamiliesAndDistinctSameNamePurchases` |
+| REQ-HIST-050 | `none` — no test asserts that no user-facing clear-History path exists — negative UI constraint |
+| REQ-SHARE-010 | `CartAccessTests` → `familyAccessAllowsSharedListEditing`, `selectivePermissionAuthorizerBlocksSharedUpdates` |
+| REQ-SHARE-020 | `CloudKitErrorMappingTests` → `cloudKitFamilyInviteShareMessageContainsShareURL` |
+| REQ-SHARE-030 | `AccountViewModelTests` → `finishedShareWatchdogDoesNotTimeOutNextShare`; `InviteLinkPreparerTests` → `deadline_cancellationReturnsWithoutWaitingForCallback`, `deadline_returnsBeforeUnresponsiveOperationAndIgnoresLateSuccess` |
+| REQ-SHARE-040 | `none` — `CKShare.removeParticipant` is never exercised; member removal has no unit test or fake |
+| REQ-SHARE-050 | `GuestMemberSessionTests` → `guestLeaveCartReturnsToPersonal`, `guestReturnsToPersonalWhenSharedGone` |
+| REQ-SHARE-060 | `CartAccessTests` → `revokeInviteKeepsFamilySpaceIdentity`; `SharedCartJoinTests` → `applyReadWriteACLPreservesRevokedPublicPermission`, `revokeIsDoorCloseNotGuestBan` |
+| REQ-SHARE-070 | `SharedCartJoinTests` → `applyReadWriteACLReopensDoorWhenRequested` |
+| REQ-SHARE-080 | `InviteLinkPreparerTests` → `createInviteLinkAlwaysRefetches`, `warmUpFailureLeavesCacheNil`; `SharedCartJoinTests` → `backgroundInvitePreparation_keepsRevokedShareClosed` |
+| REQ-SHARE-090 | `GuestMemberSessionTests` → `guestSessionActivatesSharedCartAsMember`; `HouseholdEnsureTests` → `ensureHouseholdAdoptsSharedWhileOnPrivate`; `SharedCartJoinTests` → `adoptSelectsSharedWithoutMergingPrivateContent`, `alreadyOnSharedStaysShared`, `emptyPrivateAutoAdoptsShared`, `ensureHouseholdAdoptsSharedEvenWhenPrivateActive`, `newlyJoinedSharedCartBecomesActiveOverCurrentSharedCart`, `privateContentIsNotMergedIntoSharedOnAdopt`, `reloadPrefersSharedOverStoredPrivate`, `reloadSwitchesToSharedWhenSharedAppearsLater` |
+| REQ-SHARE-100 | `none` — negative requirement about not calling non-existent Apple Family APIs; nothing to assert |
+| REQ-SHARE-110 | `InviteLinkPreparerTests` → `memberCanCreateInviteLink` |
+| REQ-SHELL-010 | `CartItemsTests` → `sortedProductsPutsNewestToBuyFirstThenCompleted` |
+| REQ-SHELL-020 | `none` — История tab composition (day order, read-only, caption) has no view-level test; only its paging is covered, under REQ-HIST-030 |
+| REQ-SHELL-030 | `AccountViewModelTests` → `memberGatesEnableLeaveOnly`, `ownerGatesEnableRenameAndRevoke` |
+| REQ-SHELL-040 | `none` — placement of Share inside Настройки is view composition; no view-level test exists |
+| REQ-SHELL-050 | `CloudKitErrorMappingTests` → `cloudKitUserFacingErrorDetectsNetworkFailure`, `cloudKitUserFacingErrorMapsAuthAndPermission`, `cloudKitUserFacingErrorReplacesOpaquePartialFailure` |
+| REQ-SHELL-060 | `none` — display name and branding strings are not asserted by any test |
+| REQ-SYNC-010 | `FragileSyncOutcomeTests` → `cartContentStorePublishesAfterReload`, `syncCartAppearFailureDoesNotPresentAlert`, `syncCartPullFailureSetsFailedState`, `syncCartSuccessSetsSynchronized` |
+| REQ-SYNC-020 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer` |
+| REQ-SYNC-030 | `CartItemsTests` → `deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI`; `SharedCartJoinTests` → `refreshFromServerPicksUpToggledPurchasedState` |
+| REQ-SYNC-040 | `FamilyCartMergeTests` → `restoreKeepsStableIDsHistoryAndSourceGraphAcrossRetries`; `HouseholdEnsureTests` → `delayedPrivateImportPreservesLocalItemsAndSelectsExistingCart`, `ensureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies`, `partialImportAndPendingMutationsDeferPersonalSelection`, `provisionalAndRestoredChoicesSurviveRestartAndPersonalFallback`; `SharedCartJoinTests` → `acceptSelectsNewestSharedWithoutDeletingOtherFamilies`, `cloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer` |
+| REQ-WIDGET-010 | `WidgetSnapshotTests` → `emptyAndAllPurchasedHelpers`, `snapshotEncodingAndDecoding`, `toggleWithPartialSnapshot_preservesHiddenPurchasedCount` |
+| REQ-WIDGET-020 | `WidgetSnapshotTests` → `pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement`, `performWidgetPurchase_savesRepositoryBeforeAcknowledging`, `start_withDurableWidgetCommand_appliesItWithoutForegroundTransition`, `widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue`, `widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt`, `widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState` |
+| REQ-WIDGET-030 | `CartActivityDiffTests` → `firstSnapshotSeedsWithoutNotify`, `partialCompletionDoesNotNotifyAllPurchased`, `partnerAddsSingleItemNotifies`, `partnerCompletesLastItemNotifiesAllPurchased`, `selfAddedItemDoesNotNotify`, `selfCompletesLastItemDoesNotNotify`, `singleUserCartDoesNotNotify`; `SharedCartJoinTests` → `firstSnapshotSeedsWithoutNotify`, `newMemberAfterBaselineNotifies` |
+
+Fragile-test matrix (`F1`–`F11`) to requirement: `F1`, `F3`, `F11` →
+REQ-AUTH-080; `F2` → REQ-AUTH-010; `F4`, `F5`, `F8` → REQ-SYNC-010 and
+REQ-SYNC-030; `F6` → REQ-SHARE-090; `F7` → REQ-SHARE-010; `F9` → REQ-HIST-030.
+`F10` (new Application files reach the compiled Sources phase) is a build-stage
+gate proved by the `test_sim` compile, not by a named test, so it cites no ID.
 
 ## Positioning vs Apple Family
 
