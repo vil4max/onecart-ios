@@ -10,3 +10,4 @@ lint: true
 format: true
 tests: true
 todo_scan: false
+pipeline: shared
