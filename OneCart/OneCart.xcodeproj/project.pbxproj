@@ -639,7 +639,7 @@
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-					W500000000000000000000001 = {
+					W50000000000000000000001 = {
 						CreatedOnToolsVersion = 26.0;
 						DevelopmentTeam = BTHRDS7254;
 						ProvisioningStyle = Automatic;
@@ -859,7 +859,7 @@
 /* Begin PBXTargetDependency section */
 		W600000000000000000000002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = W500000000000000000000001 /* OneCartWidgets */;
+			target = W50000000000000000000001 /* OneCartWidgets */;
 			targetProxy = W600000000000000000000001 /* PBXContainerItemProxy */;
 		};
 		A60000000000000000000002 /* PBXTargetDependency */ = {
