@@ -6,16 +6,34 @@
 
 One person adds items, another shops, everyone follows synchronized progress. Not chat threads about “buy more bread,” not screenshots of a list — a living shared state plus a history of what the family actually bought.
 
+## Requirement IDs
+
+The `REQ-<AREA>-NNN` labels below name behavior this document already approved;
+assigning an ID does not add, widen or reinterpret a requirement. Changing what
+a labelled statement *means* — or retiring it — is still an owner decision and
+needs owner approval, exactly as before the IDs existed. Areas are `AUTH`
+(session and account), `CART` (living cart and items), `HIST` (History by day),
+`SHARE` (invite, join, membership), `SYNC` (propagation and merge), `SHELL`
+(tabs, titles, error surface) and `WIDGET` (widgets and notifications). Numbers
+rise in tens so a later statement can be inserted without renumbering; a
+retired ID is never reused.
+
+A behavior carries one ID, placed at its canonical statement. Prose elsewhere
+that summarizes the same behavior is left unlabelled rather than given a second
+ID. Scope statements — non-goals, deferred work, the stability context and the
+"not this train" ideas — carry no IDs, because they describe what is *not* built
+and there is no behavior to test. Tests cite these IDs by name.
+
 ## Business skeleton
 
 Four entities, one loop:
 
 | Entity | Role |
 |--------|------|
-| **Family** (`FamilySpace`) | People joined via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner revokes the link or removes the member. The cart entity is durable — never deleted/recreated. |
-| **Cart** | One per family; lives forever; never “closes” |
-| **Item** | A name plus state: still needed, or **Completed** (checked) |
-| **History day** | Purchases grouped by the calendar day they were marked completed |
+| **Family** (`FamilySpace`) | **REQ-SHARE-010** People joined via `CKShare` link-join (`publicPermission = .readWrite`); everyone can add and check items. Anyone with the invite URL can join and edit until the owner revokes the link or removes the member. The cart entity is durable — never deleted/recreated. |
+| **Cart** | **REQ-CART-010** One per family; lives forever; never “closes” |
+| **Item** | **REQ-CART-020** A name plus state: still needed, or **Completed** (checked) |
+| **History day** | **REQ-HIST-010** Purchases grouped by the calendar day they were marked completed |
 
 ```text
 Family → living cart → items (to buy / Completed)
@@ -27,21 +45,21 @@ Family → living cart → items (to buy / Completed)
 
 The cart mirrors the shopping trip:
 
-1. Family adds name-only items to the shared cart.
-2. Shopper checks items as they pick them — they move to **Completed** (strikethrough), still on the living cart.
-3. Completed updates propagate through CloudKit when synchronization runs.
-4. There is **no** manual «Finish shopping» / Done CTA. When the app opens or returns to foreground on a **later calendar day**, items Completed before the start of today move into **History**, grouped by purchase day.
-5. Completed items cannot be swipe-deleted; uncheck first if the mark was a mistake. To-buy items can still be deleted.
+1. **REQ-CART-030** Family adds name-only items to the shared cart.
+2. **REQ-CART-040** Shopper checks items as they pick them — they move to **Completed** (strikethrough), still on the living cart.
+3. **REQ-SYNC-030** Completed updates propagate through CloudKit when synchronization runs.
+4. **REQ-HIST-020** There is **no** manual «Finish shopping» / Done CTA. When the app opens or returns to foreground on a **later calendar day**, items Completed before the start of today move into **History**, grouped by purchase day.
+5. **REQ-CART-050** Completed items cannot be swipe-deleted; uncheck first if the mark was a mistake. To-buy items can still be deleted.
 
 Checkbox means **Completed for this trip**, not yet archived. History is the overnight (calendar-day) archive.
 
 ### Product promises
 
-1. **Sync** — local edits save immediately and propagate through iCloud; offline changes wait for connectivity and CloudKit scheduling.
-2. **Transparency** — who added / who completed an item, without calls.
-3. **Memory** — History by day answers what the family bought.
+1. **REQ-SYNC-010 Sync** — local edits save immediately and propagate through iCloud; offline changes wait for connectivity and CloudKit scheduling.
+2. **REQ-SYNC-020 Transparency** — who added / who completed an item, without calls.
+3. **REQ-HIST-030 Memory** — History by day answers what the family bought.
 
-Money is not a promise on this train: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
+**REQ-CART-060** Money is not a promise on this train: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
 
 ### What OneCart is not
 
@@ -53,30 +71,30 @@ Three tabs after Welcome:
 
 | Tab | Contents |
 |-----|----------|
-| **Корзина** | Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
-| **История** | Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
-| **Настройки** | One screen: **Корзина** (status, members, share / rename / revoke or leave), then **Аккаунт Apple** (profile / name), appearance, accent, app icon and language preferences, **Сессия** (Sign out keeps iCloud cart), **Удаление аккаунта** (permanent CloudKit delete) |
+| **Корзина** | **REQ-SHELL-010** Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…» |
+| **История** | **REQ-SHELL-020** Days (newest first); tap a day for its products; read-only (no delete); small caption explains overnight archive; last 30 history sessions + show more |
+| **Настройки** | **REQ-SHELL-030** One screen: **Корзина** (status, members, share / rename / revoke or leave), then **Аккаунт Apple** (profile / name), appearance, accent, app icon and language preferences, **Сессия** (Sign out keeps iCloud cart), **Удаление аккаунта** (permanent CloudKit delete) |
 
-Share is a secondary action in **Настройки**, not a primary cart CTA. Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
+**REQ-SHELL-040** Share is a secondary action in **Настройки**, not a primary cart CTA. **REQ-SHARE-110** Any cart member can open «Поделиться корзиной» and forward the same invite link. Owner **Revoke invite** closes the door for new joins (existing members stay); **Share** again reopens joining on the same durable cart. **Remove** kicks a member (not a ban); **Leave** exits the guest (rejoin with an open link).
 
 Nav title is the cart name. Personal cart starts as `cart.personal_title` from the nickname; after the owner renames the cart, the title no longer follows nickname changes. Shared cart title is owner-editable via Rename.
 
 ## User flow
 
-1. Install → Welcome: Sign in with Apple + short cart pitch + iCloud errors / Retry.
-2. After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, keyboard Done to save.
-3. Prefer an existing iCloud cart for this account over creating a duplicate empty one.
+1. **REQ-AUTH-010** Install → Welcome: Sign in with Apple + short cart pitch + iCloud errors / Retry.
+2. **REQ-CART-070** After sign-in → one household cart (`isHouseholdDefault`). Tap `+` for an empty cart row with keyboard, type a name, keyboard Done to save.
+3. **REQ-CART-080** Prefer an existing iCloud cart for this account over creating a duplicate empty one.
 4. Check items into **Completed**; they stay on the living cart until the next calendar day, then move to **History** on app open / foreground.
-5. Background preparation reads an existing open invite only; it never creates a share or reopens a revoked link. Explicitly invite from **Настройки → Корзина**.
-6. Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
+5. **REQ-SHARE-080** Background preparation reads an existing open invite only; it never creates a share or reopens a revoked link. Explicitly invite from **Настройки → Корзина**.
+6. **REQ-SHARE-090** Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
 
 Family members share one cart; changes sync via CloudKit.
 
-A newly installed device may create a provisional personal cart while iCloud imports. When an older personal cart arrives for the same account, its list becomes active after local provisional products and history are copied by stable identifiers. The provisional source is retained. Selecting a shared cart also retains other shared families on disk; selection never deletes another family.
+**REQ-SYNC-040** A newly installed device may create a provisional personal cart while iCloud imports. When an older personal cart arrives for the same account, its list becomes active after local provisional products and history are copied by stable identifiers. The provisional source is retained. Selecting a shared cart also retains other shared families on disk; selection never deletes another family.
 
-History and suggestion frequency count each `(family ID, item ID)` once, including when multiple devices independently archive the same purchase. Duplicate transport records may remain in CloudKit.
+**REQ-HIST-040** History and suggestion frequency count each `(family ID, item ID)` once, including when multiple devices independently archive the same purchase. Duplicate transport records may remain in CloudKit.
 
-**Identical cart lines (same cart).** Same normalized name within one cart
+**REQ-CART-090 Identical cart lines (same cart).** Same normalized name within one cart
 (case/whitespace/diacritic-insensitive — «Молоко» = «молоко»): keep one row.
 Adding an existing name returns the living row and reveals it instead of
 creating a second line; concurrent adds from different devices (different
@@ -91,46 +109,46 @@ Create household cart → Settings → «Поделиться корзиной»
   → create/reopen CKShare (publicPermission = .readWrite) → system Share Sheet → Accept
 ```
 
-Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. Share creation and persistence have caller deadlines and `retryAfterSeconds` backoff when CloudKit asks. A deadline ends the wait; an underlying CloudKit operation can still finish later.
+**REQ-SHARE-020** Anyone with the share URL can join and **edit** (Messages, Telegram, Mail, and forwards). Legacy `onecart://invite/...` tokens are gone. **REQ-SHARE-030** Share creation and persistence have caller deadlines and `retryAfterSeconds` backoff when CloudKit asks. A deadline ends the wait; an underlying CloudKit operation can still finish later.
 
 ### Membership (no ban list)
 
 | Action | Effect | Rejoin |
 |--------|--------|--------|
-| **Remove member** | Kick (`CKShare.removeParticipant`). Invite door unchanged. | Yes, while door is `.readWrite` |
-| **Leave cart** | Guest purges local shared zone; returns to personal cart. | Yes, with an open invite link |
-| **Revoke invite** | Closes door only (`publicPermission = .none`). Not a guest ban. Current members stay. | No, until owner **Share** again |
-| **Share** | Must persist door `.readWrite` before handing out the URL (repairs a closed CloudKit invite door without wiping the cart). | Opens joining |
+| **Remove member** | **REQ-SHARE-040** Kick (`CKShare.removeParticipant`). Invite door unchanged. | Yes, while door is `.readWrite` |
+| **Leave cart** | **REQ-SHARE-050** Guest purges local shared zone; returns to personal cart. | Yes, with an open invite link |
+| **Revoke invite** | **REQ-SHARE-060** Closes door only (`publicPermission = .none`). Not a guest ban. Current members stay. | No, until owner **Share** again |
+| **Share** | **REQ-SHARE-070** Must persist door `.readWrite` before handing out the URL (repairs a closed CloudKit invite door without wiping the cart). | Opens joining |
 
 Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — use **Share** to reopen the door.
 
 ## Account and profile
 
-- **Session:** Sign in with Apple credentials in Keychain (local session / display name only).
-- **Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
-- Display name: **device-local** account name (set when Sign in with Apple did not provide one). The same name appears in the cart members list and on items you add (`createdByName`) / mark Completed (`purchasedByName`). Avatar and banner stay device-local.
-- Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
-- Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud. It also clears the widget snapshot and pending widget actions.
-- **Delete Account** permanently deletes private CloudKit zones for this iCloud user, clears the SIWA Keychain session and local stores, and returns to Welcome. Owner deletion removes the shared family cart for members; a member leaves the shared cart first so others keep it.
-- If cloud deletion fails, keep credentials and preserve local SQLite. Pending cloud deletion opens in local recovery mode without CloudKit mirroring; retry deletion to finish. Once cloud deletion is confirmed, failed local cleanup must finish before successful sign-out.
+- **REQ-AUTH-020 Session:** Sign in with Apple credentials in Keychain (local session / display name only).
+- **REQ-AUTH-030 Sync / share:** device iCloud (`CKContainer.accountStatus` must be `.available`). SIWA alone is not enough.
+- **REQ-AUTH-040** Display name: **device-local** account name (set when Sign in with Apple did not provide one). The same name appears in the cart members list and on items you add (`createdByName`) / mark Completed (`purchasedByName`). Avatar and banner stay device-local.
+- **REQ-AUTH-050** Private carts on disk are scoped by SIWA-derived `cachedForUserID`; shared-store carts stay visible to the iCloud participant.
+- **REQ-AUTH-060** Sign out clears the SIWA Keychain session and returns to Welcome; it does **not** sign out of device iCloud. It also clears the widget snapshot and pending widget actions.
+- **REQ-AUTH-070 Delete Account** permanently deletes private CloudKit zones for this iCloud user, clears the SIWA Keychain session and local stores, and returns to Welcome. Owner deletion removes the shared family cart for members; a member leaves the shared cart first so others keep it.
+- **REQ-AUTH-080** If cloud deletion fails, keep credentials and preserve local SQLite. Pending cloud deletion opens in local recovery mode without CloudKit mirroring; retry deletion to finish. Once cloud deletion is confirmed, failed local cleanup must finish before successful sign-out.
 - Owner **Revoke invite**: close door for new joins; cart UUID unchanged. No Recreate / delete-entity in UX.
-- History is never user-cleared; retention/size optimization is a later backlog item.
-- Failures use a system alert (`OK`), not toast/banner chrome.
+- **REQ-HIST-050** History is never user-cleared; retention/size optimization is a later backlog item.
+- **REQ-SHELL-050** Failures use a system alert (`OK`), not toast/banner chrome.
 
 ## Widgets and notifications
 
-Home and Lock Screen widgets display a compact snapshot, with up to six needed and two completed items; totals cover the full cart. Purchase actions run through the app session and persist to Core Data. Pending commands carry account/cart identity and an explicit purchased state; they are acknowledged only after a successful save and retried after startup, foreground or imported changes. CloudKit propagation still follows its normal schedule.
+**REQ-WIDGET-010** Home and Lock Screen widgets display a compact snapshot, with up to six needed and two completed items; totals cover the full cart. **REQ-WIDGET-020** Purchase actions run through the app session and persist to Core Data. Pending commands carry account/cart identity and an explicit purchased state; they are acknowledged only after a successful save and retried after startup, foreground or imported changes. CloudKit propagation still follows its normal schedule.
 
-Family activity notifications are local notifications created when the app observes imported cart changes. They require notification permission and an opportunity for the app to observe those changes; delivery is not an instantaneous server-push guarantee.
+**REQ-WIDGET-030** Family activity notifications are local notifications created when the app observes imported cart changes. They require notification permission and an opportunity for the app to observe those changes; delivery is not an instantaneous server-push guarantee.
 
 ## Default cart identity
 
-- Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / OneCart Family). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
-- Owner can rename the active cart (`FamilySpace.name`) — personal or shared; invitees see the shared title.
-- App display name / Welcome / share branding: **OneCart Family** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
+- **REQ-CART-100** Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / OneCart Family). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
+- **REQ-CART-110** Owner can rename the active cart (`FamilySpace.name`) — personal or shared; invitees see the shared title.
+- **REQ-SHELL-060** App display name / Welcome / share branding: **OneCart Family** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 - Identity flag: `isHouseholdDefault` on new household carts.
 - JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](../planning/legacy-migration.md).
-- Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
+- **REQ-CART-120** Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
 
 ## Positioning vs Apple Family
 
@@ -140,7 +158,7 @@ Family activity notifications are local notifications created when the app obser
 | CloudKit + `CKShare` + system Share Sheet | “Share with entire Apple Family in one API call” |
 | Link-join invite (`publicPermission = .readWrite`) via Messages / Telegram / Mail / AirDrop | Listing Family members or verifying Family membership via missing Apple APIs |
 
-**Missing Apple APIs (do not invent):** list Family members, verify two users share a Family, push share to whole Family.
+**REQ-SHARE-100 Missing Apple APIs (do not invent):** list Family members, verify two users share a Family, push share to whole Family.
 
 Apple Family does **not** merge carts by itself — participants need an in-app `CKShare` invite.
 
