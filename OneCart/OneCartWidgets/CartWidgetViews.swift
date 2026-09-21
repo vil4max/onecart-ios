@@ -20,12 +20,10 @@ struct CartWidgetRootView: View {
             MediumHomeWidgetView(snapshot: entry.snapshot)
         case .systemLarge, .systemExtraLarge:
             LargeHomeWidgetView(snapshot: entry.snapshot)
-        // The iOS 27 SDK (Swift 6.4, Xcode 27) adds this case; GitHub Actions still builds
-        // with Xcode 26.6, where it does not exist. Not in supportedFamilies.
-        #if compiler(>=6.4)
-            case .systemExtraLargePortrait:
-                LargeHomeWidgetView(snapshot: entry.snapshot)
-        #endif
+        // supportedFamilies does not offer this iOS 27 family, but leaving a known case to
+        // @unknown default warns at build time, so map it like the other large layouts.
+        case .systemExtraLargePortrait:
+            LargeHomeWidgetView(snapshot: entry.snapshot)
         @unknown default:
             MediumHomeWidgetView(snapshot: entry.snapshot)
         }
