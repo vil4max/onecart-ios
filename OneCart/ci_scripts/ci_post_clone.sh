@@ -1,12 +1,18 @@
 #!/bin/sh
+# Installed by ios-agent-toolchain (docs/ci.md). Copy to ci_scripts/ci_post_clone.sh
+# next to the .xcodeproj; Xcode Cloud runs it after cloning.
 set -e
 
-echo "==> Xcode Cloud: running ci_post_clone.sh"
-
+# Xcode Cloud's build number wins: every TestFlight round gets a unique
+# CURRENT_PROJECT_VERSION without a build-number commit (docs/testflight.md).
 if [ -n "$CI_BUILD_NUMBER" ]; then
-    echo "==> Setting CURRENT_PROJECT_VERSION to $CI_BUILD_NUMBER in project.pbxproj"
-    find . -name "project.pbxproj" -exec sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*/CURRENT_PROJECT_VERSION = $CI_BUILD_NUMBER/g" {} +
-    echo "==> Successfully updated build number to $CI_BUILD_NUMBER."
-else
-    echo "==> CI_BUILD_NUMBER not set; keeping current project version."
+    echo "==> CURRENT_PROJECT_VERSION = $CI_BUILD_NUMBER"
+    find "$CI_PRIMARY_REPOSITORY_PATH" -name project.pbxproj -not -path '*/Pods/*' \
+        -exec sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*/CURRENT_PROJECT_VERSION = $CI_BUILD_NUMBER/g" {} +
 fi
+
+# Xcode Cloud cannot answer the one-time "Trust & Enable" dialog for SwiftPM
+# build-tool plugins and macros, so it refuses them unless validation is skipped.
+# Harmless for an app without plugins.
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
