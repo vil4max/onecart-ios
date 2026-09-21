@@ -23,9 +23,9 @@ Reusable description of the same scheme in agent-engineering-kit:
   Xcode Cloud "Internal TestFlight (verified main)" → TestFlight Friends and Family. A push to
   `main` builds nothing ([ADR 0004](../decisions/0004-tag-gated-testflight.md)).
 - `v` tags mark the commit whose TestFlight build was submitted; they move nothing.
-- `release`: frozen at `a5e6915` (tag `v1.2.1`); nothing moves it since ADR 0004. Its Xcode Cloud
+- `release`: frozen at `0985313` (tag `v1.2.1`); nothing moves it since ADR 0004. Its Xcode Cloud
   workflow "App Store candidate (release tag)" is unused, to be retired in App Store Connect.
-- Current refs: `testflight` at `bbd884c` (1.3.0, promoted by the last every-push run before the
+- Current refs: `testflight` at `4a6d530` (1.3.0, promoted by the last every-push run before the
   switch); tags `v1.2.0`, `v1.2.1`; no `tf-` tags yet.
 
 ## Repository hygiene

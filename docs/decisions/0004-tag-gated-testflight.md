@@ -66,7 +66,7 @@ owner's, or an agent's when the owner has authorized it; `AGENTS.md` records the
   is wasted on it.
 - The App Review candidate is a TestFlight build the owner picks in App Store Connect, not a
   separate archive. `scripts/promote-release.sh` and `.github/workflows/release.yml` are
-  removed; nothing moves the `release` branch any more. It stays at `a5e6915` (`v1.2.1`) until
+  removed; nothing moves the `release` branch any more. It stays at `0985313` (`v1.2.1`; `a5e6915` before the 2026-09-21 history rewrite) until
   the owner retires it, and the Xcode Cloud "App Store candidate (release tag)" workflow, which
   only that branch started, becomes unused — retiring it is the owner's step in App Store
   Connect.

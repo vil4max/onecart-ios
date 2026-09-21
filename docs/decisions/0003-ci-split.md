@@ -10,6 +10,10 @@ Superseded in part 2026-09-21 by [ADR 0004](0004-tag-gated-testflight.md): `Test
 nothing, `tf-` tags request TestFlight builds, `v` tags only mark the submitted commit, and
 nothing moves `release`. The tables and rules below are updated to match; the procedure is in
 [`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md).
+Amended 2026-09-21 (repository move): the code moved to `vil4max/onecart-ios` with rewritten
+history ([privacy cleanup brief](../tasks/git-history-privacy-cleanup.md)). The Xcode Cloud
+workflow's primary repository is now that repository, and SHAs recorded before the move have
+new values: `v1.2.1` `a5e6915` → `0985313`, 1.3.0 `bbd884c` → `4a6d530`.
 
 ## Context
 
@@ -33,7 +37,7 @@ split CI this way and runs green on hosted `macos-26` runners.
 2. `testflight` is moved only by `Tooling/scripts/tf-promote.sh`, only to an annotated
    `tf-MAJOR.MINOR.PATCH-BUILD` tag whose exact commit is on `main`, is built as that version,
    and has a successful `Tests` run for a push to `main`, and only by fast-forward.
-3. `release` is no longer moved. It stays at `a5e6915` (`v1.2.1`) until the owner retires it.
+3. `release` is no longer moved. It stays at `0985313` (`v1.2.1`) until the owner retires it.
 4. Nobody pushes, force-pushes, resets, or deletes `testflight` or `release` by hand: they
    record which commits passed the checks.
 5. The owner creates and pushes `v` tags and submits for App Review; `tf-` tag authority is in
@@ -52,6 +56,9 @@ and "App Store candidate (release tag)" was deactivated (12:30). The web editor 
 Distribution Preparation option "App Store Connect" ("Eligible for distribution to all testers
 and customers"); Apple's Xcode documentation calls the same option "TestFlight and App Store".
 The other choices are None and "TestFlight (Internal Testing Only)". Clean is off.
+After the repository move (13:43), "Internal TestFlight (verified main)" has primary repository
+`https://github.com/vil4max/onecart-ios.git`, added as a separate repository of the product (the
+old `vil4max/OneCart` entry stays listed), and was reactivated; nothing else changed.
 Names and descriptions say which commits each workflow builds (verified `main`, release tag), matching regional-check; both share the upload mechanics, so those do not name them. Neither
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.

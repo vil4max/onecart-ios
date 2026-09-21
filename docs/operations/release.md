@@ -164,7 +164,7 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 
 | Field | Value |
 |-------|-------|
-| Repo | `https://github.com/vil4max/OneCart.git` |
+| Repo | `https://github.com/vil4max/onecart-ios.git` (primary repository of the workflow since 2026-09-21; the Xcode Cloud GitHub app needs access to this repository) |
 | Project | `OneCart/OneCart.xcodeproj` |
 | Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" was deactivated on 2026-09-21 (ADR 0004); the remaining workflow has distribution "App Store Connect" (Apple's "TestFlight and App Store") and Restrict Editing on, which an App Review build needs |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
@@ -206,8 +206,8 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 | Subtitle | `Shared family shopping cart` |
 | Primary category | Shopping |
 | Age rating | 4+ |
-| Support URL | `https://github.com/vil4max/OneCart/issues` |
-| Privacy Policy URL | `https://github.com/vil4max/OneCart/blob/main/docs/privacy.md` |
+| Support URL | `https://github.com/vil4max/onecart-ios/issues`. Version metadata: set it in the next version record; the 1.2.x value `…/vil4max/OneCart/issues` no longer resolves since the repository move |
+| Privacy Policy URL | `https://github.com/vil4max/onecart-ios/blob/main/docs/privacy.md` (English and Russian, set 2026-09-21; App Store Connect releases it with the next app version) |
 | Price | Free |
 
 ### Version 1.0: English (U.S.)

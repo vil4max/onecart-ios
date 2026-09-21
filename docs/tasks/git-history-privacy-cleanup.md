@@ -1,9 +1,10 @@
 # Git history privacy cleanup
 
 Assignee: onecart-e1
-State: blocked
+State: done (2026-09-21)
 Requested by: agent-engineering-kit-40 relaying owner request (2026-09-17)
-Evidence: #37 (phone removed from HEAD), review video removed from HEAD; history rewrite blocked until 1.2.1 App Review ends and the owner says yes to the force push in this session
+Evidence: #37 (phone removed from HEAD), review video removed from HEAD; history rewritten and
+moved to a new repository on 2026-09-21 (see Move below)
 
 ## Goal
 
@@ -75,7 +76,7 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 | String | retired Supabase publishable key and project ref (`SupabaseServices.swift`, `docs/legacy.md`, `NATIVE_IOS.md`) | `--replace-text` → `<redacted>` |
 | String | the second identity's user name and e-mail user part, and the owner's local user name (Latin and Cyrillic spellings), in file content | `--replace-text` (regex, case-insensitive); commit author/committer metadata unchanged |
 
-## Rewrite plan (approved scope; not executed)
+## Rewrite plan (approved scope; superseded by the move below)
 
 1. Owner approves the final removal list from the table above.
 2. Tool: `git filter-repo` (already installed at `/opt/homebrew/bin/git-filter-repo`).
@@ -108,7 +109,10 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 8. After the push: every local clone and worktree is re-cloned (this checkout included), and the
    audit is re-run against `origin`.
 
-## GitHub Support request (owner sends it after the force push)
+## GitHub Support request (superseded, not sent)
+
+Not needed after the move: the old repository, with its pull request refs and cached views, is
+private, so none of it is public. The draft stays for reference.
 
 > Subject: Remove cached views and pull request refs after a history rewrite — vil4max/OneCart
 >
@@ -120,6 +124,41 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
 > #1–#38) and cached commit and file views. Please run garbage collection and purge cached views
 > and pull request refs that point to the pre-rewrite commits. The repository has no forks.
 > Thank you.
+
+## Move (2026-09-21)
+
+The owner chose a new repository instead of a force push in place ("апрув переезда", this
+session). Order and results:
+
+1. Rewrite in a fresh mirror clone, outside the repository, with a backup bundle taken first:
+   the approved removal list above, one `git filter-repo --replace-text` run plus the removed
+   paths. `refs/pull/*` were not carried over. Removed categories: owner contact data, local
+   machine user paths, the retired backend key and project ref, personal names in file content,
+   the review recording and seed data. Commit metadata was not rewritten.
+2. Checks on the rewritten mirror: `private-data-scan.py --history` reports only the two
+   reviewed allowlist lines; the removed strings and paths occur in no revision; `git fsck`
+   passed; the `main` tree is identical to the pre-rewrite `main` tree. The `release` tip
+   (`v1.2.1`) differs only in test fixtures, docs and the removed recording.
+3. Xcode Cloud "Internal TestFlight (verified main)" deactivated during the move.
+4. The old repository became `vil4max/OneCart-archive`, private; nothing was deleted.
+5. New public repository `vil4max/onecart-ios` (shared naming: lowercase kebab-case with
+   `-ios`), pushed `main`, `testflight`, `release`, `v1.2.0`, `v1.2.1`. First `Tests` run on
+   `main` passed.
+6. Rulesets from the Runtime templates (`Tooling/templates/github/rulesets/`), active, no
+   bypass: delivery branches, release tags, TestFlight tags.
+7. Xcode Cloud: GitHub app access granted to the new repository by the owner; the workflow's
+   primary repository changed to it and the workflow reactivated. "App Store candidate
+   (release tag)" stays deactivated.
+8. App Store Connect Privacy Policy URL (English and Russian) points to the new repository;
+   it is released with the next app version. The Support URL is version metadata and changes
+   with the next version.
+
+SHAs of App Store Connect builds, old → new: 1.3.0 `bbd884c` → `4a6d530`; 1.2.1 (105)
+`a5e6915` → `0985313`; `v1.2.0` `e583b3a` → `349a070`. The full commit map stays in the local
+agent artifacts, not in the repository.
+
+Not done: local agent checkpoint refs (`refs/codex/*`, `refs/copilot/*`) still exist in the
+primary checkout and hold old history; deleting them is the owner's decision.
 
 ## Done in this brief
 
