@@ -55,6 +55,9 @@ chose stays active across sync."
 - Dedupe slice merged, `just verify`: build failed (new test class not main-actor isolated under
   Swift 6); fixed; rerun `verify OK (DoD)`, 217 passing checks.
 
+- Requirement traceability, `spec_trace.py` from `agent-engineering-kit` at `2ab2cea` or later:
+  `requirements: 49  covered: 42  uncovered: 7`, matching the Coverage table in `product.md`.
+
 ## Untested scope
 
 - No device or two-device CloudKit run; no VoiceOver or widget gallery check.
@@ -104,16 +107,12 @@ chose stays active across sync."
   Closing the view-only rows needs a decision on view-level testing, which is outside this task.
 - `F10` in the fragile-test matrix (new Application files reach the compiled Sources phase) is a
   build-stage gate with no named test, so it cites no REQ ID.
-- The kit checker `skills/spec-pyramid/scripts/spec_trace.py` does not recognize these IDs:
-  it matches a requirement only as a Markdown heading (`^#{2,4} REQ-<AREA>-<NNN>`), so it reports
-  `requirements: 0 covered: 0` and lists all 42 cited IDs as `unknown_in_specs`, even though the
-  Coverage table in `product.md` is correct. The IDs here label statements inside prose,
-  tables and numbered lists, which is what the source document is made of; turning each of the 49
-  statements into its own heading with `Status:` and `Core:` lines would restructure an
-  owner-approved L1 document rather than only add identifiers. Owner decision needed: either adopt
-  the heading-per-requirement layout the kit template assumes, or treat the Coverage table as the
-  project's traceability surface and leave `spec_trace.py` out of the gate. Until then the pyramid
-  is traceable by review, not by that script.
+- `docs/requirements/product.md` carries no machine-readable approval or core link, so
+  `spec_trace.py` lists all 49 IDs under `missing_core_link` and `--approved-only` reports them as
+  unapproved. The tool reads two optional lines above the first requirement: `Status: approved` and
+  `Core: <core priority or constraint ids>`. Writing them asserts owner approval and maps each area
+  to `docs/core.md`, which is an edit to the approved layer, so it needs the owner's word rather
+  than an agent's.
 - The fragile-test matrix in `docs/engineering/architecture.md` still names the pre-rename test
   functions (for example `FragileStoreLoadTests.testLoadFailureDoesNotDestroyStoreFiles`). That
   file belongs to the architecture/CI slice, not this one; its `Tests` column needs the
