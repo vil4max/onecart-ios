@@ -8,29 +8,27 @@ repository and attaches it under App Review Information.
 
 ## App Store Connect: iPhone 6.9" (1320 × 2868)
 
-Current set, light theme, English (app `developmentRegion = en`). The repository
-README shows these files.
+Current set for the next version after 1.5.0, light theme, captured on 2026-09-21 from the
+iOS 27 redesign. English files are in `screenshots/asc-6.9/` (the repository README shows
+them); Russian files with the same names are in `screenshots/asc-6.9/ru/`. Version 1.5.0 was
+submitted with the older 1.0-era set, so these replace it in the next version record.
 
-| # | File in `screenshots/asc-6.9/` | Screen |
-|---|--------------------------------|--------|
+| # | File | Screen |
+|---|------|--------|
 | 1 | `01-welcome.png` | Welcome + Sign in with Apple |
 | 2 | `02-cart.png` | Cart |
 | 3 | `03-history.png` | History |
 | 4 | `04-settings.png` | Settings |
 
-## App Store Connect: iPhone 6.5" (1284 × 2778)
+How the set is made (Debug build, `just run-sim`, the session's own simulator):
 
-Earlier capture of the same four screens (`01-welcome.png` … `04-account.png`) in both
-themes. It predates the Settings tab and the Completed section; recapture before
-uploading it again.
-
-Folders: [`screenshots/asc-6.5/dark/`](screenshots/asc-6.5/dark/),
-[`screenshots/asc-6.5/light/`](screenshots/asc-6.5/light/). Raw simulator captures:
-[`screenshots/raw/`](screenshots/raw/) (`en-*`).
-
-The 6.5" set was captured with sim language `en`, status bar 09:41, iPhone 16 Plus → resized to **1284 × 2778**.
-
-Demo launch args:
-
-- Owner (default): `-oneCartDemoUI` and optional `-oneCartDemoTab cart|history|account`
-- Guest / member of someone else’s cart: `-oneCartDemoUI -oneCartDemoRole member` (Sam on **Alex's Cart**, Leave / no Rename / no Revoke)
+- Device iPhone 17 on iOS 27 (1206 × 2622), scaled to 1320 × 2868; the aspect ratios
+  differ by less than 0.1 %.
+- Status bar 09:41, full battery (`xcrun simctl status_bar … override`).
+- Launch arguments `-AppleLanguages (en|ru) -AppleLocale en_US|ru_RU -oneCartDemoUI` plus
+  `-oneCartDemoRole welcome` for the welcome screen, or `-oneCartDemoRole owner -oneCartDemoTab
+  cart|history|account`. The demo UI hides the Debug-only test-account button and seeds items in
+  the device language, so reinstall the app before switching languages.
+- Allow the notification prompt once after each install; it appears a few seconds after launch.
+- Guest / member of someone else's cart: `-oneCartDemoUI -oneCartDemoRole member` (Sam on
+  **Alex's Cart**, Leave / no Rename / no Revoke).
