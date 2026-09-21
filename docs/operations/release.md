@@ -10,7 +10,7 @@ A new marketing version resets the local build number to **1**; subsequent build
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
 
-Release notes and candidate status: [1.2.1](releases/1.2.1.md) (previous: [1.2](releases/1.2.md)).
+Release notes and candidate status: [1.3.0](releases/1.3.0.md) (previous: [1.2.1](releases/1.2.1.md)).
 Version **1.2 (91)** was confirmed Ready for Distribution in App Store Connect on September 16, 2026.
 Version **1.2.1 (105)** was submitted for App Review on September 17, 2026 (tag `v1.2.1`).
 App Store Connect version availability, cloud build status, and submission status
