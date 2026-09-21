@@ -4,6 +4,8 @@ Status: accepted by the owner, 2026-09-16. Supersedes **NC09** (Xcode Cloud as t
 Rollout: `Test - iOS` was removed from Xcode Cloud after the first green run on `main`.
 Amended 2026-09-17: Xcode Cloud starts from CI-moved `testflight` and `release` branches
 instead of `main`. The scheme was first verified end to end in regional-check.
+Amended 2026-09-21: the app's minimum OS is iOS 27, so `Tests` moved from the GA `macos-26`
+image to the public-preview `xcode-27` image — see [Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview).
 
 ## Context
 
@@ -44,14 +46,45 @@ Names and descriptions say which commits each workflow builds (verified `main`, 
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.
 
-- Runner toolchain is pinned (`Xcode_26.6`, iPhone 17 on iOS 26.5) so a runner image
-  update cannot silently change the SDK under test.
+- Runner toolchain is pinned (`xcode-27` image, `Xcode_27.0`, iPhone 17 on iOS 27.0) so a
+  runner image update cannot silently change the SDK under test. `DEVELOPER_DIR` names the
+  versioned `/Applications/Xcode_27.0.app` symlink rather than `/Applications/Xcode.app`: if the
+  image later defaults to a different Xcode, the job fails instead of testing another SDK.
 - Test builds use ad-hoc signing (`CODE_SIGN_IDENTITY=-`, empty team). With
   `CODE_SIGNING_ALLOWED=NO` the test host loses Keychain access and the
   `AppleSignInTests` keychain cases fail.
 - Coverage is printed with `xccov` into the job summary; it is not a gate.
 - Pull request runs cancel superseded runs; push runs on `main` never do (one concurrency group
   per commit), so every commit pushed to `main` gets a finished `Tests` run a tag can rely on.
+
+### Runner image risk: `xcode-27` is a public preview
+
+`IPHONEOS_DEPLOYMENT_TARGET` is 27.0, so `Tests` needs the iOS 27 SDK, and no generally
+available GitHub-hosted image carries one. Checked 2026-09-21 against
+[the runner-images README](https://github.com/actions/runner-images/blob/main/README.md) and
+[the preview announcement](https://github.com/actions/runner-images/issues/14404):
+
+- `macos-26` (GA, arm64) installs Xcode 26.0.1 … 26.6 and iOS 26.2 / 26.4 / 26.5 runtimes only.
+- `xcode-27` (arm64) is the only label with Xcode 27, and it is published as a **public preview**:
+  image `20260912.0186.1`, macOS 27.0, default Xcode 27.0 build `27A266a` (the same build used
+  locally), iOS 27.0 simulator runtime, `iPhone 17` among the available devices.
+- The announcement warns that software on the new platform can be unstable and that runner
+  capacity is still being balanced, so runs may queue longer than on a GA image.
+
+This makes the whole promotion chain depend on a preview image:
+
+1. A preview image carries no availability guarantee. If it is withdrawn, renamed at GA, or
+   re-based onto a newer Xcode so `/Applications/Xcode_27.0.app` disappears, `Tests` fails for
+   every push to `main`. `promote-testflight` needs a green `Tests` run, so `testflight` stops
+   moving and no TestFlight build is produced.
+2. `scripts/promote-release.sh` requires a successful `Tests` run for the exact tagged commit, so
+   the same failure blocks `release` and therefore App Store candidates.
+3. Preview queueing can push a `Tests` run past the script's 45-minute wait. Rerun `Release`
+   manually with the tag; do not move the tag.
+4. Xcode Cloud is unaffected — it archives with its own toolchain from `testflight` and `release`.
+   The exposure is the verification gate, not the build that ships.
+
+Repin `runs-on` and `DEVELOPER_DIR` to a GA label as soon as one ships Xcode 27.
 
 ### Releasing a version
 
@@ -71,6 +104,7 @@ the owner's approval and an update of this table in the same change.
 | Symptom | Meaning | Action |
 |---------|---------|--------|
 | `Tests` red on `main` | `testflight` stays on the last green commit; no TestFlight build | Fix on `main`; the next green push promotes |
+| `Tests` fails to start, or fails before the build, on every commit | The `xcode-27` preview image or its `Xcode_27.0` path is gone | Check the runner-images README for the current Xcode 27 label and path, then repin `runs-on` and `DEVELOPER_DIR`; see [Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview) |
 | `promote-testflight` push rejected | `testflight` has a commit that is not on `main` (manual push or rewritten `main`) | Stop; the owner decides how to realign — do not force-push |
 | `Release` fails "not vMAJOR.MINOR.PATCH" / "annotated" / "does not match MARKETING_VERSION" / "not on main" | The tag is invalid | The owner deletes the tag and pushes a correct one |
 | `Release` fails "Tests failed" | `Tests` for the tagged commit is red | Fix on `main`, bump PATCH, tag the fixed commit |

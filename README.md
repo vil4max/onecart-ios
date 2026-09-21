@@ -23,7 +23,7 @@ Store masters and ASC sizes: [`assets/store/`](assets/store/).
 
 ## Stack
 
-- SwiftUI, iOS 26+
+- SwiftUI, iOS 27+
 - Core Data via `NSPersistentCloudKitContainer`
 - CloudKit private / shared databases
 - `CKShare` link-join invites (`publicPermission = .readWrite`)

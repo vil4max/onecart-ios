@@ -15,11 +15,17 @@ concurrency:
   group: tests-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The app requires iOS 27, so the job needs the iOS 27 SDK. The GA macos-26 image
+# tops out at Xcode 26.6 / iOS 26.5, so runs-on is the preview xcode-27 image — the
+# only GitHub-hosted label that carries Xcode 27 (docs/decisions/0003-ci-split.md,
+# "Runner image risk"). DEVELOPER_DIR names the versioned Xcode_27.0 symlink, not
+# Xcode.app: if the image ever defaults to another Xcode, this fails loudly instead
+# of silently testing against a different SDK.
 env:
-  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
   DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
   SIMULATOR_NAME: iPhone 17
-  SIMULATOR_OS: "26.5"
+  SIMULATOR_OS: "27.0"
   XCODEBUILD_FLAGS: >-
     -project OneCart/OneCart.xcodeproj
     -scheme OneCart
@@ -41,7 +47,7 @@ env:
 jobs:
   unit-tests:
     name: Unit tests
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
