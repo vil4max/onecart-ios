@@ -1,5 +1,14 @@
 # Product
 
+Status: approved
+Core: P1, P2, P3, P4, C1, C2, C3, C4, C5 — [core.md](../core.md)
+
+The two lines above apply to every requirement in this document: it is the
+detail layer for the whole core, so no requirement here stands outside those
+priorities and constraints. The link is document-level because the IDs label
+statements inside prose, tables and lists; a per-requirement `Core:` line would
+require one heading per requirement, which this document is not written as.
+
 ## Thesis
 
 **OneCart** (user-facing **OneCart Family**) is one shared family cart and a single place to see every purchase.
@@ -8,7 +17,9 @@ One person adds items, another shops, everyone follows synchronized progress. No
 
 ## Requirement IDs
 
-The `REQ-<AREA>-NNN` labels below name behavior this document already approved;
+The `REQ-<AREA>-NNN` labels below name behavior the owner approved before the
+IDs existed (`Status: approved` above records that for tooling, on the owner's
+word, 2026-09-21);
 assigning an ID does not add, widen or reinterpret a requirement. Changing what
 a labelled statement *means* — or retiring it — is still an owner decision and
 needs owner approval, exactly as before the IDs existed. Areas are `AUTH`
