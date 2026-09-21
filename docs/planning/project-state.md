@@ -9,7 +9,7 @@ Snapshot for resuming work after a pause. Update it when the release or CI state
 | App Store | 1.2 (91) live |
 | In App Review | **1.2.1 (105)**, submitted 2026-09-17 10:13, auto-release after approval — [releases/1.2.1.md](../operations/releases/1.2.1.md) |
 | Scope | Stability first: SIWA → one living cart → name-only add → Completed → History by day → invite from Settings ([product.md](../requirements/product.md)) |
-| Version in repo | `MARKETING_VERSION` 1.2.1, build 1 (Xcode Cloud assigns uploaded build numbers) |
+| Version in repo | `MARKETING_VERSION` 1.3.0, build 1 (Xcode Cloud assigns uploaded build numbers) |
 | Minimum OS | iOS 27.0, raised 2026-09-21 in every target configuration; devices below iOS 27 can no longer install or update |
 
 ## Delivery flow
