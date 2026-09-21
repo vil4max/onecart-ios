@@ -1,0 +1,5 @@
+# Reviewed false positives for features/policy/private-data-scan.py (one regex per line,
+# matched against "path:text"). Both lines name categories of private data; neither holds any.
+# A bracketed letter keeps each rule from matching the scanner's own keyword in this file.
+^AGENTS\.md:includes private financial information, compensatio[n] expectations or offers,$
+^docs/tasks/git\-history\-privacy\-cleanup\.md:caree[r]\ or\ social\ notes,\ naming\ brainstorms,\ competitive\ research,\ business\ strategy,\ learning$

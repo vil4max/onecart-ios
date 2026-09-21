@@ -24,7 +24,7 @@ e-mail addresses, phone numbers and `/Users/` paths; frames extracted from both 
 
 | Path | First / last commit | Why sensitive | Proposal |
 |---|---|---|---|
-| `docs/release.md` → `docs/operations/release.md` (line "Contact: … phone") | `d155ff5` (2026-09-01) / still at `HEAD` | Owner's personal phone number in a public file | Remove from `HEAD` now (this PR); rewrite the string out of history |
+| `docs/release.md` → `docs/operations/release.md` (line "Contact: … phone") | `d155ff5` (2026-09-01) / removed from `HEAD` in #37; history only | Owner's personal phone number in a public file | Remove from `HEAD` now (this PR); rewrite the string out of history |
 | `assets/store/review/delete-account-physical-2026-09-01.mp4` | `4a0a9cb` / still at `HEAD` | App Review screen recording from a physical device shows the owner's Apple Account name and profile photo in the Sign in with Apple sheet | Owner decides: keep (review evidence) or remove from `HEAD` and history |
 | `qa/onecart-backup.json`, `qa/onecart-lists.csv`, `qa/dogfood-report.md` | `ebd4583` / removed in `bf2eaf1` | Web-prototype seed data with family first names as users; store addresses are public shops | Low; owner decides |
 | `justfile` (a `/Users/<local user>/Library/Developer/…` path) | `e1a37bc` / removed in `3bfaf91` | Local machine user path | Low; rewrite the string if history is rewritten anyway |
@@ -36,6 +36,20 @@ Not sensitive: `vil4max@gmail.com` (public support contact and primary author), 
 ID, `fastlane/Appfile`, `invite-site/.openai/hosting.json` (empty bindings), `design-system/`,
 `tf-welcome-siwa.mp4` (simulator recording), Supabase migrations (`service_role` grants are SQL,
 not keys). No private keys, tokens, `.env` or certificate files were ever committed.
+
+## Scan (2026-09-21)
+
+`features/policy/private-data-scan.py` from agent-engineering-kit `6eed542`:
+
+- Working tree: clean. Two lines that name categories of private data (`AGENTS.md:10`,
+  line 12 of this brief) are reviewed false positives in `.agents/private-data-allow.txt`.
+- History (`--history`, every blob and commit message reachable from any ref): 14 findings,
+  all already in the table above. The owner's contact line with the phone number sits in
+  earlier versions of `docs/release.md` and `docs/operations/release.md`; the local user path
+  sits in an earlier `justfile` and in earlier revisions of this brief. Nothing in `HEAD`.
+- Removing them from history is still the owner's decision below; no rewrite was done. The
+  global pre-push hook scans outgoing commits only, so these history findings do not block a
+  push.
 
 ## Approvals
 
