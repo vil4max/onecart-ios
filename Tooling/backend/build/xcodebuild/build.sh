@@ -10,7 +10,12 @@ SCHEME="$(scheme_name)"
 
 PROJ="$(find_xcodeproj)"
 WS="$(find_xcworkspace)"
-DEST="$(destination_spec)"
+# A build for testing targets the test device, so verify never touches the run device.
+if [[ "${RUNTIME_XCODEBUILD_BUILD_FOR_TESTING:-false}" == true ]]; then
+  DEST="$(destination_spec test)"
+else
+  DEST="$(destination_spec)"
+fi
 
 ACTION=build
 if [[ "${RUNTIME_XCODEBUILD_BUILD_FOR_TESTING:-false}" == true ]]; then
@@ -19,6 +24,7 @@ fi
 
 ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug)
 while IFS= read -r flag; do ARGS+=("$flag"); done < <(xcodebuild_validation_flags)
+while IFS= read -r flag; do ARGS+=("$flag"); done < <(xcodebuild_ci_flags)
 ARGS+=("$ACTION")
 if [[ -n "$WS" ]]; then
   ARGS=(-workspace "$WS" "${ARGS[@]}")

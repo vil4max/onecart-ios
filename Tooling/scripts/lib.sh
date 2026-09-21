@@ -144,65 +144,86 @@ scheme_name() {
   echo ""
 }
 
+# Each app runs on its own simulators, never on a bare device name such as
+# "iPhone 17" that every project on the Mac shares: one project's test run shut
+# down or took over another's device and detached the owner's live panel. Devices
+# are "<Scheme> <device type>" for runs and "<that> Tests" for tests, created on
+# demand by sim-device.py. A configured name that is itself a device type is
+# treated as the device type.
+is_device_type() {
+  xcrun simctl list devicetypes 2>/dev/null | sed -n 's/^\(.*\) (com\.apple\..*)$/\1/p' | grep -qxF -- "$1"
+}
+
+sim_device_type() {
+  local type name
+  type="$(cfg_get "simulator.device_type" "")"
+  if [[ -z "$type" ]]; then
+    name="$(cfg_get "simulator.name" "")"
+    if [[ -n "$name" ]] && is_device_type "$name"; then type="$name"; else type="iPhone 17"; fi
+  fi
+  echo "$type"
+}
+
+sim_app_label() {
+  local label
+  label="$(scheme_name)"
+  [[ -n "$label" ]] || label="$(basename "$(project_root)")"
+  echo "$label"
+}
+
 sim_name() {
-  cfg_get "simulator.name" "iPhone 17"
+  local name type
+  name="$(cfg_get "simulator.name" "")"
+  type="$(sim_device_type)"
+  if [[ -z "$name" || "$name" == "$type" ]] || is_device_type "$name"; then
+    name="$(sim_app_label) $type"
+  fi
+  echo "$name"
+}
+
+sim_test_name() {
+  cfg_get "simulator.test_name" "$(sim_name) Tests"
 }
 
 sim_os() {
   cfg_get "simulator.os" ""
 }
 
-# A UDID reserves one device for this project. Device names are shared
-# machine-wide: two projects on "iPhone 17" run their tests on the same
-# simulator, and one session's xcodebuild shuts down or takes over the other's.
-# UDIDs are machine-specific, so the key belongs in Tooling/runtime.local.yml.
+# A UDID reserves a specific device (runs: simulator.udid; tests:
+# simulator.test_udid). UDIDs are machine-specific, so both keys belong in
+# Tooling/runtime.local.yml.
 sim_udid_configured() {
   cfg_get "simulator.udid" ""
 }
 
-# Prints the UDID to use: the configured one, else the first available device
-# with the configured name, else nothing. A configured UDID that does not exist
-# is an error: falling back to the shared name would restore the collision.
+# Prints the UDID for role "run" (default) or "test", creating the app's device
+# when it does not exist. A reserved UDID that does not exist is an error: falling
+# back to another device would restore the collision.
 sim_udid() {
-  local wanted name
-  wanted="$(sim_udid_configured)"
-  name="$(sim_name)"
-  xcrun simctl list devices available -j 2>/dev/null \
-    | /usr/bin/python3 -c "
-import json, sys
-wanted, name = sys.argv[1], sys.argv[2]
-try:
-    listing = json.load(sys.stdin)
-except ValueError:
-    # No simctl, or no JSON from it: no device is known, which only matters for a reservation.
-    listing = {}
-devices = [d for group in listing.get('devices', {}).values() for d in group
-           if d.get('isAvailable', True)]
-if wanted:
-    if any(d['udid'] == wanted for d in devices):
-        print(wanted)
-        raise SystemExit(0)
-    sys.stderr.write('simulator.udid %s is not an available device; create it or fix Tooling/runtime.local.yml\\n' % wanted)
-    raise SystemExit(3)
-for d in devices:
-    if d.get('name') == name:
-        print(d['udid'])
-        break
-" "$wanted" "$name"
+  local role="${1:-run}" name reserved
+  if [[ "$role" == test ]]; then
+    name="$(sim_test_name)"
+    reserved="$(cfg_get "simulator.test_udid" "")"
+  else
+    name="$(sim_name)"
+    reserved="$(sim_udid_configured)"
+  fi
+  /usr/bin/python3 "$SCRIPT_HOME/sim-device.py" resolve "$name" "$(sim_device_type)" "$(sim_os)" "$reserved"
 }
 
 destination_spec() {
-  local name os id
-  name="$(sim_name)"
-  os="$(sim_os)"
-  id="$(sim_udid)" || return $?
-  if [[ -n "$id" ]]; then
+  local role="${1:-run}" id name status=0
+  id="$(sim_udid "$role")" || status=$?
+  if ((status == 0)) && [[ -n "$id" ]]; then
     echo "platform=iOS Simulator,id=${id}"
-  elif [[ -n "$os" ]]; then
-    echo "platform=iOS Simulator,name=${name},OS=${os}"
-  else
-    echo "platform=iOS Simulator,name=${name}"
+    return 0
   fi
+  # Only a missing simctl may fall back; a missing runtime or reservation is an error.
+  ((status == 2)) || return "${status/#0/1}"
+  # No simctl to resolve or create a device (a stubbed or non-macOS environment):
+  # name the device and let xcodebuild report it.
+  [[ "$role" == test ]] && name="$(sim_test_name)" || name="$(sim_name)"
+  echo "platform=iOS Simulator,name=${name}"
 }
 
 # Xcode asks once per package plugin or macro to "Trust & Enable" it. Agent
@@ -210,6 +231,26 @@ destination_spec() {
 # instead. Skipping validation trusts every plugin and macro the app's package
 # graph declares; that is acceptable for the owner's own projects and can be
 # disabled per app in runtime.yml. Prints one flag per line.
+# Flags for CI runs (CI=true, set by GitHub Actions and self-hosted runners).
+# Signing: `adhoc` (default) signs with "-" so a test host keeps Keychain access;
+# `none` disables signing for apps whose targets cannot be ad-hoc signed.
+# Coverage feeds the job summary; parallel testing is off because clones of the
+# simulator on a shared runner are the most common source of flaky failures.
+xcodebuild_ci_flags() {
+  [[ "${CI:-}" == true ]] || return 0
+  case "$(cfg_get ci.signing adhoc)" in
+    none) echo CODE_SIGNING_ALLOWED=NO ;;
+    *)
+      echo CODE_SIGN_IDENTITY=-
+      echo DEVELOPMENT_TEAM=
+      ;;
+  esac
+  echo -enableCodeCoverage
+  echo YES
+  echo -parallel-testing-enabled
+  echo NO
+}
+
 xcodebuild_validation_flags() {
   if cfg_bool xcodebuild.skip_package_plugin_validation true; then
     echo -skipPackagePluginValidation

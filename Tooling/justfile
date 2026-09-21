@@ -59,7 +59,7 @@ build:
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/build.sh" ]]; then exec "$d/build.sh"; fi
+      if [[ -x "$d/build.sh" ]]; then exec "$d/build-slot.sh" run "$d/build.sh"; fi
     done
     echo "build.sh not found under $root" >&2
     exit 1
@@ -70,7 +70,7 @@ test *args:
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/test.sh" ]]; then exec "$d/test.sh" "$@"; fi
+      if [[ -x "$d/test.sh" ]]; then exec "$d/build-slot.sh" run "$d/test.sh" "$@"; fi
     done
     echo "test.sh not found under $root" >&2
     exit 1
@@ -80,7 +80,7 @@ verify:
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/verify.sh" ]]; then exec "$d/verify.sh"; fi
+      if [[ -x "$d/verify.sh" ]]; then exec "$d/build-slot.sh" run "$d/verify.sh"; fi
     done
     echo "verify.sh not found under $root" >&2
     exit 1
@@ -90,7 +90,7 @@ ci:
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/ci.sh" ]]; then exec "$d/ci.sh"; fi
+      if [[ -x "$d/ci.sh" ]]; then exec "$d/build-slot.sh" run "$d/ci.sh"; fi
     done
     echo "ci.sh not found under $root" >&2
     exit 1
@@ -100,7 +100,7 @@ run-sim *args:
     set -euo pipefail
     root="{{ justfile_directory() }}"
     for d in "$root/Tooling/scripts" "$root/scripts"; do
-      if [[ -x "$d/run-sim.sh" ]]; then exec "$d/run-sim.sh" {{args}}; fi
+      if [[ -x "$d/run-sim.sh" ]]; then exec "$d/build-slot.sh" run "$d/run-sim.sh" {{args}}; fi
     done
     echo "run-sim.sh not found under $root" >&2
     exit 1
@@ -165,4 +165,28 @@ harness-update:
       if [[ -x "$d/harness-update.sh" ]]; then exec "$d/harness-update.sh"; fi
     done
     echo "harness-update.sh not found under $root" >&2
+    exit 1
+
+# Machine-wide Xcode build slots shared by every app and worktree (BUILD_SLOTS, default 2):
+# `just build-slot status`; `acquire <label> [minutes]` prints a token for `release <token>` (Xcode MCP work).
+[positional-arguments]
+build-slot *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/build-slot.sh" ]]; then exec "$d/build-slot.sh" "$@"; fi
+    done
+    echo "build-slot.sh not found under $root" >&2
+    exit 1
+
+# Deletes this app's leftover test clones (shut-down "Clone N of <device>"); other apps are untouched.
+sim-clean:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/sim-clean.sh" ]]; then exec "$d/sim-clean.sh"; fi
+    done
+    echo "sim-clean.sh not found under $root" >&2
     exit 1

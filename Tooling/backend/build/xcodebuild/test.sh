@@ -10,7 +10,7 @@ SCHEME="$(scheme_name)"
 
 PROJ="$(find_xcodeproj)"
 WS="$(find_xcworkspace)"
-DEST="$(destination_spec)"
+DEST="$(destination_spec test)"
 
 ACTION=test
 if [[ "${RUNTIME_XCODEBUILD_WITHOUT_BUILDING:-false}" == true ]]; then
@@ -19,6 +19,13 @@ fi
 
 ARGS=(-scheme "$SCHEME" -destination "$DEST" -configuration Debug)
 while IFS= read -r flag; do ARGS+=("$flag"); done < <(xcodebuild_validation_flags)
+while IFS= read -r flag; do ARGS+=("$flag"); done < <(xcodebuild_ci_flags)
+if [[ -n "${RUNTIME_RESULT_BUNDLE:-}" ]]; then
+  # xcodebuild refuses to overwrite a bundle, and a stale one would be read as this run's.
+  rm -rf "$RUNTIME_RESULT_BUNDLE"
+  mkdir -p "$(dirname "$RUNTIME_RESULT_BUNDLE")"
+  ARGS+=(-resultBundlePath "$RUNTIME_RESULT_BUNDLE")
+fi
 ARGS+=("$ACTION")
 if [[ -n "$WS" ]]; then
   ARGS=(-workspace "$WS" "${ARGS[@]}")

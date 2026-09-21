@@ -51,6 +51,10 @@
       "availability": "ready"
     },
     {
+      "name": "build-slot",
+      "availability": "ready"
+    },
+    {
       "name": "tf-check",
       "availability": "ready"
     },

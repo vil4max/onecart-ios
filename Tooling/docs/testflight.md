@@ -62,6 +62,10 @@ its release document said to keep 1. Pick the script, not both practices.
 
 ## Adopting it in an app
 
+The TestFlight workflow is one part of the shared pipeline; adopt both together:
+[ci.md](ci.md).
+
+
 1. `just harness-update` installs `Tooling/scripts/tf-check.sh`,
    `tf-promote.sh`, `testflight-lib.sh` and
    `Tooling/templates/github/testflight.yml`.
@@ -77,6 +81,11 @@ its release document said to keep 1. Pick the script, not both practices.
    the run a tag depends on.
 5. In App Store Connect, the owner points the Xcode Cloud workflow at the
    `testflight` branch only and retires workflows started by other branches.
+   Before retiring a release-branch workflow, set the remaining workflow's
+   archive distribution to **TestFlight and App Store**: with "TestFlight
+   (Internal Testing Only)" no build of the model could be submitted to App
+   Review ([Apple: Creating a workflow that builds your app for
+   distribution](https://developer.apple.com/documentation/xcode/creating-a-workflow-that-builds-your-app-for-distribution)).
 6. Record the change as an ADR in the app and state the tag authority in its
    `AGENTS.md`.
 

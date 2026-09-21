@@ -17,6 +17,7 @@ REMOTE="${TF_REMOTE:-origin}"
 WAIT_ATTEMPTS="${TF_WAIT_ATTEMPTS:-45}"
 WAIT_SECONDS="${TF_WAIT_SECONDS:-60}"
 TESTS_WORKFLOW="${TF_TESTS_WORKFLOW:-tests.yml}"
+# shellcheck disable=SC2034 # read by tf-check.sh and tf-promote.sh, which source this file
 TESTFLIGHT_BRANCH="${TF_BRANCH:-testflight}"
 
 fail() {
