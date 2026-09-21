@@ -158,19 +158,22 @@ struct WelcomeView: View {
             .accessibilityHint(Text("welcome.footer"))
 
             #if DEBUG
-                Button {
-                    Task { await viewModel.signInWithTestAccount() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                        Text("Войти как Alex (Тестовый аккаунт)")
+                // Hidden in the demo UI so store screenshots show the Release welcome screen.
+                if !DemoUIMode.isEnabled {
+                    Button {
+                        Task { await viewModel.signInWithTestAccount() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.checkmark")
+                            Text("Войти как Alex (Тестовый аккаунт)")
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(OneCartPalette.primaryAccent(accent: model.preferences.accentColor))
+                        .padding(.vertical, 4)
                     }
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(OneCartPalette.primaryAccent(accent: model.preferences.accentColor))
-                    .padding(.vertical, 4)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("welcome.test_account_button")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("welcome.test_account_button")
             #endif
 
             Text("welcome.footer")
