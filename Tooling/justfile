@@ -135,6 +135,18 @@ release *args:
     echo "release.sh not found under $root" >&2
     exit 1
 
+# Checks a commit for a tf- TestFlight tag and prints the tag to push (docs/testflight.md).
+[positional-arguments]
+tf-check *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    for d in "$root/Tooling/scripts" "$root/scripts"; do
+      if [[ -x "$d/tf-check.sh" ]]; then exec "$d/tf-check.sh" "$@"; fi
+    done
+    echo "tf-check.sh not found under $root" >&2
+    exit 1
+
 profile:
     #!/usr/bin/env bash
     set -euo pipefail
