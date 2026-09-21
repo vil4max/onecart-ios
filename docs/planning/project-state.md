@@ -23,7 +23,8 @@ Reusable description of the same scheme in agent-engineering-kit:
   "Internal TestFlight (verified main)" → TestFlight Friends and Family.
 - `release`: fast-forwarded by `Release` after an annotated `vX.Y.Z` tag whose commit has its own
   green `Tests` run → Xcode Cloud "App Store candidate (release tag)" → App Store Connect.
-- Current refs: `testflight` and `release` at `a5e6915` (tag `v1.2.1`); tags `v1.2.0`, `v1.2.1`.
+- Current refs: `release` at `a5e6915` (tag `v1.2.1`); `testflight` follows `main` after each green
+  `Tests` run; tags `v1.2.0`, `v1.2.1`.
 
 ## Repository hygiene
 
