@@ -117,7 +117,13 @@ Every iOS app repository is set up the same way (owner decision, 2026-09-21):
 - **Xcode Cloud access:** the Xcode Cloud GitHub app is granted per repository,
   not per name. A new repository, even under an old name, is added under
   github.com/settings/installations → Xcode Cloud → Repository access before its
-  workflow can build.
+  workflow can build. The workflow also stays bound to the old repository's
+  ID. Either of two ways re-binds it: Xcode Cloud → Settings → Repositories →
+  Change URL on the old entry (pitstop), or New Primary Repository in the
+  workflow editor, which adds the new repository as a separate entry
+  (OneCart: `tf-1.3.0-1` then started build 112 on its own). Re-bind before
+  the first `tf-` tag; a branch move before it starts nothing, and needs Start
+  Build on `testflight` (pitstop's first round).
 
 ## Self-hosted runner on this Mac
 
