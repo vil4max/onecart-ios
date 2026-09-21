@@ -166,7 +166,7 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 |-------|-------|
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" is unused since ADR 0004 and is retired by the owner |
+| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" is unused since ADR 0004 and is retired by the owner — only after the remaining workflow archives with distribution **TestFlight and App Store** and has **Restrict editing** on (both required for an App Review build; ADR 0004), or no build can be submitted |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends and Family** |
 
