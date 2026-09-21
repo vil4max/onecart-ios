@@ -75,8 +75,6 @@ owner's, or an agent's when the owner has authorized it; `AGENTS.md` records the
   moves nothing; rebuild such a commit with Start Build on `testflight` in App Store Connect.
 - The local pre-push smoke run is unchanged: it already ran on every branch push and skips
   tag-only pushes.
-- The description of "Internal TestFlight (verified main)" in App Store Connect still says it
-  archives every `main` commit that passed `Tests`; the owner updates it there.
 - Because the App Review candidate is now a TestFlight round's build, the one remaining Xcode
   Cloud workflow must archive with distribution preparation **TestFlight and App Store**. Apple:
   choose "TestFlight (Internal Testing Only)" to distribute a development version to your team,
@@ -85,11 +83,13 @@ owner's, or an agent's when the owner has authorized it; `AGENTS.md` records the
   ([Creating a workflow that builds your app for distribution](https://developer.apple.com/documentation/xcode/creating-a-workflow-that-builds-your-app-for-distribution)).
   The same page makes **Restrict editing** in the workflow's General settings "a required step
   if you want to create a build that's eligible for app review", and lists selecting **Clean**
-  in its Environment settings, so builds start without cached data. Which options the workflow
-  uses today is not recorded in this repository. Order in App Store Connect: first give that
-  workflow TestFlight and App Store distribution, restricted editing and a start condition of
-  branch changes on `testflight` only, then retire "App Store candidate (release tag)". Retiring
-  it first could leave no build that can be submitted.
+  in its Environment settings, so builds start without cached data. Order in App Store Connect:
+  first give that workflow TestFlight and App Store distribution, restricted editing and a start
+  condition of branch changes on `testflight` only, then retire "App Store candidate (release
+  tag)". Retiring it first could leave no build that can be submitted. Done with the owner on
+  2026-09-21: distribution and start condition were already right, Restrict Editing and the
+  description were saved, then the candidate workflow was deactivated; ADR 0003 records the
+  resulting settings. The first `tf-` tag is the live check.
 
 ## Rejected alternatives
 

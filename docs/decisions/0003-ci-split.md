@@ -25,7 +25,7 @@ split CI this way and runs green on hosted `macos-26` runners.
 | GitHub Actions `Tests` | Build for testing, `OneCartTests`, coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
 | GitHub Actions `TestFlight` | Checks a `tf-` tag and fast-forwards `testflight`, or checks that a `v` tag marks a commit with its own `tf-` round | Push of a `tf-*` or `v*.*.*` tag, or manual run with `tag` | [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml), `Tooling/scripts/tf-promote.sh` |
 | Xcode Cloud "Internal TestFlight (verified main)" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
-| Xcode Cloud "App Store candidate (release tag)" | Unused since ADR 0004: nothing moves `release`, so it never starts. The owner retires it in App Store Connect | Push to `release` | App Store Connect workflow |
+| Xcode Cloud "App Store candidate (release tag)" | Deactivated 2026-09-21 (ADR 0004): no build starts from it; turning it back on in App Store Connect would resume builds from `release` | Push to `release` | App Store Connect workflow |
 
 ### Branch rules
 
@@ -43,11 +43,15 @@ split CI this way and runs green on hosted `macos-26` runners.
 
 | Workflow | Description | Start condition | Actions | Post-actions |
 |----------|-------------|-----------------|---------|--------------|
-| Internal TestFlight (verified main) | Archives the commit of a verified tf-MAJOR.MINOR.PATCH-BUILD tag (testflight.yml fast-forwards the testflight branch) and uploads it to TestFlight internal testing, group Friends and Family. An App Store submission is one of these builds. Does not run tests. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
-| App Store candidate (release tag) | Unused since ADR 0004; to be retired by the owner. Formerly archived the commit of a verified vMAJOR.MINOR.PATCH tag from the release branch. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
+| Internal TestFlight (verified main) | Archives the commit of a verified tf-MAJOR.MINOR.PATCH-BUILD tag (testflight.yml fast-forwards the testflight branch) and uploads it to TestFlight internal testing, group Friends and Family. An App Store submission is one of these builds. Does not run tests. Restrict Editing on. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, Distribution Preparation "App Store Connect" | TestFlight Internal → Friends and Family |
+| App Store candidate (release tag) | **Deactivated** 2026-09-21. Formerly archived the commit of a verified vMAJOR.MINOR.PATCH tag from the release branch. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
 
-The "Internal TestFlight (verified main)" description above is the intended text after
-ADR 0004; App Store Connect still shows the every-push description until the owner edits it.
+Read from App Store Connect on 2026-09-21, after the owner changed it with ADR 0004: "Internal
+TestFlight (verified main)" got Restrict Editing and the description above (last modified 12:09),
+and "App Store candidate (release tag)" was deactivated (12:30). The web editor calls the
+Distribution Preparation option "App Store Connect" ("Eligible for distribution to all testers
+and customers"); Apple's Xcode documentation calls the same option "TestFlight and App Store".
+The other choices are None and "TestFlight (Internal Testing Only)". Clean is off.
 Names and descriptions say which commits each workflow builds (verified `main`, release tag), matching regional-check; both share the upload mechanics, so those do not name them. Neither
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.
