@@ -205,7 +205,7 @@
 
         @MainActor
         private static func seedLivingList(on listID: UUID, model: AppSession) async {
-            for name in ["Milk", "Bread", "Apples", "Coffee"] {
+            for name in seedNames.history {
                 guard let list = model.activeLists.first(where: { $0.id == listID }) else { return }
                 await model.addProduct(to: list, draft: draft(named: name))
             }
@@ -216,12 +216,24 @@
                 await model.completePurchasedItems(list)
             }
 
-            for name in ["Cheese", "Tomatoes", "Laundry detergent", "Orange juice"] {
+            for name in seedNames.cart {
                 guard let list = model.activeLists.first(where: { $0.id == listID }) else { return }
                 await model.addProduct(to: list, draft: draft(named: name))
             }
             for product in purchasable(listID: listID, from: model).prefix(2) {
                 await model.togglePurchased(product)
+            }
+        }
+
+        /// Seed items in the device language, so localized store screenshots show matching data.
+        private static var seedNames: (history: [String], cart: [String]) {
+            switch Locale.preferredLanguages.first.map({ String($0.prefix(2)) }) {
+            case "ru":
+                (["Молоко", "Хлеб", "Яблоки", "Кофе"], ["Сыр", "Помидоры", "Стиральный порошок", "Апельсиновый сок"])
+            case "uk":
+                (["Молоко", "Хліб", "Яблука", "Кава"], ["Сир", "Помідори", "Пральний порошок", "Апельсиновий сік"])
+            default:
+                (["Milk", "Bread", "Apples", "Coffee"], ["Cheese", "Tomatoes", "Laundry detergent", "Orange juice"])
             }
         }
 
