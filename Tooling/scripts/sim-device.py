@@ -13,6 +13,8 @@ session showed, and killed runs left clones of the shared device behind.
       and must exist
   sim-device.py clean <name>...
       deletes shut-down "Clone N of <name>" devices left by earlier test runs
+  sim-device.py prune <base> [<live-worktree>...]
+      deletes shut-down "<base> · <worktree>" devices whose worktree is gone
 """
 
 from __future__ import annotations
@@ -37,7 +39,8 @@ NO_SIMCTL = 2
 
 def listing(kind: str, device_set: str | None = None) -> dict:
     try:
-        return json.loads(simctl("list", kind, "-j", device_set=device_set) or "{}")
+        # A real simctl always answers with a JSON object; empty output is a stub.
+        return json.loads(simctl("list", kind, "-j", device_set=device_set))
     except (OSError, subprocess.CalledProcessError, ValueError):
         print(f"sim-device: simctl list {kind} unavailable", file=sys.stderr)
         sys.exit(NO_SIMCTL)
@@ -95,11 +98,25 @@ def clean(names: list[str]) -> None:
     print(f"sim-device: removed {removed} leftover clone(s) of {', '.join(names)}")
 
 
+def prune(base: str, live: list[str]) -> None:
+    removed = 0
+    prefix = base + " · "
+    for group in listing("devices").get("devices", {}).values():
+        for device in group:
+            name = device.get("name", "")
+            if name.startswith(prefix) and name[len(prefix):] not in live and device.get("state") == "Shutdown":
+                simctl("delete", device["udid"])
+                removed += 1
+    print(f"sim-device: removed {removed} test device(s) of worktrees that no longer exist")
+
+
 def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "resolve" and len(sys.argv) == 6:
         resolve(*sys.argv[2:6])
     elif len(sys.argv) >= 3 and sys.argv[1] == "clean":
         clean(sys.argv[2:])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "prune":
+        prune(sys.argv[2], sys.argv[3:])
     else:
         sys.exit(__doc__)
 

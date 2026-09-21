@@ -181,8 +181,30 @@ sim_name() {
   echo "$name"
 }
 
-sim_test_name() {
+# Worktrees of one app test in parallel (two build slots), so a linked worktree
+# gets its own test device: "<name> Tests · <worktree directory>"; CI jobs use
+# "<name> Tests · CI". `just sim-clean`
+# deletes the devices of worktrees that no longer exist.
+sim_worktree_suffix() {
+  local root git_dir common
+  # A self-hosted runner's checkout is an ordinary clone on the owner's Mac; it
+  # must not test on the device the owner's own checkout uses.
+  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    echo " · CI"
+    return 0
+  fi
+  root="$(project_root)"
+  git_dir="$(git -C "$root" rev-parse --absolute-git-dir 2>/dev/null)" || return 0
+  common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 0
+  [[ "$git_dir" == "$common" ]] || echo " · $(basename "$root")"
+}
+
+sim_test_base_name() {
   cfg_get "simulator.test_name" "$(sim_name) Tests"
+}
+
+sim_test_name() {
+  echo "$(sim_test_base_name)$(sim_worktree_suffix)"
 }
 
 sim_os() {
