@@ -1706,13 +1706,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed"
+            "value": "Куплено"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed"
+            "value": "Куплено"
           }
         }
       }
@@ -1729,13 +1729,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed · %@"
+            "value": "Куплено · %@"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed · %@"
+            "value": "Куплено · %@"
           }
         }
       }
@@ -2005,13 +2005,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed"
+            "value": "Куплено"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed"
+            "value": "Куплено"
           }
         }
       }
@@ -3086,21 +3086,81 @@
       "extractionState": "manual",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld товаров"
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товара"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товаров"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товар"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товара"
+                }
+              }
+            }
           }
         },
         "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld товарів"
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товари"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товарів"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товар"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld товару"
+                }
+              }
+            }
           }
         }
       }
