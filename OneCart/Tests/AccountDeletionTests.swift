@@ -487,16 +487,18 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(cloud.callCount, 0)
     }
 
-    private func makeDiskDeletionFixture() async throws -> (
-        persistence: PersistenceController,
-        repository: FamilySpaceRepository,
-        session: AppSession,
-        cloud: RecordingAccountCloudDeleter,
-        apple: TrackingAppleSignIn,
-        account: OneCartAccount,
-        familyID: UUID,
-        productID: UUID
-    ) {
+    private struct DiskDeletionFixture {
+        let persistence: PersistenceController
+        let repository: FamilySpaceRepository
+        let session: AppSession
+        let cloud: RecordingAccountCloudDeleter
+        let apple: TrackingAppleSignIn
+        let account: OneCartAccount
+        let familyID: UUID
+        let productID: UUID
+    }
+
+    private func makeDiskDeletionFixture() async throws -> DiskDeletionFixture {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartAccountDeletion-\(UUID().uuidString)", isDirectory: true)
         let persistence = PersistenceController(storeDirectoryURL: directory, cloudKitEnabled: false)
@@ -528,7 +530,16 @@ final class AccountDeletionTests: XCTestCase {
         )
         try session.bootstrapTestingSession(account: account)
         session.needsWelcome = false
-        return (persistence, repository, session, cloud, apple, account, familyID, productID)
+        return DiskDeletionFixture(
+            persistence: persistence,
+            repository: repository,
+            session: session,
+            cloud: cloud,
+            apple: apple,
+            account: account,
+            familyID: familyID,
+            productID: productID
+        )
     }
 
     func test_deleteAccountZones_marksDestructiveRequestBeforeSendingIt() async throws {

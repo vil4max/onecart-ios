@@ -27,7 +27,7 @@ struct MainTabView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         .tint(OneCartPalette.primary(for: colorScheme, accent: model.preferences.accentColor))
         .animation(.easeInOut(duration: 0.35), value: model.preferences.accentColor)
-        .onReceive(model.$preferredMainTab.compactMap { $0 }) { tab in
+        .onReceive(model.$preferredMainTab.compactMap(\.self)) { tab in
             selection = tab
             model.preferredMainTab = nil
         }
