@@ -20,8 +20,8 @@ Permitted deviations: commit and push are not authorized; the work stays in the 
 Material assumptions: GitHub-hosted `macos-26` runners offer no Xcode 27; only the preview label
 `xcode-27` does (checked against the runner-images README on 2026-09-20). Recheck before raising
 the deployment target.
-Next step: owner review of the `REQ-<AREA>-NNN` labelling in `product.md`, then decisions on the
-iOS 27 deployment target and the icon.
+Next step: owner review of the `REQ-<AREA>-NNN` labelling in `product.md`, then a push, which is
+the only thing that can prove the CI runner change.
 Requirements: `docs/requirements/product.md` now defines 49 `REQ-<AREA>-NNN` IDs and a Coverage
 table; 42 of them are cited by at least one test. Work completed before the IDs existed took its
 intent from the audit reports and the architecture document.
@@ -87,8 +87,9 @@ chose stays active across sync."
       document; 125 tests renamed to cite them; per-requirement test list in
       [product.md](../requirements/product.md#coverage). Identifiers only — no requirement wording
       and no assertion changed, so the owner still approves any change of meaning.
-- [ ] Minimum iOS 27 (deferred, see decisions)
-- [ ] Icon built in Icon Composer from concept B layers (owner step)
+- [x] Minimum iOS 27 in every target configuration; CI moved to the preview `xcode-27` image
+- [x] New check-mark cart icon in all four themes, verified on a simulator Home Screen (flat PNG
+      sets; the layered Icon Composer document stays an owner step, see assets/brand/README.md)
 
 ## Open items found during the work
 
@@ -122,8 +123,11 @@ chose stays active across sync."
   cannot isolate those two paths.
 - The participant upgrade loop in `applyReadWriteACL` has no unit coverage: `CKShare.Participant`
   has no public initializer.
-- Catalog keys `common.unit.g`, `kg`, `l`, `ml`, `pack`, `piece` have no remaining reference.
-- Widgets were never placed on a Home Screen; accented and clear rendering are unverified. The demo
+- The CI move to the `xcode-27` preview image is unverified: only a push that runs `Tests` proves
+  the label resolves, `Xcode_27.0.app` exists on the image and the iOS 27 simulator boots there.
+- Widgets were never placed on a Home Screen; accented and clear rendering are unverified. Adding
+  one needs UI automation through the widget gallery, and the iOS 26 jiggle-mode bar exposes no
+  control for it. The demo
   cannot reach the busy overlay, the read-only banner, connect-failed or History "show more".
 - Prefix collisions in category inference remain ("eggplant" matches "egg").
 - Rows that earlier demo runs wrote into a developer's real stores are not cleaned up.
