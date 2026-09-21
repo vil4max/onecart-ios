@@ -99,17 +99,17 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 
 | ID | Invariant | Tests |
 |----|-----------|-------|
-| F1 | Failed `load()` does not destroy store files | `FragileStoreLoadTests.testLoadFailureDoesNotDestroyStoreFiles` |
-| F2 | Explicit wipe only when `persistence.load()` itself failed with a store-load Cocoa code; classified by error code, never by localized text | `testIsUserFacingCoreDataFailureIgnoresCloudKit`, `testRetryWelcomeDoesNotWipeUnlessCoreDataFailure`, `testShouldHardResetStoresOnlyForCoreDataWelcomeFailure`, `testWrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure`, `testPostLoadCocoaSaveErrorDoesNotArmHardReset`, `testFailureCauseArmsOnlyForStoreLoadCodes`, `testStoreLoadFailureArmsHardResetAndRetryRecovers` |
-| F3 | Diagnostics snapshot before explicit hard reset | `testDiagnosticsSnapshotCreatedBeforeExplicitHardReset` |
-| F4 | Sync failure → `.failed`, not fake synchronized | `FragileSyncOutcomeTests.testSyncCartPullFailureSetsFailedState` (+ appear no alert) |
-| F5 | After `viewContext.reset`, products republish | `SharedCartJoinTests.testRefreshFromServerPicksUpToggledPurchasedState`, `testCartContentStorePublishesAfterReload` |
+| F1 | Failed `load()` does not destroy store files | `FragileStoreLoadTests.test_REQ_AUTH_080_loadFailureDoesNotDestroyStoreFiles` |
+| F2 | Explicit wipe only when `persistence.load()` itself failed with a store-load Cocoa code; classified by error code, never by localized text | `test_REQ_AUTH_010_isUserFacingCoreDataFailureIgnoresCloudKit`, `test_REQ_AUTH_010_retryWelcomeDoesNotWipeUnlessCoreDataFailure`, `test_REQ_AUTH_010_shouldHardResetStoresOnlyForCoreDataWelcomeFailure`, `test_REQ_AUTH_010_wrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure`, `test_REQ_AUTH_010_postLoadCocoaSaveErrorDoesNotArmHardReset`, `test_REQ_AUTH_010_failureCauseArmsOnlyForStoreLoadCodes`, `test_REQ_AUTH_010_storeLoadFailureArmsHardResetAndRetryRecovers` |
+| F3 | Diagnostics snapshot before explicit hard reset | `test_REQ_AUTH_080_diagnosticsSnapshotCreatedBeforeExplicitHardReset` |
+| F4 | Sync failure → `.failed`, not fake synchronized | `FragileSyncOutcomeTests.test_REQ_SYNC_010_syncCartPullFailureSetsFailedState` (+ appear no alert) |
+| F5 | After `viewContext.reset`, products republish | `SharedCartJoinTests.test_REQ_SYNC_030_refreshFromServerPicksUpToggledPurchasedState`, `test_REQ_SYNC_010_cartContentStorePublishesAfterReload` |
 | F6 | Shared join/adopt order | `SharedCartJoinTests` (hard gate) |
 | F7 | Permission deny ≠ sync fail message | Fragile sync + `CartAccessTests` selective permission |
-| F8 | CartContentStore publish after reload | `testCartContentStorePublishesAfterReload` |
+| F8 | CartContentStore publish after reload | `test_REQ_SYNC_010_cartContentStorePublishesAfterReload` |
 | F9 | History default page 30 + loadMore appends | `HistoryPaginationTests` |
 | F10 | New Application files in Sources | Stage DoD via `test_sim` compile |
-| F11 | A partial store-load failure detaches the stores that did load (files stay on disk, F1), so `load()` can be retried in the same process instead of failing with Cocoa 134081 ("can't add the same store twice") | `FragileStoreLoadTests.testPartialLoadFailureAllowsRetryInSameProcess` |
+| F11 | A partial store-load failure detaches the stores that did load (files stay on disk, F1), so `load()` can be retried in the same process instead of failing with Cocoa 134081 ("can't add the same store twice") | `FragileStoreLoadTests.test_REQ_AUTH_080_partialLoadFailureAllowsRetryInSameProcess` |
 
 ## Purchase completion / History
 
