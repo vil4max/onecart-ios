@@ -43,7 +43,7 @@ struct CartSuggestionsEngineTests {
         #expect(!suggestions.contains("Сыр"))
     }
 
-    @Test("Excludes cart items with the same diacritic-insensitive normalization as cart dedupe")
+    @Test("REQ-CART-090: Excludes cart items with the same diacritic-insensitive normalization as cart dedupe")
     func excludesCurrentCartItemsIgnoringDiacritics() {
         let history = ["Crème brûlée", "Jalapeño", "Milk"]
         let currentCart = ["creme brulee", " JALAPENO "]
@@ -137,7 +137,7 @@ struct CartSuggestionsEngineTests {
     }
 
     @MainActor
-    @Test("Counts replicated purchases once per family when ranking suggestions")
+    @Test("REQ-HIST-040: Counts replicated purchases once per family when ranking suggestions")
     func replicatedPurchasesDoNotInflateFrequency() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()

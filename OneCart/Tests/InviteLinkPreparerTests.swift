@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class InviteLinkPreparerTests: XCTestCase {
-    func test_deadline_returnsBeforeUnresponsiveOperationAndIgnoresLateSuccess() async {
+    func test_REQ_SHARE_030_deadline_returnsBeforeUnresponsiveOperationAndIgnoresLateSuccess() async {
         let operationGate = DeadlineTestGate()
         let timerGate = DeadlineTestGate()
         let started = expectation(description: "Operation started")
@@ -34,7 +34,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         await fulfillment(of: [finished], timeout: 2)
     }
 
-    func test_deadline_cancellationReturnsWithoutWaitingForCallback() async {
+    func test_REQ_SHARE_030_deadline_cancellationReturnsWithoutWaitingForCallback() async {
         let operationGate = DeadlineTestGate()
         let timerGate = DeadlineTestGate()
         let started = expectation(description: "Operation started")
@@ -81,7 +81,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         XCTAssertNil(preparer.preparedInviteLink)
     }
 
-    func testMemberCanCreateInviteLink() async throws {
+    func test_REQ_SHARE_110_memberCanCreateInviteLink() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -101,7 +101,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         XCTAssertEqual(preparer.preparedInviteLink, link)
     }
 
-    func testOfflineThrows() async throws {
+    func test_REQ_AUTH_030_offlineThrows() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         _ = persistence
         let familyID = try await repository.createFamilySpace(name: "Cart")
@@ -123,7 +123,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         }
     }
 
-    func testCreateInviteLinkAlwaysRefetches() async throws {
+    func test_REQ_SHARE_080_createInviteLinkAlwaysRefetches() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -198,7 +198,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         XCTAssertTrue(preparer.shouldClearCache(forSelectedFamilyID: UUID()))
     }
 
-    func testWarmUpFailureLeavesCacheNil() async throws {
+    func test_REQ_SHARE_080_warmUpFailureLeavesCacheNil() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))

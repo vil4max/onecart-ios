@@ -6,7 +6,7 @@ final class CartActivityDiffTests: XCTestCase {
     private let myName = "Alex"
     private let partnerName = "Maria"
 
-    func testFirstSnapshotSeedsWithoutNotify() {
+    func test_REQ_WIDGET_030_firstSnapshotSeedsWithoutNotify() {
         let item1 = CartItemSnapshot(
             id: UUID(),
             name: "Хлеб",
@@ -33,7 +33,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertEqual(diff.nextSnapshot.count, 2)
     }
 
-    func testSingleUserCartDoesNotNotify() {
+    func test_REQ_WIDGET_030_singleUserCartDoesNotNotify() {
         let item = CartItemSnapshot(
             id: UUID(),
             name: "Яблоки",
@@ -56,7 +56,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertTrue(diff.events.isEmpty)
     }
 
-    func testPartnerAddsSingleItemNotifies() {
+    func test_REQ_WIDGET_030_partnerAddsSingleItemNotifies() {
         let existing = CartItemSnapshot(
             id: UUID(),
             name: "Хлеб",
@@ -126,7 +126,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertEqual(names, ["Сыр", "Масло"])
     }
 
-    func testSelfAddedItemDoesNotNotify() {
+    func test_REQ_WIDGET_030_selfAddedItemDoesNotNotify() {
         let existing = CartItemSnapshot(
             id: UUID(),
             name: "Хлеб",
@@ -152,7 +152,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertTrue(diff.events.isEmpty)
     }
 
-    func testPartnerCompletesLastItemNotifiesAllPurchased() {
+    func test_REQ_WIDGET_030_partnerCompletesLastItemNotifiesAllPurchased() {
         let id1 = UUID()
         let id2 = UUID()
 
@@ -189,7 +189,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertEqual(author, partnerName)
     }
 
-    func testSelfCompletesLastItemDoesNotNotify() {
+    func test_REQ_WIDGET_030_selfCompletesLastItemDoesNotNotify() {
         let id1 = UUID()
         let id2 = UUID()
 
@@ -233,7 +233,7 @@ final class CartActivityDiffTests: XCTestCase {
         XCTAssertTrue(diff.events.isEmpty)
     }
 
-    func testPartialCompletionDoesNotNotifyAllPurchased() {
+    func test_REQ_WIDGET_030_partialCompletionDoesNotNotifyAllPurchased() {
         let id1 = UUID()
         let id2 = UUID()
 

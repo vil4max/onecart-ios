@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class FragileSyncOutcomeTests: XCTestCase {
-    func testSyncCartPullFailureSetsFailedState() async throws {
+    func test_REQ_SYNC_010_syncCartPullFailureSetsFailedState() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -35,7 +35,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         )
     }
 
-    func testSyncCartAppearFailureDoesNotPresentAlert() async throws {
+    func test_REQ_SYNC_010_syncCartAppearFailureDoesNotPresentAlert() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -60,7 +60,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertNil(session.alertMessage)
     }
 
-    func testSyncCartSuccessSetsSynchronized() async throws {
+    func test_REQ_SYNC_010_syncCartSuccessSetsSynchronized() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -231,7 +231,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(session.products.first?.displayName, "Молоко")
     }
 
-    func testCartContentStorePublishesAfterReload() async throws {
+    func test_REQ_SYNC_010_cartContentStorePublishesAfterReload() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()

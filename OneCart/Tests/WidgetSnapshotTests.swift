@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class WidgetSnapshotTests: XCTestCase {
-    func testSnapshotEncodingAndDecoding() throws {
+    func test_REQ_WIDGET_010_snapshotEncodingAndDecoding() throws {
         let item1 = WidgetItemSnapshot(
             id: UUID(),
             name: "Молоко 3.2%",
@@ -91,7 +91,7 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(toggledItem?.isPurchased, true)
     }
 
-    func test_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() throws {
+    func test_REQ_WIDGET_010_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() throws {
         let store = try makeWidgetStore().store
         let id = UUID()
         store.save(snapshot: WidgetCartSnapshot(
@@ -106,7 +106,7 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 10)
     }
 
-    func testEmptyAndAllPurchasedHelpers() {
+    func test_REQ_WIDGET_010_emptyAndAllPurchasedHelpers() {
         let empty = WidgetCartSnapshot.empty
         XCTAssertTrue(empty.isEmpty)
         XCTAssertFalse(empty.isAllPurchased)
@@ -255,7 +255,8 @@ final class WidgetSnapshotTests: XCTestCase {
 }
 
 extension WidgetSnapshotTests {
-    func test_pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement() throws {
+    func test_REQ_WIDGET_020_pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement(
+    ) throws {
         let fixture = try makeWidgetStore()
         let first = WidgetPurchaseRequest(accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true)
         let second = WidgetPurchaseRequest(
@@ -324,7 +325,7 @@ private extension XCTestCase {
 
 @MainActor
 extension WidgetSnapshotTests {
-    func test_performWidgetPurchase_savesRepositoryBeforeAcknowledging() async throws {
+    func test_REQ_WIDGET_020_performWidgetPurchase_savesRepositoryBeforeAcknowledging() async throws {
         let fixture = try await makeWidgetSession()
         fixture.session.preferences.participantDisplayName = "Local nickname"
         let request = fixture.request()
@@ -342,7 +343,7 @@ extension WidgetSnapshotTests {
         XCTAssertEqual(fixture.session.pendingCartMutationCount, 0)
     }
 
-    func test_widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState() async throws {
+    func test_REQ_WIDGET_020_widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState() async throws {
         let fixture = try await makeWidgetSession()
         let request = fixture.request()
         try fixture.store.enqueuePurchase(request)
@@ -403,7 +404,7 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
-    func test_widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt() async throws {
+    func test_REQ_WIDGET_020_widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt() async throws {
         let fixture = try await makeWidgetSession()
         let request = fixture.request()
         try await fixture.session.repository.deleteProduct(id: fixture.productID, familySpaceID: fixture.familyID)
@@ -414,7 +415,7 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
-    func test_widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue() async throws {
+    func test_REQ_WIDGET_020_widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue() async throws {
         let fixture = try await makeWidgetSession()
         let requests = [
             WidgetPurchaseRequest(
@@ -437,7 +438,7 @@ extension WidgetSnapshotTests {
         )).isPurchasedValue)
     }
 
-    func test_start_withDurableWidgetCommand_appliesItWithoutForegroundTransition() async throws {
+    func test_REQ_WIDGET_020_start_withDurableWidgetCommand_appliesItWithoutForegroundTransition() async throws {
         let fixture = try await makeWidgetSession(started: false)
         let purchasedAt = Date().addingTimeInterval(-86400)
         let request = fixture.request(createdAt: purchasedAt)
@@ -571,7 +572,7 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
-    func test_signOut_clearsWidgetDataAndRejectsLateWidgetAction() async throws {
+    func test_REQ_AUTH_060_signOut_clearsWidgetDataAndRejectsLateWidgetAction() async throws {
         let fixture = try await makeWidgetSession()
         let request = fixture.request()
         try fixture.store.enqueuePurchase(request)
@@ -591,7 +592,7 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         }
     }
 
-    func test_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {
+    func test_REQ_AUTH_070_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {
         let fixture = try await makeWidgetSession()
         try fixture.store.enqueuePurchase(fixture.request())
         fixture.session.updateWidgetSnapshot()

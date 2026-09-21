@@ -99,7 +99,7 @@ final class FamilyCartMergeTests: XCTestCase {
         XCTAssertEqual(destination.sortedProducts.map(\.displayName), ["Хлеб"])
     }
 
-    func testMergeFamilyContentLWWSameNormalizedName() async throws {
+    func test_REQ_CART_090_mergeFamilyContentLWWSameNormalizedName() async throws {
         let persistence = PersistenceController(inMemory: true)
         try await persistence.load()
         let repository = FamilySpaceRepository(
@@ -225,7 +225,7 @@ final class FamilyCartMergeTests: XCTestCase {
         )
     }
 
-    func testContentSummaryAndLegacyNameMigrationRules() {
+    func test_REQ_CART_120_contentSummaryAndLegacyNameMigrationRules() {
         XCTAssertTrue(
             FamilySpaceContentSummary(productCount: 0, storeCount: 0, historyCount: 0).isEmpty
         )
@@ -298,7 +298,7 @@ final class FamilyCartMergeTests: XCTestCase {
 
 @MainActor
 final class PersonalCartContentRestoreTests: XCTestCase {
-    func testRestoreKeepsStableIDsHistoryAndSourceGraphAcrossRetries() async throws {
+    func test_REQ_SYNC_040_restoreKeepsStableIDsHistoryAndSourceGraphAcrossRetries() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let accountID = UUID()
         let sourceID = try await repository.createFamilySpace(name: "Local", cachedForUserID: accountID)

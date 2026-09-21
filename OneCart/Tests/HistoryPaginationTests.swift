@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class HistoryPaginationTests: XCTestCase {
-    func testFetchHistoryDefaultLimitIs30() async throws {
+    func test_REQ_HIST_030_fetchHistoryDefaultLimitIs30() async throws {
         let (persistence, repository, familyID) = try await makeHistoryFixture(entryCount: 35)
         let store = CartContentStore(persistence: persistence)
         try store.reloadContent(familySpaceID: familyID)
@@ -15,7 +15,7 @@ final class HistoryPaginationTests: XCTestCase {
         _ = repository
     }
 
-    func testLoadMoreHistoryAppends() async throws {
+    func test_REQ_HIST_030_loadMoreHistoryAppends() async throws {
         let (persistence, _, familyID) = try await makeHistoryFixture(entryCount: 45)
         let store = CartContentStore(persistence: persistence)
         try store.reloadContent(familySpaceID: familyID)

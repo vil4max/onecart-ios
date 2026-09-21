@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class AccountViewModelTests: XCTestCase {
-    func testOwnerGatesEnableRenameAndRevoke() async throws {
+    func test_REQ_SHELL_030_ownerGatesEnableRenameAndRevoke() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -21,7 +21,7 @@ final class AccountViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.canLeaveCart)
     }
 
-    func testMemberGatesEnableLeaveOnly() async throws {
+    func test_REQ_SHELL_030_memberGatesEnableLeaveOnly() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -39,7 +39,7 @@ final class AccountViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.canLeaveCart)
     }
 
-    func testFinishedShareWatchdogDoesNotTimeOutNextShare() async throws {
+    func test_REQ_SHARE_030_finishedShareWatchdogDoesNotTimeOutNextShare() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()

@@ -6,7 +6,7 @@ import XCTest
 
 @MainActor
 final class FragileStoreLoadTests: XCTestCase {
-    func testLoadFailureDoesNotDestroyStoreFiles() async throws {
+    func test_REQ_AUTH_080_loadFailureDoesNotDestroyStoreFiles() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileLoad-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -32,7 +32,7 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path))
     }
 
-    func testPartialLoadFailureAllowsRetryInSameProcess() async throws {
+    func test_REQ_AUTH_080_partialLoadFailureAllowsRetryInSameProcess() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragilePartial-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -68,7 +68,7 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertNoThrow(try persistence.store(for: .shared))
     }
 
-    func testDiagnosticsSnapshotCreatedBeforeExplicitHardReset() async throws {
+    func test_REQ_AUTH_080_diagnosticsSnapshotCreatedBeforeExplicitHardReset() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileDiag-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -94,7 +94,7 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: snapshotPrivate.path))
     }
 
-    func testIsUserFacingCoreDataFailureIgnoresCloudKit() {
+    func test_REQ_AUTH_010_isUserFacingCoreDataFailureIgnoresCloudKit() {
         let ckError = NSError(domain: CKError.errorDomain, code: CKError.Code.networkFailure.rawValue)
         XCTAssertFalse(PersistenceController.isUserFacingCoreDataFailure(ckError))
 
@@ -102,7 +102,7 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(PersistenceController.isUserFacingCoreDataFailure(cocoa))
     }
 
-    func testWrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure() {
+    func test_REQ_AUTH_010_wrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure() {
         let underlying = NSError(
             domain: NSCocoaErrorDomain,
             code: NSPersistentStoreIncompatibleVersionHashError,
@@ -118,7 +118,7 @@ final class FragileStoreLoadTests: XCTestCase {
         )
     }
 
-    func testPostLoadCocoaSaveErrorDoesNotArmHardReset() async throws {
+    func test_REQ_AUTH_010_postLoadCocoaSaveErrorDoesNotArmHardReset() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragilePostLoad-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -184,7 +184,7 @@ final class FragileStoreLoadTests: XCTestCase {
         )
     }
 
-    func testShouldHardResetStoresOnlyForCoreDataWelcomeFailure() {
+    func test_REQ_AUTH_010_shouldHardResetStoresOnlyForCoreDataWelcomeFailure() {
         XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .signIn, cause: .storeLoad))
         XCTAssertFalse(SessionBootstrapper.shouldHardResetStores(for: .connecting, cause: .storeLoad))
         XCTAssertFalse(
@@ -205,7 +205,7 @@ final class FragileStoreLoadTests: XCTestCase {
         )
     }
 
-    func testFailureCauseArmsOnlyForStoreLoadCodes() {
+    func test_REQ_AUTH_010_failureCauseArmsOnlyForStoreLoadCodes() {
         let incompatible = PersistenceError.loadFailed(
             underlying: NSError(
                 domain: NSCocoaErrorDomain,
@@ -230,7 +230,7 @@ final class FragileStoreLoadTests: XCTestCase {
         }
     }
 
-    func testStoreLoadFailureArmsHardResetAndRetryRecovers() async throws {
+    func test_REQ_AUTH_010_storeLoadFailureArmsHardResetAndRetryRecovers() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileArm-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -269,7 +269,7 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertFalse(isDirectory.boolValue)
     }
 
-    func testRetryWelcomeDoesNotWipeUnlessCoreDataFailure() async throws {
+    func test_REQ_AUTH_010_retryWelcomeDoesNotWipeUnlessCoreDataFailure() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartFragileRetry-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

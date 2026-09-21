@@ -4,7 +4,7 @@ import CoreData
 import XCTest
 
 final class AppleSignInTests: XCTestCase {
-    func testAppleSignInCredentialBuildsDisplayNameAndAccountID() {
+    func test_REQ_AUTH_040_appleSignInCredentialBuildsDisplayNameAndAccountID() {
         let credential = AppleSignInCredential(
             userID: "001234.abcd",
             email: "user@example.com",
@@ -28,7 +28,7 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertEqual(withoutName.displayName, String(localized: "common.default_user"))
     }
 
-    func testKeychainAppleSignInCredentialStorePersistsCredential() throws {
+    func test_REQ_AUTH_020_keychainAppleSignInCredentialStorePersistsCredential() throws {
         let store = try makeKeychainStore().store
         let credential = AppleSignInCredential(
             userID: "001234.abcd",
@@ -42,7 +42,7 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertNil(store.load())
     }
 
-    func testKeychainStoreFallsBackToUserDefaultsBackup() throws {
+    func test_REQ_AUTH_020_keychainStoreFallsBackToUserDefaultsBackup() throws {
         let (store, defaults, service) = try makeKeychainStore()
         let credential = AppleSignInCredential(
             userID: "user.backup.test",
@@ -75,7 +75,7 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertNil(defaults.string(forKey: store.backupKey))
     }
 
-    func testCredentialStateForNeverIssuedUserID() async throws {
+    func test_REQ_AUTH_020_credentialStateForNeverIssuedUserID() async throws {
         let service = try AppleSignInService(store: makeKeychainStore().store)
         let state = await service.credentialState(for: "onecart.tests.\(UUID().uuidString)")
         #if targetEnvironment(simulator)
@@ -87,7 +87,7 @@ final class AppleSignInTests: XCTestCase {
     }
 
     @MainActor
-    func testWelcomeViewModelSignInWithTestAccountBootstrapsSession() async throws {
+    func test_REQ_AUTH_010_welcomeViewModelSignInWithTestAccountBootstrapsSession() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         let (store, defaults, _) = try makeKeychainStore()
         let session = try makeTestSession(

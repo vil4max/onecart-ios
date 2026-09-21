@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class GuestMemberSessionTests: XCTestCase {
-    func testGuestSessionActivatesSharedCartAsMember() async throws {
+    func test_REQ_SHARE_090_guestSessionActivatesSharedCartAsMember() async throws {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
 
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.sharedID)
@@ -20,7 +20,7 @@ final class GuestMemberSessionTests: XCTestCase {
         ).first)
     }
 
-    func testGuestCannotRenameOrRevokeSharedCart() async throws {
+    func test_REQ_CART_110_guestCannotRenameOrRevokeSharedCart() async throws {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
         let sharedID = fixture.sharedID
 
@@ -62,7 +62,7 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertTrue(members[0].isCurrentUser)
     }
 
-    func testGuestReturnsToPersonalWhenSharedGone() async throws {
+    func test_REQ_SHARE_050_guestReturnsToPersonalWhenSharedGone() async throws {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
         XCTAssertEqual(fixture.session.access, .member)
 
@@ -76,7 +76,7 @@ final class GuestMemberSessionTests: XCTestCase {
         })
     }
 
-    func testGuestLeaveCartReturnsToPersonal() async throws {
+    func test_REQ_SHARE_050_guestLeaveCartReturnsToPersonal() async throws {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
         XCTAssertEqual(fixture.session.access, .member)
 

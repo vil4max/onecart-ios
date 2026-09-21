@@ -9,7 +9,7 @@ import XCTest
 @MainActor
 // swiftlint:disable:next type_body_length
 final class AccountDeletionTests: XCTestCase {
-    func test_deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState() async throws {
+    func test_REQ_AUTH_070_deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -52,7 +52,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(session.userAlert)
     }
 
-    func test_deleteAccount_whenCloudFails_keepsSignedInAndLocalState() async throws {
+    func test_REQ_AUTH_080_deleteAccount_whenCloudFails_keepsSignedInAndLocalState() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -215,7 +215,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(session.userAlert?.message, String(localized: "account.delete_need_network"))
     }
 
-    func test_deleteAccount_whenMember_leavesSharedBeforeCloudDelete() async throws {
+    func test_REQ_AUTH_070_deleteAccount_whenMember_leavesSharedBeforeCloudDelete() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -265,7 +265,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertTrue(sharedStillPresent.isEmpty)
     }
 
-    func test_deleteAccount_whenICloudUnavailable_showsSpecificMessage() async throws {
+    func test_REQ_AUTH_030_deleteAccount_whenICloudUnavailable_showsSpecificMessage() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: true)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -292,7 +292,7 @@ final class AccountDeletionTests: XCTestCase {
         )
     }
 
-    func test_deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct() async throws {
+    func test_REQ_AUTH_080_deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
@@ -339,7 +339,8 @@ final class AccountDeletionTests: XCTestCase {
         })
     }
 
-    func test_deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring() async throws {
+    func test_REQ_AUTH_080_deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring(
+    ) async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
@@ -378,7 +379,7 @@ final class AccountDeletionTests: XCTestCase {
         })
     }
 
-    func test_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
+    func test_REQ_AUTH_070_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
 
@@ -391,7 +392,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
     }
 
-    func test_detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery() async throws {
+    func test_REQ_AUTH_080_detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         let privateURL = fixture.persistence.storeDirectoryURL.appendingPathComponent("OneCart-private.sqlite")
@@ -412,7 +413,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
     }
 
-    func test_deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud() async throws {
+    func test_REQ_AUTH_080_deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
@@ -430,7 +431,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.persistence.accountDeletionMarkerURL.path))
     }
 
-    func test_load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores() async throws {
+    func test_REQ_AUTH_080_load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()

@@ -5,14 +5,14 @@ import XCTest
 
 @MainActor
 final class CartAccessTests: XCTestCase {
-    func testFamilyAccessAllowsSharedListEditing() {
+    func test_REQ_SHARE_010_familyAccessAllowsSharedListEditing() {
         XCTAssertTrue(FamilyAccess.owner.canEdit)
         XCTAssertTrue(FamilyAccess.member.canEdit)
         XCTAssertTrue(FamilyAccess.owner.isOwner)
         XCTAssertTrue(FamilyAccess.member.isParticipant)
     }
 
-    func testSelectivePermissionAuthorizerBlocksSharedUpdates() async throws {
+    func test_REQ_SHARE_010_selectivePermissionAuthorizerBlocksSharedUpdates() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let allowRepository = FamilySpaceRepository(
@@ -51,7 +51,7 @@ final class CartAccessTests: XCTestCase {
         }
     }
 
-    func testRevokeInviteKeepsFamilySpaceIdentity() async throws {
+    func test_REQ_SHARE_060_revokeInviteKeepsFamilySpaceIdentity() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -81,7 +81,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertEqual(session.userAlert?.kind, .success)
     }
 
-    func testRenameActiveCartUpdatesFamilySpaceName() async throws {
+    func test_REQ_CART_110_renameActiveCartUpdatesFamilySpaceName() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -107,7 +107,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertEqual(session.cartTitle, "Дом")
     }
 
-    func testPersonalCartNameUsesAccountDisplayName() {
+    func test_REQ_CART_100_personalCartNameUsesAccountDisplayName() {
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
         XCTAssertEqual(
             AppSession.householdCartName(for: account),
@@ -115,7 +115,7 @@ final class CartAccessTests: XCTestCase {
         )
     }
 
-    func testRenamingParticipantUpdatesPersonalCartTitleWhileAutoNamed() async throws {
+    func test_REQ_CART_100_renamingParticipantUpdatesPersonalCartTitleWhileAutoNamed() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -150,7 +150,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
     }
 
-    func testCustomCartNameStopsFollowingParticipantNickname() async throws {
+    func test_REQ_CART_100_customCartNameStopsFollowingParticipantNickname() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -179,7 +179,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertEqual(session.activeFamilySpace?.id, familyID)
     }
 
-    func testSharedCartVisibleAlongsideOwnPrivateCart() async throws {
+    func test_REQ_AUTH_050_sharedCartVisibleAlongsideOwnPrivateCart() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let ownerID = UUID()
         let memberID = UUID()
@@ -210,7 +210,7 @@ final class CartAccessTests: XCTestCase {
         XCTAssertFalse(ownerIDs.contains(privateID))
     }
 
-    func testFamilyCacheIsScopedToAuthenticatedUser() async throws {
+    func test_REQ_AUTH_050_familyCacheIsScopedToAuthenticatedUser() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let firstUser = UUID()
         let secondUser = UUID()

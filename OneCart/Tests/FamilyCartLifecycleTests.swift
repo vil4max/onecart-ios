@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class FamilyCartLifecycleTests: XCTestCase {
-    func testClaimUnassignedFamilySpacesStampsPrivateOnly() async throws {
+    func test_REQ_AUTH_050_claimUnassignedFamilySpacesStampsPrivateOnly() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let privateID = try await repository.createFamilySpace(name: "Личная")
         let sharedID = UUID()
@@ -33,7 +33,7 @@ final class FamilyCartLifecycleTests: XCTestCase {
         XCTAssertNil(shared.cachedForUserID)
     }
 
-    func testArchiveFamilySpaceHidesCartAndSoftDeletesChildren() async throws {
+    func test_REQ_CART_010_archiveFamilySpaceHidesCartAndSoftDeletesChildren() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, _, productID) = try await seedCart(repository: repository)
 

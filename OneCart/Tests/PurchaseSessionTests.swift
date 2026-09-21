@@ -58,7 +58,7 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertEqual(space.activeLists.first?.id, listID)
     }
 
-    func testArchivePurchasedBeforeMovesOnlyStaleCheckedItems() async throws {
+    func test_REQ_HIST_020_archivePurchasedBeforeMovesOnlyStaleCheckedItems() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
@@ -104,7 +104,7 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertTrue(space.sortedProducts.first?.isPurchasedValue == true)
     }
 
-    func testArchivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday() async throws {
+    func test_REQ_HIST_020_archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, productID) = try await seedCart(repository: repository)
         try await repository.togglePurchased(id: productID, participantDisplayName: "Игорь")
@@ -138,7 +138,7 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertTrue(space.sortedProducts.first?.isPurchasedValue == true)
     }
 
-    func testHistoryDayGroupsByPurchasedAt() async throws {
+    func test_REQ_HIST_010_historyDayGroupsByPurchasedAt() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
@@ -197,7 +197,7 @@ final class PurchaseSessionTests: XCTestCase {
         )
     }
 
-    func testArchiveStalePurchasedIfNeededViaSession() async throws {
+    func test_REQ_HIST_020_archiveStalePurchasedIfNeededViaSession() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -261,7 +261,7 @@ final class PurchaseSessionTests: XCTestCase {
 
 @MainActor
 final class PurchaseHistoryReplicaTests: XCTestCase {
-    func testHistoryGroupsChooseSamePurchaseAcrossArchiveSessions() async throws {
+    func test_REQ_HIST_040_historyGroupsChooseSamePurchaseAcrossArchiveSessions() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Family")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -293,7 +293,7 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         XCTAssertNil(replica.sortedItems.first?.deletedAt)
     }
 
-    func testHistoryIdentityPreservesOtherFamiliesAndDistinctSameNamePurchases() async throws {
+    func test_REQ_HIST_040_historyIdentityPreservesOtherFamiliesAndDistinctSameNamePurchases() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let firstID = try await repository.createFamilySpace(name: "First")
         let secondID = try await repository.createFamilySpace(name: "Second")
@@ -315,7 +315,7 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         XCTAssertEqual(items.filter { $0.id == nil }.count, 2)
     }
 
-    func testArchiveRetryReusesExistingPurchaseAndArchivesOnlyNewItems() async throws {
+    func test_REQ_HIST_040_archiveRetryReusesExistingPurchaseAndArchivesOnlyNewItems() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, productID) = try await seedCart(repository: repository)
         try await repository.togglePurchased(id: productID, participantDisplayName: "First")

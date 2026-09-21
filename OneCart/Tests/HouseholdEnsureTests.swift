@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class HouseholdEnsureTests: XCTestCase {
-    func testEnsureHouseholdCreatesCartWhenEmpty() async throws {
+    func test_REQ_CART_070_ensureHouseholdCreatesCartWhenEmpty() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -24,7 +24,7 @@ final class HouseholdEnsureTests: XCTestCase {
         XCTAssertFalse(session.isEnsuringHouseholdCart)
     }
 
-    func testEnsureHouseholdNoOpWhenActiveFamilyExists() async throws {
+    func test_REQ_CART_080_ensureHouseholdNoOpWhenActiveFamilyExists() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -52,7 +52,7 @@ final class HouseholdEnsureTests: XCTestCase {
         XCTAssertFalse(session.householdCartBootstrapFailed)
     }
 
-    func testEnsureHouseholdAdoptsSharedWhileOnPrivate() async throws {
+    func test_REQ_SHARE_090_ensureHouseholdAdoptsSharedWhileOnPrivate() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -101,7 +101,7 @@ final class HouseholdEnsureTests: XCTestCase {
         XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
     }
 
-    func testEnsureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies() async throws {
+    func test_REQ_SYNC_040_ensureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -153,7 +153,7 @@ final class HouseholdEnsureTests: XCTestCase {
 
 @MainActor
 final class PersonalCartRestoreBootstrapTests: XCTestCase {
-    func testDelayedPrivateImportPreservesLocalItemsAndSelectsExistingCart() async throws {
+    func test_REQ_SYNC_040_delayedPrivateImportPreservesLocalItemsAndSelectsExistingCart() async throws {
         let fixture = try await makeFixture()
         let sourceID = try XCTUnwrap(fixture.session.activeFamilySpace?.id)
         let sourceListID = try XCTUnwrap(fixture.session.activeLists.first?.id)
@@ -173,7 +173,7 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         XCTAssertFalse(fixture.session.isReconcilingPersonalCart)
     }
 
-    func testProvisionalAndRestoredChoicesSurviveRestartAndPersonalFallback() async throws {
+    func test_REQ_SYNC_040_provisionalAndRestoredChoicesSurviveRestartAndPersonalFallback() async throws {
         let fixture = try await makeFixture(useFinishSetup: true)
         let sourceID = try XCTUnwrap(fixture.session.activeFamilySpace?.id)
         let restarted = try makeTestSession(
@@ -197,7 +197,7 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         XCTAssertNotNil(try fixture.repository.fetchFamilySpace(id: sourceID))
     }
 
-    func testPartialImportAndPendingMutationsDeferPersonalSelection() async throws {
+    func test_REQ_SYNC_040_partialImportAndPendingMutationsDeferPersonalSelection() async throws {
         let fixture = try await makeFixture()
         let sourceID = fixture.session.activeFamilySpace?.id
         let importedID = UUID()

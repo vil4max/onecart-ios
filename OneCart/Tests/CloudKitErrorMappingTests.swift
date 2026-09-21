@@ -37,7 +37,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
     }
 
-    func testCloudKitFamilyInviteShareMessageContainsShareURL() throws {
+    func test_REQ_SHARE_020_cloudKitFamilyInviteShareMessageContainsShareURL() throws {
         let shareURL = try XCTUnwrap(
             URL(string: "https://www.icloud.com/share/onecart-family")
         )
@@ -61,7 +61,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertFalse(OneCartShareBranding.thumbnailImageData.isEmpty)
     }
 
-    func testCloudKitUserFacingErrorReplacesOpaquePartialFailure() {
+    func test_REQ_SHELL_050_cloudKitUserFacingErrorReplacesOpaquePartialFailure() {
         let opaque = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.partialFailure.rawValue,
@@ -87,7 +87,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertEqual(message, String(localized: "sync.quota_exceeded"))
     }
 
-    func testCloudKitUserFacingErrorDetectsNetworkFailure() {
+    func test_REQ_SHELL_050_cloudKitUserFacingErrorDetectsNetworkFailure() {
         let network = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.networkUnavailable.rawValue,
@@ -194,7 +194,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertFalse(backend.cloudContainerInitializedForTesting)
     }
 
-    func testCloudKitUserFacingErrorMapsAuthAndPermission() {
+    func test_REQ_SHELL_050_cloudKitUserFacingErrorMapsAuthAndPermission() {
         let auth = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.notAuthenticated.rawValue,

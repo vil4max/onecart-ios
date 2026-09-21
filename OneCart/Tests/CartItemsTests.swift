@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class CartItemsTests: XCTestCase {
-    func testTogglePurchasedSetsAndClearsBuyer() async throws {
+    func test_REQ_CART_040_REQ_SYNC_020_togglePurchasedSetsAndClearsBuyer() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (_, listID, productID) = try await seedCart(repository: repository)
 
@@ -35,7 +35,7 @@ final class CartItemsTests: XCTestCase {
         _ = listID
     }
 
-    func testDeleteProductSkipsPurchasedItems() async throws {
+    func test_REQ_CART_050_deleteProductSkipsPurchasedItems() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, _, productID) = try await seedCart(repository: repository)
 
@@ -52,7 +52,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertNil(space.sortedProducts.first?.deletedAt)
     }
 
-    func testSortedProductsPutsNewestToBuyFirstThenCompleted() async throws {
+    func test_REQ_SHELL_010_sortedProductsPutsNewestToBuyFirstThenCompleted() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, olderID) = try await seedCart(
             repository: repository,
@@ -92,7 +92,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertTrue(space.sortedProducts[1].isPurchasedValue)
     }
 
-    func testUpdateProductRewritesFields() async throws {
+    func test_REQ_CART_020_updateProductRewritesFields() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let (_, _, productID) = try await seedCart(
             repository: repository,
@@ -111,7 +111,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(product.note, "холодное")
     }
 
-    func testDeletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
+    func test_REQ_SYNC_030_deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Offline")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -137,7 +137,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(repository.fetchFamilySpace(id: familyID)).sortedProducts.isEmpty)
     }
 
-    func testSameNamedProductsReuseExistingCartLine() async throws {
+    func test_REQ_CART_090_sameNamedProductsReuseExistingCartLine() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Семья")
         let listID = try XCTUnwrap(
@@ -183,7 +183,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(milk.first?.id, firstID)
     }
 
-    func testReAddAfterDeleteCreatesNewLine() async throws {
+    func test_REQ_CART_090_reAddAfterDeleteCreatesNewLine() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Семья")
         let listID = try XCTUnwrap(
@@ -204,7 +204,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(space.sortedProducts.first?.id, secondID)
     }
 
-    func testRenameIntoExistingNameMergesRows() async throws {
+    func test_REQ_CART_090_renameIntoExistingNameMergesRows() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Семья")
         let listID = try XCTUnwrap(
@@ -227,7 +227,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(space.sortedProducts.first?.id, milkID)
     }
 
-    func testDeduplicateProductsByNameKeepsFirstWriter() async throws {
+    func test_REQ_CART_090_deduplicateProductsByNameKeepsFirstWriter() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Семья")
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -270,7 +270,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(reloaded.sortedProducts.first?.id, firstID)
     }
 
-    func testInvalidNamesAreRejected() async throws {
+    func test_REQ_CART_030_invalidNamesAreRejected() async throws {
         let (_, repository) = try await makeInMemoryRepository()
 
         do {
@@ -345,7 +345,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(reloaded.sortedProducts.first?.id, productID)
     }
 
-    func testAddProductVisibleAfterViewContextMerge() async throws {
+    func test_REQ_CART_030_addProductVisibleAfterViewContextMerge() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Sync")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
@@ -373,7 +373,7 @@ final class CartItemsTests: XCTestCase {
         XCTAssertEqual(products.first?.displayName, "Яйца")
     }
 
-    func testDuplicateNameIsDetectedBeyondFiftyLiveRows() async throws {
+    func test_REQ_CART_090_duplicateNameIsDetectedBeyondFiftyLiveRows() async throws {
         let (_, repository) = try await makeInMemoryRepository()
         let (_, listID, _) = try await seedCart(repository: repository)
 
