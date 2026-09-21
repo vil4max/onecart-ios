@@ -85,9 +85,9 @@ not keys). No private keys, tokens, `.env` or certificate files were ever commit
    - Force-push `main`, then `testflight` and `release` to the rewritten SHAs, then force-update
      tags. Pushing `testflight`/`release` starts Xcode Cloud builds of already-shipped code:
      disable both Xcode Cloud workflows during the push or cancel those builds.
-   - `promote-release.sh` checks a `Tests` run for the tagged SHA: rewritten tag SHAs have no
-     runs, so re-tagged old releases cannot be re-promoted (not needed); the next release works
-     normally after a green push.
+   - `Tooling/scripts/tf-promote.sh` checks a `Tests` run for the tagged SHA (ADR 0004):
+     rewritten tag SHAs have no runs, so re-tagged old `tf-` and `v` tags fail the check (not
+     needed); the next round works normally after a green push.
    - Every local clone and session must re-clone or hard-reset; announce before and after.
    - GitHub keeps the old commits reachable through the 36 `refs/pull/*` refs and cached views
      until GitHub Support purges them; request that only after the force push.

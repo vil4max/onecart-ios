@@ -150,7 +150,7 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 
 ### Preferred: Xcode Cloud → TestFlight
 
-Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archives and uploads; tests run in GitHub Actions ([`tests.yml`](../../.github/workflows/tests.yml)). Xcode Cloud starts from the `testflight` and `release` branches, which only CI moves; release by pushing an annotated `vMAJOR.MINOR.PATCH` tag — see [ADR 0003](../decisions/0003-ci-split.md). No fastlane.
+Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archives and uploads; tests run in GitHub Actions ([`tests.yml`](../../.github/workflows/tests.yml)). Xcode Cloud starts only from the `testflight` branch, which only the `TestFlight` workflow moves, on an annotated `tf-` tag — see [ADR 0004](../decisions/0004-tag-gated-testflight.md). A push to `main` builds nothing. No fastlane.
 
 **Prerequisites:** shared scheme `OneCart` with Archive; ASC app record; CloudKit Production schema. `OneCart/ci_scripts/ci_post_clone.sh` writes `CI_BUILD_NUMBER` into `CURRENT_PROJECT_VERSION`.
 
@@ -158,7 +158,7 @@ Not local Archive. ADP includes 25 compute hours/month. Xcode Cloud only archive
 xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -json
 ```
 
-**First-time (Xcode UI):** push `main` → open `OneCart/OneCart.xcodeproj` → Report navigator → Cloud → Get Started → product `OneCart` / team `BTHRDS7254` → grant repo access → commit generated `OneCart/OneCart.xcodeproj/xcshareddata/xcodecloud/manifest.json`. After setup, the start conditions must match ADR 0003 (`testflight` / `release`, never `main`).
+**First-time (Xcode UI):** push `main` → open `OneCart/OneCart.xcodeproj` → Report navigator → Cloud → Get Started → product `OneCart` / team `BTHRDS7254` → grant repo access → commit generated `OneCart/OneCart.xcodeproj/xcshareddata/xcodecloud/manifest.json`. After setup, the start condition must be the `testflight` branch only, never `main` (ADR 0003, ADR 0004).
 
 **Target workflow** (App Store Connect → Xcode Cloud → Manage Workflows):
 
@@ -166,11 +166,25 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 |-------|-------|
 | Repo | `https://github.com/vil4max/OneCart.git` |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`), "App Store candidate (release tag)" (exact branch `release`); exact settings in [ADR 0003](../decisions/0003-ci-split.md) |
+| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" is unused since ADR 0004 and is retired by the owner |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends and Family** |
 
-Both branches are fast-forwarded by GitHub Actions only after `Tests` is green; never push them by hand (ADR 0003). Submit App Store builds from the "App Store candidate (release tag)" workflow; release steps and failure handling are in ADR 0003.
+**Request a TestFlight round** (full procedure and failure handling: [`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md)):
+
+1. Push the commit to build as the head of its push to `main`, and wait for its `Tests` run.
+2. `just tf-check` (or `just tf-check <commit>`). It is read-only, blocks on anything the
+   workflow would reject, and prints the tag commands with the next free `BUILD`.
+3. Write the round's What to Test — observable pass/fail checks plus what was not verified —
+   and run the two printed commands. Paste the same text into App Store Connect when the build
+   appears.
+4. The `TestFlight` workflow run ends with `testflight -> tf-X.Y.Z-N`; "did not move" means no
+   build was requested.
+
+**Submit for App Review:** pick the tested TestFlight build of the version in App Store Connect,
+then the owner marks its commit with an annotated `vX.Y.Z` tag. The tag moves nothing;
+`TestFlight` checks that the commit had its own `tf-X.Y.Z-N` round. Never push `testflight` or
+`release` by hand.
 
 After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
 
@@ -268,4 +282,4 @@ Own server, Supabase, fastlane, email/password auth, multi-cart UX (code can hol
 
 - Watch CloudKit quotas (fine for household-sized carts).
 - After Core Data model changes → deploy schema to Production again.
-- Ship via a version tag → Xcode Cloud "App Store candidate (release tag)" (or local Archive fallback).
+- Ship a TestFlight round with a `tf-` tag, submit one of its builds, then mark the commit with a `v` tag (or local Archive fallback).

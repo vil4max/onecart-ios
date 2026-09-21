@@ -54,12 +54,20 @@ For PR review (owner / review agent), start at [docs/engineering/review-changelo
 
 ## CI and releases
 
-Source: [ADR 0003](docs/decisions/0003-ci-split.md). GitHub Actions tests; Xcode Cloud only archives.
+Source: [ADR 0003](docs/decisions/0003-ci-split.md) and [ADR 0004](docs/decisions/0004-tag-gated-testflight.md).
+GitHub Actions tests; Xcode Cloud only archives; tags, not pushes, request builds. Procedure:
+[`Tooling/docs/testflight.md`](Tooling/docs/testflight.md).
 
-- `main` — development. `Tests` (`.github/workflows/tests.yml`) runs on every push and PR.
-- `testflight` and `release` are moved only by GitHub Actions, only by fast-forward. Never push,
-  force-push, reset, or delete them.
-- Version tags `vMAJOR.MINOR.PATCH` are created and pushed only by the owner; an agent does not tag.
+- `main` — development. `Tests` (`.github/workflows/tests.yml`) runs on every push and PR and
+  publishes nothing, so tooling and docs commits push freely.
+- `testflight` is moved only by the `TestFlight` workflow (`.github/workflows/testflight.yml`), on an
+  annotated `tf-MAJOR.MINOR.PATCH-BUILD` tag, only by fast-forward. `release` is frozen at `v1.2.1`
+  (nothing moves it since ADR 0004). Never push, force-push, reset, or delete either branch.
+- `tf-` tags: an agent may create and push one after `just tf-check` prints `Ready` for a commit
+  already on `origin/main` (owner decision, 2026-09-21). The annotation is the round's What to
+  Test. Push a release-prep commit as the head of its push: only that commit gets its own
+  `Tests` run and can be tagged.
+- `v` tags and the App Review submission are the owner's; an agent does not create `v` tags.
 - Branches and worktrees exist only while work is in progress: delete merged branches locally and on
   GitHub right away. Permanent branches are `main`, `testflight`, `release`. No leftover build
   artifacts in the working tree.

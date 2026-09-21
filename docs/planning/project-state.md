@@ -19,12 +19,14 @@ Reusable description of the same scheme in agent-engineering-kit:
 [`skills/ios-release/references/gated-ci-release.md`](https://github.com/vil4max/agent-engineering-kit/blob/main/skills/ios-release/references/gated-ci-release.md).
 
 - `main`: work lands through PRs; GitHub Actions `Tests` runs on every PR and push.
-- `testflight`: fast-forwarded by CI after a green push to `main` → Xcode Cloud
-  "Internal TestFlight (verified main)" → TestFlight Friends and Family.
-- `release`: fast-forwarded by `Release` after an annotated `vX.Y.Z` tag whose commit has its own
-  green `Tests` run → Xcode Cloud "App Store candidate (release tag)" → App Store Connect.
-- Current refs: `release` at `a5e6915` (tag `v1.2.1`); `testflight` follows `main` after each green
-  `Tests` run; tags `v1.2.0`, `v1.2.1`.
+- `testflight`: fast-forwarded by the `TestFlight` workflow on an annotated `tf-X.Y.Z-N` tag →
+  Xcode Cloud "Internal TestFlight (verified main)" → TestFlight Friends and Family. A push to
+  `main` builds nothing ([ADR 0004](../decisions/0004-tag-gated-testflight.md)).
+- `v` tags mark the commit whose TestFlight build was submitted; they move nothing.
+- `release`: frozen at `a5e6915` (tag `v1.2.1`); nothing moves it since ADR 0004. Its Xcode Cloud
+  workflow "App Store candidate (release tag)" is unused, to be retired in App Store Connect.
+- Current refs: `testflight` at `bbd884c` (1.3.0, promoted by the last every-push run before the
+  switch); tags `v1.2.0`, `v1.2.1`; no `tf-` tags yet.
 
 ## Repository hygiene
 

@@ -6,6 +6,10 @@ Amended 2026-09-17: Xcode Cloud starts from CI-moved `testflight` and `release` 
 instead of `main`. The scheme was first verified end to end in regional-check.
 Amended 2026-09-21: the app's minimum OS is iOS 27, so `Tests` moved from the GA `macos-26`
 image to the public-preview `xcode-27` image — see [Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview).
+Superseded in part 2026-09-21 by [ADR 0004](0004-tag-gated-testflight.md): `Tests` promotes
+nothing, `tf-` tags request TestFlight builds, `v` tags only mark the submitted commit, and
+nothing moves `release`. The tables and rules below are updated to match; the procedure is in
+[`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md).
 
 ## Context
 
@@ -18,30 +22,32 @@ split CI this way and runs green on hosted `macos-26` runners.
 
 | System | Owns | Trigger | Config |
 |--------|------|---------|--------|
-| GitHub Actions `Tests` | Build for testing, `OneCartTests`, coverage summary; then fast-forwards `testflight` | Push to `main`, pull requests (promotion only on `main`) | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
+| GitHub Actions `Tests` | Build for testing, `OneCartTests`, coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
+| GitHub Actions `TestFlight` | Checks a `tf-` tag and fast-forwards `testflight`, or checks that a `v` tag marks a commit with its own `tf-` round | Push of a `tf-*` or `v*.*.*` tag, or manual run with `tag` | [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml), `Tooling/scripts/tf-promote.sh` |
 | Xcode Cloud "Internal TestFlight (verified main)" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
-| GitHub Actions `Release` | Validates a `vMAJOR.MINOR.PATCH` tag, then fast-forwards `release` | Push of a version tag, or manual run with `tag` | [`.github/workflows/release.yml`](../../.github/workflows/release.yml), [`scripts/promote-release.sh`](../../scripts/promote-release.sh) |
-| Xcode Cloud "App Store candidate (release tag)" | Archive of the tagged version for App Store Connect (+ internal TestFlight) | Push to `release` | App Store Connect workflow |
+| Xcode Cloud "App Store candidate (release tag)" | Unused since ADR 0004: nothing moves `release`, so it never starts. The owner retires it in App Store Connect | Push to `release` | App Store Connect workflow |
 
 ### Branch rules
 
 1. `main` is the only branch people and agents push to (through PRs).
-2. `testflight` is moved only by the `promote-testflight` job, only for a push to `main` whose
-   `Tests` run passed, and only by fast-forward. PR runs never promote.
-3. `release` is moved only by `scripts/promote-release.sh`, only to an annotated version tag
-   whose exact commit has a successful `Tests` run for a push to `main` (and is therefore on
-   `testflight`), and only by fast-forward.
+2. `testflight` is moved only by `Tooling/scripts/tf-promote.sh`, only to an annotated
+   `tf-MAJOR.MINOR.PATCH-BUILD` tag whose exact commit is on `main`, is built as that version,
+   and has a successful `Tests` run for a push to `main`, and only by fast-forward.
+3. `release` is no longer moved. It stays at `a5e6915` (`v1.2.1`) until the owner retires it.
 4. Nobody pushes, force-pushes, resets, or deletes `testflight` or `release` by hand: they
    record which commits passed the checks.
-5. Only the owner creates and pushes version tags.
+5. The owner creates and pushes `v` tags and submits for App Review; `tf-` tag authority is in
+   `AGENTS.md`.
 
 ### Xcode Cloud settings (App Store Connect, not in the repo)
 
 | Workflow | Description | Start condition | Actions | Post-actions |
 |----------|-------------|-----------------|---------|--------------|
-| Internal TestFlight (verified main) | Archives every main commit that passed GitHub Actions "Tests" (CI fast-forwards the testflight branch) and uploads it to TestFlight internal testing, group Friends and Family. Does not run tests. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
-| App Store candidate (release tag) | Archives the commit of a verified vMAJOR.MINOR.PATCH tag (release.yml fast-forwards the release branch) and uploads it to App Store Connect as the App Store submission candidate; also available in TestFlight internal testing. Does not run tests. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
+| Internal TestFlight (verified main) | Archives the commit of a verified tf-MAJOR.MINOR.PATCH-BUILD tag (testflight.yml fast-forwards the testflight branch) and uploads it to TestFlight internal testing, group Friends and Family. An App Store submission is one of these builds. Does not run tests. | Branch Changes → exact branch `testflight` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
+| App Store candidate (release tag) | Unused since ADR 0004; to be retired by the owner. Formerly archived the commit of a verified vMAJOR.MINOR.PATCH tag from the release branch. | Branch Changes → exact branch `release` (not a prefix), auto-cancel on | Archive - iOS, scheme `OneCart`, App Store Connect | TestFlight Internal → Friends and Family |
 
+The "Internal TestFlight (verified main)" description above is the intended text after
+ADR 0004; App Store Connect still shows the every-push description until the owner edits it.
 Names and descriptions say which commits each workflow builds (verified `main`, release tag), matching regional-check; both share the upload mechanics, so those do not name them. Neither
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.
@@ -75,44 +81,23 @@ This makes the whole promotion chain depend on a preview image:
 
 1. A preview image carries no availability guarantee. If it is withdrawn, renamed at GA, or
    re-based onto a newer Xcode so `/Applications/Xcode_27.0.app` disappears, `Tests` fails for
-   every push to `main`. `promote-testflight` needs a green `Tests` run, so `testflight` stops
-   moving and no TestFlight build is produced.
-2. `scripts/promote-release.sh` requires a successful `Tests` run for the exact tagged commit, so
-   the same failure blocks `release` and therefore App Store candidates.
-3. Preview queueing can push a `Tests` run past the script's 45-minute wait. Rerun `Release`
-   manually with the tag; do not move the tag.
-4. Xcode Cloud is unaffected — it archives with its own toolchain from `testflight` and `release`.
+   every push to `main`. `tf-promote.sh` needs the tagged commit's green `Tests` run, so no
+   `tf-` tag can move `testflight` and no TestFlight build is produced.
+2. The same check applies to `v` tags, so a submitted commit cannot be marked either.
+3. Preview queueing can push a `Tests` run past the script's 45-minute wait. Rerun
+   `TestFlight` manually with the tag; do not move the tag.
+4. Xcode Cloud is unaffected — it archives with its own toolchain from `testflight`.
    The exposure is the verification gate, not the build that ships.
 
 Repin `runs-on` and `DEVELOPER_DIR` to a GA label as soon as one ships Xcode 27.
 
-### Releasing a version
+### Releasing a version and failure handling
 
-1. Bump `MARKETING_VERSION` on `main` per the versioning rules in `AGENTS.md` (app and
-   widget must match; the script requires exactly one value).
-2. Push an annotated tag on that `main` commit: `git tag -a v1.3.0 -m "OneCart 1.3.0"`,
-   then `git push origin v1.3.0`. The tag can be pushed right after the commit.
-3. `Release` rejects lightweight tags, version mismatches, and commits outside `main`,
-   waits up to 45 minutes for a successful `Tests` run of that exact commit, confirms it is on
-   `testflight`, then moves `release`. If the checks took longer, rerun `Release` manually
-   with the tag as input.
-4. Tag the commit that was pushed to `main` (for a PR, the merge commit). A commit inside a
-   multi-commit push has no `Tests` run of its own and is rejected.
-
-### Failure handling
-
-| Symptom | Meaning | Action |
-|---------|---------|--------|
-| `Tests` red on `main` | `testflight` stays on the last green commit; no TestFlight build | Fix on `main`; the next green push promotes |
-| `Tests` fails to start, or fails before the build, on every commit | The `xcode-27` preview image or its `Xcode_27.0` path is gone | Check the runner-images README for the current Xcode 27 label and path, then repin `runs-on` and `DEVELOPER_DIR`; see [Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview) |
-| `promote-testflight` push rejected | `testflight` has a commit that is not on `main` (manual push or rewritten `main`) | Stop; the owner decides how to realign — do not force-push |
-| `Release` fails "not vMAJOR.MINOR.PATCH" / "annotated" / "does not match MARKETING_VERSION" / "not on main" | The tag is invalid | The owner deletes the tag and pushes a correct one |
-| `Release` fails "Tests failed" | `Tests` for the tagged commit is red | Fix on `main`, bump PATCH, tag the fixed commit |
-| `Release` fails "no successful Tests run" | `Tests` still running after 45 minutes, or the tag is on a commit without its own run | Still running: wait for green, then run `Release` manually with the tag. No run: the owner moves the tag to the pushed commit |
-| `Release` fails "was cancelled" | The `Tests` run of the tagged commit was cancelled (manually, or before PR-only cancellation was introduced) | `gh run rerun <run id>`; when it is green, run `Release` manually with the tag |
-| `Release` fails "passed Tests but is not on testflight" | `promote-testflight` failed in that run | Check that job; see the `promote-testflight` row |
-| `Release` succeeds with "release already contains" | The tag is older than `release` (an older tag after a newer one) | Nothing to do; releases only move forward |
-| `Release` push rejected | `release` has a commit that is not an ancestor of the tag (manual push) | Stop; the owner decides how to realign — do not force-push |
+Moved with ADR 0004: the round procedure, the release steps and the failure table are in
+[`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md) and the TestFlight section of
+[`docs/operations/release.md`](../operations/release.md). A `Tests` run that fails to start on
+every commit still means the `xcode-27` image or its `Xcode_27.0` path is gone — see
+[Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview).
 
 ## Rejected alternatives
 
@@ -127,11 +112,8 @@ Repin `runs-on` and `DEVELOPER_DIR` to a GA label as soon as one ships Xcode 27.
 
 ## Consequences
 
-- A red `Tests` run on `main` leaves `testflight` where it was, so no TestFlight build
-  is made from that commit.
-- A release tag builds twice in Xcode Cloud if its commit was also a `testflight` build;
-  submit the build from the "App Store candidate (release tag)" workflow.
+- A red `Tests` run on `main` publishes nothing, and a `tf-` tag on that commit is rejected.
 - `scripts/ci-boot-simulator.sh` is shared with regional-check; keep them in sync.
-- `Release` checks the `Tests` run of the tagged commit itself (GitHub API, `actions: read`), not
-  only ancestry of `testflight`: a later green commit would otherwise let a red tagged commit
-  through.
+- The tag checks read the `Tests` run of the tagged commit itself (GitHub API, `actions: read`),
+  not only ancestry of `testflight`: a later green commit would otherwise let a red tagged
+  commit through.
