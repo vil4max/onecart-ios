@@ -57,11 +57,12 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 2. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
    owner decisions (removal list, rewrite after App Review, revoke retired Supabase key).
 3. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
-4. CI is pinned to the public-preview `xcode-27` image (Xcode 27.0, iPhone 17 on iOS 27.0), the
-   only GitHub-hosted label carrying the iOS 27 SDK the app now requires. Repin to a GA label once
-   one ships Xcode 27, and treat preview withdrawal as a promotion outage — it blocks `testflight`
-   and `release` ([ADR 0003](../decisions/0003-ci-split.md), "Runner image risk"). The
-   `#if compiler(>=6.4)` guard in `CartWidgetViews.swift` is removed.
+4. CI runs the Runtime's shared `Tests` workflow on the public-preview `xcode-27` image (Xcode
+   27.0, iPhone 17 on iOS 27.0), the only GitHub-hosted label carrying the iOS 27 SDK the app now
+   requires. Once a GA label ships Xcode 27, set the `IOS_RUNNER` and `IOS_DEVELOPER_DIR`
+   repository variables to it, and treat preview withdrawal as a TestFlight outage — no `tf-`
+   tag can pass without a green `Tests` run ([ADR 0003](../decisions/0003-ci-split.md), "Runner
+   image risk"). The `#if compiler(>=6.4)` guard in `CartWidgetViews.swift` is removed.
 5. SonarCloud Automatic Analysis is attached to PRs but not part of CI (Sonar in CI was declined);
    decide whether to keep the app.
 6. Follow-ups from [review-changelog.md](../engineering/review-changelog.md) (FU13 Swift 6 strict

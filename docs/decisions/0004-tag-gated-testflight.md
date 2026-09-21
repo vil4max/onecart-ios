@@ -39,13 +39,13 @@ commands with the next free `BUILD`.
 
 Pieces in this repository:
 
-- [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml) — copied from
-  `Tooling/templates/github/testflight.yml`, with `actions/checkout` pinned by commit like every
-  other workflow here.
+- [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml) — copied unchanged
+  from `Tooling/templates/github/testflight.yml`, which pins its actions by commit.
 - `Tooling/scripts/tf-promote.sh`, `tf-check.sh`, `testflight-lib.sh` — Runtime-owned; updated
   by `just harness-update`, not edited here.
-- [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) — tests only; its
-  concurrency keeps one run per pushed commit on `main`, which the tag checks depend on.
+- [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) — the Runtime's shared
+  tests workflow (`just ci`); its concurrency keeps one run per pushed commit on `main`, which the
+  tag checks depend on.
 
 `BUILD` counts the TestFlight rounds of one marketing version from `1`. It names the round, not
 the uploaded build number, which `OneCart/ci_scripts/ci_post_clone.sh` takes from

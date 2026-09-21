@@ -1,5 +1,18 @@
 name: Tests
 
+# Installed by ios-agent-toolchain (docs/ci.md). Copy to .github/workflows/tests.yml
+# unchanged: the file is identical in every app. Per-app settings are repository
+# variables, and per-app CI work is the app's own `just ci` recipe.
+#
+#   IOS_RUNNER         runner label (default xcode-27, GitHub-hosted); a private
+#                      repository uses "self-hosted" to avoid billed macOS minutes
+#   IOS_DEVELOPER_DIR  Xcode to use (default the image's versioned Xcode_27.0)
+#   SONAR_ENABLED      "true" adds the Sonar job; the app's `just ci` writes
+#                      build/ci/sonar/coverage.xml and the repo has SONAR_TOKEN
+#
+# Actions are pinned by commit SHA (the versions regional-check and OneCart
+# already trusted), so a moved tag cannot change what runs. Tools installed by
+# brew are not pinned: a hosted image gets the current formula on each run.
 on:
   push:
     branches: [main]
@@ -9,81 +22,75 @@ on:
 permissions:
   contents: read
 
-# PR runs cancel superseded runs; every push to main runs to completion in its own
-# group, because a tf- or v tag needs a finished Tests run for that exact commit.
+# Every push to main runs to completion in its own group: a tf- or v tag needs a
+# finished run for that exact commit (docs/testflight.md). Only superseded
+# pull-request runs are cancelled.
 concurrency:
   group: tests-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# The app requires iOS 27, so the job needs the iOS 27 SDK. The GA macos-26 image
-# tops out at Xcode 26.6 / iOS 26.5, so runs-on is the preview xcode-27 image — the
-# only GitHub-hosted label that carries Xcode 27 (docs/decisions/0003-ci-split.md,
-# "Runner image risk"). DEVELOPER_DIR names the versioned Xcode_27.0 symlink, not
-# Xcode.app: if the image ever defaults to another Xcode, this fails loudly instead
-# of silently testing against a different SDK.
-env:
-  DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
-  DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
-  SIMULATOR_NAME: iPhone 17
-  SIMULATOR_OS: "27.0"
-  XCODEBUILD_FLAGS: >-
-    -project OneCart/OneCart.xcodeproj
-    -scheme OneCart
-    -configuration Debug
-    -skipPackagePluginValidation
-    -skipMacroValidation
-    -enableCodeCoverage YES
-    -parallel-testing-enabled NO
-    CODE_SIGN_IDENTITY=-
-    DEVELOPMENT_TEAM=
-
-# Ad-hoc signing instead of CODE_SIGNING_ALLOWED=NO: an unsigned test host has no
-# Keychain access, so AppleSignInTests keychain cases fail.
-#
-# GitHub Actions owns tests; Xcode Cloud archives only from the testflight branch,
-# which only the TestFlight workflow moves, on a tf- tag
-# (docs/decisions/0003-ci-split.md, docs/decisions/0004-tag-gated-testflight.md).
-# A push to main promotes nothing. The project has no Swift packages, so there
-# is no DerivedData cache: a fresh checkout rebuilds every source anyway.
 jobs:
-  unit-tests:
-    name: Unit tests
-    runs-on: xcode-27
-    timeout-minutes: 30
+  ci:
+    name: just ci
+    runs-on: ${{ vars.IOS_RUNNER || 'xcode-27' }}
+    timeout-minutes: 45
+    env:
+      # The versioned path fails loudly if the image changes its default Xcode,
+      # instead of silently testing against another SDK.
+      DEVELOPER_DIR: ${{ vars.IOS_DEVELOPER_DIR || '/Applications/Xcode_27.0.app/Contents/Developer' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Boots in the background while the app builds.
-      - name: Start simulator boot
-        run: scripts/ci-boot-simulator.sh "$SIMULATOR_NAME" "$SIMULATOR_OS"
+      - name: Show Xcode
+        run: xcodebuild -version
 
-      - name: Build for testing
+      # Hosted images lack some of these; a self-hosted Mac already has them.
+      - name: Install Runtime tools
         run: |
-          xcodebuild $XCODEBUILD_FLAGS -destination "id=$SIM_UDID" \
-            -derivedDataPath "$DERIVED_DATA" build-for-testing
+          for tool in just yq swiftlint swiftformat xcbeautify; do
+            command -v "$tool" >/dev/null || brew install "$tool"
+          done
 
-      - name: Run tests
-        run: |
-          xcrun simctl bootstatus "$SIM_UDID" -b
-          xcodebuild $XCODEBUILD_FLAGS -destination "id=$SIM_UDID" \
-            -derivedDataPath "$DERIVED_DATA" \
-            -resultBundlePath build/results/unit.xcresult \
-            test-without-building
+      - name: just ci
+        run: just ci
 
-      - name: Coverage summary
-        if: success()
+      - name: Test summary
+        if: always()
         run: |
+          bundle=build/ci/results/tests.xcresult
+          [ -d "$bundle" ] || exit 0
           {
             echo '## Coverage'
             echo '```'
-            xcrun xccov view --report --only-targets build/results/unit.xcresult
+            xcrun xccov view --report --only-targets "$bundle" || echo 'no coverage in this run'
             echo '```'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+          } >>"$GITHUB_STEP_SUMMARY"
 
-      - name: Upload test results
-        if: failure()
+      - name: Upload CI output
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: unit-test-results
-          path: build/results
+          name: ci-output
+          path: build/ci
+          if-no-files-found: ignore
           retention-days: 7
+
+  sonar:
+    name: SonarQube Cloud scan
+    needs: ci
+    if: vars.SONAR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # new-code detection and blame need history
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ci-output
+          path: build/ci
+
+      - uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

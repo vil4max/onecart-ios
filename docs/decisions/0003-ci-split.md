@@ -52,13 +52,18 @@ Names and descriptions say which commits each workflow builds (verified `main`, 
 workflow has a Test action or a `main` start condition. Changing these settings needs
 the owner's approval and an update of this table in the same change.
 
-- Runner toolchain is pinned (`xcode-27` image, `Xcode_27.0`, iPhone 17 on iOS 27.0) so a
-  runner image update cannot silently change the SDK under test. `DEVELOPER_DIR` names the
-  versioned `/Applications/Xcode_27.0.app` symlink rather than `/Applications/Xcode.app`: if the
-  image later defaults to a different Xcode, the job fails instead of testing another SDK.
-- Test builds use ad-hoc signing (`CODE_SIGN_IDENTITY=-`, empty team). With
-  `CODE_SIGNING_ALLOWED=NO` the test host loses Keychain access and the
-  `AppleSignInTests` keychain cases fail.
+- `Tests` is the Runtime's shared workflow (`Tooling/templates/github/tests.yml`, copied
+  unchanged; the template pins every action by commit) and runs `just ci`; see
+  [`Tooling/docs/ci.md`](../../Tooling/docs/ci.md). Per-app settings are repository variables,
+  never workflow text.
+- Runner toolchain is pinned by the template's defaults — runner `xcode-27`, `DEVELOPER_DIR`
+  `/Applications/Xcode_27.0.app/Contents/Developer` — and by `simulator.os: "27.0"` in
+  `Tooling/runtime.yml`, so a runner image update cannot silently change the SDK under test. The
+  versioned `Xcode_27.0.app` path fails the job if the image later defaults to another Xcode.
+  `IOS_RUNNER` and `IOS_DEVELOPER_DIR` override them.
+- With `CI=true`, `just ci` signs ad hoc (`CODE_SIGN_IDENTITY=-`). With
+  `CODE_SIGNING_ALLOWED=NO` the test host loses Keychain access and the `AppleSignInTests`
+  keychain cases fail, which is why ad-hoc signing is the default.
 - Coverage is printed with `xccov` into the job summary; it is not a gate.
 - Pull request runs cancel superseded runs; push runs on `main` never do (one concurrency group
   per commit), so every commit pushed to `main` gets a finished `Tests` run a tag can rely on.
@@ -89,7 +94,8 @@ This makes the whole promotion chain depend on a preview image:
 4. Xcode Cloud is unaffected — it archives with its own toolchain from `testflight`.
    The exposure is the verification gate, not the build that ships.
 
-Repin `runs-on` and `DEVELOPER_DIR` to a GA label as soon as one ships Xcode 27.
+As soon as a GA label ships Xcode 27, set the `IOS_RUNNER` and `IOS_DEVELOPER_DIR` repository
+variables to it; the workflow text stays identical to the template.
 
 ### Releasing a version and failure handling
 
@@ -113,7 +119,7 @@ every commit still means the `xcode-27` image or its `Xcode_27.0` path is gone �
 ## Consequences
 
 - A red `Tests` run on `main` publishes nothing, and a `tf-` tag on that commit is rejected.
-- `scripts/ci-boot-simulator.sh` is shared with regional-check; keep them in sync.
+- `Tests` runs `just ci` from the Runtime template, identical in every app ([`Tooling/docs/ci.md`](../../Tooling/docs/ci.md)); per-app differences are repository variables, never workflow text.
 - The tag checks read the `Tests` run of the tagged commit itself (GitHub API, `actions: read`),
   not only ancestry of `testflight`: a later green commit would otherwise let a red tagged
   commit through.

@@ -55,7 +55,8 @@ For PR review (owner / review agent), start at [docs/engineering/review-changelo
 ## CI and releases
 
 Source: [ADR 0003](docs/decisions/0003-ci-split.md) and [ADR 0004](docs/decisions/0004-tag-gated-testflight.md).
-GitHub Actions tests; Xcode Cloud only archives; tags, not pushes, request builds. Procedure:
+GitHub Actions tests; Xcode Cloud only archives; tags, not pushes, request builds. Both
+workflows are the Runtime's shared templates, identical in every app: [`Tooling/docs/ci.md`](Tooling/docs/ci.md),
 [`Tooling/docs/testflight.md`](Tooling/docs/testflight.md).
 
 - `main` — development. `Tests` (`.github/workflows/tests.yml`) runs on every push and PR and

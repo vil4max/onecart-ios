@@ -1,7 +1,7 @@
 name: TestFlight
 
-# Copied from Tooling/templates/github/testflight.yml (Tooling/docs/testflight.md);
-# see docs/decisions/0004-tag-gated-testflight.md.
+# Installed by ios-agent-toolchain (docs/testflight.md). Copy to
+# .github/workflows/testflight.yml.
 #
 # A tf-MAJOR.MINOR.PATCH-BUILD tag moves the testflight branch, which Xcode Cloud
 # archives for internal TestFlight. Pushing to main requests nothing: every build
@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      # Pinned by commit like every action in this repository; the template uses a tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
