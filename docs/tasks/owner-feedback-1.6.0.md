@@ -75,3 +75,5 @@ Production when the build reaches App Review; data loss for existing carts.
   ASC session was signed out before build 118 appeared; the owner did the ASC steps (What to
   Test, build 118 in the 1.6.0 record, screenshots, What's New, submission) and reported them
   done. Not verified by the agent. Project frozen after this round.
+- 2026-09-22: an App Store Connect screenshot from the owner shows 1.6.0 Waiting for Review and
+  1.5.0 Ready for Distribution.

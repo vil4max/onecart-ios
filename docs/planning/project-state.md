@@ -6,9 +6,9 @@ Snapshot for resuming work after a pause. Update it when the release or CI state
 
 | Item | State |
 |---|---|
-| App Store | 1.2 (91) live |
-| In App Review | **1.5.0 (114)**, submitted 2026-09-21 15:55, auto-release after approval — [releases/1.5.0.md](../operations/releases/1.5.0.md) |
-| TestFlight | 1.5.1 requested with `tf-1.5.1-1` — [releases/1.5.1.md](../operations/releases/1.5.1.md); 1.6.0 candidate prepared on `main`, not yet tagged — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
+| App Store | **1.5.0 (114)** Ready for Distribution (seen 2026-09-22) — [releases/1.5.0.md](../operations/releases/1.5.0.md) |
+| In App Review | **1.6.0**, Waiting for Review (submitted by the owner 2026-09-22) — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
+| TestFlight | 1.6.0 rounds `tf-1.6.0-2` (build 117) and `tf-1.6.0-3` — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
 | Scope | Stability first: SIWA → one living cart → name-only add → Completed → History by day → invite from Settings ([product.md](../requirements/product.md)) |
 | Version in repo | `MARKETING_VERSION` 1.6.0, build 1 (iOS 27 redesign, MVVM refactoring and test coverage — [task brief](../tasks/redesign-ios27.md); 1.3.0 was hidden in TestFlight behind an older 1.4 record — [releases/1.5.0.md](../operations/releases/1.5.0.md)) (Xcode Cloud assigns uploaded build numbers) |
 | Minimum OS | iOS 27.0, raised 2026-09-21 in every target configuration; devices below iOS 27 can no longer install or update |
