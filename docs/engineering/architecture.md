@@ -22,7 +22,9 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 ## Composition root
 
-`AppSession` owns published session state and thin wrappers for Views. Heavy work is delegated:
+`AppSession` is a `@MainActor @Observable` root that owns the session state and thin wrappers;
+SwiftUI tracks its properties and those of its `@Observable` collaborators directly (no
+`ObservableObject`, Combine bridges or `objectWillChange` since 2026-09-22). Heavy work is delegated:
 
 | Type | Role |
 |------|------|
@@ -37,7 +39,16 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 | `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle, private-zone account deletion |
 
-Feature screens bind to `AppSession` / feature ViewModels. Views stay thin.
+Screens never see `AppSession`. Its surface is split into role protocols in
+`OneCart/Application/Services/` (`SessionStateReading`, `CartEditing`, `HistoryBrowsing`,
+`MembershipManaging`, `AccountManaging`, `WelcomeSigningIn`, `HouseholdCartBootstrapping`,
+`AlertPresenting`, `MainTabRouting`), declared on the session in `AppSession+Services.swift`.
+Each screen has a `@MainActor @Observable` ViewModel that takes those protocols in `init`
+(`CartViewModel`, `HistoryViewModel`, `AccountViewModel`, `WelcomeViewModel`); the screen
+boundary (`RootSessionView` for Welcome, `MainTabView` for the tabs) creates the ViewModels once
+as `@State` from the session and passes them into the screens. Tests drive the ViewModels through
+fakes that conform to the same protocols (`OneCart/Tests/Support/Fake*.swift`); hosted-view tests
+mount the screens over those fakes.
 
 God-file split train (RC31): composition root target ~200 lines; hard trigger 400+. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
 
@@ -45,7 +56,9 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 
 | Path | Role |
 |------|------|
-| `OneCart/Application/AppSession.swift` | Composition root: published session + wiring |
+| `OneCart/Application/AppSession.swift` | Composition root: observable session state + wiring |
+| `OneCart/Application/Services/*.swift`, `AppSession+Services.swift` | Role protocols the screens depend on, and the session's conformances |
+| `OneCart/Features/*/…ViewModel.swift` | Per-screen `@Observable` ViewModels over the role protocols |
 | `OneCart/Application/AppSession+*.swift` | Welcome/auth, hosts, cart mutations, membership, family selection |
 | `OneCart/Application/SessionTypes.swift` | Shared session enums / device preferences types |
 | `OneCart/Application/SessionBootstrapper.swift` | Welcome / prepare / explicit wipe gate |
@@ -80,7 +93,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Shared/Support/ProductCategory.swift` | Metro categories, inference, section grouping |
 | `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
 | `OneCart/Features/Account/AccountView.swift` | Account tab shell |
-| `OneCart/Features/Account/AccountViewModel.swift` | Share / leave / revoke / rename presentation state |
+| `OneCart/Features/Account/AccountViewModel.swift` | Share / leave / revoke / rename / display-name / icon presentation state |
 | `OneCart/Features/Account/AccountRows.swift` | Member and action rows |
 | `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
 | `Tooling/` | Engineering Runtime 0.2+ (`backend/`, app-owned style configs) |
