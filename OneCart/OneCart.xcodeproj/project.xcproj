@@ -154,12 +154,6 @@
       "children": [
         {
           "kind": "group",
-          "path": "Media",
-          "children": [
-            { "path": "ProductMedia.swift", "target-membership": [ "OneCart/compile-sources" ] },
-          ],
-        }, {
-          "kind": "group",
           "path": "Support",
           "children": [
             {
