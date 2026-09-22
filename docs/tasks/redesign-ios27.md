@@ -10,7 +10,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf), R4 (4ecb8ab) landed; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
+Current outcome (see Handoff below): Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf), R4 (4ecb8ab) landed; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
 Authorized scope (owner, 2026-09-22, three decisions):
 
 1. Redesign every screen for iOS 26/27 idioms; the information architecture stays: three tabs
@@ -115,6 +115,41 @@ the demo UI, push and `tf-1.6.0-1` on the owner's word, flow report to the kit s
   force unwraps without justification. Value types preferred.
 - Report back: material changes, verification results with commands, unresolved items, the
   commit hashes.
+
+## Handoff (2026-09-22, for the next session)
+
+State: `main` = `2947845`, 23 commits ahead of `origin/main`, all with a green `just verify`;
+working tree clean. Nothing is pushed; push and tags need the owner's word.
+
+In flight: writer T1 in worktree `.claude/worktrees/agent-a1027dd13357faaef`, branch
+`worktree-agent-a1027dd13357faaef` (based on `4eb54cf`). Scope: trace the seven untraced
+requirements (target `spec_trace.py --root .` → 49/49), hosted-view tests for every screen in
+`OneCart/Tests/HostedViews/` (owner-approved), `accessibilityIdentifier` additions only in views,
+Coverage table rows in `product.md`. If its branch has commits, review and cherry-pick them onto
+`main`; if it has none, restart T1 from this brief.
+
+Open checklist to close the round:
+1. Integrate T1; `just verify`; coverage gate: app ≥ 70 % from the newest xcresult
+   (`xcrun xccov view --report --json`, target `OneCart.app`); `spec_trace.py` 49/49. If 70 % is
+   not reached, report the figure and the files holding it back; do not lower the target.
+2. Bump `MARKETING_VERSION` to 1.6.0 in `OneCart/OneCart.xcodeproj/project.xcproj` (app and
+   widget); `docs/operations/releases/1.6.0.md` (scope from this brief, What's New en/ru, the
+   deltas below); `docs/planning/project-state.md`.
+3. Simulator smoke of the core path on the session's own device.
+4. On the owner's word: push `main`, `just tf-check`, `tf-1.6.0-1` with a What to Test
+   annotation, paste What to Test into the build in App Store Connect.
+5. Flow report to the kit session; clean the T1 worktree and branch.
+
+Behaviour deltas to name in the 1.6.0 notes (all within the requirements): rename via a system
+alert instead of inline editing; the members button is always in the cart toolbar; the busy
+overlay appears after 400 ms; Settings destructive actions are confirmation dialogs; the owner's
+share warning moved to the Sharing footer.
+
+Open items outside this round: `HistoryItemEntity` has no `createdByName` (no "added by" in the
+day detail — a model change); `OfficialProductThumbnail` in `Shared/Media/ProductMedia.swift` is
+unused; `cart.together %lld` and `widget.in_trolley*` strings are unused; Xcode previews cannot
+render while the scheme runs Release (widget previews); the untestable CloudKit paths listed by
+T2 (`CKShare.Participant`/`CKShare.Metadata` without public initializers) need small seams.
 
 ## Evidence history
 
