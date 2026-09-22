@@ -5051,6 +5051,52 @@
         }
       }
     },
+    "welcome.debug_test_account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in as Alex (test account)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войти как Alex (тестовый аккаунт)"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійти як Alex (тестовий акаунт)"
+          }
+        }
+      }
+    },
+    "welcome.failed_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't connect"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось подключиться"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підключитися"
+          }
+        }
+      }
+    },
     "welcome.footer": {
       "extractionState": "manual",
       "localizations": {

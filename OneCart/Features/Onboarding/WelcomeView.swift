@@ -4,133 +4,85 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize = 64.0
     let viewModel: WelcomeViewModel
     @State private var contentVisible = false
 
     var body: some View {
         ViewThatFits(in: .vertical) {
             VStack(spacing: 0) {
-                Spacer(minLength: 32)
-                welcomeContent
-                Spacer(minLength: 32)
+                Spacer(minLength: 24)
+                content
+                Spacer(minLength: 24)
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            ScrollView(showsIndicators: false) {
-                welcomeContent
-                    .padding(.horizontal, 32)
+            ScrollView {
+                content
                     .padding(.vertical, 24)
-                    .frame(maxWidth: .infinity)
             }
         }
-        .background(OneCartPalette.background.ignoresSafeArea())
-        .onAppear {
-            guard !contentVisible else { return }
-            if reduceMotion {
-                contentVisible = true
-            } else {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
-                    contentVisible = true
-                }
-            }
-        }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .onAppear(perform: reveal)
     }
 
-    private var welcomeContent: some View {
-        Group {
+    private var content: some View {
+        VStack(spacing: 32) {
+            brandHero
+
             switch viewModel.phase {
             case .signIn:
-                signInContent
+                features
+                signInActions
             case .connecting:
-                connectingContent
+                connecting
             case let .failed(message):
-                failedContent(message: message)
+                failed(message: message)
             }
         }
+        .padding(.horizontal, 28)
+        .frame(maxWidth: 420)
+        .frame(maxWidth: .infinity)
         .opacity(contentVisible ? 1 : 0)
         .offset(y: contentVisible || reduceMotion ? 0 : 12)
     }
 
-    private var signInContent: some View {
-        VStack(spacing: 0) {
-            brandHero
-
-            Divider()
-                .padding(.top, 28)
-                .padding(.bottom, 22)
-
-            features
-
-            Divider()
-                .padding(.top, 22)
-                .padding(.bottom, 24)
-
-            signInActions
-        }
-        .frame(maxWidth: 400)
-        .frame(maxWidth: .infinity)
-    }
-
     private var brandHero: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(OneCartPalette.primary(accent: viewModel.accentColor))
-                    .frame(width: 80, height: 80)
-                    .shadow(
-                        color: OneCartPalette.primary(accent: viewModel.accentColor).opacity(0.28),
-                        radius: 12,
-                        x: 0,
-                        y: 6
-                    )
-
-                Image("LaunchIcon")
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(width: 56, height: 56)
-            }
-            .accessibilityHidden(true)
+        VStack(spacing: 12) {
+            Image("LaunchIcon")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: iconSize, height: iconSize)
+                .padding(10)
+                .glassEffect(
+                    .regular.tint(OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor)),
+                    in: .rect(cornerRadius: iconSize * 0.34)
+                )
+                .accessibilityHidden(true)
+                .padding(.bottom, 8)
 
             Text("common.app_name")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.primary)
+                .font(.headline)
+                .foregroundStyle(.secondary)
 
             Text("welcome.title")
-                .font(.title3)
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                .font(.title.weight(.bold))
 
             Text("welcome.subtitle")
                 .font(.body)
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
         }
+        .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
     }
 
     private var features: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            OnboardingFeatureRow(
-                systemImage: "person.2",
-                textKey: "onboarding.step.list",
-                delay: 0.05,
-                accent: viewModel.accentColor
-            )
-            OnboardingFeatureRow(
-                systemImage: "cart",
-                textKey: "onboarding.step.trolley",
-                delay: 0.12,
-                accent: viewModel.accentColor
-            )
-            OnboardingFeatureRow(
-                systemImage: "checkmark.circle",
+        VStack(alignment: .leading, spacing: 16) {
+            WelcomeFeatureLabel(textKey: "onboarding.step.list", systemImage: "person.2", accent: viewModel.accentColor)
+            WelcomeFeatureLabel(textKey: "onboarding.step.trolley", systemImage: "cart", accent: viewModel.accentColor)
+            WelcomeFeatureLabel(
                 textKey: "onboarding.step.paid",
-                delay: 0.19,
+                systemImage: "checkmark.circle",
                 accent: viewModel.accentColor
             )
         }
@@ -158,15 +110,11 @@ struct WelcomeView: View {
                     Button {
                         Task { await viewModel.signInWithTestAccount() }
                     } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "person.crop.circle.badge.checkmark")
-                            Text("Войти как Alex (Тестовый аккаунт)")
-                        }
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(OneCartPalette.primaryAccent(accent: viewModel.accentColor))
-                        .padding(.vertical, 4)
+                        Label("welcome.debug_test_account", systemImage: "person.crop.circle.badge.checkmark")
+                            .font(.footnote.weight(.semibold))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
+                    .tint(OneCartPalette.primaryAccent(for: colorScheme, accent: viewModel.accentColor))
                     .accessibilityIdentifier("welcome.test_account_button")
                 }
             #endif
@@ -178,31 +126,42 @@ struct WelcomeView: View {
         }
     }
 
-    private var connectingContent: some View {
+    private var connecting: some View {
         VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.large)
-                .tint(OneCartPalette.primary(accent: viewModel.accentColor))
             Text("welcome.connecting")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
-    private func failedContent(message: String) -> some View {
-        VStack(spacing: 14) {
+    private func failed(message: String) -> some View {
+        ContentUnavailableView {
+            Label("welcome.failed_title", systemImage: "exclamationmark.icloud")
+        } description: {
             Text(message)
-                .font(.footnote)
-                .foregroundStyle(OneCartPalette.danger)
-                .multilineTextAlignment(.center)
-
+        } actions: {
             Button("welcome.try_again") {
                 Task { await viewModel.retryWelcome() }
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(OneCartPalette.primary(accent: viewModel.accentColor))
+            .tint(OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor))
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func reveal() {
+        guard !contentVisible else { return }
+        if reduceMotion {
+            contentVisible = true
+        } else {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.86).delay(0.08)) {
+                contentVisible = true
+            }
         }
     }
 
@@ -232,44 +191,21 @@ struct WelcomeView: View {
     }
 }
 
-private struct OnboardingFeatureRow: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let systemImage: String
+private struct WelcomeFeatureLabel: View {
+    @Environment(\.colorScheme) private var colorScheme
     let textKey: LocalizedStringKey
-    let delay: Double
-    var accent: AppAccentColor?
-    @State private var visible = false
+    let systemImage: String
+    let accent: AppAccentColor
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent(accent: accent))
-                .frame(width: 32, height: 32)
-                .background(
-                    OneCartPalette.primarySoft(accent: accent),
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                )
-                .accessibilityHidden(true)
-
+        Label {
             Text(textKey)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent(for: colorScheme, accent: accent))
         }
-        .opacity(visible ? 1 : 0)
-        .offset(y: visible || reduceMotion ? 0 : 8)
         .accessibilityElement(children: .combine)
-        .onAppear {
-            guard !visible else { return }
-            if reduceMotion {
-                visible = true
-            } else {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.88).delay(delay)) {
-                    visible = true
-                }
-            }
-        }
     }
 }
 
