@@ -498,7 +498,10 @@ extension WidgetSnapshotTests {
 
 @MainActor
 private extension XCTestCase {
-    func makeWidgetSession(started: Bool = true) async throws -> WidgetSessionFixture {
+    func makeWidgetSession(
+        started: Bool = true,
+        shoppingTripBackend: FakeShoppingTripBackend = FakeShoppingTripBackend()
+    ) async throws -> WidgetSessionFixture {
         let (persistence, repository) = try await makeInMemoryRepository()
         let defaults = try makeDefaults()
         let store = try makeWidgetStore().store
@@ -509,7 +512,8 @@ private extension XCTestCase {
         let listID = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
         let productID = try await repository.addProduct(to: listID, draft: productDraft())
         let session = try makeTestSession(
-            persistence: persistence, defaults: defaults, appleSignIn: WidgetAppleSignIn(), widgetStore: store
+            persistence: persistence, defaults: defaults, appleSignIn: WidgetAppleSignIn(), widgetStore: store,
+            shoppingTripBackend: shoppingTripBackend
         )
         if started {
             try session.bootstrapTestingSession(account: account)
@@ -607,6 +611,39 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         } catch {
             XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
         }
+    }
+
+    func test_REQ_WIDGET_050_purchaseFromTheTripReachesItAndFinishesIt() async throws {
+        let backend = FakeShoppingTripBackend()
+        let fixture = try await makeWidgetSession(shoppingTripBackend: backend)
+        fixture.session.updateWidgetSnapshot()
+
+        await fixture.session.startShoppingTrip()
+        XCTAssertTrue(fixture.session.isShoppingTripActive)
+        XCTAssertEqual(backend.requested.first?.state.remainingCount, 1)
+        XCTAssertEqual(backend.requested.first?.attributes.familyID, fixture.familyID)
+
+        // The Live Activity's check button runs the same intent path as the widget.
+        try await fixture.session.performWidgetPurchase(fixture.request())
+        await fixture.session.shoppingTrip.settle()
+
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
+        XCTAssertEqual(backend.ended.count, 1)
+        XCTAssertEqual(backend.ended.first?.state?.isAllPurchased, true)
+    }
+
+    func test_REQ_WIDGET_060_signOut_endsTheShoppingTrip() async throws {
+        let backend = FakeShoppingTripBackend()
+        let fixture = try await makeWidgetSession(shoppingTripBackend: backend)
+        await fixture.session.startShoppingTrip()
+        XCTAssertEqual(backend.running.count, 1)
+
+        fixture.session.signOut()
+        await fixture.session.shoppingTrip.settle()
+
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
+        XCTAssertTrue(backend.running.isEmpty)
+        XCTAssertEqual(backend.ended.first?.dismissal, .immediate)
     }
 
     func test_REQ_AUTH_070_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {

@@ -23,6 +23,10 @@ extension AppSession {
         access = nil
         householdCartBootstrapFailed = false
         isEnsuringHouseholdCart = false
+        // Sign out, account deletion and a lost account all end the trip (REQ-WIDGET-060).
+        if shoppingTrip.isActive {
+            shoppingTrip.end()
+        }
     }
 
     func reload(preferredFamilySpaceID: UUID? = nil) throws {

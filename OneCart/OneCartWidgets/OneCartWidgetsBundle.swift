@@ -5,5 +5,6 @@ import WidgetKit
 struct OneCartWidgetsBundle: WidgetBundle {
     var body: some Widget {
         CartOverviewWidget()
+        ShoppingTripLiveActivity()
     }
 }

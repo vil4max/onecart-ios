@@ -12,6 +12,7 @@ struct CartHarness {
     let household = FakeHouseholdCartBootstrapper()
     let alerts = FakeAlertPresenter()
     let tabs = FakeMainTabRouter()
+    let trip = FakeShoppingTripController()
     let viewModel: CartViewModel
 
     init(fixture: CartFixture? = nil) throws {
@@ -28,6 +29,7 @@ struct CartHarness {
             household: household,
             alerts: alerts,
             tabs: tabs,
+            trip: trip,
             duplicateHighlightNanoseconds: 0
         )
     }

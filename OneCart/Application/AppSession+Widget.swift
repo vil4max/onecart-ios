@@ -6,15 +6,25 @@ extension AppSession {
         themeOverride: AppTheme? = nil,
         accentOverride: AppAccentColor? = nil
     ) {
-        let activeTheme = themeOverride ?? preferences.theme
-        let activeAccent = accentOverride ?? preferences.accentColor
         // Bootstrap reloads run before account state is restored; an empty write here would
         // outlive a process suspended mid-launch and blank the widget.
         guard isReady else { return }
+        let snapshot = makeWidgetSnapshot(
+            theme: themeOverride ?? preferences.theme,
+            accent: accentOverride ?? preferences.accentColor
+        )
+        widgetStore.save(snapshot: snapshot)
+        // The shopping trip reads the same snapshot, so it never disagrees with the widget.
+        shoppingTrip.sync(with: snapshot)
+    }
+
+    /// The active cart as the widgets and the shopping trip draw it; without an account or
+    /// cart it is the empty snapshot, whose missing IDs end a running trip.
+    func makeWidgetSnapshot(theme activeTheme: AppTheme, accent activeAccent: AppAccentColor) -> WidgetCartSnapshot {
         guard let accountID = account?.id, let familyID = activeFamilySpace?.id,
               let list = activeLists.first ?? lists.first
         else {
-            let emptySnapshot = WidgetCartSnapshot(
+            return WidgetCartSnapshot(
                 cartTitle: "OneCart Family",
                 totalCount: 0,
                 purchasedCount: 0,
@@ -26,8 +36,6 @@ extension AppSession {
                 accentColorRaw: activeAccent.rawValue,
                 items: []
             )
-            widgetStore.save(snapshot: emptySnapshot)
-            return
         }
 
         let allProducts = products(inListID: list.id ?? UUID())
@@ -70,7 +78,7 @@ extension AppSession {
             return nil
         }()
 
-        let snapshot = WidgetCartSnapshot(
+        return WidgetCartSnapshot(
             cartTitle: cartTitle,
             totalCount: totalCount,
             purchasedCount: purchasedCount,
@@ -84,8 +92,6 @@ extension AppSession {
             familyID: familyID,
             items: itemSnapshots
         )
-
-        widgetStore.save(snapshot: snapshot)
     }
 
     func drainWidgetPendingToggles() async {

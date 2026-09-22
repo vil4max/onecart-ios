@@ -2,7 +2,7 @@ import Foundation
 
 /// Everything the cart screen needs from the session; the composition root satisfies `init(session:)` with one object.
 typealias CartSessionServices = AlertPresenting & CartEditing & HistoryBrowsing
-    & HouseholdCartBootstrapping & MainTabRouting & SessionStateReading
+    & HouseholdCartBootstrapping & MainTabRouting & SessionStateReading & ShoppingTripControlling
 
 /// The living cart: household bootstrap, the primary list's lines and their mutations.
 @MainActor
@@ -27,6 +27,7 @@ final class CartViewModel {
     private let household: any HouseholdCartBootstrapping
     private let alerts: any AlertPresenting
     private let tabs: any MainTabRouting
+    private let trip: any ShoppingTripControlling
     private let duplicateHighlightNanoseconds: UInt64
 
     init(
@@ -36,6 +37,7 @@ final class CartViewModel {
         household: any HouseholdCartBootstrapping,
         alerts: any AlertPresenting,
         tabs: any MainTabRouting,
+        trip: any ShoppingTripControlling,
         duplicateHighlightNanoseconds: UInt64 = 1_800_000_000
     ) {
         self.state = state
@@ -44,6 +46,7 @@ final class CartViewModel {
         self.household = household
         self.alerts = alerts
         self.tabs = tabs
+        self.trip = trip
         self.duplicateHighlightNanoseconds = duplicateHighlightNanoseconds
     }
 
@@ -54,7 +57,8 @@ final class CartViewModel {
             history: session,
             household: session,
             alerts: session,
-            tabs: session
+            tabs: session,
+            trip: session
         )
     }
 
@@ -186,6 +190,26 @@ final class CartViewModel {
     /// The progress header tracks the trip only while the living cart has lines on it.
     var showsProgress: Bool {
         hasActiveFamilySpace && !isEmpty
+    }
+
+    // MARK: - Shopping trip
+
+    var isShoppingTripActive: Bool {
+        trip.isShoppingTripActive
+    }
+
+    /// A running trip can always be stopped; a new one needs an editable cart with lines
+    /// still to buy and Live Activities allowed (REQ-WIDGET-040).
+    var showsShoppingTripControl: Bool {
+        isShoppingTripActive || (canEdit && !toBuyProducts.isEmpty && trip.areShoppingTripsAvailable)
+    }
+
+    func toggleShoppingTrip() async {
+        if isShoppingTripActive {
+            await trip.endShoppingTrip()
+        } else {
+            await trip.startShoppingTrip()
+        }
     }
 
     func suggestions(matching query: String) -> [String] {
