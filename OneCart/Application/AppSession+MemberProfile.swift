@@ -29,3 +29,34 @@ extension AppSession {
         }
     }
 }
+
+extension AppSession: MemberNamePrompting {
+    var shouldPromptForMemberName: Bool {
+        guard isReady, !needsWelcome, !isDeletingAccount, !memberNamePromptDeclined, let account else {
+            return false
+        }
+        return ParticipantDisplayName.resolved(preferences: preferences, account: account) == nil
+    }
+
+    func saveMemberName(_ name: String) async {
+        await updateParticipantDisplayName(name)
+    }
+
+    func declineMemberNamePrompt() {
+        MemberNamePromptStorage.markDeclined(in: defaults)
+        memberNamePromptDeclined = true
+    }
+}
+
+/// Device-wide on purpose: "Not now" means the user does not want to be asked again here.
+enum MemberNamePromptStorage {
+    private static let declinedKey = "onecart.member-name-prompt-declined"
+
+    static func isDeclined(in defaults: UserDefaults) -> Bool {
+        defaults.bool(forKey: declinedKey)
+    }
+
+    static func markDeclined(in defaults: UserDefaults) {
+        defaults.set(true, forKey: declinedKey)
+    }
+}

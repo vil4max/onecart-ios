@@ -59,6 +59,7 @@
             { "path": "HouseholdCartBootstrapping.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AlertPresenting.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "MainTabRouting.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "MemberNamePrompting.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
         },
         { "path": "CartSyncService.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -82,6 +83,8 @@
           "children": [
             { "path": "WelcomeView.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "WelcomeViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "MemberNamePromptView.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "MemberNamePromptViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
         }, {
           "kind": "group",
@@ -286,6 +289,7 @@
         { "path": "RequirementConstraintTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "MemberProfileTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "FamilyMemberNamingTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "MemberNamePromptTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",
@@ -316,6 +320,7 @@
             { "path": "CloudKitErrorExpectations.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "MembershipSessionFixture.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeCloudUserIdentity.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "FakeMemberNamePrompter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
           ],
         },
       ],

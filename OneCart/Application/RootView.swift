@@ -23,6 +23,7 @@ private struct RootSessionView: View {
     /// Cart overlay stays up until the ride ends; only then the real UI mounts.
     @State private var cartRideFinished = false
     @State private var welcomeViewModel: WelcomeViewModel
+    @State private var namePromptViewModel: MemberNamePromptViewModel
 
     private let session: AppSession
     private let state: any SessionStateReading
@@ -33,6 +34,18 @@ private struct RootSessionView: View {
         state = session
         alerts = session
         _welcomeViewModel = State(initialValue: WelcomeViewModel(session: session))
+        _namePromptViewModel = State(initialValue: MemberNamePromptViewModel(prompting: session))
+    }
+
+    private var isNamePromptPresented: Binding<Bool> {
+        Binding(
+            get: { cartRideFinished && phase == .main && namePromptViewModel.isPresented },
+            set: { presented in
+                if !presented {
+                    namePromptViewModel.handleDismissal()
+                }
+            }
+        )
     }
 
     private var phase: RootPhase {
@@ -88,6 +101,9 @@ private struct RootSessionView: View {
             }
         } message: {
             Text(alerts.userAlert?.message ?? "")
+        }
+        .sheet(isPresented: isNamePromptPresented) {
+            MemberNamePromptView(viewModel: namePromptViewModel)
         }
     }
 
