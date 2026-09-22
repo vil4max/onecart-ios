@@ -36,10 +36,25 @@ Production when the build reaches App Review; data loss for existing carts.
 |---|---|---|---|
 | F1 progress on top | integrator | `Features/Shopping/*`, `MainTabView.swift` | landed `0a39554` |
 | F2 minor fixes | integrator | `AccountView.swift`, `ProductMedia.swift`, strings | landed `20fb95a`, `6e7e93c` |
-| F3 Settings regroup, icon sets accent, no theme, system-settings row | integrator | `Features/Account/*`, `Shared/Support/AppAccentColor.swift`, `Application/AppIconOption.swift`, preferences | `just verify`; REQ-SHELL-030 edited; hosted Settings tests updated |
-| N1 member name sync + name prompt | writer | `Data/**`, `Application/**` except `MainTabView.swift` and `AppIconOption.swift`, `Features/Onboarding/*`, new tests | shared profile record per member; members list shows names; prompt when Apple gives no name; REQ-AUTH-040 edited with tests; `just verify` |
+| F3 Settings regroup, icon sets accent, no theme, system-settings row | integrator | `Features/Account/*`, `Shared/Support/AppAccentColor.swift`, `Application/AppIconOption.swift`, preferences | landed `81a07e3`; store screenshots `184d941` |
+| N1 member name sync + name prompt (landed `628f946`, `9f7351f`, `87b2098`, `1daf988`, docs `HEAD`) | writer | `Data/**`, `Application/**` except `MainTabView.swift` and `AppIconOption.swift`, `Features/Onboarding/*`, new tests | shared profile record per member; members list shows names; prompt when Apple gives no name; REQ-AUTH-040 edited with tests; `just verify` |
 | S1 ship | integrator | version, release notes, ASC | build number bump, `tf-1.6.0-2`, CloudKit schema in Production, version record ready, submission on the owner's word |
 
 ## Evidence
 
 - 2026-09-22: F1, F2 landed; `just verify` OK on `0a39554`.
+- 2026-09-22: F3 landed (`81a07e3`): Settings in three groups, icon sets the accent (simulator:
+  tapping Ocean switched icon and accent), no theme/accent/language picker; the system-Settings
+  row opened the Settings root on the Debug simulator build (Apple documents the app page when
+  one exists; to check on a TestFlight install). Store screenshots for cart and Settings retaken
+  in English and Russian (`184d941`); uploading them to App Store Connect needs the owner or
+  Claude in Chrome (the in-app browser cannot upload files, ASC's CSP blocks a local fetch).
+- 2026-09-22: N1 by writer (worktree, 4 commits) cherry-picked cleanly; the integrator reviewed
+  the naming order (profile → iCloud name → "Member N"), owner/member record-name matching and
+  the serial publish; `architecture.md` moved to V8 and `common.default_member` removed.
+  `just verify` OK (230 XCTest + Swift Testing), `spec_trace.py` 49/49. Writer worktree, branch
+  and simulator removed.
+- 2026-09-22: App Store Connect version record 1.6.0 created (Prepare for Submission).
+- Pending on the owner's word: CloudKit schema (`CD_MemberProfile` into Development, then
+  deploy to Production), push `main`, `tf-1.6.0-2`, What to Test, screenshot upload, What's
+  New, submission for review.
