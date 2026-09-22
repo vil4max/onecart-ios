@@ -93,7 +93,6 @@
             { "path": "HistoryViews.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "HistoryDetailViews.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartChromeViews.swift", "target-membership": [ "OneCart/compile-sources" ] },
-            { "path": "ShoppingViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "HistoryViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],

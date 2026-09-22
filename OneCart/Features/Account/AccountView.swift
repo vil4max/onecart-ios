@@ -2,20 +2,20 @@ import SwiftUI
 
 struct AccountView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(AppSession.self) private var model
-    @StateObject private var viewModel: AccountViewModel
+    @Bindable var viewModel: AccountViewModel
+    /// Device preferences outlive the screen; the pickers bind straight to them.
     @Bindable private var preferences: DevicePreferences
 
-    init(model: AppSession) {
-        _viewModel = StateObject(wrappedValue: AccountViewModel(session: model))
-        _preferences = Bindable(wrappedValue: model.preferences)
+    init(viewModel: AccountViewModel) {
+        self.viewModel = viewModel
+        _preferences = Bindable(wrappedValue: viewModel.preferences)
     }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    if model.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
+                    if viewModel.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
                                 .tint(OneCartPalette.primary(for: colorScheme, accent: preferences.accentColor))
@@ -37,7 +37,7 @@ struct AccountView: View {
                         }
                     }
 
-                    if model.activeFamilySpace != nil {
+                    if viewModel.hasActiveFamilySpace {
                         Button {
                             viewModel.shareCart()
                         } label: {
@@ -57,7 +57,7 @@ struct AccountView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .disabled(viewModel.isSharing || !model.isOnline)
+                        .disabled(viewModel.isSharing || !viewModel.isOnline)
 
                         if viewModel.canRenameCart {
                             Button {
@@ -83,7 +83,7 @@ struct AccountView: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .disabled(model.isBusy || !model.isOnline)
+                            .disabled(viewModel.isBusy || !viewModel.isOnline)
                         }
 
                         if viewModel.canLeaveCart {
@@ -101,9 +101,9 @@ struct AccountView: View {
                         }
                     }
                 } header: {
-                    if model.activeFamilySpace != nil {
+                    if viewModel.hasActiveFamilySpace {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(model.cartTitle)
+                            Text(viewModel.cartTitle)
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                                 .textCase(nil)
@@ -120,7 +120,7 @@ struct AccountView: View {
                 }
 
                 Section {
-                    if let account = model.account {
+                    if let account = viewModel.account {
                         Button {
                             viewModel.beginEditingDisplayName()
                         } label: {
@@ -225,7 +225,7 @@ struct AccountView: View {
                             style: .destructive,
                             accentColor: preferences.accentColor,
                             trailing: {
-                                if model.isDeletingAccount {
+                                if viewModel.isDeletingAccount {
                                     ProgressView()
                                         .tint(OneCartPalette.danger)
                                 }
@@ -233,7 +233,7 @@ struct AccountView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(model.isDeletingAccount || model.isBusy)
+                    .disabled(viewModel.isDeletingAccount || viewModel.isBusy)
                 } header: {
                     Text("settings.delete_account_section")
                 } footer: {
@@ -260,7 +260,7 @@ struct AccountView: View {
                 // Single request path: member-join notifications reuse this grant.
                 // Two concurrent requests with different options race on first run.
                 CartActivityNotifier.requestAuthorizationIfNeeded()
-                await model.refreshAccountSharing()
+                await viewModel.refreshAccountSharing()
             }
             .sheet(isPresented: $viewModel.isEditingDisplayName) {
                 NavigationStack {

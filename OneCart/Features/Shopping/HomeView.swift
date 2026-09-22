@@ -1,60 +1,41 @@
 import SwiftUI
 
 struct HomeView: View {
-    @Environment(AppSession.self) private var model
-    @StateObject private var viewModel: ShoppingViewModel
-
-    init(model: AppSession) {
-        _viewModel = StateObject(wrappedValue: ShoppingViewModel(session: model))
-    }
-
-    /// Stable household cart list: prefer the general (no-store) list, else oldest active.
-    private var primaryListID: UUID? {
-        let lists = model.activeLists
-        if let general = lists.first(where: { $0.store == nil }) {
-            return general.id
-        }
-        return lists
-            .sorted { lhs, rhs in
-                (lhs.createdAt ?? .distantFuture) < (rhs.createdAt ?? .distantFuture)
-            }
-            .first?
-            .id
-    }
+    let viewModel: CartViewModel
 
     var body: some View {
         NavigationStack {
             Group {
-                if model.activeFamilySpace == nil {
+                if !viewModel.hasActiveFamilySpace {
                     householdBootstrapContent
                         .padding(.horizontal, 20)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(OneCartPalette.background.ignoresSafeArea())
-                        .navigationTitle(model.cartTitle)
+                        .navigationTitle(viewModel.cartTitle)
                         .navigationBarTitleDisplayMode(.inline)
-                        .task(id: householdBootstrapTaskID) {
+                        .task(id: viewModel.householdBootstrapTaskID) {
                             await viewModel.ensureHouseholdCartIfNeeded()
                         }
-                } else if let listID = primaryListID {
-                    ShoppingListView(listID: listID)
+                } else if viewModel.primaryListID != nil {
+                    ShoppingListView(viewModel: viewModel)
                 } else {
                     ScrollView {
                         HomeEmptyCartPanel(
-                            cartName: model.cartTitle
+                            cartName: viewModel.cartTitle
                         )
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
                     }
                     .refreshable {
-                        await model.syncCart(reason: .pull)
+                        await viewModel.sync(reason: .pull)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OneCartPalette.background.ignoresSafeArea())
-                    .navigationTitle(model.cartTitle)
+                    .navigationTitle(viewModel.cartTitle)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            if model.isCartSyncing {
+                            if viewModel.isCartSyncing {
                                 ProgressView()
                                     .controlSize(.mini)
                                     .accessibilityLabel(Text("cart.updating"))
@@ -66,13 +47,9 @@ struct HomeView: View {
         }
     }
 
-    private var householdBootstrapTaskID: String {
-        model.account?.id.uuidString ?? "no-account"
-    }
-
     @ViewBuilder
     private var householdBootstrapContent: some View {
-        if model.householdCartBootstrapFailed {
+        if viewModel.householdCartBootstrapFailed {
             HomeConnectFailedPanel {
                 Task { await viewModel.retryHouseholdCartBootstrap() }
             }

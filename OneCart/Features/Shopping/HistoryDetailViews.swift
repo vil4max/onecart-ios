@@ -1,23 +1,13 @@
 import SwiftUI
 
 struct HistoryDayDetailView: View {
-    @Environment(AppSession.self) private var model
     @Environment(\.locale) private var locale
+    let viewModel: HistoryViewModel
     let group: HistoryDayGroup
-
-    private var liveGroup: HistoryDayGroup {
-        HistoryDayGroup.groups(from: model.history)
-            .first { calendar.isDate($0.dayStart, inSameDayAs: group.dayStart) }
-            ?? group
-    }
-
-    private var calendar: Calendar {
-        .current
-    }
 
     var body: some View {
         // Regrouping the whole history is not free; resolve the live group once per body pass.
-        let liveGroup = liveGroup
+        let liveGroup = viewModel.liveGroup(for: group)
         List {
             Section {
                 ForEach(liveGroup.items, id: \.objectID) { item in

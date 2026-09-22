@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import SwiftUI
 
@@ -273,6 +272,3 @@ final class AccountViewModel {
         isSharing = false
     }
 }
-
-/// Bridges the current `@StateObject` screens until S3 wires them through `@State`.
-extension AccountViewModel: ObservableObject {}

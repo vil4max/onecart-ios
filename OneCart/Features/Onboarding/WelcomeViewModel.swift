@@ -1,5 +1,4 @@
 import AuthenticationServices
-import Combine
 
 /// Everything Welcome needs from the session; the composition root satisfies `init(session:)` with one object.
 typealias WelcomeSessionServices = SessionStateReading & WelcomeSigningIn
@@ -64,6 +63,3 @@ final class WelcomeViewModel {
         }
     #endif
 }
-
-/// Bridges the current `@StateObject` screens until S3 wires them through `@State`.
-extension WelcomeViewModel: ObservableObject {}

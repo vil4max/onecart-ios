@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 
 /// Everything the cart screen needs from the session; the composition root satisfies `init(session:)` with one object.
@@ -266,9 +265,6 @@ final class CartViewModel {
         }
     }
 }
-
-/// Bridges the current `@StateObject` screens until S3 wires them through `@State`.
-extension CartViewModel: ObservableObject {}
 
 // MARK: - Cart celebration
 

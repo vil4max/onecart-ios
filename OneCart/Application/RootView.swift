@@ -7,17 +7,39 @@ private enum RootPhase: Equatable {
     case main
 }
 
+/// Resolves the session from the environment; `RootSessionView` owns everything built from it.
 struct RootView: View {
-    @Environment(AppSession.self) private var model
+    @Environment(AppSession.self) private var session
+
+    var body: some View {
+        RootSessionView(session: session)
+    }
+}
+
+/// The screen boundary for Welcome: creates its ViewModel once and switches between
+/// loading, Welcome and the main tabs. Screens never see the session itself.
+private struct RootSessionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Cart overlay stays up until the ride ends; only then the real UI mounts.
     @State private var cartRideFinished = false
+    @State private var welcomeViewModel: WelcomeViewModel
+
+    private let session: AppSession
+    private let state: any SessionStateReading
+    private let alerts: any AlertPresenting
+
+    init(session: AppSession) {
+        self.session = session
+        state = session
+        alerts = session
+        _welcomeViewModel = State(initialValue: WelcomeViewModel(session: session))
+    }
 
     private var phase: RootPhase {
-        if !model.isReady {
+        if !state.isReady {
             return .loading
         }
-        if model.needsWelcome || model.account == nil {
+        if state.needsWelcome || state.account == nil {
             return .welcome
         }
         return .main
@@ -30,7 +52,7 @@ struct RootView: View {
                     destinationView
                         .transition(.opacity)
                 } else {
-                    OneCartPalette.primary(accent: model.preferences.accentColor).ignoresSafeArea()
+                    OneCartPalette.primary(accent: state.preferences.accentColor).ignoresSafeArea()
                 }
             }
             .animation(
@@ -51,21 +73,21 @@ struct RootView: View {
             }
         }
         .alert(
-            model.userAlert?.kind.title ?? "",
+            alerts.userAlert?.kind.title ?? "",
             isPresented: Binding(
-                get: { model.userAlert != nil },
+                get: { alerts.userAlert != nil },
                 set: {
                     if !$0 {
-                        model.dismissAlert()
+                        alerts.dismissAlert()
                     }
                 }
             )
         ) {
             Button("common.ok", role: .cancel) {
-                model.dismissAlert()
+                alerts.dismissAlert()
             }
         } message: {
-            Text(model.userAlert?.message ?? "")
+            Text(alerts.userAlert?.message ?? "")
         }
     }
 
@@ -73,12 +95,12 @@ struct RootView: View {
     private var destinationView: some View {
         switch phase {
         case .loading:
-            OneCartPalette.primary(accent: model.preferences.accentColor).ignoresSafeArea()
+            OneCartPalette.primary(accent: state.preferences.accentColor).ignoresSafeArea()
         case .welcome:
-            WelcomeView(model: model)
+            WelcomeView(viewModel: welcomeViewModel)
         case .main:
-            MainTabView()
-                .id(model.preferences.language)
+            MainTabView(session: session)
+                .id(state.preferences.language)
         }
     }
 }

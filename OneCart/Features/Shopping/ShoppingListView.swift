@@ -2,8 +2,7 @@ import SwiftUI
 
 // swiftlint:disable:next type_body_length
 struct ShoppingListView: View {
-    @Environment(AppSession.self) private var model
-    let listID: UUID
+    let viewModel: CartViewModel
 
     @State private var isComposingNewItem = false
     @State private var draftName = ""
@@ -12,41 +11,30 @@ struct ShoppingListView: View {
     @FocusState private var focusedField: CartNameFocus?
     @State private var isAddingDraft = false
     @State private var isSavingEdit = false
-    @State private var confettiTrigger = 0
-    @State private var hasCelebratedCurrentCompletion = false
     @State private var suggestions: [String] = []
-    @State private var duplicateHighlightID: UUID?
-
-    init(listID: UUID) {
-        self.listID = listID
-    }
-
-    private var list: ShoppingListEntity? {
-        model.lists.first { $0.id == listID }
-    }
 
     private var products: [ProductEntity] {
-        model.products(inListID: listID)
+        viewModel.products
     }
 
     private var toBuyProducts: [ProductEntity] {
-        products.filter { !$0.isPurchasedValue }
+        viewModel.toBuyProducts
     }
 
     private var toBuyCategorySections: [(category: ProductCategory, items: [ProductEntity])] {
-        ProductCategory.groupedSections(from: toBuyProducts) { $0.categoryValue }
+        viewModel.toBuySections
     }
 
     private var inTrolleyProducts: [ProductEntity] {
-        products.filter(\.isPurchasedValue)
+        viewModel.completedProducts
     }
 
     private var purchasedCount: Int {
-        inTrolleyProducts.count
+        viewModel.purchasedCount
     }
 
     private var isAllPurchased: Bool {
-        CartCelebration.isAllPurchased(totalCount: products.count, toBuyCount: toBuyProducts.count)
+        viewModel.isAllPurchased
     }
 
     private var trimmedDraft: String {
@@ -70,10 +58,10 @@ struct ShoppingListView: View {
     }
 
     var body: some View {
-        if list != nil {
+        if viewModel.primaryList != nil {
             ScrollViewReader { proxy in
                 List {
-                    if !model.canEdit {
+                    if !viewModel.canEdit {
                         Section {
                             ReadOnlyBanner()
                         }
@@ -133,54 +121,55 @@ struct ShoppingListView: View {
                 .animation(.spring(response: 0.42, dampingFraction: 0.82), value: inTrolleyProducts.map(\.id))
                 .animation(.spring(response: 0.40, dampingFraction: 0.82), value: isAllPurchased)
                 .animation(.spring(response: 0.38, dampingFraction: 0.82), value: showsEmptyCard)
+                .animation(.easeInOut(duration: 0.35), value: viewModel.duplicateHighlightID)
                 .safeAreaBar(edge: .top, spacing: 0) {
                     if !products.isEmpty || isComposingNewItem {
                         CartProgressStrip(
                             isAllPurchased: isAllPurchased,
                             purchasedCount: purchasedCount,
                             totalCount: products.count,
-                            familyMembersCount: model.familyMembers.count,
-                            onManageFamily: { model.showFamilyManagement() }
+                            familyMembersCount: viewModel.familyMembersCount,
+                            onManageFamily: { viewModel.showFamilyManagement() }
                         )
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if model.canEdit {
+                    if viewModel.canEdit {
                         Color.clear.frame(height: 72)
                     }
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    if model.canEdit {
+                    if viewModel.canEdit {
                         CartAddFAB(
-                            accent: model.preferences.accentColor,
+                            accent: viewModel.accentColor,
                             isComposing: isComposingNewItem && trimmedDraft.isEmpty
                         ) {
                             Task { await beginNewItem() }
                         }
-                        .disabled(isAddingDraft || (model.isBusy && !isComposingNewItem))
+                        .disabled(isAddingDraft || (viewModel.isBusy && !isComposingNewItem))
                         .keyboardShortcut("n", modifiers: .command)
                         .padding(.trailing, 20)
                         .padding(.bottom, 12)
                     }
                 }
                 .refreshable {
-                    await model.syncCart(reason: .pull)
+                    await viewModel.sync(reason: .pull)
                 }
-                .disabled(model.isBusy && !isInlineBusy)
+                .disabled(viewModel.isBusy && !isInlineBusy)
                 .overlay {
-                    if model.isBusy, !isInlineBusy {
+                    if viewModel.isBusy, !isInlineBusy {
                         CartBusyOverlay(messageKey: "cart.updating")
                     }
                 }
                 .overlay {
-                    CartConfettiView(trigger: confettiTrigger)
+                    CartConfettiView(trigger: viewModel.confettiTrigger)
                 }
-                .sensoryFeedback(.success, trigger: confettiTrigger)
-                .navigationTitle(model.cartTitle)
+                .sensoryFeedback(.success, trigger: viewModel.confettiTrigger)
+                .navigationTitle(viewModel.cartTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        if model.isCartSyncing {
+                        if viewModel.isCartSyncing {
                             ProgressView()
                                 .controlSize(.mini)
                                 .accessibilityLabel(Text("cart.updating"))
@@ -189,25 +178,25 @@ struct ShoppingListView: View {
                 }
                 .background {
                     Button("") {
-                        Task { await model.syncCart(reason: .pull) }
+                        Task { await viewModel.sync(reason: .pull) }
                     }
                     .keyboardShortcut("r", modifiers: .command)
                     .opacity(0)
                     .accessibilityHidden(true)
                 }
                 .task {
-                    await model.syncCart(reason: .appear)
+                    await viewModel.sync(reason: .appear)
                 }
                 .onChange(of: draftName) {
                     updateSuggestions()
                 }
-                .onChange(of: model.contentRevision) {
+                .onChange(of: viewModel.contentRevision) {
                     if isComposingNewItem {
                         updateSuggestions()
                     }
                 }
-                .onChange(of: duplicateHighlightID) {
-                    guard let target = duplicateHighlightID else { return }
+                .onChange(of: viewModel.duplicateHighlightID) {
+                    guard let target = viewModel.duplicateHighlightID else { return }
                     withAnimation(.easeInOut(duration: 0.35)) {
                         proxy.scrollTo(Optional(target), anchor: .center)
                     }
@@ -220,19 +209,19 @@ struct ShoppingListView: View {
                 .alert(
                     UserAlertKind.error.title,
                     isPresented: Binding(
-                        get: { model.sharedCartRemovedMessage != nil },
+                        get: { viewModel.sharedCartRemovedMessage != nil },
                         set: {
                             if !$0 {
-                                model.dismissSharedCartRemovedMessage()
+                                viewModel.dismissSharedCartRemovedMessage()
                             }
                         }
                     )
                 ) {
                     Button("common.ok", role: .cancel) {
-                        model.dismissSharedCartRemovedMessage()
+                        viewModel.dismissSharedCartRemovedMessage()
                     }
                 } message: {
-                    Text(model.sharedCartRemovedMessage ?? "")
+                    Text(viewModel.sharedCartRemovedMessage ?? "")
                 }
             }
         } else {
@@ -301,13 +290,13 @@ struct ShoppingListView: View {
         ForEach(items, id: \.objectID) { product in
             ProductRow(
                 product: product,
-                canEdit: model.canEdit,
+                canEdit: viewModel.canEdit,
                 isEditing: product.id == editingProductID,
                 editName: $editName,
                 editFocused: $focusedField,
                 isSavingEdit: isSavingEdit,
                 showsCategoryLabel: showsCategoryLabel,
-                isHighlighted: product.id == duplicateHighlightID,
+                isHighlighted: product.id == viewModel.duplicateHighlightID,
                 onToggle: {
                     togglePurchased(product)
                 },
@@ -320,13 +309,13 @@ struct ShoppingListView: View {
             )
             .id(product.id)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                if model.canEdit, !product.isPurchasedValue {
+                if viewModel.canEdit, !product.isPurchasedValue {
                     Button(role: .destructive) {
                         if editingProductID == product.id {
                             focusedField = nil
                             editingProductID = nil
                         }
-                        Task { await model.deleteProduct(product) }
+                        Task { await viewModel.deleteProduct(product) }
                     } label: {
                         Label("common.delete", systemImage: "trash")
                     }
@@ -343,28 +332,17 @@ struct ShoppingListView: View {
         if isComposingNewItem, trimmedDraft.isEmpty {
             cancelNewItemComposer()
         }
-        let willCompleteCart = CartCelebration.willCompleteCart(
-            togglingPurchasedItem: product.isPurchasedValue,
-            toBuyCount: toBuyProducts.count
-        )
-        if willCompleteCart, !hasCelebratedCurrentCompletion {
-            hasCelebratedCurrentCompletion = true
-            confettiTrigger += 1
-        }
-        if product.isPurchasedValue {
-            hasCelebratedCurrentCompletion = false
-        }
         Task {
             if isEditing {
                 await commitEdit()
             }
-            await model.togglePurchased(product)
+            await viewModel.togglePurchased(product)
         }
     }
 
     @MainActor
     private func beginNewItem() async {
-        guard model.canEdit, !isAddingDraft, !isSavingEdit else { return }
+        guard viewModel.canEdit, !isAddingDraft, !isSavingEdit else { return }
 
         if editingProductID != nil {
             await commitEdit()
@@ -393,7 +371,7 @@ struct ShoppingListView: View {
 
     @MainActor
     private func beginEditing(_ product: ProductEntity) {
-        guard model.canEdit, let productID = product.id, !isAddingDraft, !isSavingEdit else { return }
+        guard viewModel.canEdit, let productID = product.id, !isAddingDraft, !isSavingEdit else { return }
         Task { @MainActor in
             if editingProductID != nil, editingProductID != productID {
                 await commitEdit()
@@ -417,37 +395,15 @@ struct ShoppingListView: View {
 
     @MainActor
     private func updateSuggestions() {
-        suggestions = CartSuggestionsEngine.suggestions(
-            from: model.history,
-            currentCartProducts: products,
-            query: draftName,
-            defaults: CartSuggestionsEngine.defaultEssentials(
-                languageCode: model.preferences.language.languageCode
-            )
-        )
+        suggestions = viewModel.suggestions(matching: draftName)
     }
 
     @MainActor
     private func addSuggestedItem(_ name: String) async {
-        guard model.canEdit else { return }
-        guard let list = model.lists.first(where: { $0.id == listID }) else { return }
+        guard viewModel.canEdit else { return }
 
         CartHaptics.light()
-        let existingIDs = Set(products.compactMap(\.id))
-        let draft = ProductDraft(
-            name: name,
-            quantity: 1,
-            unit: .piece,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: 0,
-            note: ""
-        )
-        if let productID = await model.addProduct(to: list, draft: draft),
-           existingIDs.contains(productID)
-        {
-            flashDuplicateRow(productID)
-        }
-        hasCelebratedCurrentCompletion = false
+        _ = await viewModel.addItem(named: name)
         withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
             draftName = ""
             isComposingNewItem = true
@@ -458,45 +414,34 @@ struct ShoppingListView: View {
 
     @MainActor
     private func commitDraftProduct(startAnother: Bool) async {
-        guard model.canEdit, !isAddingDraft else { return }
+        guard viewModel.canEdit, !isAddingDraft else { return }
         guard !trimmedDraft.isEmpty else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                 cancelNewItemComposer()
             }
             return
         }
-        guard let list = model.lists.first(where: { $0.id == listID }) else { return }
 
         isAddingDraft = true
-        let name = trimmedDraft
-        let existingIDs = Set(products.compactMap(\.id))
-        let draft = ProductDraft(
-            name: name,
-            quantity: 1,
-            unit: .piece,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: 0,
-            note: ""
-        )
-        guard let productID = await model.addProduct(to: list, draft: draft) else {
-            isAddingDraft = false
-            focusedField = .compose
-            return
-        }
+        let outcome = await viewModel.addItem(named: trimmedDraft)
         isAddingDraft = false
 
-        // Duplicate protection: the name is already on the cart — reveal the
-        // existing row instead of adding a second line.
-        if existingIDs.contains(productID) {
+        switch outcome {
+        case .rejected:
+            focusedField = .compose
+            return
+        case .duplicate:
+            // The name is already on the cart: the ViewModel flashes the existing
+            // row instead of adding a second line; only the composer closes here.
             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                 draftName = ""
                 cancelNewItemComposer()
             }
-            flashDuplicateRow(productID)
             return
+        case .added:
+            break
         }
 
-        hasCelebratedCurrentCompletion = false
         CartHaptics.light()
 
         withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
@@ -516,23 +461,8 @@ struct ShoppingListView: View {
     }
 
     @MainActor
-    private func flashDuplicateRow(_ productID: UUID) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            duplicateHighlightID = productID
-        }
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
-            if duplicateHighlightID == productID {
-                withAnimation(.easeInOut(duration: 0.45)) {
-                    duplicateHighlightID = nil
-                }
-            }
-        }
-    }
-
-    @MainActor
     private func commitEdit() async {
-        guard model.canEdit, !isSavingEdit else { return }
+        guard viewModel.canEdit, !isSavingEdit else { return }
         defer {
             editingProductID = nil
             focusedField = nil
@@ -544,24 +474,9 @@ struct ShoppingListView: View {
             editName = ""
             return
         }
-        guard trimmedEditName != product.displayName else { return }
 
         isSavingEdit = true
-        let draft = ProductDraft(
-            name: trimmedEditName,
-            quantity: product.quantityValue,
-            unit: product.unitValue,
-            category: ProductCategory.inferred(from: trimmedEditName),
-            estimatedPrice: product.estimatedPriceValue,
-            note: product.noteValue,
-            imageURL: product.imageURL,
-            sourceURL: product.sourceURL,
-            originalPrice: product.originalPrice?.doubleValue,
-            loyaltyPrice: product.loyaltyPrice?.doubleValue,
-            catalogFetchedAt: product.catalogFetchedAt,
-            promotionEndsAt: product.promotionEndsAt
-        )
-        await model.updateProduct(product, draft: draft)
+        _ = await viewModel.rename(product, to: trimmedEditName)
         isSavingEdit = false
     }
 }

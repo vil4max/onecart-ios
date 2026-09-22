@@ -1,15 +1,11 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @Environment(AppSession.self) private var model
-
-    private var dayGroups: [HistoryDayGroup] {
-        HistoryDayGroup.groups(from: model.history)
-    }
+    let viewModel: HistoryViewModel
 
     var body: some View {
         // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
-        let groups = dayGroups
+        let groups = viewModel.dayGroups
         NavigationStack {
             List {
                 if groups.isEmpty {
@@ -27,15 +23,15 @@ struct HistoryView: View {
                     Section {
                         ForEach(groups) { group in
                             NavigationLink {
-                                HistoryDayDetailView(group: group)
+                                HistoryDayDetailView(viewModel: viewModel, group: group)
                             } label: {
                                 HistoryDayRow(group: group)
                             }
                         }
 
-                        if model.historyHasMore {
+                        if viewModel.hasMore {
                             Button("history.show_more") {
-                                model.loadMoreHistory()
+                                viewModel.loadMore()
                             }
                         }
                     } footer: {

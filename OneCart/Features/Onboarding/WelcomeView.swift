@@ -2,15 +2,10 @@ import AuthenticationServices
 import SwiftUI
 
 struct WelcomeView: View {
-    @Environment(AppSession.self) private var model
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @StateObject private var viewModel: WelcomeViewModel
+    let viewModel: WelcomeViewModel
     @State private var contentVisible = false
-
-    init(model: AppSession) {
-        _viewModel = StateObject(wrappedValue: WelcomeViewModel(session: model))
-    }
 
     var body: some View {
         ViewThatFits(in: .vertical) {
@@ -45,7 +40,7 @@ struct WelcomeView: View {
 
     private var welcomeContent: some View {
         Group {
-            switch model.welcomePhase {
+            switch viewModel.phase {
             case .signIn:
                 signInContent
             case .connecting:
@@ -82,10 +77,10 @@ struct WelcomeView: View {
         VStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(OneCartPalette.primary(accent: model.preferences.accentColor))
+                    .fill(OneCartPalette.primary(accent: viewModel.accentColor))
                     .frame(width: 80, height: 80)
                     .shadow(
-                        color: OneCartPalette.primary(accent: model.preferences.accentColor).opacity(0.28),
+                        color: OneCartPalette.primary(accent: viewModel.accentColor).opacity(0.28),
                         radius: 12,
                         x: 0,
                         y: 6
@@ -124,19 +119,19 @@ struct WelcomeView: View {
                 systemImage: "person.2",
                 textKey: "onboarding.step.list",
                 delay: 0.05,
-                accent: model.preferences.accentColor
+                accent: viewModel.accentColor
             )
             OnboardingFeatureRow(
                 systemImage: "cart",
                 textKey: "onboarding.step.trolley",
                 delay: 0.12,
-                accent: model.preferences.accentColor
+                accent: viewModel.accentColor
             )
             OnboardingFeatureRow(
                 systemImage: "checkmark.circle",
                 textKey: "onboarding.step.paid",
                 delay: 0.19,
-                accent: model.preferences.accentColor
+                accent: viewModel.accentColor
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,7 +163,7 @@ struct WelcomeView: View {
                             Text("Войти как Alex (Тестовый аккаунт)")
                         }
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(OneCartPalette.primaryAccent(accent: model.preferences.accentColor))
+                        .foregroundStyle(OneCartPalette.primaryAccent(accent: viewModel.accentColor))
                         .padding(.vertical, 4)
                     }
                     .buttonStyle(.plain)
@@ -187,7 +182,7 @@ struct WelcomeView: View {
         VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.large)
-                .tint(OneCartPalette.primary(accent: model.preferences.accentColor))
+                .tint(OneCartPalette.primary(accent: viewModel.accentColor))
             Text("welcome.connecting")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -207,7 +202,7 @@ struct WelcomeView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .tint(OneCartPalette.primary(accent: model.preferences.accentColor))
+            .tint(OneCartPalette.primary(accent: viewModel.accentColor))
         }
     }
 
@@ -225,10 +220,7 @@ struct WelcomeView: View {
                 // debug builds fall back to the demo account. Never compiled into Release.
                 Task { await viewModel.signInWithTestAccount() }
             #else
-                viewModel.reportWelcomeFailure(
-                    (error as? LocalizedError)?.errorDescription
-                        ?? String(localized: "welcome.sign_in_failed")
-                )
+                viewModel.reportSignInFailure(error)
             #endif
         }
     }
