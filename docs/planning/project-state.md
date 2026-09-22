@@ -1,4 +1,4 @@
-# Project state — 2026-09-17
+# Project state — 2026-09-22
 
 Snapshot for resuming work after a pause. Update it when the release or CI state changes.
 
@@ -7,9 +7,10 @@ Snapshot for resuming work after a pause. Update it when the release or CI state
 | Item | State |
 |---|---|
 | App Store | 1.2 (91) live |
-| In App Review | **1.2.1 (105)**, submitted 2026-09-17 10:13, auto-release after approval — [releases/1.2.1.md](../operations/releases/1.2.1.md) |
+| In App Review | **1.5.0 (114)**, submitted 2026-09-21 15:55, auto-release after approval — [releases/1.5.0.md](../operations/releases/1.5.0.md) |
+| TestFlight | 1.5.1 requested with `tf-1.5.1-1` — [releases/1.5.1.md](../operations/releases/1.5.1.md); 1.6.0 candidate prepared on `main`, not yet tagged — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
 | Scope | Stability first: SIWA → one living cart → name-only add → Completed → History by day → invite from Settings ([product.md](../requirements/product.md)) |
-| Version in repo | `MARKETING_VERSION` 1.5.1, build 1 (1.3.0 was hidden in TestFlight behind an older 1.4 record — [releases/1.5.0.md](../operations/releases/1.5.0.md)) (Xcode Cloud assigns uploaded build numbers) |
+| Version in repo | `MARKETING_VERSION` 1.6.0, build 1 (iOS 27 redesign, MVVM refactoring and test coverage — [task brief](../tasks/redesign-ios27.md); 1.3.0 was hidden in TestFlight behind an older 1.4 record — [releases/1.5.0.md](../operations/releases/1.5.0.md)) (Xcode Cloud assigns uploaded build numbers) |
 | Minimum OS | iOS 27.0, raised 2026-09-21 in every target configuration; devices below iOS 27 can no longer install or update |
 
 ## Delivery flow
@@ -25,8 +26,8 @@ Reusable description of the same scheme in agent-engineering-kit:
 - `v` tags mark the commit whose TestFlight build was submitted; they move nothing.
 - `release`: frozen at `0985313` (tag `v1.2.1`); nothing moves it since ADR 0004. Its Xcode Cloud
   workflow "App Store candidate (release tag)" is unused, to be retired in App Store Connect.
-- Current refs: `testflight` at `4a6d530` (1.3.0, promoted by the last every-push run before the
-  switch); tags `v1.2.0`, `v1.2.1`; no `tf-` tags yet.
+- Current refs: `testflight` at `86bb72d` (1.5.1); tags `v1.2.0`, `v1.2.1`, `v1.5.0`,
+  `tf-1.3.0-1`, `tf-1.5.0-1`, `tf-1.5.0-2`, `tf-1.5.1-1`.
 
 ## Repository hygiene
 
@@ -53,17 +54,21 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 
 ## Open items
 
-1. Watch App Review for 1.2.1; on rejection fix on `main`, bump PATCH, tag again.
-2. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
+1. Watch App Review for 1.5.0; on rejection fix on `main`, bump PATCH, tag again.
+2. Ship 1.6.0 to TestFlight on the owner's word (push `main`, `just tf-check`, `tf-1.6.0-1`).
+3. Redesign follow-ups outside the 1.6.0 round, listed in the [task brief](../tasks/redesign-ios27.md)
+   handoff (no "added by" in the History day detail, unused `OfficialProductThumbnail` and
+   strings, CloudKit test seams).
+4. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
    owner decisions (removal list, rewrite after App Review, revoke retired Supabase key).
-3. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
-4. CI runs the Runtime's shared `Tests` workflow on the public-preview `xcode-27` image (Xcode
+5. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
+6. CI runs the Runtime's shared `Tests` workflow on the public-preview `xcode-27` image (Xcode
    27.0, iPhone 17 on iOS 27.0), the only GitHub-hosted label carrying the iOS 27 SDK the app now
    requires. Once a GA label ships Xcode 27, set the `IOS_RUNNER` and `IOS_DEVELOPER_DIR`
    repository variables to it, and treat preview withdrawal as a TestFlight outage — no `tf-`
    tag can pass without a green `Tests` run ([ADR 0003](../decisions/0003-ci-split.md), "Runner
    image risk"). The `#if compiler(>=6.4)` guard in `CartWidgetViews.swift` is removed.
-5. SonarCloud Automatic Analysis is attached to PRs but not part of CI (Sonar in CI was declined);
+7. SonarCloud Automatic Analysis is attached to PRs but not part of CI (Sonar in CI was declined);
    decide whether to keep the app.
-6. Follow-ups from [review-changelog.md](../engineering/review-changelog.md) (FU13 Swift 6 strict
+8. Follow-ups from [review-changelog.md](../engineering/review-changelog.md) (FU13 Swift 6 strict
    concurrency, FU14 MetricKit / XCUITest smoke).
