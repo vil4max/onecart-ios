@@ -2,6 +2,15 @@
 
 Snapshot for resuming work after a pause. Update it when the release or CI state changes.
 
+**Project state:** Frozen since 2026-09-22 (owner decision) while 1.6.0 is in App Review; no work
+starts until the owner unfreezes the project.
+
+**Next task:** none assigned; after unfreezing, the owner picks one from [Open items](#open-items)
+in a new session.
+
+**Owner-only while frozen:** the 1.6.0 App Review outcome, and confirming that the new Support and
+Privacy Policy URLs ([release.md](../operations/release.md), App Store metadata) go live with 1.6.0.
+
 ## Product
 
 | Item | State |
@@ -54,8 +63,9 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 
 ## Open items
 
-1. Watch App Review for 1.5.0; on rejection fix on `main`, bump PATCH, tag again.
-2. Ship 1.6.0 to TestFlight on the owner's word (push `main`, `just tf-check`, `tf-1.6.0-1`).
+1. Watch App Review for 1.6.0 (owner); on rejection fix on `main`, bump PATCH, tag again.
+2. After 1.6.0 is released, check that the App Store listing shows the new Support and Privacy
+   Policy URLs.
 3. Redesign follow-ups outside the 1.6.0 round, listed in the [task brief](../tasks/redesign-ios27.md)
    handoff (no "added by" in the History day detail, unused `OfficialProductThumbnail` and
    strings, CloudKit test seams).
