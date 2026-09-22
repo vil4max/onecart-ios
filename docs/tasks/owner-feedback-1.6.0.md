@@ -58,3 +58,15 @@ Production when the build reaches App Review; data loss for existing carts.
 - Pending on the owner's word: CloudKit schema (`CD_MemberProfile` into Development, then
   deploy to Production), push `main`, `tf-1.6.0-2`, What to Test, screenshot upload, What's
   New, submission for review.
+- 2026-09-22, owner approved the schema deploy, push and tag: `CD_MemberProfile` created in the
+  Development schema (9 fields matching model V8) and deployed to Production (diff: that type
+  only); `main` pushed to `a12ee19`; `Tests` green; `tf-1.6.0-2` → TestFlight build **117**
+  (Friends and Family), What to Test pasted. 6.5-inch screenshot copies added (`9e6e933`).
+- 2026-09-22, App Store Connect record 1.6.0: build 117, What's New en/ru saved; the owner added
+  it to a draft review submission (READY_FOR_REVIEW, not submitted). Screenshot state read via
+  the ASC API: en-US 6.9" still holds the 1.0-era set, en-US 6.5" holds the new set in reverse
+  order, ru 6.5" holds eight old light/dark shots. Removing the version from the draft to fix
+  them returned HTTP 504 twice. Paused on the owner's word while they check build 117.
+- Next: owner removes 1.6.0 from the draft (or it succeeds on retry); delete en-US 6.9" and ru
+  sets, order en-US 6.5" Welcome → Cart → History → Settings, add for review, submit; push the
+  release records; freeze.
