@@ -1,7 +1,7 @@
 # Task — 1.6.0 owner feedback before App Store submission
 
 Assignee: OneCart · 1.6.0 closure (Claude Code session, 2026-09-22)
-State: claimed
+State: done (owner reported the App Store submission)
 Requested by: owner (direct, 2026-09-22), after TestFlight build 116: "fix the minor issues and
 ship to the App Store"; the owner checks TestFlight builds, the session prepares everything else.
 Depends-on: [redesign-ios27.md](redesign-ios27.md) (done, build 116)
@@ -70,3 +70,8 @@ Production when the build reaches App Review; data loss for existing carts.
 - Next: owner removes 1.6.0 from the draft (or it succeeds on retry); delete en-US 6.9" and ru
   sets, order en-US 6.5" Welcome → Cart → History → Settings, add for review, submit; push the
   release records; freeze.
+- 2026-09-22: build 117 checked by the owner; "App icon" renamed "Theme" (`c8390cf`, `just verify`
+  OK); `main` pushed; `Tests` green; `tf-1.6.0-3` pushed, `TestFlight` workflow OK. The agent's
+  ASC session was signed out before build 118 appeared; the owner did the ASC steps (What to
+  Test, build 118 in the 1.6.0 record, screenshots, What's New, submission) and reported them
+  done. Not verified by the agent. Project frozen after this round.
