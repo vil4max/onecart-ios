@@ -30,11 +30,13 @@ struct HistoryView: View {
                 HistoryDayDetailView(viewModel: viewModel, group: group)
             }
         }
-        #if DEBUG
+        // The conditional sits inside the closure: a modifier wrapped in `#if` is indented
+        // differently by SwiftFormat releases, which split local and CI lint.
         .onChange(of: groups.first?.id, initial: true) {
+            #if DEBUG
                 openDemoDetailIfRequested(groups)
-            }
-        #endif
+            #endif
+        }
     }
 
     /// Read-only by requirement (REQ-SHELL-020): rows carry no swipe actions and no delete.
