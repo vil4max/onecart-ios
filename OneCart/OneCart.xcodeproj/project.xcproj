@@ -285,6 +285,7 @@
         { "path": "WelcomeViewModelTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "FamilyInviteLinkBuilderTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CloudKitBackendServiceTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "SessionMembershipTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "Support",
@@ -300,6 +301,7 @@
             { "path": "FakeAlertPresenter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeMainTabRouter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "CloudKitErrorExpectations.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "MembershipSessionFixture.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
           ],
         },
       ],
