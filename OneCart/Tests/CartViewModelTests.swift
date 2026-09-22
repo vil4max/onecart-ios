@@ -89,6 +89,26 @@ struct CartViewModelTests {
         #expect(harness.viewModel.toBuySections.isEmpty)
     }
 
+    @Test("REQ-SHELL-010: the progress accessory follows the completed share and hides on an empty cart")
+    func progressAccessoryTracksCompletedShare() async throws {
+        let fixture = try await CartFixture.make()
+        let harness = try CartHarness(fixture: fixture)
+        harness.state.activeFamilySpace = try fixture.family
+
+        #expect(harness.viewModel.progressFraction == 0)
+        #expect(!harness.viewModel.showsProgressAccessory)
+
+        try await fixture.addProduct(named: "Bread")
+        try await fixture.addProduct(named: "Milk", purchased: true)
+        harness.state.productsByListID[fixture.listID] = try fixture.products
+
+        #expect(harness.viewModel.showsProgressAccessory)
+        #expect(harness.viewModel.progressFraction == 0.5)
+
+        harness.state.activeFamilySpace = nil
+        #expect(!harness.viewModel.showsProgressAccessory)
+    }
+
     @Test("REQ-CART-030: adding a name-only item sends a trimmed draft to the primary list")
     func addItemSendsTrimmedDraft() async throws {
         let fixture = try await CartFixture.make()

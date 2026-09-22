@@ -177,6 +177,17 @@ final class CartViewModel {
         CartCelebration.isAllPurchased(totalCount: totalCount, toBuyCount: toBuyProducts.count)
     }
 
+    /// Completed share of the cart for the progress bar; an empty cart reads as no progress.
+    var progressFraction: Double {
+        guard totalCount > 0 else { return 0 }
+        return Double(purchasedCount) / Double(totalCount)
+    }
+
+    /// The tab bar accessory tracks progress only while the living cart has lines on it.
+    var showsProgressAccessory: Bool {
+        hasActiveFamilySpace && !isEmpty
+    }
+
     func suggestions(matching query: String) -> [String] {
         CartSuggestionsEngine.suggestions(
             from: historyBrowser.history,

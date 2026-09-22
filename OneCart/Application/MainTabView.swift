@@ -39,6 +39,9 @@ struct MainTabView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
+        .tabViewBottomAccessory(isEnabled: selection == .cart && cartViewModel.showsProgressAccessory) {
+            CartProgressAccessory(viewModel: cartViewModel)
+        }
         .tint(OneCartPalette.primary(for: colorScheme, accent: state.preferences.accentColor))
         .animation(.easeInOut(duration: 0.35), value: state.preferences.accentColor)
         .onChange(of: tabs.preferredMainTab, initial: true) { _, tab in

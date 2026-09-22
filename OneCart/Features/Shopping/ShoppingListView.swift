@@ -122,17 +122,6 @@ struct ShoppingListView: View {
                 .animation(.spring(response: 0.40, dampingFraction: 0.82), value: isAllPurchased)
                 .animation(.spring(response: 0.38, dampingFraction: 0.82), value: showsEmptyCard)
                 .animation(.easeInOut(duration: 0.35), value: viewModel.duplicateHighlightID)
-                .safeAreaBar(edge: .top, spacing: 0) {
-                    if !products.isEmpty || isComposingNewItem {
-                        CartProgressStrip(
-                            isAllPurchased: isAllPurchased,
-                            purchasedCount: purchasedCount,
-                            totalCount: products.count,
-                            familyMembersCount: viewModel.familyMembersCount,
-                            onManageFamily: { viewModel.showFamilyManagement() }
-                        )
-                    }
-                }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if viewModel.canEdit {
                         Color.clear.frame(height: 72)
