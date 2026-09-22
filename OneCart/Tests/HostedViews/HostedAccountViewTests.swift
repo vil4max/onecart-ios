@@ -87,10 +87,10 @@ struct HostedAccountViewTests {
             let swatch = try #require(hosted.element(label: color.title))
             #expect(swatch.isSelected == (color == harness.isolated.preferences.accentColor))
         }
-        let deleteAccount = try #require(hosted.element(label: String(localized: "account.delete_account")))
-        withKnownIssue("A Button with a LabeledContent label reaches the tree as static text while idle") {
-            #expect(deleteAccount.isButton)
-        }
+        let deleteAccount = try #require(hosted.element(identifier: "account.delete_account"))
+        #expect(deleteAccount.isButton)
+        #expect(deleteAccount.isEnabled)
+        #expect(deleteAccount.label == String(localized: "account.delete_account"))
         // REQ-SHELL-060: the about footer carries the user-facing name.
         #expect(hosted.element(identifier: "account.app_name")?.label == "OneCart Family")
         #expect(hosted.element(identifier: "account.version")?.label?

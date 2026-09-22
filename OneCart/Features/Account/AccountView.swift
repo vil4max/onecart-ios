@@ -299,12 +299,14 @@ struct AccountView: View {
             Button(role: .destructive) {
                 viewModel.confirmingDeleteAccount = true
             } label: {
-                LabeledContent {
+                // A plain HStack label keeps the row a button for VoiceOver; a LabeledContent
+                // label reached the accessibility tree as static text.
+                HStack {
+                    Text("account.delete_account")
                     if viewModel.isDeletingAccount {
+                        Spacer()
                         ProgressView()
                     }
-                } label: {
-                    Text("account.delete_account")
                 }
             }
             .disabled(viewModel.isDeletingAccount || viewModel.isBusy)
