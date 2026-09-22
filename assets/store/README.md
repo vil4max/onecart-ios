@@ -8,10 +8,10 @@ repository and attaches it under App Review Information.
 
 ## App Store Connect: iPhone 6.9" (1320 × 2868)
 
-Current set for the next version after 1.5.0, light theme, captured on 2026-09-21 from the
-iOS 27 redesign. English files are in `screenshots/asc-6.9/` (the repository README shows
+Current set for 1.6.0, light theme, captured on 2026-09-22 from the iOS 26/27 redesign (native
+lists, glass add button, progress in the tab bar accessory, Settings as a form). English files are in `screenshots/asc-6.9/` (the repository README shows
 them); Russian files with the same names are in `screenshots/asc-6.9/ru/`. Version 1.5.0 was
-submitted with the older 1.0-era set, so these replace it in the next version record.
+submitted with the older 1.0-era set; these replace it in the 1.6.0 version record.
 
 | # | File | Screen |
 |---|------|--------|
