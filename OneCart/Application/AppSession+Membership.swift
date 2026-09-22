@@ -239,10 +239,10 @@ extension AppSession {
     }
 
     func refreshFamilyMetadata(showErrors: Bool) async {
-        guard account != nil else { return }
+        guard let account else { return }
         // A local write that syncs later, so it does not wait for connectivity.
-        await publishMemberProfile()
-        guard let account, online else { return }
+        schedulePublishMemberProfile()
+        guard online else { return }
         #if DEBUG
             if DemoUIMode.isEnabled, DemoUIMode.role == .member, !familyMembers.isEmpty {
                 return

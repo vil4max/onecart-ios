@@ -74,12 +74,30 @@ struct MemberProfileTests {
 
         await fixture.session.updateParticipantDisplayName("Мама")
         await fixture.session.refreshFamilyMetadata(showErrors: false)
+        await fixture.session.memberProfileTask?.value
         #expect(try await rows(in: fixture) == first)
 
         await fixture.session.updateParticipantDisplayName("Mom")
         let renamed = try await rows(in: fixture)
         #expect(renamed.count == 1)
         #expect(renamed.first?.name == "Mom")
+    }
+
+    @Test("REQ-AUTH-040: back-to-back refreshes publish in order and leave one profile row")
+    func overlappingPublishesLeaveOneRow() async throws {
+        let fixture = try await MembershipSessionFixture.owner(
+            displayName: "Alex",
+            cloudUserIdentity: FakeCloudUserIdentity(recordName: "_alex")
+        )
+
+        for _ in 0 ..< 4 {
+            fixture.session.schedulePublishMemberProfile()
+        }
+        await fixture.session.memberProfileTask?.value
+
+        let rows = try await rows(in: fixture)
+        #expect(rows.count == 1)
+        #expect(rows.first?.name == "Alex")
     }
 
     @Test("REQ-AUTH-040: a member publishes the profile into the shared cart's store")
@@ -92,6 +110,7 @@ struct MemberProfileTests {
         #expect(fixture.session.activeFamilySpace?.id == sharedID)
 
         await fixture.session.refreshFamilyMetadata(showErrors: false)
+        await fixture.session.memberProfileTask?.value
 
         let rows = try await rows(in: fixture)
         #expect(rows.count == 1)

@@ -125,6 +125,8 @@ final class AppSession {
     var currentUserRecordName: String?
     /// Mirrors `MemberNamePromptStorage` so the root view observes the "Not now" choice.
     var memberNamePromptDeclined = false
+    /// The latest queued member-profile publish; tests await it.
+    var memberProfileTask: Task<Void, Never>?
     /// In-flight category refinements by product ID; a rename cancels the refinement of the
     /// old name so it can never write over the new one.
     var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]

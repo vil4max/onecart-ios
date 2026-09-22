@@ -1,10 +1,24 @@
 import Foundation
 
 extension AppSession {
+    /// Queues a publish of this user's profile behind any earlier one and returns it.
+    /// Serial so two passes never both insert a row for the same member, and detached from
+    /// the caller so bootstrap never waits on the iCloud identity lookup.
+    @discardableResult
+    func schedulePublishMemberProfile() -> Task<Void, Never> {
+        let previous = memberProfileTask
+        let task = Task { @MainActor [weak self] in
+            await previous?.value
+            await self?.publishMemberProfile()
+        }
+        memberProfileTask = task
+        return task
+    }
+
     /// Shares this user's chosen name with the members of the active cart (REQ-AUTH-040).
     /// Runs on bootstrap, cart activation, share acceptance and every name change; the
     /// repository makes repeats free, so callers need not track what was published.
-    func publishMemberProfile() async {
+    private func publishMemberProfile() async {
         guard let account,
               let familyID = activeFamilySpace?.id,
               persistence.isLoaded,
