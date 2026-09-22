@@ -2660,29 +2660,6 @@
         }
       }
     },
-    "common.default_member": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Member"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Участник"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Учасник"
-          }
-        }
-      }
-    },
     "common.default_product": {
       "extractionState": "manual",
       "localizations": {
