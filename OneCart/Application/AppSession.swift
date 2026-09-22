@@ -51,6 +51,7 @@ final class AppSession {
     let accountCloudDataDeleter: AccountCloudDataDeleting
     let accountLocalStorePreparer: AccountLocalStorePreparing
     let widgetStore: WidgetSnapshotStore
+    let shoppingTrip: ShoppingTripActivityController
     var startupTask: Task<Void, Never>?
     var widgetDrainTask: Task<Void, Error>?
 
@@ -145,7 +146,8 @@ final class AppSession {
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
         widgetStore: WidgetSnapshotStore = .shared,
         categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared,
-        cloudUserIdentity: (any CloudUserIdentifying)? = nil
+        cloudUserIdentity: (any CloudUserIdentifying)? = nil,
+        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
@@ -154,6 +156,9 @@ final class AppSession {
         self.appleSignIn = appleSignIn
         self.categoryClassifier = categoryClassifier
         self.widgetStore = widgetStore
+        shoppingTrip = ShoppingTripActivityController(
+            backend: shoppingTripBackend ?? LiveShoppingTripActivityBackend()
+        )
 
         let repository = FamilySpaceRepository(
             persistence: persistence,

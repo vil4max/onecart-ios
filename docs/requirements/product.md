@@ -153,6 +153,16 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 
 **REQ-WIDGET-030** Family activity notifications are local notifications created when the app observes imported cart changes. They require notification permission and an opportunity for the app to observe those changes; delivery is not an instantaneous server-push guarantee.
 
+### Shopping trip (Live Activity)
+
+Proposed 2026-09-22: the owner asked for the feature; the wording below awaits owner approval.
+
+**REQ-WIDGET-040** The shopper starts a shopping trip from the cart's progress header («Я в магазине»). The control shows only on an editable cart with lines still to buy while Live Activities are allowed for OneCart; a refusal is a system alert. The trip is one Live Activity for the signed-in account and the active cart. The Lock Screen shows the cart title, «N из M куплено» with a progress bar, the first three to-buy lines with a check control, how many more lines remain, and a stop control. The Dynamic Island shows the remaining count (compact), a progress ring (minimal) and the title, progress, two lines and the stop control (expanded).
+
+**REQ-WIDGET-050** The trip reads the same snapshot as the widgets and changes with it, skipping updates that change nothing. A check on the activity runs the widget purchase path (REQ-WIDGET-020). A relaunched app adopts its running trip and ends any extra one. The trip is local to the shopper's iPhone: it updates only when the app observes a change (C1: no push server), and it is not shown on other members' devices.
+
+**REQ-WIDGET-060** The trip ends immediately when the shopper stops it (in the cart or on the activity), when the cart is emptied, when the active cart or account changes, and on sign out or account deletion. Once every line is checked it shows the all-bought state and is dismissed five minutes later. A trip the shopper swipes away on the Lock Screen is treated as ended. The system's own Live Activity limits (about eight hours) still apply.
+
 ## Default cart identity
 
 - **REQ-CART-100** Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / OneCart Family). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
@@ -227,6 +237,9 @@ core path from [core.md](../core.md), not every suite.
 | REQ-WIDGET-010 | `WidgetSnapshotTests` → `emptyAndAllPurchasedHelpers`, `snapshotEncodingAndDecoding`, `toggleWithPartialSnapshot_preservesHiddenPurchasedCount` |
 | REQ-WIDGET-020 | `WidgetSnapshotTests` → `pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement`, `performWidgetPurchase_savesRepositoryBeforeAcknowledging`, `start_withDurableWidgetCommand_appliesItWithoutForegroundTransition`, `widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue`, `widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt`, `widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState` |
 | REQ-WIDGET-030 | `CartActivityDiffTests` → `firstSnapshotSeedsWithoutNotify`, `partialCompletionDoesNotNotifyAllPurchased`, `partnerAddsSingleItemNotifies`, `partnerCompletesLastItemNotifiesAllPurchased`, `selfAddedItemDoesNotNotify`, `selfCompletesLastItemDoesNotNotify`, `singleUserCartDoesNotNotify`; `SharedCartJoinTests` → `firstSnapshotSeedsWithoutNotify`, `newMemberAfterBaselineNotifies` |
+| REQ-WIDGET-040 | `ShoppingTripActivityTests` → `@Test "the trip shows the cart's progress and its first three lines to buy"`, `@Test "starting requests one activity for this account and cart"`, `@Test "a trip needs lines to buy, a signed-in cart and Live Activities turned on"`, `@Test "the cart offers the trip only when there is something to buy and it can run"`; `HostedCartViewTests` → `@Test "the progress header offers the shopping trip, starts it, then offers to end it"` |
+| REQ-WIDGET-050 | `ShoppingTripActivityTests` → `@Test "the trip follows the cart and skips updates that change nothing"`, `@Test "a relaunched app adopts its running trip and ends leftovers"`; `WidgetSnapshotTests` → `purchaseFromTheTripReachesItAndFinishesIt` |
+| REQ-WIDGET-060 | `ShoppingTripActivityTests` → `@Test "checking the last line shows the finished trip, then dismisses it"`, `@Test "another cart, another account or an emptied cart ends the trip at once"`, `@Test "the stop button ends the trip, and a Lock Screen dismissal is noticed"`, `@Test "the cart control starts the trip, then stops it"`; `WidgetSnapshotTests` → `signOut_endsTheShoppingTrip` |
 
 Fragile-test matrix (`F1`–`F11`) to requirement: `F1`, `F3`, `F11` →
 REQ-AUTH-080; `F2` → REQ-AUTH-010; `F4`, `F5`, `F8` → REQ-SYNC-010 and

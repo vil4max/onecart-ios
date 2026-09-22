@@ -70,7 +70,8 @@ extension XCTestCase {
         appleSignIn: AppleSignInAuthenticating? = nil,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
-        widgetStore: WidgetSnapshotStore? = nil
+        widgetStore: WidgetSnapshotStore? = nil,
+        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil
     ) throws -> AppSession {
         let defaults = try defaults ?? makeDefaults()
         return try AppSession(
@@ -80,7 +81,9 @@ extension XCTestCase {
             appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
             accountCloudDataDeleter: accountCloudDataDeleter,
             accountLocalStorePreparer: accountLocalStorePreparer,
-            widgetStore: widgetStore ?? makeIsolatedWidgetStore()
+            widgetStore: widgetStore ?? makeIsolatedWidgetStore(),
+            // Never the live ActivityKit backend: a test must not put a trip on the simulator.
+            shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend()
         )
     }
 

@@ -164,6 +164,22 @@ struct HostedCartViewTests {
         #expect(progressIndex < firstRowIndex)
     }
 
+    @Test("REQ-WIDGET-040: the progress header offers the shopping trip, starts it, then offers to end it")
+    func progressHeaderStartsTheShoppingTrip() async throws {
+        let (_, harness) = try await Self.cartWithLines()
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel))
+        defer { hosted.tearDown() }
+
+        let control = try #require(hosted.element(identifier: "cart.shoppingTrip"))
+        #expect(control.label?.contains(String(localized: "trip.start_button")) == true)
+        #expect(control.activate())
+        #expect(await hosted.pump { harness.trip.startCount == 1 })
+        #expect(await hosted.pump {
+            hosted.element(identifier: "cart.shoppingTrip")?.label?
+                .contains(String(localized: "trip.end_button")) == true
+        })
+    }
+
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
     func readOnlyCartHidesComposer() async throws {
         let (_, harness) = try await Self.cartWithLines()
