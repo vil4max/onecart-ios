@@ -1,7 +1,7 @@
 # Task — iOS 27 redesign, MVVM refactoring and test coverage
 
 Assignee: OneCart · redesign iOS 27 (Claude Code session, 2026-09-22)
-State: claimed
+State: done (TestFlight build 116)
 Requested by: owner (direct, 2026-09-22): "deep redesign for modern iOS 27 + code refactoring
 + test coverage"
 Evidence: see Evidence history
@@ -10,7 +10,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome (see Handoff below): Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf), R4 (4ecb8ab) landed; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
+Current outcome (see Handoff below): Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf), R4 (4ecb8ab) landed; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 landed (25b6b90); release prep 1.6.0 (ff86d5d), CI lint fix (3c2b2d5); `tf-1.6.0-1` → TestFlight build 116.
 Authorized scope (owner, 2026-09-22, three decisions):
 
 1. Redesign every screen for iOS 26/27 idioms; the information architecture stays: three tabs
@@ -196,3 +196,32 @@ T2 (`CKShare.Participant`/`CKShare.Metadata` without public initializers) need s
   render previews (the scheme runs Release; Xcode previews need -Onone) or reach a device, so
   the integrator added the widget on the session simulator: gallery small/medium previews and
   the Home Screen widget in light and dark checked visually.
+- 2026-09-22, T1 `25b6b90`: the writer's worktree had no commits but complete uncommitted
+  work; the integrator reviewed it, moved it onto `main`, removed a leftover debug block, and
+  fixed two hosted-test timing issues (accent swatches join the tree a layout pass later; the
+  owner Settings test uses a 2000-pt window because scrolled-away Form cells leave the tree).
+  27 new tests; production changes are accessibility identifiers plus one combined element for
+  the member cart title. Known issue recorded with `withKnownIssue`: the idle "Delete Account"
+  button reaches the accessibility tree as static text (to check with VoiceOver on a device).
+  Worktree and branch removed.
+- 2026-09-22, gate on `25b6b90`: `just verify` OK; app coverage **76.17 %** (11931/15663,
+  target 70 %); `spec_trace.py --root .` 49 covered, 0 uncovered.
+- 2026-09-22, `ff86d5d`: `MARKETING_VERSION` 1.6.0 (app and widget), release notes
+  `docs/operations/releases/1.6.0.md`, `project-state.md`; `just verify` OK.
+- 2026-09-22, simulator smoke on `claude-OneCart-54205ace`: Welcome renders; the real
+  CloudKit path waits on "Checking iCloud" because the simulator has no iCloud account
+  (`accountsd`: no accounts; CoreData+CloudKit waits on `accountInfo`) — environment, not
+  checked against 1.5.1. Demo owner: cart sections, name-only add (Bread → Bread & bakery),
+  check to Completed with the progress accessory, History day list and read-only day detail,
+  Settings with Share as a secondary action; Share without iCloud ends in an error alert, not
+  a hang. Screenshots in `agent-artifacts/2026-09-22/onecart-1.6.0-closure/work/`.
+- 2026-09-22, owner approved push and the tag: `main` pushed (`ff86d5d`); `Tests` failed on a
+  SwiftFormat indent rule for a modifier inside `#if DEBUG` (`HistoryViews.swift`, from R3) that
+  the local 0.62.1 and the CI release apply in opposite ways; fixed forward in `3c2b2d5` by moving
+  the conditional into the closure; `Tests` green; `just tf-check` Ready; `tf-1.6.0-1` pushed;
+  `TestFlight` workflow moved `testflight` to `3c2b2d5`; Xcode Cloud uploaded build **116**
+  (Ready to Submit, Friends and Family); What to Test pasted into the build and confirmed after a
+  reload.
+- 2026-09-22, owner-approved simulator cleanup: nine subagent devices
+  `claude-OneCart-54205ace-agent-*` shut down and deleted; only the session device remains;
+  `just verify` OK afterwards. New owner rule: at most two booted simulators per session.
