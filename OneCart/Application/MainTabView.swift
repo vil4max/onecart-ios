@@ -8,7 +8,7 @@ enum MainTab: String, Hashable {
 
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @State private var selection: MainTab = Self.initialTab
 
     var body: some View {
@@ -27,7 +27,8 @@ struct MainTabView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         .tint(OneCartPalette.primary(for: colorScheme, accent: model.preferences.accentColor))
         .animation(.easeInOut(duration: 0.35), value: model.preferences.accentColor)
-        .onReceive(model.$preferredMainTab.compactMap(\.self)) { tab in
+        .onChange(of: model.preferredMainTab, initial: true) { _, tab in
+            guard let tab else { return }
             selection = tab
             model.preferredMainTab = nil
         }

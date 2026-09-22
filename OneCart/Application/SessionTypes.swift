@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import SwiftUI
 
@@ -22,6 +21,7 @@ enum ParticipantDisplayName {
         return known.contains(trimmed)
     }
 
+    @MainActor
     static func resolved(
         preferences: DevicePreferences,
         account: OneCartAccount?
@@ -38,6 +38,7 @@ enum ParticipantDisplayName {
         return nil
     }
 
+    @MainActor
     static func displayOrPlaceholder(
         preferences: DevicePreferences,
         account: OneCartAccount?
@@ -127,20 +128,25 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 }
 
-final class DevicePreferences: ObservableObject {
+@MainActor
+@Observable
+final class DevicePreferences {
     var onAccentChanged: ((AppAccentColor) -> Void)?
     var onThemeChanged: ((AppTheme) -> Void)?
+    /// Fires after any preference is persisted; the session refreshes the widget snapshot from it.
+    var onChanged: (() -> Void)?
 
-    @Published var theme: AppTheme {
+    var theme: AppTheme {
         didSet {
             defaults.set(theme.rawValue, forKey: Keys.theme)
             defaults.synchronize()
             OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
             onThemeChanged?(theme)
+            onChanged?()
         }
     }
 
-    @Published var language: AppLanguage {
+    var language: AppLanguage {
         didSet {
             defaults.set(language.rawValue, forKey: Keys.language)
             if let code = language.languageCode {
@@ -149,20 +155,22 @@ final class DevicePreferences: ObservableObject {
                 defaults.removeObject(forKey: "AppleLanguages")
             }
             defaults.synchronize()
+            onChanged?()
         }
     }
 
-    @Published var participantDisplayName: String {
+    var participantDisplayName: String {
         didSet {
             defaults.set(
                 participantDisplayName.trimmingCharacters(in: .whitespacesAndNewlines),
                 forKey: Keys.participantDisplayName
             )
             defaults.synchronize()
+            onChanged?()
         }
     }
 
-    @Published var accentColor: AppAccentColor {
+    var accentColor: AppAccentColor {
         willSet {
             OneCartPalette.currentAccent = newValue
         }
@@ -175,13 +183,15 @@ final class DevicePreferences: ObservableObject {
             }
             OneCartPalette.currentAccent = accentColor
             onAccentChanged?(accentColor)
+            onChanged?()
         }
     }
 
-    @Published var appIcon: AppIconOption {
+    var appIcon: AppIconOption {
         didSet {
             defaults.set(appIcon.rawValue, forKey: Keys.appIcon)
             defaults.synchronize()
+            onChanged?()
         }
     }
 

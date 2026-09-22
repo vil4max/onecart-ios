@@ -2,6 +2,7 @@
 import SwiftUI
 import XCTest
 
+@MainActor
 final class DevicePreferencesTests: XCTestCase {
     func testParticipantDisplayNamePersistsAndReloads() throws {
         let defaults = try makeDefaults()

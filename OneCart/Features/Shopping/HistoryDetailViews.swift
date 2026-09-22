@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HistoryDayDetailView: View {
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @Environment(\.locale) private var locale
     let group: HistoryDayGroup
 

@@ -2,7 +2,7 @@ import AuthenticationServices
 import SwiftUI
 
 struct WelcomeView: View {
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: WelcomeViewModel

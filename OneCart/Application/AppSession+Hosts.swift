@@ -90,8 +90,10 @@ extension AppSession: CloudSyncHost {
 }
 
 extension AppSession: SessionBootstrapHost {
+    /// Bootstrap resets the persistent stores under the live fetch results; bumping the
+    /// revision is the observable signal dependents (`ShoppingListView`) react to.
     func notifyBootstrapObjectWillChange() {
-        objectWillChange.send()
+        cartSync.bumpRevisionAfterLocalChange()
     }
 
     func reloadAfterBootstrap() throws {

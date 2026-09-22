@@ -2,13 +2,13 @@ import SwiftUI
 
 struct AccountView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @StateObject private var viewModel: AccountViewModel
-    @ObservedObject private var preferences: DevicePreferences
+    @Bindable private var preferences: DevicePreferences
 
     init(model: AppSession) {
         _viewModel = StateObject(wrappedValue: AccountViewModel(session: model))
-        _preferences = ObservedObject(wrappedValue: model.preferences)
+        _preferences = Bindable(wrappedValue: model.preferences)
     }
 
     var body: some View {

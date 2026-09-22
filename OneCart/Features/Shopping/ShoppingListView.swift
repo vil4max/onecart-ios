@@ -2,7 +2,7 @@ import SwiftUI
 
 // swiftlint:disable:next type_body_length
 struct ShoppingListView: View {
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     let listID: UUID
 
     @State private var isComposingNewItem = false

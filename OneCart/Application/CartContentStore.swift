@@ -1,16 +1,18 @@
 import CoreData
 import Foundation
+import Observation
 
 @MainActor
-final class CartContentStore: ObservableObject {
+@Observable
+final class CartContentStore {
     static let historyPageSize = 30
 
-    @Published private(set) var lists: [ShoppingListEntity] = []
-    @Published private(set) var activeLists: [ShoppingListEntity] = []
-    @Published private(set) var products: [ProductEntity] = []
-    @Published private(set) var productsByListID: [UUID: [ProductEntity]] = [:]
-    @Published private(set) var history: [PurchaseHistoryEntity] = []
-    @Published private(set) var historyHasMore = false
+    private(set) var lists: [ShoppingListEntity] = []
+    private(set) var activeLists: [ShoppingListEntity] = []
+    private(set) var products: [ProductEntity] = []
+    private(set) var productsByListID: [UUID: [ProductEntity]] = [:]
+    private(set) var history: [PurchaseHistoryEntity] = []
+    private(set) var historyHasMore = false
 
     private let persistence: PersistenceController
 

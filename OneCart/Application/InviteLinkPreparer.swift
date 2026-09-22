@@ -1,10 +1,12 @@
 import CoreData
 import Foundation
+import Observation
 import OSLog
 
 @MainActor
-final class InviteLinkPreparer: ObservableObject {
-    @Published private(set) var preparedInviteLink: FamilyInviteLink?
+@Observable
+final class InviteLinkPreparer {
+    private(set) var preparedInviteLink: FamilyInviteLink?
     private(set) var preparedInviteFamilyID: UUID?
     private var invitePrepareTask: Task<Void, Never>?
 

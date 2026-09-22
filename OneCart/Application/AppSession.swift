@@ -1,36 +1,36 @@
 import AuthenticationServices
-import Combine
 import CoreData
 import Foundation
 import SwiftUI
 
 @MainActor
-final class AppSession: ObservableObject {
+@Observable
+final class AppSession {
 
     nonisolated static let defaultFamilyName = String(
         localized: "cart.default_title",
         defaultValue: "OneCart Family"
     )
 
-    @Published var isReady = false
-    @Published private(set) var isBusy = false
-    @Published var needsWelcome = false
-    @Published var welcomePhase: WelcomePhase = .signIn
-    @Published var account: OneCartAccount?
-    @Published var syncState: OneCartSyncState = .synchronized
-    @Published var lastSyncError: String?
-    @Published var familySpaces: [FamilySpace] = []
-    @Published var activeFamilySpace: FamilySpace?
-    @Published var familyMembers: [FamilyMember] = []
-    @Published var access: FamilyAccess?
-    @Published var isFamilyMetadataLoading = false
-    @Published var isEnsuringHouseholdCart = false
-    @Published var householdCartBootstrapFailed = false
-    @Published var preferredMainTab: MainTab?
-    @Published var userAlert: UserAlert?
-    @Published var sharedCartRemovedMessage: String?
-    @Published var isDeletingAccount = false
-    @Published var isReconcilingPersonalCart = false
+    var isReady = false
+    private(set) var isBusy = false
+    var needsWelcome = false
+    var welcomePhase: WelcomePhase = .signIn
+    var account: OneCartAccount?
+    var syncState: OneCartSyncState = .synchronized
+    var lastSyncError: String?
+    var familySpaces: [FamilySpace] = []
+    var activeFamilySpace: FamilySpace?
+    var familyMembers: [FamilyMember] = []
+    var access: FamilyAccess?
+    var isFamilyMetadataLoading = false
+    var isEnsuringHouseholdCart = false
+    var householdCartBootstrapFailed = false
+    var preferredMainTab: MainTab?
+    var userAlert: UserAlert?
+    var sharedCartRemovedMessage: String?
+    var isDeletingAccount = false
+    var isReconcilingPersonalCart = false
     var pendingCartMutationCount = 0
     /// Backs `isBusy` for operations that may overlap, so the first one to finish
     /// does not clear the flag while another is still running.
@@ -123,10 +123,6 @@ final class AppSession: ObservableObject {
     var started = false
     var didPresentProductionSchemaAlert = false
     var lastActiveFamilyWasShared = false
-    private var cartSyncCancellable: AnyCancellable?
-    private var cartContentCancellable: AnyCancellable?
-    private var invitePreparerCancellable: AnyCancellable?
-    private var preferencesCancellable: AnyCancellable?
 
     init(
         persistence: PersistenceController? = nil,
@@ -191,22 +187,9 @@ final class AppSession: ObservableObject {
     }
 
     private func bindCartSync() {
-        cartSyncCancellable = cartSync.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
+        preferences.onChanged = { [weak self] in
+            self?.updateWidgetSnapshot()
         }
-        cartContentCancellable = cartContent.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        invitePreparerCancellable = invitePreparer.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        preferencesCancellable = preferences.objectWillChange
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self else { return }
-                objectWillChange.send()
-                updateWidgetSnapshot()
-            }
         preferences.onAccentChanged = { [weak self] newAccent in
             self?.updateWidgetSnapshot(accentOverride: newAccent)
         }

@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import Observation
 import OSLog
 
 enum CartSyncReason: String {
@@ -16,9 +17,10 @@ enum CartSyncOutcome: Equatable {
 }
 
 @MainActor
-final class CartSyncService: ObservableObject {
-    @Published private(set) var isCartSyncing = false
-    @Published private(set) var contentRevision = 0
+@Observable
+final class CartSyncService {
+    private(set) var isCartSyncing = false
+    private(set) var contentRevision = 0
 
     private let persistence: PersistenceController
     private var pendingReason: CartSyncReason?

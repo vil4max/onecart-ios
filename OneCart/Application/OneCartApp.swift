@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct OneCartApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = OneCartAppComposition.session
+    @State private var model = OneCartAppComposition.session
 
     var body: some Scene {
         WindowGroup {
@@ -30,17 +30,15 @@ enum OneCartAppComposition {
 
 private struct OneCartScene: View {
     @Environment(\.scenePhase) private var scenePhase
-    @ObservedObject var model: AppSession
-    @ObservedObject private var preferences: DevicePreferences
+    let model: AppSession
 
-    init(model: AppSession) {
-        self.model = model
-        _preferences = ObservedObject(wrappedValue: model.preferences)
+    private var preferences: DevicePreferences {
+        model.preferences
     }
 
     var body: some View {
         RootView()
-            .environmentObject(model)
+            .environment(model)
             .preferredColorScheme(preferences.theme.colorScheme)
             .environment(\.locale, preferences.effectiveLocale)
             .task {

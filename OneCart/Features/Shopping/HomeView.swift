@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @StateObject private var viewModel: ShoppingViewModel
 
     init(model: AppSession) {

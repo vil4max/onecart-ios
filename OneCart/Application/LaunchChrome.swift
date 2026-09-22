@@ -20,7 +20,7 @@ enum LaunchChromeLayout {
 }
 
 struct LaunchCartRideView: View {
-    @EnvironmentObject private var model: AppSession
+    @Environment(AppSession.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let onFinished: () -> Void
@@ -78,7 +78,7 @@ struct LaunchCartRideView: View {
         if model.isReady {
             return true
         }
-        for await ready in model.$isReady.values {
+        for await ready in Observations({ model.isReady }) {
             if Task.isCancelled {
                 return false
             }
