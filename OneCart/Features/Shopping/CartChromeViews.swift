@@ -43,35 +43,6 @@ struct ReadOnlyBanner: View {
     }
 }
 
-/// Shared with the History tab's empty state; the cart itself uses `ContentUnavailableView`.
-struct EmptyCard: View {
-    let image: String
-    let title: LocalizedStringKey
-    let message: LocalizedStringKey
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: image)
-                .font(.system(size: 28))
-                .foregroundStyle(OneCartPalette.primary)
-                .frame(width: 52, height: 52)
-                .background(
-                    OneCartPalette.primarySoft,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                )
-            Text(title)
-                .font(.headline)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-    }
-}
-
 struct CartAllPurchasedHeroCard: View {
     var body: some View {
         VStack(spacing: 8) {

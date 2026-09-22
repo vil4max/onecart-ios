@@ -3,54 +3,76 @@ import SwiftUI
 struct HistoryView: View {
     let viewModel: HistoryViewModel
 
+    /// The pushed value is the snapshot the row was tapped with; the detail resolves its live
+    /// contents through the ViewModel.
+    @State private var path: [HistoryDayGroup] = []
+    #if DEBUG
+        @State private var hasOpenedDemoDetail = false
+    #endif
+
     var body: some View {
         // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
         let groups = viewModel.dayGroups
-        NavigationStack {
-            List {
+        NavigationStack(path: $path) {
+            Group {
                 if groups.isEmpty {
-                    Section {
-                        EmptyCard(
-                            image: "clock",
-                            title: "history.empty_title",
-                            message: "history.empty_message"
-                        )
-                    } footer: {
-                        howItWorksFooter
+                    ContentUnavailableView {
+                        Label("history.empty_headline", systemImage: "clock")
+                    } description: {
+                        Text("history.empty_message")
                     }
                 } else {
-                    // Read-only by requirement: rows carry no swipe actions and no delete.
-                    Section {
-                        ForEach(groups) { group in
-                            NavigationLink {
-                                HistoryDayDetailView(viewModel: viewModel, group: group)
-                            } label: {
-                                HistoryDayRow(group: group)
-                            }
-                        }
-
-                        if viewModel.hasMore {
-                            Button("history.show_more") {
-                                viewModel.loadMore()
-                            }
-                        }
-                    } footer: {
-                        howItWorksFooter
-                    }
+                    dayList(groups)
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("history.nav_title")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: HistoryDayGroup.self) { group in
+                HistoryDayDetailView(viewModel: viewModel, group: group)
+            }
         }
+        #if DEBUG
+        .onChange(of: groups.first?.id, initial: true) {
+                openDemoDetailIfRequested(groups)
+            }
+        #endif
     }
 
-    private var howItWorksFooter: some View {
-        Text("history.how_it_works")
+    /// Read-only by requirement (REQ-SHELL-020): rows carry no swipe actions and no delete.
+    private func dayList(_ groups: [HistoryDayGroup]) -> some View {
+        List {
+            Section {
+                ForEach(groups) { group in
+                    NavigationLink(value: group) {
+                        HistoryDayRow(group: group)
+                    }
+                }
+
+                if viewModel.hasMore {
+                    Button("history.show_more") {
+                        viewModel.loadMore()
+                    }
+                }
+            } footer: {
+                Text("history.how_it_works")
+            }
+        }
+        .listStyle(.insetGrouped)
     }
+
+    #if DEBUG
+        /// Demo launches (`-oneCartDemoHistoryDetail`) open the newest day for screenshots.
+        private func openDemoDetailIfRequested(_ groups: [HistoryDayGroup]) {
+            guard !hasOpenedDemoDetail,
+                  ProcessInfo.processInfo.arguments.contains("-oneCartDemoHistoryDetail"),
+                  let newest = groups.first
+            else { return }
+            hasOpenedDemoDetail = true
+            path = [newest]
+        }
+    #endif
 }
 
-struct HistoryDayGroup: Identifiable {
+struct HistoryDayGroup: Identifiable, Hashable {
     let dayStart: Date
     let items: [HistoryItemEntity]
 
@@ -60,6 +82,15 @@ struct HistoryDayGroup: Identifiable {
 
     func title(locale: Locale? = nil) -> String {
         HistoryDayFormatting.title(for: dayStart, locale: locale)
+    }
+
+    /// The day's items in the cart's category order, so both tabs section alike.
+    var categorySections: [(category: ProductCategory, items: [HistoryItemEntity])] {
+        ProductCategory.groupedSections(from: items) { $0.categoryValue }
+    }
+
+    var namesPreview: String {
+        items.map(\.displayName).joined(separator: ", ")
     }
 
     static func groups(
@@ -101,35 +132,60 @@ enum HistoryDayFormatting {
     }
 }
 
+/// One day card: relative day, item count and a preview of the names.
 private struct HistoryDayRow: View {
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let group: HistoryDayGroup
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(group.title(locale: locale))
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text("history.items_count \(group.items.count)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    dayTitle
+                    itemCount
+                    namesPreview
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        dayTitle
+                        namesPreview
+                    }
+                    Spacer(minLength: 0)
+                    itemCount
+                }
             }
-
-            Text(productNamesLine)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
         }
         .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            Text("history.day_a11y \(group.title(locale: locale)) \(countText) \(group.namesPreview)")
+        )
     }
 
-    private var productNamesLine: String {
-        group.items.map(\.displayName).joined(separator: ", ")
+    private var dayTitle: some View {
+        Text(group.title(locale: locale))
+            .font(.headline)
+            .foregroundStyle(.primary)
+    }
+
+    private var itemCount: some View {
+        Text("history.items_count \(group.items.count)")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+    }
+
+    private var namesPreview: some View {
+        Text(group.namesPreview)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+            .truncationMode(.tail)
+    }
+
+    private var countText: String {
+        String(localized: "history.items_count \(group.items.count)", locale: locale)
     }
 }

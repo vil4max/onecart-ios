@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// One archived day, sectioned by category like the cart. Read-only: no swipe, edit or
+/// delete affordance exists here (REQ-SHELL-020, REQ-HIST-050).
 struct HistoryDayDetailView: View {
     @Environment(\.locale) private var locale
     let viewModel: HistoryViewModel
@@ -8,10 +10,19 @@ struct HistoryDayDetailView: View {
     var body: some View {
         // Regrouping the whole history is not free; resolve the live group once per body pass.
         let liveGroup = viewModel.liveGroup(for: group)
+        let sections = liveGroup.categorySections
         List {
-            Section {
-                ForEach(liveGroup.items, id: \.objectID) { item in
-                    HistoryProductRow(item: item)
+            ForEach(Array(sections.enumerated()), id: \.element.category) { offset, section in
+                Section {
+                    ForEach(section.items, id: \.objectID) { item in
+                        HistoryProductRow(item: item)
+                    }
+                } header: {
+                    Label(section.category.localizedTitleKey, systemImage: section.category.symbolName)
+                } footer: {
+                    if offset == sections.count - 1 {
+                        Text("history.read_only_footer")
+                    }
                 }
             }
         }
@@ -21,23 +32,20 @@ struct HistoryDayDetailView: View {
     }
 }
 
+/// One archived line: category tile, name and who bought it; the same shape as `CartProductRow`
+/// without its controls.
 struct HistoryProductRow: View {
     let item: HistoryItemEntity
 
     var body: some View {
         HStack(spacing: 12) {
-            OfficialProductThumbnail(
-                category: item.categoryValue,
-                size: 40
-            )
+            CartCategoryThumbnail(category: item.categoryValue, isDimmed: false)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName)
-                    .font(.body.weight(.semibold))
+                    .font(.body)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 if let boughtBy = item.purchasedByName?
                     .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -46,7 +54,6 @@ struct HistoryProductRow: View {
                     Text("history.bought_by \(boughtBy)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

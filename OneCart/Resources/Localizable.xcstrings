@@ -3009,6 +3009,29 @@
         }
       }
     },
+    "history.day_a11y %@ %@ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@: %3$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@: %3$@"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@: %3$@"
+          }
+        }
+      }
+    },
     "history.day_today": {
       "extractionState": "manual",
       "localizations": {
@@ -3051,6 +3074,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Вчора"
+          }
+        }
+      }
+    },
+    "history.empty_headline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No history yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Истории пока нет"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історії поки немає"
           }
         }
       }
@@ -3253,6 +3299,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Історія"
+          }
+        }
+      }
+    },
+    "history.read_only_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History is a record of what was bought. It cannot be edited."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "История — это запись покупок. Её нельзя изменить."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія — це запис покупок. Її не можна змінити."
           }
         }
       }

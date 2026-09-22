@@ -43,6 +43,31 @@ struct HistoryViewModelTests {
         #expect(viewModel.liveGroup(for: missingDay).items.isEmpty)
     }
 
+    @Test("REQ-SHELL-020: an opened day sections its items by category in cart order and previews the names")
+    func daySectionsByCategoryAndPreviewsNames() async throws {
+        let fixture = try await CartFixture.make()
+        for name in ["Coffee", "Bread", "Apple", "Milk"] {
+            _ = try await fixture.addProduct(named: name, purchased: true)
+        }
+        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
+        await fixture.settle()
+
+        let browser = FakeHistoryBrowser()
+        browser.history = try fixture.history
+        let viewModel = HistoryViewModel(history: browser, calendar: Calendar(identifier: .gregorian))
+
+        let day = try #require(viewModel.dayGroups.first)
+        #expect(day.namesPreview == "Apple, Bread, Coffee, Milk")
+
+        let sections = day.categorySections
+        #expect(sections.map(\.category) == [.dairyEggs, .produce, .bakery, .hotDrinks])
+        #expect(sections.map { $0.items.map(\.displayName) } == [["Milk"], ["Apple"], ["Bread"], ["Coffee"]])
+
+        let emptyDay = HistoryDayGroup(dayStart: day.dayStart, items: [])
+        #expect(emptyDay.categorySections.isEmpty)
+        #expect(emptyDay.namesPreview.isEmpty)
+    }
+
     @Test("REQ-HIST-030: show more is offered only while the session has more and forwards the request")
     func showMoreMirrorsSessionAndForwards() {
         let browser = FakeHistoryBrowser()
