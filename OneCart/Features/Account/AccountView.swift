@@ -257,7 +257,7 @@ struct AccountView: View {
         } header: {
             Text("settings.appearance")
         } footer: {
-            Text("settings.app_icon_footer")
+            Text("settings.theme_footer")
         }
     }
 

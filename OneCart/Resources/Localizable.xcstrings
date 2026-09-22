@@ -5599,48 +5599,48 @@
         }
       }
     },
-    "settings.app_icon": {
+    "settings.theme": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "App icon"
+            "value": "Theme"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Иконка приложения"
+            "value": "Тема"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Іконка програми"
+            "value": "Тема"
           }
         }
       }
     },
-    "settings.app_icon_footer": {
+    "settings.theme_footer": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The icon also sets the app's color."
+            "value": "A theme sets the app icon and the app's color."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Иконка задаёт и цвет приложения."
+            "value": "Тема меняет иконку и цвет приложения."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Іконка також задає колір програми."
+            "value": "Тема змінює іконку та колір програми."
           }
         }
       }

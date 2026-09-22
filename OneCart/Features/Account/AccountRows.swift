@@ -68,7 +68,7 @@ struct AccountMemberRow: View {
     }
 }
 
-/// Icon previews with their names; the selection carries the accent ring.
+/// The theme picker: icon previews with their names; a theme sets the app icon and the accent.
 struct AppIconPickerRow: View {
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var previewSize = 56.0
@@ -78,7 +78,7 @@ struct AppIconPickerRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("settings.app_icon")
+            Text("settings.theme")
 
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 16) {
