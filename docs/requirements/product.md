@@ -25,7 +25,8 @@ a labelled statement *means* — or retiring it — is still an owner decision a
 needs owner approval, exactly as before the IDs existed. Areas are `AUTH`
 (session and account), `CART` (living cart and items), `HIST` (History by day),
 `SHARE` (invite, join, membership), `SYNC` (propagation and merge), `SHELL`
-(tabs, titles, error surface) and `WIDGET` (widgets and notifications). Numbers
+(tabs, titles, error surface), `WIDGET` (widgets and notifications) and `SIRI`
+(Siri and Shortcuts, proposed 2026-09-22). Numbers
 rise in tens so a later statement can be inserted without renumbering; a
 retired ID is never reused.
 
@@ -163,6 +164,18 @@ Proposed 2026-09-22: the owner asked for the feature; the wording below awaits o
 
 **REQ-WIDGET-060** The trip ends immediately when the shopper stops it (in the cart or on the activity), when the cart is emptied, when the active cart or account changes, and on sign out or account deletion. Once every line is checked it shows the all-bought state and is dismissed five minutes later. A trip the shopper swipes away on the Lock Screen is treated as ended. The system's own Live Activity limits (about eight hours) still apply.
 
+## Siri and Shortcuts
+
+Proposed 2026-09-22: the owner asked for the feature; the wording below awaits owner approval.
+
+**REQ-SIRI-010** «Добавь в OneCart» asks what to add and adds name-only lines (REQ-CART-030, REQ-CART-060) to the list the cart screen shows. One request may carry several names separated by commas, semicolons or line breaks; blanks are dropped and a repeated name is added once. A name already on the cart keeps its line (REQ-CART-090). Siri says what was added and what was already there. A signed-out session, a read-only cart or an empty request is refused with a spoken reason.
+
+**REQ-SIRI-020** «Что осталось в OneCart» reads the to-buy names in cart order, at most five followed by how many more remain, or says that the cart is empty or everything is bought. It never changes the cart.
+
+**REQ-SIRI-030** «Я в магазине с OneCart» starts the shopping trip (REQ-WIDGET-040) without opening the app.
+
+**REQ-SIRI-040** The three actions are App Shortcuts with phrases in English, Russian and Ukrainian, and appear in the Shortcuts app. Every phrase names the app; "OneCart" is accepted as an alternative name for "OneCart Family". Siri may launch the app in the background, so a request finishes the app's startup first and follows the normal CloudKit schedule afterwards.
+
 ## Default cart identity
 
 - **REQ-CART-100** Personal cart title starts as `cart.personal_title` from the nickname (fallback `cart.default_title` / OneCart Family). Changing nickname retitles only while the cart still has that auto title; after **Rename cart**, the title is independent.
@@ -240,6 +253,10 @@ core path from [core.md](../core.md), not every suite.
 | REQ-WIDGET-040 | `ShoppingTripActivityTests` → `@Test "the trip shows the cart's progress and its first three lines to buy"`, `@Test "starting requests one activity for this account and cart"`, `@Test "a trip needs lines to buy, a signed-in cart and Live Activities turned on"`, `@Test "the cart offers the trip only when there is something to buy and it can run"`; `HostedCartViewTests` → `@Test "the progress header offers the shopping trip, starts it, then offers to end it"` |
 | REQ-WIDGET-050 | `ShoppingTripActivityTests` → `@Test "the trip follows the cart and skips updates that change nothing"`, `@Test "a relaunched app adopts its running trip and ends leftovers"`; `WidgetSnapshotTests` → `purchaseFromTheTripReachesItAndFinishesIt` |
 | REQ-WIDGET-060 | `ShoppingTripActivityTests` → `@Test "checking the last line shows the finished trip, then dismisses it"`, `@Test "another cart, another account or an emptied cart ends the trip at once"`, `@Test "the stop button ends the trip, and a Lock Screen dismissal is noticed"`, `@Test "the cart control starts the trip, then stops it"`; `WidgetSnapshotTests` → `signOut_endsTheShoppingTrip` |
+| REQ-SIRI-010 | `CartIntentTests` → `splitsSeveralNamesAndDropsBlanksAndRepeats`, `addsNameOnlyLinesAndKeepsExistingOnes`, `refusesAnEmptyRequestOrASignedOutSession`, `speaksWhatWasAddedAndWhatWasAlreadyThere` |
+| REQ-SIRI-020 | `CartIntentTests` → `readsTheLinesStillToBuy`, `speaksAShortListOrTheCartState` |
+| REQ-SIRI-030 | `CartIntentTests` → `startsTheShoppingTrip` |
+| REQ-SIRI-040 | `CartIntentTests` → `everyPhraseIsTranslatedAndNamesTheApp` |
 
 Fragile-test matrix (`F1`–`F11`) to requirement: `F1`, `F3`, `F11` →
 REQ-AUTH-080; `F2` → REQ-AUTH-010; `F4`, `F5`, `F8` → REQ-SYNC-010 and

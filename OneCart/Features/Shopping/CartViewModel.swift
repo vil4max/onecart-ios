@@ -135,7 +135,11 @@ final class CartViewModel {
 
     /// Stable household cart list: prefer the general (no-store) list, else the oldest active.
     var primaryList: ShoppingListEntity? {
-        let lists = state.activeLists
+        Self.primaryList(in: state.activeLists)
+    }
+
+    /// Shared with Siri, so an item said aloud lands on the list the cart screen shows.
+    static func primaryList(in lists: [ShoppingListEntity]) -> ShoppingListEntity? {
         if let general = lists.first(where: { $0.store == nil }) {
             return general
         }
@@ -229,15 +233,7 @@ final class CartViewModel {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !name.isEmpty, let list = primaryList else { return .rejected }
         let existingIDs = Set(products.compactMap(\.id))
-        let draft = ProductDraft(
-            name: name,
-            quantity: 1,
-            unit: .piece,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: 0,
-            note: ""
-        )
-        guard let productID = await cart.addProduct(to: list, draft: draft) else { return .rejected }
+        guard let productID = await cart.addProduct(to: list, draft: .nameOnly(name)) else { return .rejected }
         if existingIDs.contains(productID) {
             flashDuplicateRow(productID)
             return .duplicate(productID)
@@ -298,6 +294,20 @@ final class CartViewModel {
             guard let self, duplicateHighlightID == productID else { return }
             duplicateHighlightID = nil
         }
+    }
+}
+
+extension ProductDraft {
+    /// A name-only line (REQ-CART-030, REQ-CART-060): no price, one piece, inferred category.
+    static func nameOnly(_ name: String) -> ProductDraft {
+        ProductDraft(
+            name: name,
+            quantity: 1,
+            unit: .piece,
+            category: ProductCategory.inferred(from: name),
+            estimatedPrice: 0,
+            note: ""
+        )
     }
 }
 
