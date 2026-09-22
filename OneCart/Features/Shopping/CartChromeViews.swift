@@ -27,9 +27,7 @@ struct CartBusyOverlay: View {
 
 struct ReadOnlyBanner: View {
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "lock.fill")
-                .foregroundStyle(.orange)
+        Label {
             VStack(alignment: .leading, spacing: 3) {
                 Text("cart.read_only_title")
                     .font(.subheadline.bold())
@@ -37,10 +35,15 @@ struct ReadOnlyBanner: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        } icon: {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(.orange)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
+/// Shared with the History tab's empty state; the cart itself uses `ContentUnavailableView`.
 struct EmptyCard: View {
     let image: String
     let title: LocalizedStringKey
@@ -71,36 +74,27 @@ struct EmptyCard: View {
 
 struct CartAllPurchasedHeroCard: View {
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(OneCartPalette.primarySoft)
-                    .frame(width: 58, height: 58)
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.largeTitle.weight(.semibold))
+                .foregroundStyle(OneCartPalette.primaryAccent)
+                .accessibilityHidden(true)
 
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(OneCartPalette.primaryAccent)
-            }
-            .padding(.top, 4)
+            Text("cart.all_purchased_title")
+                .font(.headline)
+                .foregroundStyle(OneCartPalette.primaryAccent)
 
-            VStack(spacing: 4) {
-                Text("cart.all_purchased_title")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(OneCartPalette.primaryAccent)
-
-                Text("cart.all_purchased_subtitle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 12)
-            }
-            .padding(.bottom, 4)
+            Text("cart.all_purchased_subtitle")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
+        .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
         .transition(
             .asymmetric(
-                insertion: .opacity.combined(with: .scale(scale: 0.94)).combined(with: .offset(y: 8)),
+                insertion: .opacity.combined(with: .scale(scale: 0.94)),
                 removal: .opacity
             )
         )

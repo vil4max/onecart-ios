@@ -1,21 +1,10 @@
 import SwiftUI
 
-enum CartNameFocus: Hashable {
-    case compose
-    case edit
-}
-
 struct ProductToggleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.86 : 1.0)
             .animation(.spring(response: 0.22, dampingFraction: 0.65), value: configuration.isPressed)
-    }
-}
-
-struct ProductTitleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
     }
 }
 
@@ -27,11 +16,11 @@ struct ProductPurchaseToggle: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: isPurchased ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 28, weight: .regular))
+                .font(.title2)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.4))
+                .foregroundStyle(isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.5))
                 .contentTransition(.symbolEffect(.replace))
-                .frame(width: 44, height: 44)
+                .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(ProductToggleButtonStyle())
@@ -47,11 +36,13 @@ struct CartCategoryThumbnail: View {
     let category: ProductCategory
     let isDimmed: Bool
 
+    @ScaledMetric(relativeTo: .body) private var size = 36
+
     var body: some View {
         Image(systemName: category.symbolName)
-            .font(.system(size: 17, weight: .semibold))
+            .font(.callout.weight(.semibold))
             .foregroundStyle(OneCartPalette.primaryAccent)
-            .frame(width: 40, height: 40)
+            .frame(width: size, height: size)
             .background(
                 OneCartPalette.primarySoft,
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -62,99 +53,68 @@ struct CartCategoryThumbnail: View {
     }
 }
 
-struct ProductRow: View {
+/// One cart line: category tile, name (tap to rename), who added or completed it, and the check control.
+struct CartProductRow: View {
     let product: ProductEntity
     let canEdit: Bool
-    let isEditing: Bool
-    @Binding var editName: String
-    var editFocused: FocusState<CartNameFocus?>.Binding
-    let isSavingEdit: Bool
-    var showsCategoryLabel: Bool = true
-    var isHighlighted: Bool = false
+    var showsCategoryLabel = false
+    var isHighlighted = false
     let onToggle: () -> Void
-    let onBeginEdit: () -> Void
-    let onSubmitEdit: () -> Void
+    let onRename: () -> Void
+
+    private var isPurchased: Bool {
+        product.isPurchasedValue
+    }
 
     private var resolvedCategory: ProductCategory {
-        // The stored category drives section grouping, so the icon must agree with it.
-        // Keyword inference only previews an in-progress rename or fills a missing category.
+        // The stored category drives section grouping, so the icon must agree with it;
+        // keyword inference only fills a missing category.
         let stored = product.categoryValue
-        let isRenaming = isEditing && editName != product.displayName
-        if stored != .other, !isRenaming {
+        if stored != .other {
             return stored
         }
-        let inferred = ProductCategory.inferred(from: isEditing ? editName : product.displayName)
+        let inferred = ProductCategory.inferred(from: product.displayName)
         return inferred != .other ? inferred : stored
     }
 
     var body: some View {
         HStack(spacing: 12) {
-            CartCategoryThumbnail(
-                category: resolvedCategory,
-                isDimmed: product.isPurchasedValue
-            )
+            CartCategoryThumbnail(category: resolvedCategory, isDimmed: isPurchased)
 
-            if isEditing {
+            Button(action: onRename) {
                 VStack(alignment: .leading, spacing: 2) {
-                    TextField("cart.add_placeholder", text: $editName)
+                    Text(product.displayName)
                         .font(.body)
-                        .focused(editFocused, equals: .edit)
-                        .submitLabel(.done)
-                        .onSubmit(onSubmitEdit)
-                        .disabled(isSavingEdit)
+                        .strikethrough(isPurchased)
+                        .foregroundStyle(isPurchased ? .secondary : .primary)
+                        .multilineTextAlignment(.leading)
+                        .animation(.easeInOut(duration: 0.25), value: isPurchased)
 
-                    Text(resolvedCategory.localizedTitleKey)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if showsCategoryLabel {
+                        Text(resolvedCategory.localizedTitleKey)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let caption {
+                        Text(caption)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 2)
-            } else {
-                Button(action: onBeginEdit) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.displayName)
-                            .font(.body)
-                            .strikethrough(product.isPurchasedValue)
-                            .foregroundStyle(product.isPurchasedValue ? .secondary : .primary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .animation(.easeInOut(duration: 0.25), value: product.isPurchasedValue)
-
-                        if showsCategoryLabel {
-                            Text(resolvedCategory.localizedTitleKey)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        if let productSubtitle {
-                            Text(productSubtitle)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
-                                .lineLimit(1)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 2)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(ProductTitleButtonStyle())
-                .disabled(!canEdit)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disabled(!canEdit)
+            .accessibilityHint(canEdit ? Text("cart.rename_hint") : Text(""))
 
-            ProductPurchaseToggle(
-                isPurchased: product.isPurchasedValue,
-                canEdit: canEdit,
-                action: onToggle
-            )
+            ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
         }
+        .padding(.vertical, 2)
         .background {
-            // Even pill behind the content: always in the hierarchy, only its
-            // opacity animates, so the flash fades smoothly in and out and
-            // looks identical in category sections and the flat trolley list.
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            // Always in the hierarchy so the duplicate flash fades in and out instead of popping.
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(OneCartPalette.primarySoft)
                 .padding(.vertical, -6)
                 .padding(.horizontal, -8)
@@ -164,8 +124,8 @@ struct ProductRow: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var productSubtitle: LocalizedStringKey? {
-        if product.isPurchasedValue {
+    private var caption: LocalizedStringKey? {
+        if isPurchased {
             if let purchasedByName = product.purchasedByName?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                 !purchasedByName.isEmpty

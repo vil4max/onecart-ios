@@ -86,7 +86,7 @@
           "path": "Shopping",
           "children": [
             { "path": "CartProductRow.swift", "target-membership": [ "OneCart/compile-sources" ] },
-            { "path": "CartAddFAB.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "CartAddComposer.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartProgressAccessory.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartConfettiView.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "HomeView.swift", "target-membership": [ "OneCart/compile-sources" ] },

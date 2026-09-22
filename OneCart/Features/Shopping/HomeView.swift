@@ -8,11 +8,9 @@ struct HomeView: View {
             Group {
                 if !viewModel.hasActiveFamilySpace {
                     householdBootstrapContent
-                        .padding(.horizontal, 20)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(OneCartPalette.background.ignoresSafeArea())
                         .navigationTitle(viewModel.cartTitle)
-                        .navigationBarTitleDisplayMode(.inline)
                         .task(id: viewModel.householdBootstrapTaskID) {
                             await viewModel.ensureHouseholdCartIfNeeded()
                         }
@@ -20,24 +18,23 @@ struct HomeView: View {
                     ShoppingListView(viewModel: viewModel)
                 } else {
                     ScrollView {
-                        HomeEmptyCartPanel(
-                            cartName: viewModel.cartTitle
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
+                        ContentUnavailableView {
+                            Label("cart.empty_title", systemImage: "cart.badge.plus")
+                        } description: {
+                            Text("home.empty_hint")
+                        }
+                        .containerRelativeFrame(.vertical)
                     }
                     .refreshable {
                         await viewModel.sync(reason: .pull)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .background(OneCartPalette.background.ignoresSafeArea())
                     .navigationTitle(viewModel.cartTitle)
-                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            if viewModel.isCartSyncing {
+                        if viewModel.isCartSyncing {
+                            ToolbarItem(placement: .topBarTrailing) {
                                 ProgressView()
-                                    .controlSize(.mini)
+                                    .controlSize(.small)
                                     .accessibilityLabel(Text("cart.updating"))
                             }
                         }
@@ -50,85 +47,28 @@ struct HomeView: View {
     @ViewBuilder
     private var householdBootstrapContent: some View {
         if viewModel.householdCartBootstrapFailed {
-            HomeConnectFailedPanel {
-                Task { await viewModel.retryHouseholdCartBootstrap() }
+            ContentUnavailableView {
+                Label("home.connect_failed_title", systemImage: "icloud.slash")
+            } description: {
+                Text("home.connect_failed_message")
+            } actions: {
+                Button("welcome.try_again") {
+                    Task { await viewModel.retryHouseholdCartBootstrap() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(OneCartPalette.primary)
             }
         } else {
-            HomeConnectingCartPanel()
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("home.connecting_cart")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(24)
+            .accessibilityElement(children: .combine)
         }
-    }
-}
-
-private struct HomeConnectingCartPanel: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .controlSize(.large)
-            Text("home.connecting_cart")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(24)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-    }
-}
-
-private struct HomeConnectFailedPanel: View {
-    let onRetry: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("home.connect_failed_title")
-                .font(.headline)
-                .multilineTextAlignment(.center)
-            Text("home.connect_failed_message")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button("welcome.try_again", action: onRetry)
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(24)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-    }
-}
-
-private struct HomeEmptyCartPanel: View {
-    let cartName: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(cartName)
-                .font(.title2.bold())
-            Text("home.empty_hint")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            OneCartPalette.surface,
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-        .padding(.top, 8)
-    }
-}
-
-struct HomePressButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.78 : 1)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
