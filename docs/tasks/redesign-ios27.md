@@ -10,7 +10,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: brief written; no code changed yet.
+Current outcome: Phase 1 landed on `main` (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 and Phase 3 T2 in progress.
 Authorized scope (owner, 2026-09-22, three decisions):
 
 1. Redesign every screen for iOS 26/27 idioms; the information architecture stays: three tabs
@@ -115,3 +115,17 @@ the demo UI, push and `tf-1.6.0-1` on the owner's word, flow report to the kit s
 
 - 2026-09-22, `main` 86bb72d: baseline `just verify` green (227 tests); coverage figures above
   from the xcresult of that run.
+- 2026-09-22, S1 `c07dbe5` (from writer A `4081ece`): `AppSession`, `CartSyncService`,
+  `CartContentStore`, `InviteLinkPreparer`, `DevicePreferences` are `@MainActor @Observable`;
+  Combine bridges and `objectWillChange` gone; `just verify` OK, 227 tests.
+- 2026-09-22, S2 `7be3b4a`, `cdf6bec` (from writer B): nine role protocols in
+  `Application/Services/`, declarative conformances in `AppSession+Services.swift`, four
+  `@Observable` ViewModels, fakes and 36 Swift Testing cases; `just verify` OK.
+- 2026-09-22, S3 `6ddc3d2`: screens wired to ViewModels at the screen boundary
+  (`RootSessionView`, `MainTabView`); no `AppSession` symbol in `Features/`; no
+  `ObservableObject`/`@StateObject`/Combine in the app target; `just verify` OK; simulator
+  smoke of welcome, cart, history, settings matched the previous rendering.
+- Coverage after Phase 1: app 47.77 % (8143/17047); screens still 0 % by design (ViewModels
+  carry the logic now).
+- Edge case (harness): agent worktrees are created from `origin/main`, not local `HEAD`; every
+  writer prompt now starts with `git reset --hard main`.
