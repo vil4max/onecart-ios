@@ -116,52 +116,6 @@
         }
       }
     },
-    "account.cart_status_member_footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cart and History show this shared list. Leave to return to your personal cart."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Корзина и История показывают этот общий список. «Покинуть» вернёт вашу личную корзину."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Кошик і Історія показують цей спільний список. «Залишити» поверне ваш особистий кошик."
-          }
-        }
-      }
-    },
-    "account.cart_status_owner_footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invite family from below. You control the invite link."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Приглашайте семью ниже. Ссылку-приглашение контролируете вы."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запрошуйте родину нижче. Посилання-запрошення контролюєте ви."
-          }
-        }
-      }
-    },
     "account.cart_status_section": {
       "extractionState": "manual",
       "localizations": {
@@ -1000,29 +954,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Будь-хто за посиланням може приєднатися і редагувати кошик. Відкличте посилання, щоб закрити вхід для нових."
-          }
-        }
-      }
-    },
-    "account.sharing_section": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sharing"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Общий доступ"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спільний доступ"
           }
         }
       }
@@ -3805,29 +3736,6 @@
         }
       }
     },
-    "settings.session_footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign out ends the Apple session on this device and returns to Welcome. Cart data in iCloud is kept; you can sign in again. This does not sign out of iCloud on the device."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выход завершает сессию Apple на этом устройстве и возвращает на Welcome. Данные корзины в iCloud сохраняются; войти снова можно позже. Из iCloud на устройстве вы не выходите."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вихід завершує сесію Apple на цьому пристрої і повертає на Welcome. Дані кошика в iCloud зберігаються; увійти знову можна пізніше. З iCloud на пристрої ви не виходите."
-          }
-        }
-      }
-    },
     "settings.session_section": {
       "extractionState": "manual",
       "localizations": {
@@ -3847,29 +3755,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сесія"
-          }
-        }
-      }
-    },
-    "settings.apple_section": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Signed in"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вход выполнен"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вхід виконано"
           }
         }
       }
@@ -3962,52 +3847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Налаштування"
-          }
-        }
-      }
-    },
-    "settings.language": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Language"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Язык"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Мова"
-          }
-        }
-      }
-    },
-    "settings.theme": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theme"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Тема"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Тема"
           }
         }
       }
@@ -5553,29 +5392,6 @@
         }
       }
     },
-    "settings.accent_color": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accent color"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Цветовой акцент"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Колірний акцент"
-          }
-        }
-      }
-    },
     "icon.classic": {
       "extractionState": "manual",
       "localizations": {
@@ -5687,6 +5503,75 @@
           "stringUnit": {
             "state": "translated",
             "value": "Іконка програми"
+          }
+        }
+      }
+    },
+    "settings.app_icon_footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The icon also sets the app's color."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Иконка задаёт и цвет приложения."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Іконка також задає колір програми."
+          }
+        }
+      }
+    },
+    "settings.app_settings_row": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language, notifications and more"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык, уведомления и другое"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мова, сповіщення та інше"
+          }
+        }
+      }
+    },
+    "settings.app_settings_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens OneCart Family in the Settings app."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает OneCart Family в приложении «Настройки»."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкриває OneCart Family у програмі «Параметри»."
           }
         }
       }

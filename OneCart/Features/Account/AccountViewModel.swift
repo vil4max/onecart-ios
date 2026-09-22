@@ -129,15 +129,7 @@ final class AccountViewModel {
         }
     }
 
-    var cartSectionFooterKey: LocalizedStringKey {
-        if state.access?.isParticipant == true {
-            "account.cart_status_member_footer"
-        } else {
-            "account.cart_status_owner_footer"
-        }
-    }
-
-    /// The invite-door explanation under the Sharing section (REQ-SHARE-060, REQ-SHARE-110).
+    /// The invite-door explanation under the cart section (REQ-SHARE-060, REQ-SHARE-110).
     var sharingSectionFooterKey: LocalizedStringKey {
         if state.access?.isOwner == true {
             "account.share_link_warning"
@@ -259,6 +251,7 @@ final class AccountViewModel {
     func selectAppIcon(_ option: AppIconOption) async {
         guard state.preferences.appIcon != option else { return }
         state.preferences.appIcon = option
+        state.preferences.accentColor = option.accent
         await iconSwitcher.setAlternateIcon(to: option)
     }
 

@@ -301,15 +301,12 @@ struct AccountViewModelFakeTests {
     func roleCopyFollowsAccess() throws {
         let harness = try AccountHarness()
         #expect(harness.viewModel.cartRoleLineKey == "account.role_owner_status")
-        #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_owner_footer")
 
         harness.state.access = .owner
-        #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_owner_footer")
         #expect(harness.viewModel.sharingSectionFooterKey == "account.share_link_warning")
 
         harness.state.access = .member
         #expect(harness.viewModel.cartRoleLineKey == "account.role_member_status")
-        #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_member_footer")
         #expect(harness.viewModel.sharingSectionFooterKey == "account.share_link_member_hint")
     }
 
@@ -363,7 +360,7 @@ struct AccountViewModelFakeTests {
         #expect(harness.viewModel.displayNameCaptionKey == "settings.apple_edit_name")
     }
 
-    @Test("REQ-SHELL-030: choosing an app icon persists the preference and asks the system once")
+    @Test("REQ-SHELL-030: choosing an app icon sets its accent, persists the preference and asks the system once")
     func selectAppIconPersistsAndForwards() async throws {
         let harness = try AccountHarness()
         #expect(harness.isolated.preferences.appIcon == .classic)
@@ -372,11 +369,16 @@ struct AccountViewModelFakeTests {
         await harness.viewModel.selectAppIcon(.ocean)
 
         #expect(harness.isolated.preferences.appIcon == .ocean)
+        #expect(harness.isolated.preferences.accentColor == .ocean)
         #expect(harness.iconSwitcher.requestedIcons == [.ocean])
 
         harness.iconSwitcher.result = false
         await harness.viewModel.selectAppIcon(.sunset)
         #expect(harness.isolated.preferences.appIcon == .sunset)
+        #expect(harness.isolated.preferences.accentColor == .sunset)
         #expect(harness.iconSwitcher.requestedIcons == [.ocean, .sunset])
+
+        await harness.viewModel.selectAppIcon(.classic)
+        #expect(harness.isolated.preferences.accentColor == .emerald)
     }
 }

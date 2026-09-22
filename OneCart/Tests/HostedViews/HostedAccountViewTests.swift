@@ -78,15 +78,27 @@ struct HostedAccountViewTests {
 
         #expect(hosted.element(identifier: "account.display_name")?.label == "Alex")
         #expect(hosted.element(identifier: "account.sign_out")?.label == String(localized: "account.sign_out"))
-        #expect(hosted.containsLabel(String(localized: "settings.accent_color")))
-        // The swatches sit in a horizontal scroll view that joins the tree a layout pass later.
+        // Appearance is the icon alone (it sets the accent); no accent palette, theme or
+        // language picker; one row opens the app's page in the system Settings.
+        #expect(!hosted.containsLabel(String(localized: "accent.berry")))
+        #expect(!hosted.containsLabel(String(localized: "theme.dark")))
         #expect(await hosted.pump {
-            AppAccentColor.allCases.allSatisfy { hosted.element(label: $0.title) != nil }
+            AppIconOption.allCases.allSatisfy { hosted.element(label: $0.title) != nil }
         })
-        for color in AppAccentColor.allCases {
-            let swatch = try #require(hosted.element(label: color.title))
-            #expect(swatch.isSelected == (color == harness.isolated.preferences.accentColor))
+        for option in AppIconOption.allCases {
+            let icon = try #require(hosted.element(label: option.title))
+            #expect(icon.isSelected == (option == harness.isolated.preferences.appIcon))
         }
+        let appSettings = try #require(hosted.element(identifier: "account.app_settings"))
+        #expect(appSettings.isButton)
+        #expect(appSettings.label == String(localized: "settings.app_settings_row"))
+        // Sections read cart → appearance → account.
+        let identifiers = hosted.identifiers
+        let shareIndex = try #require(identifiers.firstIndex(of: "account.share_cart"))
+        let settingsIndex = try #require(identifiers.firstIndex(of: "account.app_settings"))
+        let nameIndex = try #require(identifiers.firstIndex(of: "account.display_name"))
+        #expect(shareIndex < settingsIndex)
+        #expect(settingsIndex < nameIndex)
         let deleteAccount = try #require(hosted.element(identifier: "account.delete_account"))
         #expect(deleteAccount.isButton)
         #expect(deleteAccount.isEnabled)
@@ -182,8 +194,10 @@ struct HostedAccountViewTests {
             return hosted.element(identifier: "account.delete_account")?.isEnabled == false
         })
 
-        let next = try #require(AppAccentColor.allCases.first { $0 != harness.isolated.preferences.accentColor })
-        harness.isolated.preferences.accentColor = next
-        #expect(await hosted.pump { hosted.element(label: next.title)?.isSelected == true })
+        let icon = try #require(hosted.element(label: AppIconOption.ocean.title))
+        #expect(icon.activate())
+        #expect(await hosted.pump { harness.isolated.preferences.accentColor == .ocean })
+        #expect(harness.iconSwitcher.requestedIcons == [.ocean])
+        #expect(await hosted.pump { hosted.element(label: AppIconOption.ocean.title)?.isSelected == true })
     }
 }

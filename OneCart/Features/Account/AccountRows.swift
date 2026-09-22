@@ -68,51 +68,6 @@ struct AccountMemberRow: View {
     }
 }
 
-/// A row of glass swatches; the selection shows a check and reads as selected to VoiceOver.
-struct AccentColorPickerRow: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .body) private var swatchSize = 40.0
-    @Binding var selection: AppAccentColor
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("settings.accent_color")
-
-            ScrollView(.horizontal) {
-                GlassEffectContainer(spacing: 12) {
-                    HStack(spacing: 12) {
-                        ForEach(AppAccentColor.allCases) { color in
-                            Button {
-                                withAnimation(.snappy) { selection = color }
-                            } label: {
-                                Image(systemName: "checkmark")
-                                    .font(.body.weight(.bold))
-                                    .foregroundStyle(.white)
-                                    .opacity(selection == color ? 1 : 0)
-                                    .frame(width: swatchSize, height: swatchSize)
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(
-                                .regular
-                                    .tint(OneCartPalette.primary(for: colorScheme, accent: color))
-                                    .interactive(),
-                                in: .circle
-                            )
-                            .accessibilityLabel(Text(color.localizedTitleKey))
-                            .accessibilityAddTraits(selection == color ? .isSelected : [])
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-            .scrollIndicators(.hidden)
-            .scrollClipDisabled()
-        }
-        .padding(.vertical, 4)
-        .sensoryFeedback(.selection, trigger: selection)
-    }
-}
-
 /// Icon previews with their names; the selection carries the accent ring.
 struct AppIconPickerRow: View {
     @Environment(\.colorScheme) private var colorScheme

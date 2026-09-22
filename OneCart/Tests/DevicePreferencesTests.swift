@@ -29,66 +29,35 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertFalse(ParticipantDisplayName.isPlaceholder("Папа"))
     }
 
-    func testThemeDefaultsToSystemAndPersists() throws {
+    /// REQ-SHELL-030: the app follows the device appearance; a theme stored by an older version
+    /// is dropped at launch, and the widget's copy is reset with it.
+    func testThemeFollowsTheDeviceAtLaunch() throws {
         let defaults = try makeDefaults()
+        defaults.set("dark", forKey: "onecart.theme")
         let preferences = DevicePreferences(defaults: defaults)
         XCTAssertEqual(preferences.theme, .system)
-
-        preferences.theme = .dark
-        XCTAssertEqual(preferences.theme, .dark)
-        XCTAssertEqual(defaults.string(forKey: "onecart.theme"), "dark")
-
-        let reloaded = DevicePreferences(defaults: defaults)
-        XCTAssertEqual(reloaded.theme, .dark)
+        XCTAssertNil(preferences.theme.colorScheme)
 
         defaults.set("light", forKey: "onecart.theme")
-        reloaded.reloadFromDefaults()
-        XCTAssertEqual(reloaded.theme, .light)
-
-        defaults.set("invalid-theme", forKey: "onecart.theme")
-        reloaded.reloadFromDefaults()
-        XCTAssertEqual(reloaded.theme, .system)
+        preferences.reloadFromDefaults()
+        XCTAssertEqual(preferences.theme, .system)
     }
 
-    func testLanguageDefaultsToSystemAndPersists() throws {
+    /// REQ-SHELL-030: the language comes from the system (per-app language in iOS Settings); a
+    /// language stored by an older version is dropped without touching `AppleLanguages`.
+    func testLanguageFollowsTheSystemAndKeepsAppleLanguages() throws {
         let defaults = try makeDefaults()
+        defaults.set("uk", forKey: "onecart.language")
+        defaults.set(["uk"], forKey: "AppleLanguages")
         let preferences = DevicePreferences(defaults: defaults)
         XCTAssertEqual(preferences.language, .system)
-        XCTAssertNil(preferences.language.languageCode)
-
-        preferences.language = .english
-        XCTAssertEqual(preferences.language, .english)
-        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "en")
-        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["en"])
-        XCTAssertEqual(preferences.effectiveLocale.identifier, "en")
-
-        preferences.language = .ukrainian
-        XCTAssertEqual(preferences.language, .ukrainian)
-        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "uk")
+        XCTAssertNil(defaults.string(forKey: "onecart.language"))
         XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
-        XCTAssertEqual(preferences.effectiveLocale.identifier, "uk")
 
-        preferences.language = .russian
-        XCTAssertEqual(preferences.language, .russian)
-        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "ru")
-        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["ru"])
-        XCTAssertEqual(preferences.effectiveLocale.identifier, "ru")
-
-        preferences.language = .system
+        defaults.set("ru", forKey: "onecart.language")
+        preferences.reloadFromDefaults()
         XCTAssertEqual(preferences.language, .system)
-        XCTAssertEqual(defaults.string(forKey: "onecart.language"), "system")
-        XCTAssertNotEqual(defaults.stringArray(forKey: "AppleLanguages"), ["ru"])
-
-        let reloaded = DevicePreferences(defaults: defaults)
-        XCTAssertEqual(reloaded.language, .system)
-
-        defaults.set("uk", forKey: "onecart.language")
-        reloaded.reloadFromDefaults()
-        XCTAssertEqual(reloaded.language, .ukrainian)
-
-        defaults.set("unknown-code", forKey: "onecart.language")
-        reloaded.reloadFromDefaults()
-        XCTAssertEqual(reloaded.language, .system)
+        XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
     }
 
     func testAppLanguagePropertiesAndLocales() {
@@ -168,29 +137,34 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertEqual(subject, dummyLink.shareTitle)
     }
 
-    func testAccentColorDefaultsToEmeraldAndPersists() throws {
+    /// REQ-SHELL-030: the accent follows the app icon; an accent stored by an older version
+    /// (including berry and coral, which no icon carries) gives way to the icon's accent.
+    func testAccentFollowsTheAppIconAtLaunch() throws {
         let defaults = try makeDefaults()
         let preferences = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(preferences.appIcon, .classic)
         XCTAssertEqual(preferences.accentColor, .emerald)
         XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
 
-        preferences.accentColor = .ocean
-        XCTAssertEqual(preferences.accentColor, .ocean)
+        defaults.set("ocean", forKey: "onecart.app-icon")
+        defaults.set("berry", forKey: "onecart.accent-color")
+        let reloaded = DevicePreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.accentColor, .ocean)
         XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "ocean")
         XCTAssertEqual(OneCartPalette.currentAccent, .ocean)
 
-        let reloaded = DevicePreferences(defaults: defaults)
-        XCTAssertEqual(reloaded.accentColor, .ocean)
-
-        defaults.set("sunset", forKey: "onecart.accent-color")
+        defaults.set("midnight", forKey: "onecart.app-icon")
+        defaults.set("coral", forKey: "onecart.accent-color")
         reloaded.reloadFromDefaults()
         XCTAssertEqual(reloaded.accentColor, .sunset)
         XCTAssertEqual(OneCartPalette.currentAccent, .sunset)
+    }
 
-        defaults.set("invalid-accent", forKey: "onecart.accent-color")
-        reloaded.reloadFromDefaults()
-        XCTAssertEqual(reloaded.accentColor, .emerald)
-        XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
+    func testEveryAppIconCarriesAnAccent() {
+        XCTAssertEqual(AppIconOption.classic.accent, .emerald)
+        XCTAssertEqual(AppIconOption.ocean.accent, .ocean)
+        XCTAssertEqual(AppIconOption.sunset.accent, .sunset)
+        XCTAssertEqual(AppIconOption.midnight.accent, .sunset)
     }
 
     func testAccentAndThemeChangeCallbacks() throws {

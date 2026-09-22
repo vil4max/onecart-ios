@@ -1,6 +1,11 @@
 import SwiftUI
 
 struct AccountView: View {
+    /// The app's own page in the system Settings: language, notifications and permissions.
+    /// `openSettingsURLString` is a system constant that always parses as a URL.
+    private static let appSettingsURL = URL(string: UIApplication.openSettingsURLString)!
+
+    @Environment(\.openURL) private var openURL
     @Bindable var viewModel: AccountViewModel
     /// Device preferences outlive the screen; the pickers bind straight to them.
     @Bindable private var preferences: DevicePreferences
@@ -12,13 +17,11 @@ struct AccountView: View {
 
     var body: some View {
         NavigationStack {
+            // Grouped by what the person is doing: the shared cart, how the app looks, and
+            // their account; the rest (language, notifications) lives in the system Settings.
             Form {
                 cartSection
-                if viewModel.hasActiveFamilySpace {
-                    sharingSection
-                }
-                signedInSection
-                lookAndFeelSection
+                appearanceSection
                 accountSection
                 aboutFooter
             }
@@ -152,6 +155,13 @@ struct AccountView: View {
                 }
             }
 
+            if viewModel.hasActiveFamilySpace {
+                shareRow
+                if viewModel.canRevokeInvite {
+                    revokeRow
+                }
+            }
+
             if viewModel.canLeaveCart {
                 Button("account.leave_cart", role: .destructive) {
                     viewModel.confirmingLeave = true
@@ -161,7 +171,7 @@ struct AccountView: View {
         } header: {
             Text("settings.cart_section")
         } footer: {
-            Text(viewModel.cartSectionFooterKey)
+            Text(viewModel.sharingSectionFooterKey)
         }
     }
 
@@ -196,40 +206,62 @@ struct AccountView: View {
         }
     }
 
-    private var sharingSection: some View {
-        Section {
-            Button {
-                viewModel.shareCart()
-            } label: {
-                LabeledContent {
-                    if viewModel.isSharing {
-                        ProgressView()
-                    }
-                } label: {
-                    Label("account.share_cart", systemImage: "square.and.arrow.up")
+    private var shareRow: some View {
+        Button {
+            viewModel.shareCart()
+        } label: {
+            HStack {
+                Label("account.share_cart", systemImage: "square.and.arrow.up")
+                if viewModel.isSharing {
+                    Spacer()
+                    ProgressView()
                 }
             }
-            .disabled(!viewModel.canShareCart)
-            .accessibilityHint(Text("account.share_cart_hint"))
-            .accessibilityIdentifier("account.share_cart")
+        }
+        .disabled(!viewModel.canShareCart)
+        .accessibilityHint(Text("account.share_cart_hint"))
+        .accessibilityIdentifier("account.share_cart")
+    }
 
-            if viewModel.canRevokeInvite {
-                Button {
-                    viewModel.confirmingRevokeInvite = true
-                } label: {
-                    Label("account.revoke_invite", systemImage: "person.badge.minus")
-                }
-                .disabled(viewModel.isBusy || !viewModel.isOnline)
-                .accessibilityIdentifier("account.revoke_invite")
+    private var revokeRow: some View {
+        Button {
+            viewModel.confirmingRevokeInvite = true
+        } label: {
+            Label("account.revoke_invite", systemImage: "person.badge.minus")
+        }
+        .disabled(viewModel.isBusy || !viewModel.isOnline)
+        .accessibilityIdentifier("account.revoke_invite")
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            AppIconPickerRow(selection: preferences.appIcon, accent: preferences.accentColor) { option in
+                Task { await viewModel.selectAppIcon(option) }
             }
+
+            Button {
+                openURL(Self.appSettingsURL)
+            } label: {
+                HStack {
+                    Label("settings.app_settings_row", systemImage: "gear")
+                    Spacer()
+                    Image(systemName: "arrow.up.forward")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .tint(.primary)
+            .accessibilityHint(Text("settings.app_settings_hint"))
+            .accessibilityIdentifier("account.app_settings")
         } header: {
-            Text("account.sharing_section")
+            Text("settings.appearance")
         } footer: {
-            Text(viewModel.sharingSectionFooterKey)
+            Text("settings.app_icon_footer")
         }
     }
 
-    private var signedInSection: some View {
+    private var accountSection: some View {
         Section {
             if let account = viewModel.account {
                 Button {
@@ -259,43 +291,7 @@ struct AccountView: View {
                 viewModel.confirmingSignOut = true
             }
             .accessibilityIdentifier("account.sign_out")
-        } header: {
-            Text("settings.apple_section")
-        } footer: {
-            Text("settings.session_footer")
-        }
-    }
 
-    private var lookAndFeelSection: some View {
-        Section("settings.appearance") {
-            AccentColorPickerRow(selection: $preferences.accentColor)
-
-            AppIconPickerRow(selection: preferences.appIcon, accent: preferences.accentColor) { option in
-                Task { await viewModel.selectAppIcon(option) }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("settings.theme")
-                Picker("settings.theme", selection: $preferences.theme) {
-                    ForEach(AppTheme.allCases) { theme in
-                        Text(theme.localizedTitleKey).tag(theme)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            .padding(.vertical, 4)
-
-            Picker("settings.language", selection: $preferences.language) {
-                ForEach(AppLanguage.allCases) { language in
-                    Text(language.localizedTitleKey).tag(language)
-                }
-            }
-        }
-    }
-
-    private var accountSection: some View {
-        Section {
             Button(role: .destructive) {
                 viewModel.confirmingDeleteAccount = true
             } label: {

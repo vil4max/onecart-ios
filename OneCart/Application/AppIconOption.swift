@@ -60,6 +60,16 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The app's accent follows the chosen icon; Midnight's amber check reads as Sunset.
+    public var accent: AppAccentColor {
+        switch self {
+        case .classic: .emerald
+        case .midnight: .sunset
+        case .ocean: .ocean
+        case .sunset: .sunset
+        }
+    }
+
     public var accentColor: Color {
         switch self {
         case .classic:
