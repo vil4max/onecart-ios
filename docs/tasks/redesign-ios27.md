@@ -10,7 +10,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: Phase 1 landed on `main` (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 and Phase 3 T2 in progress.
+Current outcome: Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf) landed, R4 in progress; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
 Authorized scope (owner, 2026-09-22, three decisions):
 
 1. Redesign every screen for iOS 26/27 idioms; the information architecture stays: three tabs
@@ -20,9 +20,14 @@ Authorized scope (owner, 2026-09-22, three decisions):
    per screen with initializer-injected protocols, and screens that no longer reach
    `AppSession` directly. `AppSession` stays the composition root and app state; its public
    surface is split into service protocols.
-3. Tests: ViewModel and service tests only, no XCUITest and no snapshot library. Targets:
+3. Tests: ViewModel and service tests, no XCUITest and no snapshot library. Targets:
    app-target line coverage ≥ 70 % (46.28 % at the start) and 49/49 requirements traced by
-   `spec_trace.py` (42/49 at the start).
+   `spec_trace.py` (42/49 at the start). Amended by the owner on 2026-09-22: hosted-view
+   tests are allowed (ordinary unit tests that mount a screen in a `UIHostingController` over
+   fakes), because screens are ~30 % of the executable lines and the target is unreachable
+   while they stay at 0 %.
+4. Owner, 2026-09-22: the category-refinement race found by T2 is fixed in this round,
+   spec-first (REQ-CART-020).
 
 Permitted deviations: commit per slice is authorized (owner, 2026-09-22, "готовь" flow of the
 previous tasks); push and tf- tags only on the owner's word in the session. No new
@@ -129,3 +134,25 @@ the demo UI, push and `tf-1.6.0-1` on the owner's word, flow report to the kit s
   carry the logic now).
 - Edge case (harness): agent worktrees are created from `origin/main`, not local `HEAD`; every
   writer prompt now starts with `git reset --hard main`.
+- 2026-09-22, T2 `1974e08`, `c6333ce`, `c28edce`, `09b3a8f`, `679f08d`: 47 Swift Testing
+  cases for the invite link builder, the backend's pre-container decisions, membership gates,
+  cart mutations and notifier storage; REQ-SHARE-040 traced; app coverage 49.76 %.
+- 2026-09-22, R1 `0c71038`, `ee69575`: progress strip as the tab bar accessory (text-only
+  inline and at accessibility sizes); glass add button morphing into the composer; native
+  inset-grouped list with swipe actions, rename alert, members toolbar button, no share
+  button; `ShoppingListView` 583 → ~250 lines; `-oneCartDemoComposer` DEBUG launch argument
+  for screenshots. Deltas within the requirements: rename via alert, members button always
+  visible, busy overlay delayed 400 ms.
+- 2026-09-22, R2 `365d9d6`, `73df937`: Settings as a native `Form` (401 → 317 lines,
+  `ProfileView` deleted, `AppIconSwitching` injected into `AccountViewModel`, 5 new ViewModel
+  tests); Welcome restyled with system components. Destructive confirmations are dialogs.
+- 2026-09-22, R1 + R2 on `main`: `just verify` OK; app coverage 53.67 % (executable lines
+  17 047 → 15 561 as custom chrome went away).
+- 2026-09-22, `dc57799`: category refinement no longer rewrites a renamed row — spec
+  "REQ-CART-020: a rename during category refinement keeps the new name and its category"
+  failed on the old code, passes after the fix; classifier injected; refinement writes only
+  the category and is cancelled by a newer edit, delete or sign-out.
+- 2026-09-22, R3 `4eb54cf`: History as a native day list with type-safe navigation to a
+  read-only, category-sectioned day detail; `EmptyCard` removed; app coverage 53.90 %.
+  Open: `HistoryItemEntity` has no `createdByName` (no "added by" caption in the detail);
+  `OfficialProductThumbnail` in `Shared/Media/ProductMedia.swift` is now unused.
