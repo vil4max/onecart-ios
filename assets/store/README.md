@@ -21,6 +21,10 @@ submitted with the older 1.0-era set; these replace it in the 1.6.0 version reco
 | 3 | `03-history.png` | History |
 | 4 | `04-settings.png` | Settings |
 
+App Store Connect's iPhone 6.5" slot takes only 1242 × 2688 or 1284 × 2778. `screenshots/asc-6.5/`
+(and `asc-6.5/ru/`) holds the same set for it: scaled to 1284 px wide, then cropped 6 px from the
+top and bottom to 2778 px (`sips --resampleWidth 1284`, `sips --cropToHeightWidth 2778 1284`).
+
 How the set is made (Debug build, `just run-sim`, the session's own simulator):
 
 - Device iPhone 17 on iOS 27 (1206 × 2622), scaled to 1320 × 2868; the aspect ratios
