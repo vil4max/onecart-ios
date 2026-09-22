@@ -355,6 +355,7 @@ extension AppSession {
         if shouldRetitlePersonalCart {
             await syncPersonalCartNameWithParticipant()
         }
+        await publishMemberProfile()
     }
 
     private func personalCartStillFollowsParticipantName() -> Bool {

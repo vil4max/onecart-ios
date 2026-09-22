@@ -120,6 +120,9 @@ final class AppSession {
     let appleSignIn: AppleSignInAuthenticating
     let categoryClassifier: any CategoryClassifying
     let defaults: UserDefaults
+    let cloudUserIdentity: any CloudUserIdentifying
+    /// This user's CloudKit record name once iCloud reported it; keys the shared member profile.
+    var currentUserRecordName: String?
     /// In-flight category refinements by product ID; a rename cancels the refinement of the
     /// old name so it can never write over the new one.
     var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]
@@ -137,7 +140,8 @@ final class AppSession {
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
         widgetStore: WidgetSnapshotStore = .shared,
-        categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared
+        categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared,
+        cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
@@ -154,6 +158,7 @@ final class AppSession {
         let backend = backend ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
         self.backend = backend
+        self.cloudUserIdentity = cloudUserIdentity ?? backend
         self.accountCloudDataDeleter = accountCloudDataDeleter ?? backend
         self.accountLocalStorePreparer = accountLocalStorePreparer ?? persistence
         cartSync = CartSyncService(persistence: persistence)

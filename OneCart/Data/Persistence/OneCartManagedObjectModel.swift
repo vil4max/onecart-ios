@@ -11,7 +11,7 @@ enum OneCartManagedObjectModel {
 
     private static func buildModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
-        model.versionIdentifiers = ["OneCartCoreDataV7"]
+        model.versionIdentifiers = ["OneCartCoreDataV8"]
 
         let familySpace = entity("FamilySpace", FamilySpace.self)
         let store = entity("Store", StoreEntity.self)
@@ -19,6 +19,7 @@ enum OneCartManagedObjectModel {
         let product = entity("Product", ProductEntity.self)
         let history = entity("PurchaseHistory", PurchaseHistoryEntity.self)
         let historyItem = entity("HistoryItem", HistoryItemEntity.self)
+        let memberProfile = entity("MemberProfile", MemberProfileEntity.self)
 
         let relationships = makeRelationships(
             familySpace: familySpace,
@@ -26,7 +27,8 @@ enum OneCartManagedObjectModel {
             list: list,
             product: product,
             history: history,
-            historyItem: historyItem
+            historyItem: historyItem,
+            memberProfile: memberProfile
         )
 
         familySpace.properties = makeFamilySpaceProperties(relationships)
@@ -35,8 +37,9 @@ enum OneCartManagedObjectModel {
         product.properties = makeProductProperties(relationships)
         history.properties = makeHistoryProperties(relationships)
         historyItem.properties = makeHistoryItemProperties(relationships)
+        memberProfile.properties = makeMemberProfileProperties(relationships)
 
-        model.entities = [familySpace, store, list, product, history, historyItem]
+        model.entities = [familySpace, store, list, product, history, historyItem, memberProfile]
         return model
     }
 
@@ -53,6 +56,7 @@ enum OneCartManagedObjectModel {
         let storeHistory, historyStore: NSRelationshipDescription
         let listProducts, productList: NSRelationshipDescription
         let historyItems, itemHistory: NSRelationshipDescription
+        let familyMemberProfiles, memberProfileFamily: NSRelationshipDescription
     }
 
     private static func makeRelationships(
@@ -61,7 +65,8 @@ enum OneCartManagedObjectModel {
         list: NSEntityDescription,
         product: NSEntityDescription,
         history: NSEntityDescription,
-        historyItem: NSEntityDescription
+        historyItem: NSEntityDescription,
+        memberProfile: NSEntityDescription
     ) -> Relationships {
         let familyStores = toMany("stores", destination: store, deleteRule: .cascadeDeleteRule)
         let storeFamily = toOne("familySpace", destination: familySpace)
@@ -103,6 +108,10 @@ enum OneCartManagedObjectModel {
         let itemHistory = toOne("history", destination: history)
         connect(historyItems, itemHistory)
 
+        let familyMemberProfiles = toMany("memberProfiles", destination: memberProfile, deleteRule: .cascadeDeleteRule)
+        let memberProfileFamily = toOne("familySpace", destination: familySpace)
+        connect(familyMemberProfiles, memberProfileFamily)
+
         return Relationships(
             familyStores: familyStores,
             storeFamily: storeFamily,
@@ -123,7 +132,9 @@ enum OneCartManagedObjectModel {
             listProducts: listProducts,
             productList: productList,
             historyItems: historyItems,
-            itemHistory: itemHistory
+            itemHistory: itemHistory,
+            familyMemberProfiles: familyMemberProfiles,
+            memberProfileFamily: memberProfileFamily
         )
     }
 
@@ -145,6 +156,7 @@ enum OneCartManagedObjectModel {
             rels.familyProducts,
             rels.familyHistory,
             rels.familyHistoryItems,
+            rels.familyMemberProfiles,
         ]
     }
 
@@ -246,6 +258,19 @@ enum OneCartManagedObjectModel {
             attribute("deletedAt", .dateAttributeType),
             rels.historyItemFamily,
             rels.itemHistory,
+        ]
+    }
+
+    /// One row per iCloud user per cart, in the cart's zone, so every member reads every name.
+    private static func makeMemberProfileProperties(_ rels: Relationships) -> [NSPropertyDescription] {
+        [
+            attribute("id", .UUIDAttributeType),
+            attribute("userRecordName", .stringAttributeType),
+            attribute("displayName", .stringAttributeType),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+            attribute("deletedAt", .dateAttributeType),
+            rels.memberProfileFamily,
         ]
     }
 

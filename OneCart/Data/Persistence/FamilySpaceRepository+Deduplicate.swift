@@ -39,6 +39,13 @@ extension FamilySpaceRepository {
                 updatedAt: { $0.updatedAt },
                 in: context
             )
+            try Self.deduplicate(
+                request: MemberProfileEntity.fetchRequest(),
+                familySpaceID: { $0.familySpace?.id },
+                stableID: { $0.id },
+                updatedAt: { $0.updatedAt },
+                in: context
+            )
         }
     }
 

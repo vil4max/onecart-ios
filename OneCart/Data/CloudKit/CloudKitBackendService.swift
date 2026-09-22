@@ -7,6 +7,7 @@ final class CloudKitBackendService: Sendable {
     let persistence: PersistenceController
     private let injectedCloudContainer: CKContainer?
     private let cachedCloudContainer = Mutex<CKContainer?>(nil)
+    let cachedUserRecordName = Mutex<String?>(nil)
 
     /// Lazily created — constructing `CKContainer` in unit tests / Xcode Cloud without iCloud can SEGV.
     var cloudContainer: CKContainer {

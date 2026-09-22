@@ -17,6 +17,7 @@ final class FamilySpace: NSManagedObject {
     @NSManaged var products: NSSet?
     @NSManaged var historyEntries: NSSet?
     @NSManaged var historyItems: NSSet?
+    @NSManaged var memberProfiles: NSSet?
 
     @nonobjc class func fetchRequest() -> NSFetchRequest<FamilySpace> {
         NSFetchRequest<FamilySpace>(entityName: "FamilySpace")

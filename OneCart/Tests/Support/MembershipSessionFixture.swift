@@ -22,7 +22,8 @@ final class MembershipSessionFixture {
     private init(
         displayName: String,
         loadStore: Bool,
-        classifier: any CategoryClassifying = ProductCategoryClassifier.shared
+        classifier: any CategoryClassifying = ProductCategoryClassifier.shared,
+        cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) async throws {
         let suiteName = "OneCartMembershipTests.\(UUID().uuidString)"
         self.suiteName = suiteName
@@ -49,7 +50,8 @@ final class MembershipSessionFixture {
                 suiteName: suiteName,
                 pendingDirectoryURL: widgetDirectory
             ),
-            categoryClassifier: classifier
+            categoryClassifier: classifier,
+            cloudUserIdentity: cloudUserIdentity
         )
     }
 
@@ -67,12 +69,14 @@ final class MembershipSessionFixture {
     static func owner(
         displayName: String = "Alex",
         cartName: String? = nil,
-        classifier: any CategoryClassifying = ProductCategoryClassifier.shared
+        classifier: any CategoryClassifying = ProductCategoryClassifier.shared,
+        cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) async throws -> MembershipSessionFixture {
         let fixture = try await MembershipSessionFixture(
             displayName: displayName,
             loadStore: true,
-            classifier: classifier
+            classifier: classifier,
+            cloudUserIdentity: cloudUserIdentity
         )
         try await fixture.createPersonalCart(named: cartName)
         try fixture.session.bootstrapTestingSession(account: fixture.account)
@@ -83,9 +87,14 @@ final class MembershipSessionFixture {
     /// state a member is in after accepting an invite.
     static func guest(
         displayName: String = "Sam",
-        sharedName: String = "Семейная"
+        sharedName: String = "Семейная",
+        cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) async throws -> MembershipSessionFixture {
-        let fixture = try await MembershipSessionFixture(displayName: displayName, loadStore: true)
+        let fixture = try await MembershipSessionFixture(
+            displayName: displayName,
+            loadStore: true,
+            cloudUserIdentity: cloudUserIdentity
+        )
         try await fixture.createPersonalCart(named: nil)
         try await fixture.insertSharedCart(named: sharedName)
         try fixture.session.bootstrapTestingSession(account: fixture.account)
