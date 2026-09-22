@@ -140,6 +140,7 @@
             { "path": "CloudKitPermissionAuthorizer.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitBackendService.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudUserIdentifying.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "FamilyMemberNaming.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitBackendService+AccountDeletion.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AccountCloudDataDeleting.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "FamilyInviteLinkBuilder.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -284,6 +285,7 @@
         { "path": "ActivityNotifierStorageTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "RequirementConstraintTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "MemberProfileTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "FamilyMemberNamingTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",

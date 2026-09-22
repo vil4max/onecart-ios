@@ -117,7 +117,11 @@ final class CloudKitBackendService: Sendable {
         }
     }
 
-    func familyMembers(for family: FamilySpace, account: OneCartAccount) throws -> [FamilyMember] {
+    func familyMembers(
+        for family: FamilySpace,
+        account: OneCartAccount,
+        currentUserRecordName: String? = nil
+    ) throws -> [FamilyMember] {
         guard let share = try share(for: family) else {
             return [
                 FamilyMember(
@@ -134,7 +138,7 @@ final class CloudKitBackendService: Sendable {
 
         let currentRecordName = share.currentUserParticipant?
             .userIdentity.userRecordID?.recordName
-        return share.participants.compactMap { participant -> FamilyMember? in
+        let participants = share.participants.compactMap { participant -> ShareParticipantSummary? in
             let recordName = participant.userIdentity.userRecordID?.recordName
                 ?? participant.userIdentity.lookupInfo?.emailAddress
                 ?? participant.userIdentity.lookupInfo?.phoneNumber
@@ -146,28 +150,20 @@ final class CloudKitBackendService: Sendable {
                     options: []
                 )
             }?.nilIfBlank
-            let isCurrent = recordName == currentRecordName
-            let displayName: String = if isCurrent {
-                account.displayName
-            } else {
-                name ?? String(localized: "common.default_member")
-            }
-            return FamilyMember(
-                id: FamilyInviteLinkBuilder.stableUUID(for: recordName),
-                displayName: displayName,
-                access: participant.role == .owner ? .owner : .member,
-                joinedAt: family.createdDate,
-                isCurrentUser: isCurrent,
-                avatarURL: nil,
-                bannerURL: nil
+            return ShareParticipantSummary(
+                recordName: recordName,
+                identityName: name,
+                isOwner: participant.role == .owner,
+                isCurrentUser: recordName == currentRecordName
             )
         }
-        .sorted {
-            if $0.access != $1.access {
-                return $0.access == .owner
-            }
-            return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-        }
+        return FamilyMemberNaming.members(
+            participants: participants,
+            profileNames: MemberProfileNames.latest(in: family),
+            currentUserRecordName: currentUserRecordName,
+            account: account,
+            joinedAt: family.createdDate
+        )
     }
 
     /// Async share mutations take the object ID: a view-context `FamilySpace` must not

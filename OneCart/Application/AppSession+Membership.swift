@@ -252,14 +252,22 @@ extension AppSession {
         defer { isFamilyMetadataLoading = false }
         do {
             if let family = activeFamilySpace {
-                let previousIDs = Set(familyMembers.map(\.id))
-                familyMembers = try backend.familyMembers(for: family, account: account)
+                let previous = familyMembers
+                familyMembers = try backend.familyMembers(
+                    for: family,
+                    account: account,
+                    currentUserRecordName: currentUserRecordName
+                )
                 MemberJoinNotifier.notifyNewMembersIfNeeded(
-                    previousIDs: previousIDs,
+                    previousIDs: Set(previous.map(\.id)),
                     current: familyMembers,
                     accountID: account.id,
                     defaults: defaults
                 )
+                // The widget names a partner; a synced profile can rename one without a reload.
+                if familyMembers != previous {
+                    updateWidgetSnapshot()
+                }
             } else {
                 familyMembers = []
             }

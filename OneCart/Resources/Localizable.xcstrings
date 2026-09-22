@@ -2752,6 +2752,29 @@
         }
       }
     },
+    "members.numbered_fallback %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Member %lld"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Участник %lld"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Учасник %lld"
+          }
+        }
+      }
+    },
     "common.delete": {
       "extractionState": "manual",
       "localizations": {
