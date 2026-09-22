@@ -20,6 +20,7 @@
         { "path": "OneCartWidgetsBundle.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "CartOverviewWidget.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "CartWidgetViews.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
+        { "path": "CartWidgetComponents.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "OneCartWidgets.entitlements" },
         { "path": "Info.plist" },
         { "path": "PrivacyInfo.xcprivacy", "target-membership": [ "OneCartWidgets/resources" ] },

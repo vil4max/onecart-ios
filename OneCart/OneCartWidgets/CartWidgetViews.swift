@@ -30,32 +30,6 @@ struct CartWidgetRootView: View {
     }
 }
 
-private func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
-    item.isPurchased
-        ? Text("widget.toggle_unmark_a11y \(item.name)")
-        : Text("widget.toggle_mark_a11y \(item.name)")
-}
-
-/// Accented and vibrant rendering keep only the alpha of every color, so an opaque
-/// fill behind a label would swallow it. Outside full color the fill becomes a wash.
-private struct WidgetBadgeFill: ViewModifier {
-    @Environment(\.widgetRenderingMode) private var renderingMode
-    let color: Color
-    let shape: AnyShape
-
-    func body(content: Content) -> some View {
-        content
-            .background(color.opacity(renderingMode == .fullColor ? 1 : 0.2), in: shape)
-            .widgetAccentable()
-    }
-}
-
-private extension View {
-    func widgetBadge(_ color: Color, in shape: some Shape) -> some View {
-        modifier(WidgetBadgeFill(color: color, shape: AnyShape(shape)))
-    }
-}
-
 // MARK: - Lock Screen Widgets
 
 struct InlineLockScreenWidgetView: View {
@@ -154,146 +128,66 @@ struct SmallHomeWidgetView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Header: Icon + Title + Status Pill
-            HStack(spacing: 5) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "cart.fill")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
+                    .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                     .widgetAccentable()
+                    .accessibilityHidden(true)
 
                 Text(snapshot.cartTitle)
-                    .font(.footnote.weight(.bold))
+                    .font(.footnote.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .foregroundStyle(.primary)
 
                 Spacer(minLength: 2)
 
                 if snapshot.remainingCount > 0 {
-                    Text("\(snapshot.remainingCount)")
-                        .font(.system(.caption2, design: .rounded, weight: .bold))
+                    Text(snapshot.remainingCount, format: .number)
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
                         .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
-                } else if !snapshot.isEmpty {
-                    Image(systemName: "checkmark")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
-                        .padding(3)
-                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Circle())
                 }
             }
 
-            Spacer(minLength: 0)
-
-            // Content: Interactive Items or States
             if snapshot.isEmpty {
-                VStack(spacing: 4) {
-                    Spacer(minLength: 0)
-                    Image(systemName: "cart")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
-                    Text("widget.empty")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity)
-            } else if snapshot.isAllPurchased {
-                VStack(spacing: 3) {
-                    Spacer(minLength: 0)
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(OneCartPalette.primary(for: scheme, accent: accent))
-                        .widgetAccentable()
-                    Text("widget.all_purchased")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.primary)
-                    Text("widget.in_trolley \(snapshot.totalCount) \(snapshot.totalCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity)
+                WidgetEmptyState()
             } else {
+                Spacer(minLength: 0)
+
                 let displayItems = Array(snapshot.items.prefix(2))
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(displayItems) { item in
-                        HStack(spacing: 6) {
-                            Button(intent: ToggleProductPurchasedIntent(
-                                productID: item.id.uuidString,
-                                accountID: snapshot.accountID?.uuidString ?? "",
-                                familyID: snapshot.familyID?.uuidString ?? "",
-                                isPurchased: !item.isPurchased
-                            )) {
-                                Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                    .font(.subheadline)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(
-                                        item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
-                                            .secondary
-                                            .opacity(0.4)
-                                    )
-                                    .widgetAccentable(item.isPurchased)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(toggleAccessibilityLabel(for: item))
-                            .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
-
-                            Text(item.name)
-                                .font(.caption2.weight(.medium))
-                                .strikethrough(item.isPurchased)
-                                .foregroundStyle(item.isPurchased ? .secondary : .primary)
-                                .lineLimit(1)
-
-                            Spacer(minLength: 0)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        if item.id != displayItems.last?.id {
-                            Divider()
-                                .opacity(0.4)
+                if displayItems.isEmpty {
+                    Text("widget.all_done")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(displayItems) { item in
+                            WidgetItemRow(
+                                item: item,
+                                snapshot: snapshot,
+                                accent: accent,
+                                thumbnailSize: 22,
+                                nameFont: .footnote,
+                                toggleFont: .title3
+                            )
                         }
                     }
                 }
-            }
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            // Footer: Custom Sleek Progress Bar + Caption
-            if !snapshot.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.primary.opacity(0.12))
-                            Capsule()
-                                .fill(OneCartPalette.primary(for: scheme, accent: accent))
-                                .frame(width: max(0, geo.size.width * CGFloat(snapshot.progress)))
-                                .widgetAccentable()
-                        }
-                    }
-                    .frame(height: 3.5)
-
-                    HStack {
-                        Text("widget.in_trolley \(snapshot.purchasedCount) \(snapshot.totalCount)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-
-                        Spacer(minLength: 2)
-
-                        if let partner = snapshot.activePartnerName, !partner.isEmpty {
-                            Text(partner)
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
-                                .lineLimit(1)
-                        }
-                    }
-                }
+                WidgetProgressLine(
+                    snapshot: snapshot,
+                    accent: accent,
+                    isCompact: true,
+                    partnerName: snapshot.activePartnerName
+                )
             }
         }
         .padding(14)
@@ -301,7 +195,6 @@ struct SmallHomeWidgetView: View {
 }
 
 struct MediumHomeWidgetView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot
 
     private var accent: AppAccentColor {
@@ -310,52 +203,22 @@ struct MediumHomeWidgetView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Left column: Cart Context
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Image(systemName: "cart.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .widgetBadge(
-                            OneCartPalette.primary(for: scheme, accent: accent),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-                }
+                WidgetCartTile(accent: accent, size: 34)
 
                 Text(snapshot.cartTitle)
-                    .font(.callout.weight(.bold))
+                    .font(.headline)
                     .lineLimit(1)
-                    .foregroundStyle(.primary)
 
                 if snapshot.isEmpty {
                     Text("widget.empty")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("widget.in_trolley \(snapshot.purchasedCount) \(snapshot.totalCount)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    HStack(spacing: 6) {
-                        ProgressView(value: snapshot.progress)
-                            .tint(OneCartPalette.primary(for: scheme, accent: accent))
-                            .widgetAccentable()
-
-                        Text("\(Int(snapshot.progress * 100))%")
-                            .font(.system(.caption2, design: .rounded, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
+                    WidgetProgressLine(snapshot: snapshot, accent: accent)
 
                     if let partner = snapshot.activePartnerName, !partner.isEmpty {
-                        Text(partner)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
-                            .lineLimit(1)
+                        WidgetPartnerChip(name: partner, accent: accent)
                     }
                 }
 
@@ -365,56 +228,33 @@ struct MediumHomeWidgetView: View {
 
             Divider()
 
-            // Right column: Interactive Items
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 let itemsToShow = Array(snapshot.items.prefix(4))
                 if itemsToShow.isEmpty {
-                    VStack(alignment: .center, spacing: 6) {
-                        Spacer()
-                        Image(systemName: "cart.badge.plus")
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
+                    if snapshot.isEmpty {
                         // The left column already says the cart is empty.
-                        if !snapshot.isEmpty {
+                        WidgetEmptyState(symbolFont: .title2, showsCaption: false)
+                    } else {
+                        VStack(spacing: 6) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.title2)
+                                .foregroundStyle(.tertiary)
                             Text("widget.all_done")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Spacer()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 } else {
                     ForEach(itemsToShow) { item in
-                        HStack(spacing: 8) {
-                            Button(intent: ToggleProductPurchasedIntent(
-                                productID: item.id.uuidString,
-                                accountID: snapshot.accountID?.uuidString ?? "",
-                                familyID: snapshot.familyID?.uuidString ?? "",
-                                isPurchased: !item.isPurchased
-                            )) {
-                                Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                    .font(.title3)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(
-                                        item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
-                                            .secondary
-                                            .opacity(0.4)
-                                    )
-                                    .widgetAccentable(item.isPurchased)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(toggleAccessibilityLabel(for: item))
-                            .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
-
-                            Text(item.name)
-                                .font(.footnote.weight(.medium))
-                                .strikethrough(item.isPurchased)
-                                .foregroundStyle(item.isPurchased ? .secondary : .primary)
-                                .lineLimit(1)
-
-                            Spacer(minLength: 4)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        WidgetItemRow(
+                            item: item,
+                            snapshot: snapshot,
+                            accent: accent,
+                            thumbnailSize: 24,
+                            nameFont: .footnote,
+                            toggleFont: .title3
+                        )
 
                         if item.id != itemsToShow.last?.id {
                             Divider()
@@ -430,7 +270,6 @@ struct MediumHomeWidgetView: View {
 }
 
 struct LargeHomeWidgetView: View {
-    @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot
 
     private var accent: AppAccentColor {
@@ -438,100 +277,50 @@ struct LargeHomeWidgetView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "cart.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 32, height: 32)
-                        .widgetBadge(
-                            OneCartPalette.primary(for: scheme, accent: accent),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        )
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                WidgetCartTile(accent: accent, size: 32)
 
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(snapshot.cartTitle)
-                            .font(.headline.weight(.bold))
-                            .lineLimit(1)
-                        let pct = Int(snapshot.progress * 100)
-                        Text("widget.in_trolley_percent \(snapshot.purchasedCount) \(snapshot.totalCount) \(pct)")
-                            .font(.caption2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(snapshot.cartTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                    if snapshot.isEmpty {
+                        Text("widget.empty")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+                    } else {
+                        WidgetProgressLine(snapshot: snapshot, accent: accent)
                     }
                 }
 
-                Spacer()
-
                 if let partner = snapshot.activePartnerName, !partner.isEmpty {
-                    Text(partner)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+                    Spacer(minLength: 4)
+                    WidgetPartnerChip(name: partner, accent: accent)
                 }
             }
-
-            ProgressView(value: snapshot.progress)
-                .tint(OneCartPalette.primary(for: scheme, accent: accent))
-                .widgetAccentable()
 
             Divider()
 
             let displayItems = Array(snapshot.items.prefix(7))
             if displayItems.isEmpty {
-                VStack(spacing: 8) {
-                    Spacer()
-                    Image(systemName: "cart.badge.plus")
-                        .font(.largeTitle)
-                        .foregroundStyle(.tertiary)
-                    Text("widget.empty")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
+                WidgetEmptyState(symbolFont: .largeTitle)
             } else {
-                ForEach(displayItems) { item in
-                    HStack(spacing: 10) {
-                        Button(intent: ToggleProductPurchasedIntent(
-                            productID: item.id.uuidString,
-                            accountID: snapshot.accountID?.uuidString ?? "",
-                            familyID: snapshot.familyID?.uuidString ?? "",
-                            isPurchased: !item.isPurchased
-                        )) {
-                            Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
-                                .font(.title3)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(
-                                    item.isPurchased ? OneCartPalette.primary(for: scheme, accent: accent) : Color
-                                        .secondary
-                                        .opacity(0.4)
-                                )
-                                .widgetAccentable(item.isPurchased)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(displayItems) { item in
+                        WidgetItemRow(
+                            item: item,
+                            snapshot: snapshot,
+                            accent: accent,
+                            thumbnailSize: 26,
+                            nameFont: .subheadline,
+                            toggleFont: .title2,
+                            showsSubtitle: true
+                        )
+
+                        if item.id != displayItems.last?.id {
+                            Divider()
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(toggleAccessibilityLabel(for: item))
-                        .disabled(snapshot.accountID == nil || snapshot.familyID == nil)
-
-                        Text(item.name)
-                            .font(.subheadline.weight(.medium))
-                            .strikethrough(item.isPurchased)
-                            .foregroundStyle(item.isPurchased ? .secondary : .primary)
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        if let subtitle = item.subtitle {
-                            Text(subtitle)
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-
-                    if item.id != displayItems.last?.id {
-                        Divider()
                     }
                 }
             }
@@ -541,3 +330,60 @@ struct LargeHomeWidgetView: View {
         .padding(14)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+    extension WidgetCartSnapshot {
+        /// Placeholder content with account and cart identity so the toggles render enabled.
+        static let previewSample = WidgetCartSnapshot(
+            cartTitle: placeholder.cartTitle,
+            totalCount: placeholder.totalCount,
+            purchasedCount: placeholder.purchasedCount,
+            isSyncing: false,
+            lastUpdated: Date(),
+            familyMemberCount: 2,
+            activePartnerName: "Alex",
+            accountID: UUID(uuidString: "00000000-0000-0000-0000-0000000000A1"),
+            familyID: UUID(uuidString: "00000000-0000-0000-0000-0000000000F1"),
+            items: placeholder.items
+        )
+
+        static let previewAllPurchased = WidgetCartSnapshot(
+            cartTitle: placeholder.cartTitle,
+            totalCount: 2,
+            purchasedCount: 2,
+            isSyncing: false,
+            lastUpdated: Date(),
+            familyMemberCount: 1,
+            accountID: previewSample.accountID,
+            familyID: previewSample.familyID,
+            items: placeholder.items.prefix(2).map {
+                WidgetItemSnapshot(id: $0.id, name: $0.name, isPurchased: true, categoryRaw: $0.categoryRaw)
+            }
+        )
+    }
+
+    #Preview("Small", as: .systemSmall) {
+        CartOverviewWidget()
+    } timeline: {
+        CartWidgetEntry(date: .now, snapshot: .previewSample)
+        CartWidgetEntry(date: .now, snapshot: .previewAllPurchased)
+        CartWidgetEntry(date: .now, snapshot: .empty)
+    }
+
+    #Preview("Medium", as: .systemMedium) {
+        CartOverviewWidget()
+    } timeline: {
+        CartWidgetEntry(date: .now, snapshot: .previewSample)
+        CartWidgetEntry(date: .now, snapshot: .previewAllPurchased)
+        CartWidgetEntry(date: .now, snapshot: .empty)
+    }
+
+    #Preview("Large", as: .systemLarge) {
+        CartOverviewWidget()
+    } timeline: {
+        CartWidgetEntry(date: .now, snapshot: .previewSample)
+        CartWidgetEntry(date: .now, snapshot: .empty)
+    }
+#endif

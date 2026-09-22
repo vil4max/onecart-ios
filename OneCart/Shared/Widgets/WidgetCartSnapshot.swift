@@ -186,4 +186,10 @@ public struct WidgetItemSnapshot: Codable, Sendable, Identifiable, Equatable {
         self.categoryRaw = categoryRaw
         self.subtitle = subtitle
     }
+
+    /// The stored raw value may come from a newer app than the widget; unknown values
+    /// draw as `other` instead of hiding the line.
+    var category: ProductCategory {
+        ProductCategory(rawValue: categoryRaw) ?? .other
+    }
 }

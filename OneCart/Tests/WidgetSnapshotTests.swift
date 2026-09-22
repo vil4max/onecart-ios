@@ -128,6 +128,23 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(allPurchased.progress, 1.0)
     }
 
+    func test_REQ_WIDGET_010_itemCategory_resolvesKnownRawAndFallsBackToOther() {
+        let known = WidgetItemSnapshot(
+            id: UUID(),
+            name: "Milk",
+            isPurchased: false,
+            categoryRaw: ProductCategory.dairyEggs.rawValue
+        )
+        let unknown = WidgetItemSnapshot(
+            id: UUID(),
+            name: "Mystery",
+            isPurchased: false,
+            categoryRaw: "category-from-a-newer-app"
+        )
+        XCTAssertEqual(known.category, .dairyEggs)
+        XCTAssertEqual(unknown.category, .other)
+    }
+
     func testThemeRoundtripAndColorScheme() throws {
         let darkSnapshot = WidgetCartSnapshot(
             cartTitle: "Dark Cart",
