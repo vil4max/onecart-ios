@@ -224,7 +224,7 @@ final class ShoppingTripActivityController {
     }
 
     private func performEnd() async {
-        let ids = Set(backend.runningTrips().map(\.id) + [activeTrip?.id].compactMap { $0 })
+        let ids = Set(backend.runningTrips().map(\.id) + [activeTrip?.id].compactMap(\.self))
         activeTrip = nil
         lastState = nil
         for id in ids.sorted() {
