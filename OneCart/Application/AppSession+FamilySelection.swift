@@ -15,6 +15,7 @@ extension AppSession {
 
     func clearAccountData() {
         clearPreparedInviteLink()
+        cancelAllCategoryRefinements()
         familySpaces = []
         activeFamilySpace = nil
         cartContent.clearContent()

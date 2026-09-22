@@ -118,7 +118,11 @@ final class AppSession {
     let backend: CloudKitBackendService
     let shareOrchestrator: FamilyShareOrchestrator
     let appleSignIn: AppleSignInAuthenticating
+    let categoryClassifier: any CategoryClassifying
     let defaults: UserDefaults
+    /// In-flight category refinements by product ID; a rename cancels the refinement of the
+    /// old name so it can never write over the new one.
+    var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]
     var online = true
     var started = false
     var didPresentProductionSchemaAlert = false
@@ -132,13 +136,15 @@ final class AppSession {
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
-        widgetStore: WidgetSnapshotStore = .shared
+        widgetStore: WidgetSnapshotStore = .shared,
+        categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
         self.preferences = preferences ?? DevicePreferences(defaults: defaults)
         self.defaults = defaults
         self.appleSignIn = appleSignIn
+        self.categoryClassifier = categoryClassifier
         self.widgetStore = widgetStore
 
         let repository = FamilySpaceRepository(

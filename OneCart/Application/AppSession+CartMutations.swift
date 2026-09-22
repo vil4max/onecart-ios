@@ -30,8 +30,7 @@ extension AppSession {
         // Only refine category for genuinely new rows — a duplicate reuses
         // the existing row untouched so family edits are never overwritten.
         if !beforeIDs.contains(productID) {
-            let name = draft.name
-            Task { await self.refineProductCategory(productID: productID, name: name) }
+            scheduleCategoryRefinement(productID: productID, name: draft.name)
         }
         return productID
     }
@@ -45,36 +44,41 @@ extension AppSession {
         await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
             try await self.repository.updateProduct(id: id, familySpaceID: familyID, draft: draft)
         }
-        let name = draft.name
-        Task { await self.refineProductCategory(productID: id, name: name) }
+        scheduleCategoryRefinement(productID: id, name: draft.name)
+    }
+
+    /// A newer edit of the same row supersedes any refinement still classifying its old name.
+    private func scheduleCategoryRefinement(productID: UUID, name: String) {
+        categoryRefinementTasks[productID]?.cancel()
+        categoryRefinementTasks[productID] = Task {
+            await self.refineProductCategory(productID: productID, name: name)
+        }
+    }
+
+    func cancelCategoryRefinement(productID: UUID) {
+        categoryRefinementTasks.removeValue(forKey: productID)?.cancel()
+    }
+
+    func cancelAllCategoryRefinements() {
+        categoryRefinementTasks.values.forEach { $0.cancel() }
+        categoryRefinementTasks.removeAll()
     }
 
     private func refineProductCategory(productID: UUID, name: String) async {
-        let classified = await ProductCategoryClassifier.shared.classify(name)
-        guard canEdit else { return }
+        let classified = await categoryClassifier.classify(name)
+        guard !Task.isCancelled, canEdit else { return }
         pendingCartMutationCount += 1
         defer { finishCartMutation() }
         guard let product = products.first(where: { $0.id == productID }),
               let familyID = product.familySpace?.id else { return }
+        // The row may have been renamed while the classifier ran; its new name gets its own
+        // refinement, and this one must not label it with the old name's category.
+        let normalized = FamilyCartMerge.normalizedProductName
+        guard normalized(product.displayName) == normalized(name) else { return }
         guard product.categoryValue != classified else { return }
 
-        let draft = ProductDraft(
-            name: product.displayName,
-            quantity: product.quantityValue,
-            unit: product.unitValue,
-            category: classified,
-            estimatedPrice: product.estimatedPriceValue,
-            note: product.noteValue,
-            imageURL: product.imageURL,
-            sourceURL: product.sourceURL,
-            originalPrice: product.originalPrice?.doubleValue,
-            loyaltyPrice: product.loyaltyPrice?.doubleValue,
-            catalogFetchedAt: product.catalogFetchedAt,
-            promotionEndsAt: product.promotionEndsAt
-        )
-
         do {
-            try await repository.updateProduct(id: productID, familySpaceID: familyID, draft: draft)
+            try await repository.updateProductCategory(id: productID, familySpaceID: familyID, category: classified)
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
@@ -185,6 +189,7 @@ extension AppSession {
             return
         }
         CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
+        cancelCategoryRefinement(productID: id)
         await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
             try await self.repository.deleteProduct(id: id, familySpaceID: familyID)
         }

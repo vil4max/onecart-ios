@@ -200,3 +200,73 @@ struct SessionCartMutationTests {
         #expect(fixture.session.userAlert == nil)
     }
 }
+
+// MARK: - Category refinement vs. rename
+
+/// Holds every classification until the test releases it, in call order.
+private actor GatedClassifier: CategoryClassifying {
+    private var pending: [CheckedContinuation<Void, Never>] = []
+    private let categories: [String: ProductCategory]
+
+    init(categories: [String: ProductCategory]) {
+        self.categories = categories
+    }
+
+    var pendingCount: Int {
+        pending.count
+    }
+
+    func classify(_ productName: String) async -> ProductCategory {
+        await withCheckedContinuation { pending.append($0) }
+        return categories[productName] ?? .other
+    }
+
+    /// Resumes the oldest held classification.
+    func releaseNext() {
+        guard !pending.isEmpty else { return }
+        pending.removeFirst().resume()
+    }
+
+    func waitUntilHeld(_ count: Int) async {
+        while pending.count < count {
+            await Task.yield()
+        }
+    }
+}
+
+extension SessionCartMutationTests {
+    private func draft(named name: String, category: ProductCategory) -> ProductDraft {
+        ProductDraft(name: name, quantity: 1, unit: .piece, category: category, estimatedPrice: 0, note: "")
+    }
+
+    @Test("REQ-CART-020: a rename during category refinement keeps the new name and its category")
+    func renameDuringRefinementIsNotOverwritten() async throws {
+        let classifier = GatedClassifier(categories: ["Milk": .dairyEggs, "Oat milk": .coldDrinks])
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex", classifier: classifier)
+        let list = try #require(fixture.session.activeLists.first)
+
+        let id = try #require(await fixture.session.addProduct(to: list, draft: draft(named: "Milk", category: .other)))
+        await classifier.waitUntilHeld(1)
+        let firstRefinement = try #require(fixture.session.categoryRefinementTasks[id])
+
+        let product = try #require(fixture.session.products.first { $0.id == id })
+        await fixture.session.updateProduct(product, draft: draft(named: "Oat milk", category: .other))
+        await classifier.waitUntilHeld(2)
+        let secondRefinement = try #require(fixture.session.categoryRefinementTasks[id])
+
+        // The refinement of the old name resumes first; it must not touch the renamed row.
+        await classifier.releaseNext()
+        await firstRefinement.value
+        let afterStale = try #require(fixture.session.products.first { $0.id == id })
+        #expect(afterStale.displayName == "Oat milk")
+        #expect(afterStale.categoryValue == .other)
+
+        // The refinement of the new name still lands.
+        await classifier.releaseNext()
+        await secondRefinement.value
+        let afterFresh = try #require(fixture.session.products.first { $0.id == id })
+        #expect(afterFresh.displayName == "Oat milk")
+        #expect(afterFresh.categoryValue == .coldDrinks)
+    }
+}
+

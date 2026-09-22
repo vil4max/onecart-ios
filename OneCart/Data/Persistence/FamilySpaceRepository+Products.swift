@@ -103,6 +103,23 @@ extension FamilySpaceRepository {
         }
     }
 
+    /// Writes only the category, so a background classification never touches the name or
+    /// any other field a concurrent edit may have changed.
+    func updateProductCategory(id: UUID, familySpaceID: UUID? = nil, category: ProductCategory) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            guard product.categoryValue != category else { return }
+            let now = Date()
+            product.category = category.rawValue
+            product.updatedAt = now
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
     func togglePurchased(
         id: UUID,
         familySpaceID: UUID? = nil,

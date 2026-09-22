@@ -19,7 +19,11 @@ final class MembershipSessionFixture {
     private let suiteName: String
     private let widgetDirectory: URL
 
-    private init(displayName: String, loadStore: Bool) async throws {
+    private init(
+        displayName: String,
+        loadStore: Bool,
+        classifier: any CategoryClassifying = ProductCategoryClassifier.shared
+    ) async throws {
         let suiteName = "OneCartMembershipTests.\(UUID().uuidString)"
         self.suiteName = suiteName
         defaults = try #require(UserDefaults(suiteName: suiteName))
@@ -44,7 +48,8 @@ final class MembershipSessionFixture {
             widgetStore: WidgetSnapshotStore(
                 suiteName: suiteName,
                 pendingDirectoryURL: widgetDirectory
-            )
+            ),
+            categoryClassifier: classifier
         )
     }
 
@@ -61,9 +66,14 @@ final class MembershipSessionFixture {
     /// The owner of a personal household cart, signed in and reloaded.
     static func owner(
         displayName: String = "Alex",
-        cartName: String? = nil
+        cartName: String? = nil,
+        classifier: any CategoryClassifying = ProductCategoryClassifier.shared
     ) async throws -> MembershipSessionFixture {
-        let fixture = try await MembershipSessionFixture(displayName: displayName, loadStore: true)
+        let fixture = try await MembershipSessionFixture(
+            displayName: displayName,
+            loadStore: true,
+            classifier: classifier
+        )
         try await fixture.createPersonalCart(named: cartName)
         try fixture.session.bootstrapTestingSession(account: fixture.account)
         return fixture
