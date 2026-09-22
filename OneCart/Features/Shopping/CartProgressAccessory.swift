@@ -19,6 +19,7 @@ struct CartProgressAccessory: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("cart.progress")
         .animation(.snappy, value: viewModel.purchasedCount)
     }
 

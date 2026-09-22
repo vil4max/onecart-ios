@@ -139,6 +139,7 @@ struct AccountView: View {
             } else {
                 ForEach(viewModel.displayedMembers) { member in
                     AccountMemberRow(member: member, accent: preferences.accentColor)
+                        .accessibilityIdentifier("account.member_row")
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if viewModel.canRemove(member) {
                                 Button(role: .destructive) {
@@ -155,6 +156,7 @@ struct AccountView: View {
                 Button("account.leave_cart", role: .destructive) {
                     viewModel.confirmingLeave = true
                 }
+                .accessibilityIdentifier("account.leave_cart")
             }
         } header: {
             Text("settings.cart_section")
@@ -186,8 +188,11 @@ struct AccountView: View {
             .tint(.primary)
             .accessibilityLabel(Text(viewModel.cartTitle))
             .accessibilityHint(Text("account.cart_name_hint"))
+            .accessibilityIdentifier("account.cart_name")
         } else {
             titleAndRole
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("account.cart_name")
         }
     }
 
@@ -206,6 +211,7 @@ struct AccountView: View {
             }
             .disabled(!viewModel.canShareCart)
             .accessibilityHint(Text("account.share_cart_hint"))
+            .accessibilityIdentifier("account.share_cart")
 
             if viewModel.canRevokeInvite {
                 Button {
@@ -214,6 +220,7 @@ struct AccountView: View {
                     Label("account.revoke_invite", systemImage: "person.badge.minus")
                 }
                 .disabled(viewModel.isBusy || !viewModel.isOnline)
+                .accessibilityIdentifier("account.revoke_invite")
             }
         } header: {
             Text("account.sharing_section")
@@ -245,11 +252,13 @@ struct AccountView: View {
                 .tint(.primary)
                 .accessibilityLabel(Text(account.displayName))
                 .accessibilityHint(Text("account.edit_display_name"))
+                .accessibilityIdentifier("account.display_name")
             }
 
             Button("account.sign_out") {
                 viewModel.confirmingSignOut = true
             }
+            .accessibilityIdentifier("account.sign_out")
         } header: {
             Text("settings.apple_section")
         } footer: {
@@ -299,6 +308,7 @@ struct AccountView: View {
                 }
             }
             .disabled(viewModel.isDeletingAccount || viewModel.isBusy)
+            .accessibilityIdentifier("account.delete_account")
         } header: {
             Text("account.section")
         } footer: {
@@ -310,7 +320,9 @@ struct AccountView: View {
         Section {} footer: {
             VStack(spacing: 2) {
                 Text("common.app_name")
+                    .accessibilityIdentifier("account.app_name")
                 Text("settings.version_build \(viewModel.appVersion.version) \(viewModel.appVersion.build)")
+                    .accessibilityIdentifier("account.version")
             }
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)

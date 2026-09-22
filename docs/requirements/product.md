@@ -191,7 +191,7 @@ core path from [core.md](../core.md), not every suite.
 | REQ-CART-030 | `CartItemsTests` → `addProductVisibleAfterViewContextMerge`, `invalidNamesAreRejected` |
 | REQ-CART-040 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer` |
 | REQ-CART-050 | `CartItemsTests` → `deleteProductSkipsPurchasedItems` |
-| REQ-CART-060 | `none` — no test asserts the absence of price UI — a negative UI constraint with no unit-testable surface |
+| REQ-CART-060 | `HostedCartViewTests` → `@Test "the cart and its composer show no price, and REQ-SHELL-040: no share control"`; `RequirementConstraintTests` → `@Test "a name-only add and a rename never carry a price into the cart"` |
 | REQ-CART-070 | `HouseholdEnsureTests` → `ensureHouseholdCreatesCartWhenEmpty` |
 | REQ-CART-080 | `HouseholdEnsureTests` → `ensureHouseholdNoOpWhenActiveFamilyExists` |
 | REQ-CART-090 | `CartItemsTests` → `deduplicateProductsByNameKeepsFirstWriter`, `duplicateNameIsDetectedBeyondFiftyLiveRows`, `reAddAfterDeleteCreatesNewLine`, `renameIntoExistingNameMergesRows`, `sameNamedProductsReuseExistingCartLine`; `CartSuggestionsEngineTests` → `@Test "Excludes cart items with the same diacritic-insensitive normalization as cart dedupe"`; `FamilyCartMergeTests` → `mergeFamilyContentLWWSameNormalizedName` |
@@ -202,24 +202,24 @@ core path from [core.md](../core.md), not every suite.
 | REQ-HIST-020 | `PurchaseSessionTests` → `archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `archivePurchasedBeforeMovesOnlyStaleCheckedItems`, `archiveStalePurchasedIfNeededViaSession` |
 | REQ-HIST-030 | `HistoryPaginationTests` → `fetchHistoryDefaultLimitIs30`, `loadMoreHistoryAppends` |
 | REQ-HIST-040 | `CartSuggestionsEngineTests` → `@Test "Counts replicated purchases once per family when ranking suggestions"`; `PurchaseSessionTests` → `archiveRetryReusesExistingPurchaseAndArchivesOnlyNewItems`, `historyGroupsChooseSamePurchaseAcrossArchiveSessions`, `historyIdentityPreservesOtherFamiliesAndDistinctSameNamePurchases` |
-| REQ-HIST-050 | `none` — no test asserts that no user-facing clear-History path exists — negative UI constraint |
+| REQ-HIST-050 | `HostedHistoryViewTests` → `@Test "an opened day lists its items read-only with the archive footer"`; `RequirementConstraintTests` → `@Test "browsing History through its ViewModel never removes an entry; paging is the only call"` |
 | REQ-SHARE-010 | `CartAccessTests` → `familyAccessAllowsSharedListEditing`, `selectivePermissionAuthorizerBlocksSharedUpdates` |
 | REQ-SHARE-020 | `CloudKitErrorMappingTests` → `cloudKitFamilyInviteShareMessageContainsShareURL` |
 | REQ-SHARE-030 | `AccountViewModelTests` → `finishedShareWatchdogDoesNotTimeOutNextShare`; `InviteLinkPreparerTests` → `deadline_cancellationReturnsWithoutWaitingForCallback`, `deadline_returnsBeforeUnresponsiveOperationAndIgnoresLateSuccess` |
-| REQ-SHARE-040 | `none` — `CKShare.removeParticipant` is never exercised; member removal has no unit test or fake |
+| REQ-SHARE-040 | `AccountViewModelFakeTests` → `@Test "only the owner can remove a member, and never themselves"`, `@Test "removing a member forwards that member to the session"`, `@Test "the removal dialog is driven by the pending member and clears it on dismiss"`; `CloudKitBackendServiceTests` → `@Test "on a local-only store every share mutation reports the cart as not shared"`, `@Test "removing a member needs the cart's CKShare; without one nothing is kicked"`; `SessionMembershipTests` → `@Test "a guest cannot remove members"`, `@Test "removing a member is a CKShare kick; a cart without a share reports it and stays intact"`, `@Test "removing a member needs the network"`, `@Test "the owner cannot remove themself"` |
 | REQ-SHARE-050 | `GuestMemberSessionTests` → `guestLeaveCartReturnsToPersonal`, `guestReturnsToPersonalWhenSharedGone` |
 | REQ-SHARE-060 | `CartAccessTests` → `revokeInviteKeepsFamilySpaceIdentity`; `SharedCartJoinTests` → `applyReadWriteACLPreservesRevokedPublicPermission`, `revokeIsDoorCloseNotGuestBan` |
 | REQ-SHARE-070 | `SharedCartJoinTests` → `applyReadWriteACLReopensDoorWhenRequested` |
 | REQ-SHARE-080 | `InviteLinkPreparerTests` → `createInviteLinkAlwaysRefetches`, `warmUpFailureLeavesCacheNil`; `SharedCartJoinTests` → `backgroundInvitePreparation_keepsRevokedShareClosed` |
 | REQ-SHARE-090 | `GuestMemberSessionTests` → `guestSessionActivatesSharedCartAsMember`; `HouseholdEnsureTests` → `ensureHouseholdAdoptsSharedWhileOnPrivate`; `SharedCartJoinTests` → `adoptSelectsSharedWithoutMergingPrivateContent`, `alreadyOnSharedStaysShared`, `emptyPrivateAutoAdoptsShared`, `ensureHouseholdAdoptsSharedEvenWhenPrivateActive`, `newlyJoinedSharedCartBecomesActiveOverCurrentSharedCart`, `privateContentIsNotMergedIntoSharedOnAdopt`, `reloadPrefersSharedOverStoredPrivate`, `reloadSwitchesToSharedWhenSharedAppearsLater` |
-| REQ-SHARE-100 | `none` — negative requirement about not calling non-existent Apple Family APIs; nothing to assert |
+| REQ-SHARE-100 | `RequirementConstraintTests` → `@Test "membership runs on CKShare links and participants, never on an Apple Family roster"`, `@Test "the app sources import no Family framework and name no Family-roster API"` |
 | REQ-SHARE-110 | `InviteLinkPreparerTests` → `memberCanCreateInviteLink` |
 | REQ-SHELL-010 | `CartItemsTests` → `sortedProductsPutsNewestToBuyFirstThenCompleted` |
-| REQ-SHELL-020 | `none` — История tab composition (day order, read-only, caption) has no view-level test; only its paging is covered, under REQ-HIST-030 |
+| REQ-SHELL-020 | `HistoryViewModelTests` → `@Test "an opened day sections its items by category in cart order and previews the names"`, `@Test "days are newest first and an opened day resolves to its live contents"`; `HostedHistoryViewTests` → `@Test "an empty History explains itself and offers no control"`, `@Test "days list newest first with the overnight caption, and nothing on the screen deletes"` |
 | REQ-SHELL-030 | `AccountViewModelTests` → `memberGatesEnableLeaveOnly`, `ownerGatesEnableRenameAndRevoke` |
-| REQ-SHELL-040 | `none` — placement of Share inside Настройки is view composition; no view-level test exists |
+| REQ-SHELL-040 | `HostedAccountViewTests` → `@Test "Share is a secondary Settings action: it creates the invite link and waits for connectivity"`; `HostedCartViewTests` → `@Test "the cart and its composer show no price, and REQ-SHELL-040: no share control"` |
 | REQ-SHELL-050 | `CloudKitErrorMappingTests` → `cloudKitUserFacingErrorDetectsNetworkFailure`, `cloudKitUserFacingErrorMapsAuthAndPermission`, `cloudKitUserFacingErrorReplacesOpaquePartialFailure` |
-| REQ-SHELL-060 | `none` — display name and branding strings are not asserted by any test |
+| REQ-SHELL-060 | `HostedWelcomeViewTests` → `@Test "Welcome greets with OneCart Family, the pitch and Sign in with Apple"`; `RequirementConstraintTests` → `@Test "the app presents itself as OneCart Family while the module and bundle id stay OneCart"` |
 | REQ-SYNC-010 | `FragileSyncOutcomeTests` → `cartContentStorePublishesAfterReload`, `syncCartAppearFailureDoesNotPresentAlert`, `syncCartPullFailureSetsFailedState`, `syncCartSuccessSetsSynchronized` |
 | REQ-SYNC-020 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer` |
 | REQ-SYNC-030 | `CartItemsTests` → `deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI`; `SharedCartJoinTests` → `refreshFromServerPicksUpToggledPurchasedState` |

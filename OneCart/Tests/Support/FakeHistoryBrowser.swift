@@ -2,6 +2,7 @@ import Foundation
 @testable import OneCart
 
 @MainActor
+@Observable
 final class FakeHistoryBrowser: HistoryBrowsing {
     var history: [PurchaseHistoryEntity] = []
     var historyHasMore = false

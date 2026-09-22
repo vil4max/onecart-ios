@@ -284,6 +284,19 @@
         { "path": "SessionMembershipTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "SessionCartMutationTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "ActivityNotifierStorageTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "RequirementConstraintTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        {
+          "kind": "group",
+          "path": "HostedViews",
+          "children": [
+            { "path": "HostedCartViewTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "HostedAccountViewTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "HostedWelcomeViewTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "HostedShellViewTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "HostedView.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "HostedHistoryViewTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+          ],
+        },
         {
           "kind": "group",
           "path": "Support",

@@ -2,6 +2,7 @@ import Foundation
 @testable import OneCart
 
 @MainActor
+@Observable
 final class FakeAlertPresenter: AlertPresenting {
     var userAlert: UserAlert?
     var sharedCartRemovedMessage: String?

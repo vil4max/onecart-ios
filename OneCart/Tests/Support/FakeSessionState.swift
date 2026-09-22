@@ -2,6 +2,7 @@ import Foundation
 @testable import OneCart
 
 @MainActor
+@Observable
 final class FakeSessionState: SessionStateReading {
     var isReady = true
     var needsWelcome = false

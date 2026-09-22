@@ -40,6 +40,7 @@ struct ReadOnlyBanner: View {
                 .foregroundStyle(.orange)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("cart.read_only")
     }
 }
 
@@ -63,6 +64,7 @@ struct CartAllPurchasedHeroCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("cart.all_purchased")
         .transition(
             .asymmetric(
                 insertion: .opacity.combined(with: .scale(scale: 0.94)),

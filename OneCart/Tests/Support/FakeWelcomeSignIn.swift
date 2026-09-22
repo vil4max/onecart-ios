@@ -3,6 +3,7 @@ import Foundation
 @testable import OneCart
 
 @MainActor
+@Observable
 final class FakeWelcomeSignIn: WelcomeSigningIn {
     var welcomePhase: WelcomePhase = .signIn
     var completedAuthorizationCount = 0

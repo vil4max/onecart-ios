@@ -45,15 +45,18 @@ struct HistoryView: View {
                     NavigationLink(value: group) {
                         HistoryDayRow(group: group)
                     }
+                    .accessibilityIdentifier("history.day_row")
                 }
 
                 if viewModel.hasMore {
                     Button("history.show_more") {
                         viewModel.loadMore()
                     }
+                    .accessibilityIdentifier("history.show_more")
                 }
             } footer: {
                 Text("history.how_it_works")
+                    .accessibilityIdentifier("history.overnight_caption")
             }
         }
         .listStyle(.insetGrouped)

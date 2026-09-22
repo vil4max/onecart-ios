@@ -64,9 +64,11 @@ struct WelcomeView: View {
             Text("common.app_name")
                 .font(.headline)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("welcome.app_name")
 
             Text("welcome.title")
                 .font(.title.weight(.bold))
+                .accessibilityIdentifier("welcome.title")
 
             Text("welcome.subtitle")
                 .font(.body)
@@ -103,6 +105,7 @@ struct WelcomeView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .accessibilityHint(Text("welcome.footer"))
+            .accessibilityIdentifier("welcome.sign_in")
 
             #if DEBUG
                 // Hidden in the demo UI so store screenshots show the Release welcome screen.
@@ -137,6 +140,7 @@ struct WelcomeView: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("welcome.connecting")
     }
 
     private func failed(message: String) -> some View {
@@ -150,6 +154,7 @@ struct WelcomeView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor))
+            .accessibilityIdentifier("welcome.try_again")
         }
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -206,6 +211,7 @@ private struct WelcomeFeatureLabel: View {
                 .foregroundStyle(OneCartPalette.primaryAccent(for: colorScheme, accent: accent))
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("welcome.feature")
     }
 }
 
@@ -226,6 +232,7 @@ private struct AppleSignInAuthorizationButton: UIViewRepresentable {
             authorizationButtonStyle: style
         )
         button.cornerRadius = 14
+        button.accessibilityIdentifier = "welcome.sign_in"
         button.addTarget(
             context.coordinator,
             action: #selector(Coordinator.handleTap),

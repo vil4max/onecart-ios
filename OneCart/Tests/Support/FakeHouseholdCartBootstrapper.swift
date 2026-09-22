@@ -2,6 +2,7 @@ import Foundation
 @testable import OneCart
 
 @MainActor
+@Observable
 final class FakeHouseholdCartBootstrapper: HouseholdCartBootstrapping {
     var householdCartBootstrapFailed = false
     var ensureCount = 0

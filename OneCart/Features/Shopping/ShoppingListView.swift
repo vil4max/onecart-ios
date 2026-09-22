@@ -191,6 +191,7 @@ struct ShoppingListView: View {
                 }
             }
             .accessibilityLabel(Text("cart.members_a11y \(viewModel.familyMembersCount)"))
+            .accessibilityIdentifier("cart.members")
         }
     }
 

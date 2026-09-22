@@ -89,6 +89,7 @@ struct CartAddComposer: View {
         .buttonBorderShape(.circle)
         .tint(accent)
         .accessibilityLabel(Text("cart.add_a11y"))
+        .accessibilityIdentifier("cart.add")
         .keyboardShortcut("n", modifiers: .command)
     }
 
@@ -137,6 +138,7 @@ struct CartAddComposer: View {
                 Task { await commitDraft(keepComposing: false) }
             }
             .accessibilityLabel(Text("cart.add_a11y"))
+            .accessibilityIdentifier("cart.add_field")
     }
 
     private var submitButton: some View {
@@ -151,6 +153,7 @@ struct CartAddComposer: View {
         .foregroundStyle(accent)
         .disabled(trimmedDraft.isEmpty)
         .accessibilityLabel(Text("cart.add_a11y"))
+        .accessibilityIdentifier("cart.add_submit")
     }
 
     private var closeButton: some View {
@@ -162,6 +165,7 @@ struct CartAddComposer: View {
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .accessibilityLabel(Text("common.cancel"))
+        .accessibilityIdentifier("cart.add_close")
         .keyboardShortcut(.cancelAction)
     }
 
@@ -180,6 +184,7 @@ struct CartAddComposer: View {
                     .buttonBorderShape(.capsule)
                     .tint(accent)
                     .accessibilityLabel(Text("cart.suggestion_chip_a11y \(item)"))
+                    .accessibilityIdentifier("cart.suggestion")
                 }
             }
             .padding(.horizontal, 2)

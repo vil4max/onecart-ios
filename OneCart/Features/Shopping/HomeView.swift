@@ -57,6 +57,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(OneCartPalette.primary)
+                .accessibilityIdentifier("home.retry")
             }
         } else {
             VStack(spacing: 12) {
@@ -69,6 +70,7 @@ struct HomeView: View {
             }
             .padding(24)
             .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("home.connecting")
         }
     }
 }

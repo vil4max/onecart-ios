@@ -22,6 +22,7 @@ struct HistoryDayDetailView: View {
                 } footer: {
                     if offset == sections.count - 1 {
                         Text("history.read_only_footer")
+                            .accessibilityIdentifier("history.read_only_footer")
                     }
                 }
             }
@@ -60,5 +61,6 @@ struct HistoryProductRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("history.item_row")
     }
 }

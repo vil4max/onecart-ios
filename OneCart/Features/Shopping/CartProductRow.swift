@@ -29,6 +29,7 @@ struct ProductPurchaseToggle: View {
             Text(isPurchased ? "cart.unmark_trolley_a11y" : "cart.mark_in_trolley_a11y")
         )
         .accessibilityAddTraits(isPurchased ? [.isSelected] : [])
+        .accessibilityIdentifier("cart.product_toggle")
     }
 }
 
@@ -108,6 +109,7 @@ struct CartProductRow: View {
             .buttonStyle(.plain)
             .disabled(!canEdit)
             .accessibilityHint(canEdit ? Text("cart.rename_hint") : Text(""))
+            .accessibilityIdentifier("cart.product_name")
 
             ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
         }
