@@ -10,7 +10,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf) landed, R4 in progress; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
+Current outcome: Phase 1 landed (S1 c07dbe5, S2 7be3b4a + cdf6bec, S3 6ddc3d2); Phase 2 R1 (0c71038, ee69575), R2 (365d9d6, 73df937), R3 (4eb54cf), R4 (4ecb8ab) landed; Phase 3 T2 landed (1974e08…679f08d), the refinement race fixed (dc57799), T1 in progress.
 Authorized scope (owner, 2026-09-22, three decisions):
 
 1. Redesign every screen for iOS 26/27 idioms; the information architecture stays: three tabs
@@ -156,3 +156,8 @@ the demo UI, push and `tf-1.6.0-1` on the owner's word, flow report to the kit s
   read-only, category-sectioned day detail; `EmptyCard` removed; app coverage 53.90 %.
   Open: `HistoryItemEntity` has no `createdByName` (no "added by" caption in the detail);
   `OfficialProductThumbnail` in `Shared/Media/ProductMedia.swift` is now unused.
+- 2026-09-22, R4 `4ecb8ab`: widget rows, progress line and empty state share the cart's
+  vocabulary (`CartWidgetComponents.swift`); behaviour untouched; 228 tests. Writer could not
+  render previews (the scheme runs Release; Xcode previews need -Onone) or reach a device, so
+  the integrator added the widget on the session simulator: gallery small/medium previews and
+  the Home Screen widget in light and dark checked visually.
