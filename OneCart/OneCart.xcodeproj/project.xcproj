@@ -286,6 +286,7 @@
         { "path": "FamilyInviteLinkBuilderTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CloudKitBackendServiceTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "SessionMembershipTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "SessionCartMutationTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "Support",
