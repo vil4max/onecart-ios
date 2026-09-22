@@ -1,29 +1,55 @@
 import AuthenticationServices
 import Combine
 
-// RC05: Keeps onboarding actions at the feature boundary.
-@MainActor
-final class WelcomeViewModel: ObservableObject {
-    private let session: AppSession
+/// Everything Welcome needs from the session; the composition root satisfies `init(session:)` with one object.
+typealias WelcomeSessionServices = SessionStateReading & WelcomeSigningIn
 
-    init(session: AppSession) {
-        self.session = session
+/// Sign in with Apple, retry and failure reporting for the Welcome screen (REQ-AUTH-010).
+@MainActor
+@Observable
+final class WelcomeViewModel {
+    private let signIn: any WelcomeSigningIn
+    private let state: any SessionStateReading
+
+    init(signIn: any WelcomeSigningIn, state: any SessionStateReading) {
+        self.signIn = signIn
+        self.state = state
+    }
+
+    convenience init(session: any WelcomeSessionServices) {
+        self.init(signIn: session, state: session)
+    }
+
+    var phase: WelcomePhase {
+        signIn.welcomePhase
+    }
+
+    var accentColor: AppAccentColor {
+        state.preferences.accentColor
     }
 
     func completeAppleSignIn(authorization: ASAuthorization) async {
-        await session.completeAppleSignIn(authorization: authorization)
+        await signIn.completeAppleSignIn(authorization: authorization)
     }
 
     func retryWelcome() async {
-        await session.retryWelcome()
+        await signIn.retryWelcome()
     }
 
     func reportWelcomeFailure(_ message: String) {
-        session.reportWelcomeFailure(message)
+        signIn.reportWelcomeFailure(message)
+    }
+
+    /// Shows the provider's own description when it has one; otherwise the generic sign-in failure.
+    func reportSignInFailure(_ error: Error) {
+        signIn.reportWelcomeFailure(
+            (error as? LocalizedError)?.errorDescription
+                ?? String(localized: "welcome.sign_in_failed")
+        )
     }
 
     func dismissWelcomeSignInAttempt() {
-        session.dismissWelcomeSignInAttempt()
+        signIn.dismissWelcomeSignInAttempt()
     }
 
     #if DEBUG
@@ -34,7 +60,10 @@ final class WelcomeViewModel: ObservableObject {
                 givenName: "Alex",
                 familyName: nil
             )
-            await session.completeAppleSignIn(credential: credential)
+            await signIn.completeAppleSignIn(credential: credential)
         }
     #endif
 }
+
+/// Bridges the current `@StateObject` screens until S3 wires them through `@State`.
+extension WelcomeViewModel: ObservableObject {}

@@ -2,46 +2,102 @@ import Combine
 import Foundation
 import SwiftUI
 
-@MainActor
-final class AccountViewModel: ObservableObject {
-    @Published var sharePayload: CartSharePayload?
-    @Published var isSharing = false
-    @Published var shareAlert: UserAlert?
-    @Published var confirmingLeave = false
-    @Published var memberToRemove: FamilyMember?
-    @Published var confirmingSignOut = false
-    @Published var confirmingDeleteAccount = false
-    @Published var confirmingRevokeInvite = false
-    @Published var isEditingDisplayName = false
-    @Published var isEditingCartName = false
-    @Published var draftDisplayName = ""
-    @Published var draftCartName = ""
+/// Everything Settings needs from the session; the composition root satisfies `init(session:)` with one object.
+typealias AccountSessionServices = AccountManaging & MembershipManaging & SessionStateReading
 
-    private let session: AppSession
+@MainActor
+@Observable
+final class AccountViewModel {
+    var sharePayload: CartSharePayload?
+    var isSharing = false
+    var shareAlert: UserAlert?
+    var confirmingLeave = false
+    var memberToRemove: FamilyMember?
+    var confirmingSignOut = false
+    var confirmingDeleteAccount = false
+    var confirmingRevokeInvite = false
+    var isEditingDisplayName = false
+    var isEditingCartName = false
+    var draftDisplayName = ""
+    var draftCartName = ""
+
+    private let state: any SessionStateReading
+    private let membership: any MembershipManaging
+    private let accountManager: any AccountManaging
     private let shareTimeoutNanoseconds: UInt64
     private var shareGeneration = 0
 
-    init(session: AppSession, shareTimeoutNanoseconds: UInt64 = 48_000_000_000) {
-        self.session = session
+    init(
+        state: any SessionStateReading,
+        membership: any MembershipManaging,
+        account: any AccountManaging,
+        shareTimeoutNanoseconds: UInt64 = 48_000_000_000
+    ) {
+        self.state = state
+        self.membership = membership
+        accountManager = account
         self.shareTimeoutNanoseconds = shareTimeoutNanoseconds
     }
 
+    convenience init(session: any AccountSessionServices, shareTimeoutNanoseconds: UInt64 = 48_000_000_000) {
+        self.init(
+            state: session,
+            membership: session,
+            account: session,
+            shareTimeoutNanoseconds: shareTimeoutNanoseconds
+        )
+    }
+
+    // MARK: - Session state
+
+    var account: OneCartAccount? {
+        state.account
+    }
+
+    var hasActiveFamilySpace: Bool {
+        state.activeFamilySpace != nil
+    }
+
+    var cartTitle: String {
+        state.cartTitle
+    }
+
+    var isOnline: Bool {
+        state.isOnline
+    }
+
+    var isBusy: Bool {
+        state.isBusy
+    }
+
+    var isDeletingAccount: Bool {
+        state.isDeletingAccount
+    }
+
+    var isFamilyMetadataLoading: Bool {
+        state.isFamilyMetadataLoading
+    }
+
+    var preferences: DevicePreferences {
+        state.preferences
+    }
+
     var needsAccountName: Bool {
-        ParticipantDisplayName.isPlaceholder(session.account?.displayName)
+        ParticipantDisplayName.isPlaceholder(state.account?.displayName)
     }
 
     var deleteAccountConfirmMessageKey: LocalizedStringKey {
-        if session.access?.isOwner == true, session.familyMembers.contains(where: { !$0.isCurrentUser }) {
+        if state.access?.isOwner == true, state.familyMembers.contains(where: { !$0.isCurrentUser }) {
             return "account.delete_confirm_message_owner"
         }
-        if session.access?.isParticipant == true {
+        if state.access?.isParticipant == true {
             return "account.delete_confirm_message_member"
         }
         return "account.delete_confirm_message"
     }
 
     var cartRoleLineKey: LocalizedStringKey {
-        if session.access?.isParticipant == true {
+        if state.access?.isParticipant == true {
             "account.role_member_status"
         } else {
             "account.role_owner_status"
@@ -49,26 +105,27 @@ final class AccountViewModel: ObservableObject {
     }
 
     var cartSectionFooterKey: LocalizedStringKey {
-        if session.access?.isParticipant == true {
+        if state.access?.isParticipant == true {
             "account.cart_status_member_footer"
-        } else if session.access?.isOwner == true {
+        } else if state.access?.isOwner == true {
             "account.share_link_warning"
         } else {
             "account.cart_status_owner_footer"
         }
     }
 
+    /// Members from the server, or the signed-in account alone until they arrive.
     var displayedMembers: [FamilyMember] {
-        if !session.familyMembers.isEmpty {
-            return session.familyMembers
+        if !state.familyMembers.isEmpty {
+            return state.familyMembers
         }
-        guard let account = session.account, session.activeFamilySpace != nil else { return [] }
+        guard let account = state.account, let family = state.activeFamilySpace else { return [] }
         return [
             FamilyMember(
                 id: account.id,
                 displayName: account.displayName,
-                access: session.access ?? .owner,
-                joinedAt: session.activeFamilySpace?.createdAt ?? Date(),
+                access: state.access ?? .owner,
+                joinedAt: family.createdAt ?? Date(),
                 isCurrentUser: true,
                 avatarURL: account.avatarURL,
                 bannerURL: account.bannerURL
@@ -77,19 +134,24 @@ final class AccountViewModel: ObservableObject {
     }
 
     var canOwnerManageMembers: Bool {
-        session.access?.isOwner == true
+        state.access?.isOwner == true
     }
 
     var canRenameCart: Bool {
-        session.access?.isOwner == true
+        state.access?.isOwner == true
     }
 
     var canRevokeInvite: Bool {
-        session.access?.isOwner == true
+        state.access?.isOwner == true
     }
 
     var canLeaveCart: Bool {
-        session.access?.isParticipant == true
+        state.access?.isParticipant == true
+    }
+
+    /// Any member may forward the invite (REQ-SHARE-110), but only online and one at a time.
+    var canShareCart: Bool {
+        hasActiveFamilySpace && isOnline && !isSharing
     }
 
     var appVersion: (version: String, build: String) {
@@ -99,58 +161,65 @@ final class AccountViewModel: ObservableObject {
     }
 
     var cartNamePromptKey: LocalizedStringKey {
-        if let family = session.activeFamilySpace,
-           session.persistence.scope(for: family) == .private
-        {
-            return "account.cart_name_prompt_personal"
+        if state.isActiveFamilySpacePrivate {
+            "account.cart_name_prompt_personal"
+        } else {
+            "account.cart_name_prompt"
         }
-        return "account.cart_name_prompt"
+    }
+
+    // MARK: - Actions
+
+    func refreshAccountSharing() async {
+        await membership.refreshAccountSharing()
     }
 
     func beginEditingDisplayName() {
-        draftDisplayName = session.preferences.participantDisplayName.isEmpty
-            ? (ParticipantDisplayName.isPlaceholder(session.account?.displayName)
-                ? ""
-                : (session.account?.displayName ?? ""))
-            : session.preferences.participantDisplayName
+        let preferred = state.preferences.participantDisplayName
+        if preferred.isEmpty {
+            let accountName = state.account?.displayName
+            draftDisplayName = ParticipantDisplayName.isPlaceholder(accountName) ? "" : (accountName ?? "")
+        } else {
+            draftDisplayName = preferred
+        }
         isEditingDisplayName = true
     }
 
     func beginEditingCartName() {
-        draftCartName = session.activeFamilySpace?.displayName ?? session.cartTitle
+        draftCartName = state.activeFamilySpace?.displayName ?? state.cartTitle
         isEditingCartName = true
     }
 
     func saveDisplayName() async {
         let name = draftDisplayName
         isEditingDisplayName = false
-        await session.updateParticipantDisplayName(name)
+        await accountManager.updateParticipantDisplayName(name)
     }
 
     func saveCartName() async {
         let name = draftCartName
         isEditingCartName = false
-        await session.renameActiveCart(name)
+        await membership.renameActiveCart(name)
     }
 
     func removeMember(_ member: FamilyMember) async {
-        await session.removeMember(member)
+        await membership.removeMember(member)
     }
 
     func leaveCurrentFamily() async {
-        await session.leaveCurrentFamily()
+        await membership.leaveCurrentFamily()
     }
 
     func revokeInviteLink() async {
-        await session.revokeInviteLink()
+        await membership.revokeInviteLink()
     }
 
     func signOut() {
-        session.signOut()
+        accountManager.signOut()
     }
 
     func deleteAccount() async {
-        await session.deleteAccount()
+        await accountManager.deleteAccount()
     }
 
     func shareCart() {
@@ -163,7 +232,7 @@ final class AccountViewModel: ObservableObject {
         let work = Task { @MainActor in
             defer { finishShare(generation: generation) }
             do {
-                let link = try await session.createFamilyInviteLink()
+                let link = try await membership.createFamilyInviteLink()
                 guard !Task.isCancelled else { return }
                 sharePayload = CartSharePayload(link: link)
                 CartHaptics.success()
@@ -181,7 +250,7 @@ final class AccountViewModel: ObservableObject {
                 if CloudKitUserFacingError.isProductionSchemaFailure(error) {
                     shareAlert = .error(CloudKitUserFacingError.productionSchemaMissing)
                 } else {
-                    shareAlert = .error(session.userFacingMessage(for: error))
+                    shareAlert = .error(membership.userFacingMessage(for: error))
                 }
             }
         }
@@ -204,3 +273,6 @@ final class AccountViewModel: ObservableObject {
         isSharing = false
     }
 }
+
+/// Bridges the current `@StateObject` screens until S3 wires them through `@State`.
+extension AccountViewModel: ObservableObject {}
