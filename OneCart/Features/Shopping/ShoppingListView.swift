@@ -36,6 +36,12 @@ struct ShoppingListView: View {
                     }
                 }
 
+                if viewModel.showsProgress {
+                    Section {
+                        CartProgressHeader(viewModel: viewModel)
+                    }
+                }
+
                 ForEach(viewModel.toBuySections, id: \.category) { section in
                     Section {
                         productRows(section.items, showsCategoryLabel: false)

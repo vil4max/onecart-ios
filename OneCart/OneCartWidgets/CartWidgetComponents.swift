@@ -4,7 +4,7 @@ import WidgetKit
 
 // The Home Screen families share the cart screen's vocabulary: the category tile of
 // `CartCategoryThumbnail`, the check control of `ProductPurchaseToggle` and the progress
-// line of `CartProgressAccessory`. Colors come from the snapshot's accent and scheme so a
+// line of `CartProgressHeader`. Colors come from the snapshot's accent and scheme so a
 // theme override in the snapshot still wins over the system appearance.
 
 func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
@@ -127,8 +127,8 @@ struct WidgetItemRow: View {
     }
 }
 
-/// Trip progress as the tab bar accessory shows it: symbol, "N of M completed" and the bar;
-/// the compact form drops the word like the accessory does once the tab bar minimizes.
+/// Trip progress as the cart's header shows it: symbol, "N of M completed" and the bar; the
+/// compact form drops the word where a small family has no room for it.
 struct WidgetProgressLine: View {
     @Environment(\.colorScheme) private var scheme
     let snapshot: WidgetCartSnapshot

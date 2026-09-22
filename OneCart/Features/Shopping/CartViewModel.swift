@@ -183,8 +183,8 @@ final class CartViewModel {
         return Double(purchasedCount) / Double(totalCount)
     }
 
-    /// The tab bar accessory tracks progress only while the living cart has lines on it.
-    var showsProgressAccessory: Bool {
+    /// The progress header tracks the trip only while the living cart has lines on it.
+    var showsProgress: Bool {
         hasActiveFamilySpace && !isEmpty
     }
 

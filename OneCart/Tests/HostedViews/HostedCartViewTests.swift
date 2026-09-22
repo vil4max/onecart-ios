@@ -140,30 +140,28 @@ struct HostedCartViewTests {
         #expect(await hosted.pump { hosted.uiLabelTexts.contains("Weekend") })
     }
 
-    @Test("REQ-CART-040: a fully bought cart shows the hero card and the progress accessory reports completion")
+    @Test("REQ-CART-040: a fully bought cart shows the hero card and the progress header reports completion")
     func allPurchasedShowsHeroAndProgress() async throws {
         let (_, harness) = try await Self.cartWithLines(purchased: true)
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         #expect(hosted.element(identifier: "cart.all_purchased")?.label?
             .contains(String(localized: "cart.all_purchased_title")) == true)
-
-        let accessory = HostedView(
-            CartProgressAccessory(viewModel: harness.viewModel),
-            size: CGSize(width: 393, height: 80)
-        )
-        defer { accessory.tearDown() }
-        #expect(accessory.element(identifier: "cart.progress")?.label?
+        #expect(hosted.element(identifier: "cart.progress")?.label?
             .contains(String(localized: "cart.all_purchased_title")) == true)
+    }
 
-        let (_, partial) = try await Self.cartWithLines()
-        let partialAccessory = HostedView(
-            CartProgressAccessory(viewModel: partial.viewModel),
-            size: CGSize(width: 393, height: 80)
-        )
-        defer { partialAccessory.tearDown() }
+    @Test("REQ-SHELL-010: progress sits at the top of the cart, above the category sections")
+    func progressHeaderLeadsTheCart() async throws {
+        let (_, harness) = try await Self.cartWithLines()
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel))
+        defer { hosted.tearDown() }
         let expected = String(localized: "cart.progress_completed \(1) \(3)")
-        #expect(partialAccessory.element(identifier: "cart.progress")?.label?.contains(expected) == true)
+        #expect(hosted.element(identifier: "cart.progress")?.label?.contains(expected) == true)
+        let identifiers = hosted.identifiers
+        let progressIndex = try #require(identifiers.firstIndex(of: "cart.progress"))
+        let firstRowIndex = try #require(identifiers.firstIndex(of: "cart.product_name"))
+        #expect(progressIndex < firstRowIndex)
     }
 
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
