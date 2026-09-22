@@ -13,9 +13,8 @@ extension AppSession: ShoppingTripControlling {
     /// as a system alert (REQ-SHELL-050).
     func startShoppingTrip() async {
         guard isReady, canEdit else { return }
-        let snapshot = makeWidgetSnapshot(theme: preferences.theme, accent: preferences.accentColor)
         do {
-            try await shoppingTrip.start(with: snapshot)
+            try await beginShoppingTrip()
             CartHaptics.success()
         } catch {
             presentAlert(error.localizedDescription, kind: .error)

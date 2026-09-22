@@ -48,6 +48,15 @@
         { "path": "AppSession+Services.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+MemberProfile.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+ShoppingTrip.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "AppSession+Intents.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        {
+          "kind": "group",
+          "path": "Intents",
+          "children": [
+            { "path": "CartAppIntents.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "OneCartShortcuts.swift", "target-membership": [ "OneCart/compile-sources" ] },
+          ],
+        },
         { "path": "ShoppingTripActivityController.swift", "target-membership": [ "OneCart/compile-sources" ] },
         {
           "kind": "group",
@@ -260,6 +269,7 @@
           ],
         },
         { "path": "InfoPlist.xcstrings", "target-membership": [ "OneCart/resources" ] },
+        { "path": "AppShortcuts.xcstrings", "target-membership": [ "OneCart/resources" ] },
         { "path": "OneCartDebug.entitlements" },
         { "path": "OneCartRelease.entitlements" },
         { "path": "PrivacyInfo.xcprivacy", "target-membership": [ "OneCart/resources" ] },
@@ -307,6 +317,7 @@
         { "path": "FamilyMemberNamingTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "MemberNamePromptTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "ShoppingTripActivityTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "CartIntentTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",
