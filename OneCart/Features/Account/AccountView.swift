@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct AccountView: View {
-    @Environment(\.colorScheme) private var colorScheme
     @Bindable var viewModel: AccountViewModel
     /// Device preferences outlive the screen; the pickers bind straight to them.
     @Bindable private var preferences: DevicePreferences
@@ -13,249 +12,17 @@ struct AccountView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    if viewModel.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
-                        HStack(spacing: 12) {
-                            ProgressView()
-                                .tint(OneCartPalette.primary(for: colorScheme, accent: preferences.accentColor))
-                            Text("account.updating_members")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        ForEach(viewModel.displayedMembers) { member in
-                            AccountMemberRow(member: member, accent: preferences.accentColor)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if viewModel.canOwnerManageMembers, !member.isCurrentUser {
-                                        Button(role: .destructive) {
-                                            viewModel.memberToRemove = member
-                                        } label: {
-                                            Label("common.delete", systemImage: "person.fill.xmark")
-                                        }
-                                    }
-                                }
-                        }
-                    }
-
-                    if viewModel.hasActiveFamilySpace {
-                        Button {
-                            viewModel.shareCart()
-                        } label: {
-                            AccountActionRow(
-                                titleKey: "account.share_cart",
-                                systemImage: "square.and.arrow.up",
-                                accentColor: preferences.accentColor,
-                                trailing: {
-                                    if viewModel.isSharing {
-                                        ProgressView()
-                                            .tint(OneCartPalette.primary(
-                                                for: colorScheme,
-                                                accent: preferences.accentColor
-                                            ))
-                                    }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(viewModel.isSharing || !viewModel.isOnline)
-
-                        if viewModel.canRenameCart {
-                            Button {
-                                viewModel.beginEditingCartName()
-                            } label: {
-                                AccountActionRow(
-                                    titleKey: "account.rename_cart",
-                                    systemImage: "pencil",
-                                    accentColor: preferences.accentColor
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        if viewModel.canRevokeInvite {
-                            Button {
-                                viewModel.confirmingRevokeInvite = true
-                            } label: {
-                                AccountActionRow(
-                                    titleKey: "account.revoke_invite",
-                                    systemImage: "person.badge.minus",
-                                    accentColor: preferences.accentColor
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(viewModel.isBusy || !viewModel.isOnline)
-                        }
-
-                        if viewModel.canLeaveCart {
-                            Button {
-                                viewModel.confirmingLeave = true
-                            } label: {
-                                AccountActionRow(
-                                    titleKey: "account.leave_cart",
-                                    systemImage: "rectangle.portrait.and.arrow.right",
-                                    style: .destructive,
-                                    accentColor: preferences.accentColor
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                } header: {
-                    if viewModel.hasActiveFamilySpace {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(viewModel.cartTitle)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                                .textCase(nil)
-                            Text(viewModel.cartRoleLineKey)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .textCase(nil)
-                        }
-                    } else {
-                        Text("settings.cart_section")
-                    }
-                } footer: {
-                    Text(viewModel.cartSectionFooterKey)
+            Form {
+                cartSection
+                if viewModel.hasActiveFamilySpace {
+                    sharingSection
                 }
-
-                Section {
-                    if let account = viewModel.account {
-                        Button {
-                            viewModel.beginEditingDisplayName()
-                        } label: {
-                            HStack(spacing: 12) {
-                                ProfileAvatarView(
-                                    name: account.displayName,
-                                    remoteURL: account.avatarURL,
-                                    size: 44,
-                                    accent: preferences.accentColor
-                                )
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(account.displayName)
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    Text("settings.apple_siwa_caption")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    if viewModel.needsAccountName {
-                                        Text("settings.apple_set_name")
-                                            .font(.caption)
-                                            .foregroundStyle(.tertiary)
-                                    } else {
-                                        Text("settings.apple_edit_name")
-                                            .font(.caption)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint(Text("account.edit_display_name"))
-                    }
-                } header: {
-                    Text("settings.apple_section")
-                } footer: {
-                    Text("settings.apple_name_footer")
-                }
-
-                Section {
-                    AccountAccentPickerRow(selection: $preferences.accentColor)
-
-                    AccountAppIconPickerRow(
-                        selection: $preferences.appIcon,
-                        accent: preferences.accentColor
-                    )
-
-                    AccountPickerRow(
-                        titleKey: "settings.theme",
-                        systemImage: "circle.lefthalf.filled",
-                        accent: preferences.accentColor,
-                        selection: $preferences.theme
-                    ) {
-                        ForEach(AppTheme.allCases, id: \.self) { theme in
-                            Text(theme.localizedTitleKey).tag(theme)
-                        }
-                    }
-
-                    AccountPickerRow(
-                        titleKey: "settings.language",
-                        systemImage: "globe",
-                        accent: preferences.accentColor,
-                        selection: $preferences.language
-                    ) {
-                        ForEach(AppLanguage.allCases, id: \.self) { language in
-                            Text(language.localizedTitleKey).tag(language)
-                        }
-                    }
-                } header: {
-                    Text("settings.appearance")
-                }
-
-                Section {
-                    Button {
-                        viewModel.confirmingSignOut = true
-                    } label: {
-                        AccountActionRow(
-                            titleKey: "account.sign_out",
-                            systemImage: "rectangle.portrait.and.arrow.right",
-                            style: .regular,
-                            accentColor: preferences.accentColor
-                        )
-                    }
-                    .buttonStyle(.plain)
-                } header: {
-                    Text("settings.session_section")
-                } footer: {
-                    Text("settings.session_footer")
-                }
-
-                Section {
-                    Button {
-                        viewModel.confirmingDeleteAccount = true
-                    } label: {
-                        AccountActionRow(
-                            titleKey: "account.delete_account",
-                            systemImage: "person.crop.circle.badge.minus",
-                            style: .destructive,
-                            accentColor: preferences.accentColor,
-                            trailing: {
-                                if viewModel.isDeletingAccount {
-                                    ProgressView()
-                                        .tint(OneCartPalette.danger)
-                                }
-                            }
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isDeletingAccount || viewModel.isBusy)
-                } header: {
-                    Text("settings.delete_account_section")
-                } footer: {
-                    Text("settings.delete_account_footer")
-                }
-
-                Section {} footer: {
-                    Text("settings.version_build \(viewModel.appVersion.version) \(viewModel.appVersion.build)")
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                signedInSection
+                lookAndFeelSection
+                accountSection
+                aboutFooter
             }
-            .listStyle(.insetGrouped)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: 70)
-            }
-            .tint(OneCartPalette.primary(for: colorScheme, accent: preferences.accentColor))
-            .animation(.easeInOut(duration: 0.35), value: preferences.accentColor)
             .navigationTitle("settings.nav_title")
-            .navigationBarTitleDisplayMode(.inline)
             .task {
                 // Single request path: member-join notifications reuse this grant.
                 // Two concurrent requests with different options race on first run.
@@ -263,139 +30,290 @@ struct AccountView: View {
                 await viewModel.refreshAccountSharing()
             }
             .sheet(isPresented: $viewModel.isEditingDisplayName) {
-                NavigationStack {
-                    Form {
-                        Section {
-                            TextField(
-                                "account.display_name_placeholder",
-                                text: $viewModel.draftDisplayName
-                            )
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                        } footer: {
-                            Text("account.display_name_prompt")
-                        }
-                    }
-                    .navigationTitle("account.edit_display_name")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("common.cancel") { viewModel.isEditingDisplayName = false }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("account.display_name_save") {
-                                Task { await viewModel.saveDisplayName() }
-                            }
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
+                NameEditorSheet(
+                    titleKey: "account.edit_display_name",
+                    placeholderKey: "account.display_name_placeholder",
+                    promptKey: "account.display_name_prompt",
+                    saveKey: "account.display_name_save",
+                    text: $viewModel.draftDisplayName,
+                    onCancel: { viewModel.isEditingDisplayName = false },
+                    onSave: { Task { await viewModel.saveDisplayName() } }
+                )
             }
             .sheet(isPresented: $viewModel.isEditingCartName) {
-                NavigationStack {
-                    Form {
-                        Section {
-                            TextField(
-                                "account.cart_name_placeholder",
-                                text: $viewModel.draftCartName
-                            )
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                        } footer: {
-                            Text(viewModel.cartNamePromptKey)
-                        }
-                    }
-                    .navigationTitle("account.rename_cart")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("common.cancel") { viewModel.isEditingCartName = false }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("account.cart_name_save") {
-                                Task { await viewModel.saveCartName() }
-                            }
-                            .disabled(
-                                viewModel.draftCartName
-                                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                                    .isEmpty
-                            )
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
+                NameEditorSheet(
+                    titleKey: "account.rename_cart",
+                    placeholderKey: "account.cart_name_placeholder",
+                    promptKey: viewModel.cartNamePromptKey,
+                    saveKey: "account.cart_name_save",
+                    text: $viewModel.draftCartName,
+                    requiresText: true,
+                    onCancel: { viewModel.isEditingCartName = false },
+                    onSave: { Task { await viewModel.saveCartName() } }
+                )
             }
             .sheet(item: $viewModel.sharePayload) { payload in
-                CartActivityViewController(
-                    activityItems: [CartInviteActivityItem(link: payload.link)]
-                )
+                CartActivityViewController(activityItems: [CartInviteActivityItem(link: payload.link)])
             }
             .alert(
                 viewModel.shareAlert?.kind.title ?? "",
-                isPresented: Binding(
-                    get: { viewModel.shareAlert != nil },
-                    set: {
-                        if !$0 {
-                            viewModel.shareAlert = nil
-                        }
-                    }
-                )
+                isPresented: $viewModel.isShowingShareAlert
             ) {
-                Button("common.ok", role: .cancel) { viewModel.shareAlert = nil }
+                Button("common.ok", role: .cancel) {}
             } message: {
                 Text(viewModel.shareAlert?.message ?? "")
             }
-            .alert("account.leave_confirm_title", isPresented: $viewModel.confirmingLeave) {
-                Button("common.cancel", role: .cancel) {}
+            .confirmationDialog(
+                "account.remove_member_title",
+                isPresented: $viewModel.isConfirmingMemberRemoval,
+                titleVisibility: .visible,
+                presenting: viewModel.memberToRemove
+            ) { member in
+                Button("account.remove_member_action", role: .destructive) {
+                    Task { await viewModel.removeMember(member) }
+                }
+            } message: { member in
+                Text("account.remove_member_message \(member.displayName)")
+            }
+            .confirmationDialog(
+                "account.leave_confirm_title",
+                isPresented: $viewModel.confirmingLeave,
+                titleVisibility: .visible
+            ) {
                 Button("account.leave_confirm_action", role: .destructive) {
                     Task { await viewModel.leaveCurrentFamily() }
                 }
             } message: {
                 Text("account.leave_confirm_message")
             }
-            .alert("account.revoke_invite_title", isPresented: $viewModel.confirmingRevokeInvite) {
-                Button("common.cancel", role: .cancel) {}
+            .confirmationDialog(
+                "account.revoke_invite_title",
+                isPresented: $viewModel.confirmingRevokeInvite,
+                titleVisibility: .visible
+            ) {
                 Button("account.revoke_invite_confirm", role: .destructive) {
                     Task { await viewModel.revokeInviteLink() }
                 }
             } message: {
                 Text("account.revoke_invite_message")
             }
-            .alert(
-                "account.remove_member_title",
-                isPresented: Binding(
-                    get: { viewModel.memberToRemove != nil },
-                    set: {
-                        if !$0 {
-                            viewModel.memberToRemove = nil
-                        }
-                    }
-                ),
-                presenting: viewModel.memberToRemove
-            ) { member in
-                Button("common.delete", role: .destructive) {
-                    Task { await viewModel.removeMember(member) }
-                }
-                Button("common.cancel", role: .cancel) {}
-            } message: { member in
-                Text("account.remove_member_message \(member.displayName)")
-            }
-            .alert("account.sign_out_confirm_title", isPresented: $viewModel.confirmingSignOut) {
-                Button("common.cancel", role: .cancel) {}
+            .confirmationDialog(
+                "account.sign_out_confirm_title",
+                isPresented: $viewModel.confirmingSignOut,
+                titleVisibility: .visible
+            ) {
                 Button("account.sign_out", role: .destructive) {
                     viewModel.signOut()
                 }
             } message: {
                 Text("account.sign_out_message")
             }
-            .alert("account.delete_confirm_title", isPresented: $viewModel.confirmingDeleteAccount) {
-                Button("common.cancel", role: .cancel) {}
+            .confirmationDialog(
+                "account.delete_confirm_title",
+                isPresented: $viewModel.confirmingDeleteAccount,
+                titleVisibility: .visible
+            ) {
                 Button("account.delete_confirm_action", role: .destructive) {
                     Task { await viewModel.deleteAccount() }
                 }
             } message: {
                 Text(viewModel.deleteAccountConfirmMessageKey)
             }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var cartSection: some View {
+        Section {
+            if viewModel.hasActiveFamilySpace {
+                cartNameRow
+            }
+
+            if viewModel.isFamilyMetadataLoading, viewModel.displayedMembers.isEmpty {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("account.updating_members")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                ForEach(viewModel.displayedMembers) { member in
+                    AccountMemberRow(member: member, accent: preferences.accentColor)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if viewModel.canRemove(member) {
+                                Button(role: .destructive) {
+                                    viewModel.memberToRemove = member
+                                } label: {
+                                    Label("account.remove_member_action", systemImage: "person.fill.xmark")
+                                }
+                            }
+                        }
+                }
+            }
+
+            if viewModel.canLeaveCart {
+                Button("account.leave_cart", role: .destructive) {
+                    viewModel.confirmingLeave = true
+                }
+            }
+        } header: {
+            Text("settings.cart_section")
+        } footer: {
+            Text(viewModel.cartSectionFooterKey)
+        }
+    }
+
+    @ViewBuilder
+    private var cartNameRow: some View {
+        let titleAndRole = VStack(alignment: .leading, spacing: 2) {
+            Text(viewModel.cartTitle)
+            Text(viewModel.cartRoleLineKey)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+
+        if viewModel.canRenameCart {
+            Button {
+                viewModel.beginEditingCartName()
+            } label: {
+                LabeledContent {
+                    Image(systemName: "pencil")
+                        .foregroundStyle(.secondary)
+                } label: {
+                    titleAndRole
+                }
+            }
+            .tint(.primary)
+            .accessibilityLabel(Text(viewModel.cartTitle))
+            .accessibilityHint(Text("account.cart_name_hint"))
+        } else {
+            titleAndRole
+        }
+    }
+
+    private var sharingSection: some View {
+        Section {
+            Button {
+                viewModel.shareCart()
+            } label: {
+                LabeledContent {
+                    if viewModel.isSharing {
+                        ProgressView()
+                    }
+                } label: {
+                    Label("account.share_cart", systemImage: "square.and.arrow.up")
+                }
+            }
+            .disabled(!viewModel.canShareCart)
+            .accessibilityHint(Text("account.share_cart_hint"))
+
+            if viewModel.canRevokeInvite {
+                Button {
+                    viewModel.confirmingRevokeInvite = true
+                } label: {
+                    Label("account.revoke_invite", systemImage: "person.badge.minus")
+                }
+                .disabled(viewModel.isBusy || !viewModel.isOnline)
+            }
+        } header: {
+            Text("account.sharing_section")
+        } footer: {
+            Text(viewModel.sharingSectionFooterKey)
+        }
+    }
+
+    private var signedInSection: some View {
+        Section {
+            if let account = viewModel.account {
+                Button {
+                    viewModel.beginEditingDisplayName()
+                } label: {
+                    HStack(spacing: 12) {
+                        MemberAvatarView(
+                            name: account.displayName,
+                            remoteURL: account.avatarURL,
+                            accent: preferences.accentColor
+                        )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(account.displayName)
+                            Text(viewModel.displayNameCaptionKey)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .tint(.primary)
+                .accessibilityLabel(Text(account.displayName))
+                .accessibilityHint(Text("account.edit_display_name"))
+            }
+
+            Button("account.sign_out") {
+                viewModel.confirmingSignOut = true
+            }
+        } header: {
+            Text("settings.apple_section")
+        } footer: {
+            Text("settings.session_footer")
+        }
+    }
+
+    private var lookAndFeelSection: some View {
+        Section("settings.appearance") {
+            AccentColorPickerRow(selection: $preferences.accentColor)
+
+            AppIconPickerRow(selection: preferences.appIcon, accent: preferences.accentColor) { option in
+                Task { await viewModel.selectAppIcon(option) }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("settings.theme")
+                Picker("settings.theme", selection: $preferences.theme) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(theme.localizedTitleKey).tag(theme)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            .padding(.vertical, 4)
+
+            Picker("settings.language", selection: $preferences.language) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.localizedTitleKey).tag(language)
+                }
+            }
+        }
+    }
+
+    private var accountSection: some View {
+        Section {
+            Button(role: .destructive) {
+                viewModel.confirmingDeleteAccount = true
+            } label: {
+                LabeledContent {
+                    if viewModel.isDeletingAccount {
+                        ProgressView()
+                    }
+                } label: {
+                    Text("account.delete_account")
+                }
+            }
+            .disabled(viewModel.isDeletingAccount || viewModel.isBusy)
+        } header: {
+            Text("account.section")
+        } footer: {
+            Text("settings.delete_account_footer")
+        }
+    }
+
+    private var aboutFooter: some View {
+        Section {} footer: {
+            VStack(spacing: 2) {
+                Text("common.app_name")
+                Text("settings.version_build \(viewModel.appVersion.version) \(viewModel.appVersion.build)")
+            }
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
         }
     }
 }

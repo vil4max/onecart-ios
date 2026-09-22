@@ -106,12 +106,6 @@
             { "path": "AccountRows.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AccountView.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
-        }, {
-          "kind": "group",
-          "path": "Profile",
-          "children": [
-            { "path": "ProfileView.swift", "target-membership": [ "OneCart/compile-sources" ] },
-          ],
         },
       ],
     }, {
@@ -303,6 +297,7 @@
             { "path": "FakeHouseholdCartBootstrapper.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeAlertPresenter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeMainTabRouter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "FakeAppIconSwitcher.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "CloudKitErrorExpectations.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "MembershipSessionFixture.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
           ],

@@ -96,3 +96,16 @@ public enum AppIconManager {
         }
     }
 }
+
+/// Switches the home-screen icon; the view model depends on this so tests never touch `UIApplication`.
+@MainActor
+protocol AppIconSwitching {
+    @discardableResult
+    func setAlternateIcon(to option: AppIconOption) async -> Bool
+}
+
+struct SystemAppIconSwitcher: AppIconSwitching {
+    func setAlternateIcon(to option: AppIconOption) async -> Bool {
+        await AppIconManager.setAlternateIcon(to: option)
+    }
+}

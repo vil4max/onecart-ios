@@ -78,12 +78,18 @@ struct AccountHarness {
     let state: FakeSessionState
     let membership = FakeMembershipManager()
     let accountManager = FakeAccountManager()
+    let iconSwitcher = FakeAppIconSwitcher()
     let viewModel: AccountViewModel
 
     init() throws {
         isolated = try IsolatedPreferences()
         state = FakeSessionState(preferences: isolated.preferences)
-        viewModel = AccountViewModel(state: state, membership: membership, account: accountManager)
+        viewModel = AccountViewModel(
+            state: state,
+            membership: membership,
+            account: accountManager,
+            iconSwitcher: iconSwitcher
+        )
     }
 
     /// The share runs on its own task; the fake answers immediately, so a few yields drain it.
@@ -298,10 +304,79 @@ struct AccountViewModelFakeTests {
         #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_owner_footer")
 
         harness.state.access = .owner
-        #expect(harness.viewModel.cartSectionFooterKey == "account.share_link_warning")
+        #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_owner_footer")
+        #expect(harness.viewModel.sharingSectionFooterKey == "account.share_link_warning")
 
         harness.state.access = .member
         #expect(harness.viewModel.cartRoleLineKey == "account.role_member_status")
         #expect(harness.viewModel.cartSectionFooterKey == "account.cart_status_member_footer")
+        #expect(harness.viewModel.sharingSectionFooterKey == "account.share_link_member_hint")
+    }
+
+    @Test("REQ-SHARE-040: only the owner can remove a member, and never themselves")
+    func removalGateFollowsRoleAndIdentity() throws {
+        let harness = try AccountHarness()
+        let me = AccountHarness.member(named: "Alex", access: .owner, isCurrentUser: true)
+        let guest = AccountHarness.member(named: "Guest", access: .member)
+
+        #expect(!harness.viewModel.canRemove(guest))
+
+        harness.state.access = .owner
+        #expect(harness.viewModel.canRemove(guest))
+        #expect(!harness.viewModel.canRemove(me))
+
+        harness.state.access = .member
+        #expect(!harness.viewModel.canRemove(guest))
+    }
+
+    @Test("REQ-SHARE-040: the removal dialog is driven by the pending member and clears it on dismiss")
+    func removalDialogTracksPendingMember() throws {
+        let harness = try AccountHarness()
+        #expect(!harness.viewModel.isConfirmingMemberRemoval)
+
+        harness.viewModel.memberToRemove = AccountHarness.member(named: "Guest", access: .member)
+        #expect(harness.viewModel.isConfirmingMemberRemoval)
+
+        harness.viewModel.isConfirmingMemberRemoval = false
+        #expect(harness.viewModel.memberToRemove == nil)
+    }
+
+    @Test("REQ-SHELL-050: the share alert flag mirrors the pending alert and clears it on dismiss")
+    func shareAlertFlagMirrorsAlert() throws {
+        let harness = try AccountHarness()
+        #expect(!harness.viewModel.isShowingShareAlert)
+
+        harness.viewModel.shareAlert = .error("No network")
+        #expect(harness.viewModel.isShowingShareAlert)
+
+        harness.viewModel.isShowingShareAlert = false
+        #expect(harness.viewModel.shareAlert == nil)
+    }
+
+    @Test("REQ-AUTH-040: the name row asks for a name only while the account carries a placeholder")
+    func displayNameCaptionFollowsPlaceholder() throws {
+        let harness = try AccountHarness()
+        harness.state.account = OneCartAccount(id: UUID(), displayName: "User")
+        #expect(harness.viewModel.displayNameCaptionKey == "settings.apple_set_name")
+
+        harness.state.account = OneCartAccount(id: UUID(), displayName: "Alex")
+        #expect(harness.viewModel.displayNameCaptionKey == "settings.apple_edit_name")
+    }
+
+    @Test("REQ-SHELL-030: choosing an app icon persists the preference and asks the system once")
+    func selectAppIconPersistsAndForwards() async throws {
+        let harness = try AccountHarness()
+        #expect(harness.isolated.preferences.appIcon == .classic)
+
+        await harness.viewModel.selectAppIcon(.ocean)
+        await harness.viewModel.selectAppIcon(.ocean)
+
+        #expect(harness.isolated.preferences.appIcon == .ocean)
+        #expect(harness.iconSwitcher.requestedIcons == [.ocean])
+
+        harness.iconSwitcher.result = false
+        await harness.viewModel.selectAppIcon(.sunset)
+        #expect(harness.isolated.preferences.appIcon == .sunset)
+        #expect(harness.iconSwitcher.requestedIcons == [.ocean, .sunset])
     }
 }

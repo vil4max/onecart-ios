@@ -23,6 +23,7 @@ final class AccountViewModel {
     private let state: any SessionStateReading
     private let membership: any MembershipManaging
     private let accountManager: any AccountManaging
+    private let iconSwitcher: any AppIconSwitching
     private let shareTimeoutNanoseconds: UInt64
     private var shareGeneration = 0
 
@@ -30,11 +31,13 @@ final class AccountViewModel {
         state: any SessionStateReading,
         membership: any MembershipManaging,
         account: any AccountManaging,
+        iconSwitcher: any AppIconSwitching = SystemAppIconSwitcher(),
         shareTimeoutNanoseconds: UInt64 = 48_000_000_000
     ) {
         self.state = state
         self.membership = membership
         accountManager = account
+        self.iconSwitcher = iconSwitcher
         self.shareTimeoutNanoseconds = shareTimeoutNanoseconds
     }
 
@@ -85,6 +88,29 @@ final class AccountViewModel {
         ParticipantDisplayName.isPlaceholder(state.account?.displayName)
     }
 
+    var displayNameCaptionKey: LocalizedStringKey {
+        needsAccountName ? "settings.apple_set_name" : "settings.apple_edit_name"
+    }
+
+    /// Presentation flags for the member-removal dialog and the share alert, bindable from the view.
+    var isConfirmingMemberRemoval: Bool {
+        get { memberToRemove != nil }
+        set {
+            if !newValue {
+                memberToRemove = nil
+            }
+        }
+    }
+
+    var isShowingShareAlert: Bool {
+        get { shareAlert != nil }
+        set {
+            if !newValue {
+                shareAlert = nil
+            }
+        }
+    }
+
     var deleteAccountConfirmMessageKey: LocalizedStringKey {
         if state.access?.isOwner == true, state.familyMembers.contains(where: { !$0.isCurrentUser }) {
             return "account.delete_confirm_message_owner"
@@ -106,10 +132,17 @@ final class AccountViewModel {
     var cartSectionFooterKey: LocalizedStringKey {
         if state.access?.isParticipant == true {
             "account.cart_status_member_footer"
-        } else if state.access?.isOwner == true {
-            "account.share_link_warning"
         } else {
             "account.cart_status_owner_footer"
+        }
+    }
+
+    /// The invite-door explanation under the Sharing section (REQ-SHARE-060, REQ-SHARE-110).
+    var sharingSectionFooterKey: LocalizedStringKey {
+        if state.access?.isOwner == true {
+            "account.share_link_warning"
+        } else {
+            "account.share_link_member_hint"
         }
     }
 
@@ -146,6 +179,11 @@ final class AccountViewModel {
 
     var canLeaveCart: Bool {
         state.access?.isParticipant == true
+    }
+
+    /// Only the owner removes members, and never themselves (REQ-SHARE-040).
+    func canRemove(_ member: FamilyMember) -> Bool {
+        canOwnerManageMembers && !member.isCurrentUser
     }
 
     /// Any member may forward the invite (REQ-SHARE-110), but only online and one at a time.
@@ -215,6 +253,13 @@ final class AccountViewModel {
 
     func signOut() {
         accountManager.signOut()
+    }
+
+    /// Persists the choice before asking the system, so the picker reflects it even if the switch is declined.
+    func selectAppIcon(_ option: AppIconOption) async {
+        guard state.preferences.appIcon != option else { return }
+        state.preferences.appIcon = option
+        await iconSwitcher.setAlternateIcon(to: option)
     }
 
     func deleteAccount() async {

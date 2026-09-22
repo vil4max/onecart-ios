@@ -1,6 +1,29 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "account.cart_name_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renames the cart for everyone in it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переименовывает корзину для всех участников."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейменовує кошик для всіх учасників."
+          }
+        }
+      }
+    },
     "account.cart_name_placeholder": {
       "extractionState": "manual",
       "localizations": {
@@ -590,6 +613,29 @@
         }
       }
     },
+    "account.remove_member_action": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити"
+          }
+        }
+      }
+    },
     "account.remove_member_message %@": {
       "extractionState": "manual",
       "localizations": {
@@ -885,6 +931,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Поділитися кошиком"
+          }
+        }
+      }
+    },
+    "account.share_cart_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the share sheet with the invite link."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает меню отправки со ссылкой-приглашением."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкриває меню надсилання з посиланням-запрошенням."
           }
         }
       }
