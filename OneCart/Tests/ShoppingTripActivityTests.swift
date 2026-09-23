@@ -136,6 +136,29 @@ struct ShoppingTripActivityTests {
         #expect(backend.updates.first?.state.nextItems.map(\.name) == ["Bread", "Eggs", "Cheese"])
     }
 
+    @Test("REQ-WIDGET-050: a cart change while the trip is starting still reaches it")
+    func syncDuringStartReachesTheTrip() async throws {
+        let (controller, backend) = Self.makeController()
+        try await controller.start(with: Self.shoppingSnapshot)
+        // A held end keeps the next start queued while no trip is active.
+        backend.holdsEnds = true
+        controller.end()
+        await backend.yield { backend.heldEnds == 1 }
+        let starting = Task { try await controller.start(with: Self.shoppingSnapshot) }
+        await backend.yield { false }
+        #expect(!controller.isActive)
+
+        var items = Self.shoppingSnapshot.items
+        items[0].isPurchased = true
+        controller.sync(with: Self.snapshot(items: items))
+        backend.releaseEnds()
+        try await starting.value
+        await controller.settle()
+
+        #expect(backend.requested.count == 2)
+        #expect(backend.updates.map(\.state.purchasedCount) == [2])
+    }
+
     @Test("REQ-WIDGET-050: a relaunched app adopts its running trip and ends leftovers")
     func relaunchAdoptsRunningTrip() async {
         let kept = ShoppingTripActivityRecord(id: "kept", accountID: Self.accountID, familyID: Self.familyID)

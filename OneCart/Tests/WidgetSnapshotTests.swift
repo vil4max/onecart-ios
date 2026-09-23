@@ -646,6 +646,28 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         XCTAssertEqual(backend.ended.first?.dismissal, .immediate)
     }
 
+    func test_REQ_WIDGET_060_signOutWhileTheTripIsStarting_endsIt() async throws {
+        let backend = FakeShoppingTripBackend()
+        let fixture = try await makeWidgetSession(shoppingTripBackend: backend)
+        await fixture.session.startShoppingTrip()
+        // A held end keeps the next start queued in the trip controller while no trip is active.
+        backend.holdsEnds = true
+        fixture.session.shoppingTrip.end()
+        await backend.yield { backend.heldEnds == 1 }
+        let starting = Task { await fixture.session.startShoppingTrip() }
+        await backend.yield { false }
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
+
+        fixture.session.signOut()
+        backend.releaseEnds()
+        await starting.value
+        await fixture.session.shoppingTrip.settle()
+
+        XCTAssertEqual(backend.requested.count, 2)
+        XCTAssertTrue(backend.running.isEmpty)
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
+    }
+
     func test_REQ_AUTH_070_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {
         let fixture = try await makeWidgetSession()
         try fixture.store.enqueuePurchase(fixture.request())

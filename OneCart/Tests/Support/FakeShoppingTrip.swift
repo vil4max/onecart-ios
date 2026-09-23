@@ -23,6 +23,10 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
 
     var areActivitiesEnabled = true
     var requestError: Error?
+    /// While set, `end` waits for `releaseEnds()`, which holds every later queued operation.
+    var holdsEnds = false
+    private(set) var heldEnds = 0
+    private var endWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var running: [ShoppingTripActivityRecord] = []
     private(set) var requested: [Requested] = []
     private(set) var updates: [Updated] = []
@@ -65,6 +69,10 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     }
 
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {
+        if holdsEnds {
+            heldEnds += 1
+            await withCheckedContinuation { endWaiters.append($0) }
+        }
         let wasShown = shownIDs.contains(id)
         running.removeAll { $0.id == id }
         lingering.removeAll { $0 == id }
@@ -72,6 +80,20 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
             lingering.append(id)
         }
         ended.append(Ended(id: id, state: state, dismissal: dismissal))
+    }
+
+    func releaseEnds() {
+        holdsEnds = false
+        let waiters = endWaiters
+        endWaiters = []
+        waiters.forEach { $0.resume() }
+    }
+
+    /// Lets queued work run until `condition` holds; the fake's own tasks run on the main actor.
+    func yield(until condition: () -> Bool) async {
+        for _ in 0 ..< 100 where !condition() {
+            await Task.yield()
+        }
     }
 
     /// The user swiped the activity away on the Lock Screen.

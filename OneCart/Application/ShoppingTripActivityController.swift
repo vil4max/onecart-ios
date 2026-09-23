@@ -147,9 +147,9 @@ final class ShoppingTripActivityController {
     }
 
     /// Follows the cart; ends the trip when its cart or account is gone, the cart is
-    /// empty, or everything on it is checked.
+    /// empty, or everything on it is checked. Always queued: a start ahead in the queue
+    /// may create the trip this snapshot must reach.
     func sync(with snapshot: WidgetCartSnapshot) {
-        guard activeTrip != nil else { return }
         enqueue { [self] in
             await performSync(with: snapshot)
         }
