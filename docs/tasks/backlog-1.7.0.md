@@ -9,7 +9,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: A1–A3, B1–B3 and C1 on `main`; CloudKit Production schema deployed; release prep next. Duo check blocked on a runtime.
+Current outcome: A1–A3, B1–B3, C1 and R1 on `main` (not pushed); CloudKit Production schema deployed; review fixes L1–L7 and S1–S6 approved and open; tag held. Duo check blocked on a runtime.
 
 Authorized scope (owner, direct, 2026-09-23, answers in this session and the approved plan):
 
@@ -28,6 +28,14 @@ Authorized scope (owner, direct, 2026-09-23, answers in this session and the app
 6. Plan approval covers commits per Writer step, pushing `main` with the release-prep commit as
    the head of its push, and the `tf-1.7.0-1` tag once `just tf-check` prints `Ready`.
 
+7. Added 2026-09-23 (owner, direct, this session; plan approved): review of the other developer's
+   Live Activity and Siri work (`989f4c4`, `92c763f`, `7203f09`) against its proposed
+   REQ-WIDGET-040…060 and REQ-SIRI-010…040, and fixes for every gap in four groups — trip
+   lifecycle, Siri startup and errors, wording and consistency, accessibility. Decisions: "Split
+   on и/і/and too"; "Allow on locked phone"; "Mark after 1 hour" (Live Activity stale date);
+   "Hold tag until fixes". Relayed from the SDLC Orchestrator session, not given here: the Live
+   Activity and Siri work is final for 1.7.0; its requirements stay proposed.
+
 Blocking decisions: none (the CloudKit Production schema deploy is done).
 Permitted deviations: none. No new dependencies.
 Material assumptions:
@@ -37,7 +45,7 @@ Material assumptions:
   round, no installed runtime supports the device (see Evidence history).
 - Nothing MetricKit reports leaves the device, so `docs/privacy.md` does not change; B2
   confirms it from the code.
-Next step: R1 release prep, push, `Tests`, `just tf-check`, tag.
+Next step: dispatch writers L and S; tag held until they land.
 Out of scope: open items 2, 4, 5, 6 and 7 (App Store URL check, git history rewrite, device
 checks, CI runner label, SonarCloud); `ArrangementView` and hinge APIs; lifting the portrait lock
 without a separate owner decision; FU06 (`PersistenceController` `@unchecked Sendable`) beyond
@@ -56,6 +64,8 @@ pushed before the schema deploy; a commit by the other developer is lost or over
 | B2 MetricKit | writer B | a new `Application/` file, `AppDelegate.swift`, a new test | none | done `aa03564`, C1 `1479d7b` |
 | B3 scene-sized chrome | writer B | `Features/Account/CartShareActivityBridge.swift`, `Application/LaunchChrome.swift`, `Features/Account/AccountView.swift` | none | done `9318c38` (toolbars unchanged, see Evidence history) |
 | D Duo check | integrator | fixes found on the Duo simulator | as found | blocked (no runtime supports the device) |
+| L1–L7 trip lifecycle, stale date, refusal texts, trip a11y | writer L | `ShoppingTripActivityController.swift`, `AppSession+ShoppingTrip.swift`, `AppSession+Widget.swift`, `AppSession+FamilySelection.swift`, `SessionBootstrapper.swift`, `ShoppingTripLiveActivity.swift`, `EndShoppingTripIntent.swift`, `CartProgressHeader.swift`, their tests | REQ-WIDGET-040…060, REQ-SIRI-030 | open |
+| S1–S6 Siri startup, errors, separators, order, speech | writer S | `AppSession+Intents.swift`, `Intents/CartAppIntents.swift`, `Intents/OneCartShortcuts.swift`, `AppSession+Welcome.swift` (`start()`), `HouseholdCartCoordinator.swift`, `AppShortcuts.xcstrings`, `CartIntentTests.swift`, `CartTestSupport.swift`, SIRI wording in `product.md` | REQ-SIRI-010…040 | open |
 | R Release 1.7.0 and re-freeze | integrator | version settings, `docs/operations/releases/1.7.0.md`, status docs | none | open |
 
 Shared files: `OneCart.xcodeproj/project.xcproj` and `Resources/Localizable.xcstrings`. Each
@@ -128,7 +138,20 @@ writer adds only its own entries; the integrator resolves conflicts.
 - [x] B2 `feat(diagnostics)`: MetricKit payloads logged on device: `just verify` — aa03564
 - [x] C1 `refactor(diagnostics)`: MetricKit reports read through the iOS 27 `MetricManager` instead of the to-be-deprecated `MXMetricManager`: `just verify` — 1479d7b
 - [x] B3 `fix(layout)`: share and launch chrome sized to the scene: `just verify`, iPhone 17 screenshots — 9318c38
-- [ ] R1 `chore(release)`: 1.7.0 prepared: `just verify`, `just release --check`
+- [x] R1 `chore(release)`: 1.7.0 prepared: `just verify`, `just release --check` — 1180a7d
+- [ ] L1 `fix(trip)`: Stop dismisses a finished trip at once: failing REQ-WIDGET-060 test first, `just verify`
+- [ ] L2 `fix(trip)`: a trip still starting ends when the account goes away: REQ-WIDGET-060 tests, `just verify`
+- [ ] L3 `fix(trip)`: a trip of no signed-in account is dropped at launch: REQ-WIDGET-050/060 tests, `just verify`
+- [ ] L4 `fix(trip)`: a Lock Screen check updates the card before returning: REQ-WIDGET-050 test, `just verify`
+- [ ] L5 `fix(trip)`: a swiped-away trip is noticed before starting or reporting: REQ-WIDGET-060 test, `just verify`
+- [ ] L6 `fix(trip)`: one-hour stale date and cause-specific refusal texts: REQ-WIDGET-040/050 tests, `just verify`
+- [ ] L7 `fix(a11y)`: trip progress labelled, trip controls ≥ 44 pt, header stacks at large sizes: tests, `just verify`
+- [ ] S1 `fix(siri)`: a failed background start is reported and retried: REQ-SIRI-040 tests, `just verify`
+- [ ] S2 `fix(siri)`: the startup wait has a 10 s limit: REQ-SIRI-040 test, `just verify`
+- [ ] S3 `fix(siri)`: Siri waits for the household cart instead of blaming iCloud: REQ-SIRI-010 test, `just verify`
+- [ ] S4 `fix(siri)`: a partial multi-item add is reported; no in-app alert from Siri: REQ-SIRI-010 test, `just verify`
+- [ ] S5 `fix(siri)`: split on и/і/and; read back in screen order: REQ-SIRI-010/020 tests, `just verify`
+- [ ] S6 `fix(siri)`: speech in Siri's language with plural counts: REQ-SIRI-040 tests, `just verify`
 
 ## Current checklist
 
