@@ -698,6 +698,22 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         XCTAssertFalse(fixture.session.isShoppingTripActive)
     }
 
+    /// A startup that fails (iCloud briefly unavailable, a store-load error) signs nobody out,
+    /// so the trip stays for the retry that follows; REQ-WIDGET-060 ends it only on sign-out,
+    /// deletion or a change of account or cart.
+    func test_REQ_WIDGET_060_failedStartup_keepsTheRunningTrip() async throws {
+        let backend = FakeShoppingTripBackend()
+        let fixture = try await makeWidgetSession(shoppingTripBackend: backend)
+        await fixture.session.startShoppingTrip()
+        XCTAssertEqual(backend.running.count, 1)
+
+        fixture.session.clearBootstrapAccount()
+        await fixture.session.shoppingTrip.settle()
+
+        XCTAssertEqual(backend.running.count, 1)
+        XCTAssertTrue(backend.ended.isEmpty)
+    }
+
     func test_REQ_WIDGET_060_launchWithoutSignedInAccount_endsTheLeftoverTrip() async throws {
         let leftover = ShoppingTripActivityRecord(id: "leftover", accountID: UUID(), familyID: UUID())
         let backend = FakeShoppingTripBackend(running: [leftover])

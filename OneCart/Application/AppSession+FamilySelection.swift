@@ -13,7 +13,9 @@ extension AppSession {
         }
     }
 
-    func clearAccountData() {
+    /// `endingShoppingTrip` is false when nobody signed out: a failed startup or a reload before
+    /// the account is restored keeps the trip for the next start to adopt (REQ-WIDGET-060).
+    func clearAccountData(endingShoppingTrip: Bool = true) {
         clearPreparedInviteLink()
         cancelAllCategoryRefinements()
         familySpaces = []
@@ -23,14 +25,16 @@ extension AppSession {
         access = nil
         householdCartBootstrapFailed = false
         isEnsuringHouseholdCart = false
-        // Sign out, account deletion and a lost account all end the trip (REQ-WIDGET-060).
-        // Queued unconditionally: a start still waiting in the queue has no active trip yet.
-        shoppingTrip.end()
+        // Sign out and account deletion end the trip (REQ-WIDGET-060). Queued even without an
+        // active trip: a start still waiting in the queue has no active trip yet.
+        if endingShoppingTrip {
+            shoppingTrip.end()
+        }
     }
 
     func reload(preferredFamilySpaceID: UUID? = nil) throws {
         guard let account else {
-            clearAccountData()
+            clearAccountData(endingShoppingTrip: false)
             return
         }
 

@@ -105,7 +105,7 @@ extension AppSession: SessionBootstrapHost {
     }
 
     func clearBootstrapAccount() {
-        clearAccountData()
+        clearAccountData(endingShoppingTrip: false)
         account = nil
     }
 
