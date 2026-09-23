@@ -8,11 +8,13 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     struct Requested {
         let attributes: ShoppingTripAttributes
         let state: ShoppingTripAttributes.ContentState
+        let staleDate: Date
     }
 
     struct Updated: Equatable {
         let id: String
         let state: ShoppingTripAttributes.ContentState
+        let staleDate: Date
     }
 
     struct Ended: Equatable {
@@ -55,22 +57,23 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
 
     func request(
         attributes: ShoppingTripAttributes,
-        state: ShoppingTripAttributes.ContentState
+        state: ShoppingTripAttributes.ContentState,
+        staleDate: Date
     ) throws -> String {
         if let requestError {
             throw requestError
         }
         let id = "trip-\(nextID)"
         nextID += 1
-        requested.append(Requested(attributes: attributes, state: state))
+        requested.append(Requested(attributes: attributes, state: state, staleDate: staleDate))
         running.append(
             ShoppingTripActivityRecord(id: id, accountID: attributes.accountID, familyID: attributes.familyID)
         )
         return id
     }
 
-    func update(id: String, state: ShoppingTripAttributes.ContentState) async {
-        updates.append(Updated(id: id, state: state))
+    func update(id: String, state: ShoppingTripAttributes.ContentState, staleDate: Date) async {
+        updates.append(Updated(id: id, state: state, staleDate: staleDate))
     }
 
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {

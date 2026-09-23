@@ -96,23 +96,61 @@ struct ShoppingTripActivityTests {
         await #expect(throws: ShoppingTripError.nothingToBuy) {
             try await controller.start(with: Self.snapshot(items: []))
         }
-        await #expect(throws: ShoppingTripError.unavailable) {
+        await #expect(throws: ShoppingTripError.noCart) {
             try await controller.start(with: Self.snapshot(items: [Self.item("Milk")], familyID: nil))
         }
         backend.areActivitiesEnabled = false
-        await #expect(throws: ShoppingTripError.unavailable) {
+        await #expect(throws: ShoppingTripError.activitiesOff) {
             try await controller.start(with: Self.shoppingSnapshot)
         }
         backend.areActivitiesEnabled = true
         backend.requestError = CocoaError(.featureUnsupported)
-        await #expect(throws: ShoppingTripError.unavailable) {
+        await #expect(throws: ShoppingTripError.systemRefused) {
             try await controller.start(with: Self.shoppingSnapshot)
         }
         #expect(backend.requested.isEmpty)
         #expect(!controller.isActive)
     }
 
+    @Test("REQ-WIDGET-040: a refused start names its cause")
+    func refusalNamesItsCause() async {
+        let (controller, backend) = Self.makeController()
+        func refusal(_ snapshot: WidgetCartSnapshot = Self.shoppingSnapshot) async -> String? {
+            do {
+                try await controller.start(with: snapshot)
+                return nil
+            } catch {
+                return error.localizedDescription
+            }
+        }
+        let noCart = await refusal(Self.snapshot(items: [Self.item("Milk")], familyID: nil))
+        let noAccount = await refusal(Self.snapshot(items: [Self.item("Milk")], accountID: nil, familyID: nil))
+        backend.areActivitiesEnabled = false
+        let turnedOff = await refusal()
+        backend.areActivitiesEnabled = true
+        backend.requestError = CocoaError(.featureUnsupported)
+        let systemRefused = await refusal()
+
+        #expect(noCart != nil && noCart == noAccount)
+        #expect(turnedOff == String(localized: "trip.start_unavailable"))
+        #expect(Set([noCart, turnedOff, systemRefused].compactMap(\.self)).count == 3)
+    }
+
     // MARK: - Follow
+
+    @Test("REQ-WIDGET-050: the card is marked stale an hour after its last change")
+    func staleDateIsOneHourAfterEachChange() async throws {
+        let (controller, backend) = Self.makeController()
+        let staleDate = Self.fixedNow.addingTimeInterval(60 * 60)
+        try await controller.start(with: Self.shoppingSnapshot)
+        #expect(backend.requested.first?.staleDate == staleDate)
+
+        var items = Self.shoppingSnapshot.items
+        items[0].isPurchased = true
+        controller.sync(with: Self.snapshot(items: items))
+        await controller.settle()
+        #expect(backend.updates.map(\.staleDate) == [staleDate])
+    }
 
     @Test("REQ-WIDGET-050: the trip follows the cart and skips updates that change nothing")
     func syncUpdatesOnlyOnChange() async throws {

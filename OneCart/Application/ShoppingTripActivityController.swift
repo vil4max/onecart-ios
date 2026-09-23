@@ -13,16 +13,25 @@ enum ShoppingTripDismissal: Equatable, Sendable {
     case after(Date)
 }
 
+/// Why a trip did not start; each cause has its own alert text (REQ-WIDGET-040).
 enum ShoppingTripError: LocalizedError, Equatable {
-    /// Live Activities are off for OneCart, or the system refused the request.
-    case unavailable
+    /// No signed-in account or no active cart to follow.
+    case noCart
+    /// Live Activities are off for OneCart.
+    case activitiesOff
+    /// The system refused the request, for example at its limit of running activities.
+    case systemRefused
     /// Nothing is left to buy on the cart, so there is no trip to follow.
     case nothingToBuy
 
     var errorDescription: String? {
         switch self {
-        case .unavailable:
+        case .noCart:
+            String(localized: "trip.start_no_cart")
+        case .activitiesOff:
             String(localized: "trip.start_unavailable")
+        case .systemRefused:
+            String(localized: "trip.start_refused")
         case .nothingToBuy:
             String(localized: "trip.start_nothing_to_buy")
         }
@@ -46,9 +55,10 @@ protocol ShoppingTripActivityBackend: AnyObject {
     func runningTrips() -> [ShoppingTripActivityRecord]
     func request(
         attributes: ShoppingTripAttributes,
-        state: ShoppingTripAttributes.ContentState
+        state: ShoppingTripAttributes.ContentState,
+        staleDate: Date
     ) throws -> String
-    func update(id: String, state: ShoppingTripAttributes.ContentState) async
+    func update(id: String, state: ShoppingTripAttributes.ContentState, staleDate: Date) async
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async
 }
 
@@ -80,19 +90,20 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
 
     func request(
         attributes: ShoppingTripAttributes,
-        state: ShoppingTripAttributes.ContentState
+        state: ShoppingTripAttributes.ContentState,
+        staleDate: Date
     ) throws -> String {
         let activity = try Activity<ShoppingTripAttributes>.request(
             attributes: attributes,
-            content: ActivityContent(state: state, staleDate: nil)
+            content: ActivityContent(state: state, staleDate: staleDate)
         )
         watch(activity)
         return activity.id
     }
 
-    func update(id: String, state: ShoppingTripAttributes.ContentState) async {
+    func update(id: String, state: ShoppingTripAttributes.ContentState, staleDate: Date) async {
         guard let activity = Self.activity(id: id) else { return }
-        await activity.update(ActivityContent(state: state, staleDate: nil))
+        await activity.update(ActivityContent(state: state, staleDate: staleDate))
     }
 
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {
@@ -141,6 +152,9 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
 final class ShoppingTripActivityController {
     /// How long the finished trip stays on the Lock Screen once every line is checked.
     static let completedDismissalDelay: TimeInterval = 5 * 60
+    /// Without a push server the card changes only while the app runs, so an hour after its
+    /// last change the system marks it stale (owner decision, 2026-09-23).
+    static let staleInterval: TimeInterval = 60 * 60
 
     private(set) var activeTrip: ShoppingTripActivityRecord?
 
@@ -212,7 +226,7 @@ final class ShoppingTripActivityController {
 
     private func performStart(with snapshot: WidgetCartSnapshot) async throws {
         guard let accountID = snapshot.accountID, let familyID = snapshot.familyID else {
-            throw ShoppingTripError.unavailable
+            throw ShoppingTripError.noCart
         }
         guard snapshot.remainingCount > 0 else { throw ShoppingTripError.nothingToBuy }
         await adoptLaunchTrip(accountID: accountID, familyID: familyID)
@@ -224,16 +238,17 @@ final class ShoppingTripActivityController {
         if let activeTrip, activeTrip.accountID == accountID, activeTrip.familyID == familyID {
             return
         }
-        guard backend.areActivitiesEnabled else { throw ShoppingTripError.unavailable }
+        guard backend.areActivitiesEnabled else { throw ShoppingTripError.activitiesOff }
         let state = ShoppingTripAttributes.ContentState(snapshot: snapshot)
         let id: String
         do {
             id = try backend.request(
                 attributes: ShoppingTripAttributes(accountID: accountID, familyID: familyID),
-                state: state
+                state: state,
+                staleDate: staleDate()
             )
         } catch {
-            throw ShoppingTripError.unavailable
+            throw ShoppingTripError.systemRefused
         }
         let replaced = [activeTrip?.id, finishedTripID].compactMap(\.self)
         activeTrip = ShoppingTripActivityRecord(id: id, accountID: accountID, familyID: familyID)
@@ -273,7 +288,11 @@ final class ShoppingTripActivityController {
         }
         guard state != lastState else { return }
         lastState = state
-        await backend.update(id: trip.id, state: state)
+        await backend.update(id: trip.id, state: state, staleDate: staleDate())
+    }
+
+    private func staleDate() -> Date {
+        now().addingTimeInterval(Self.staleInterval)
     }
 
     private func performEnd() async {

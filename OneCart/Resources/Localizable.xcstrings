@@ -6243,6 +6243,52 @@
         }
       }
     },
+    "trip.start_no_cart": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and open a cart to show it on the Lock Screen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войди и открой корзину, чтобы показать её на экране блокировки."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійди та відкрий кошик, щоб показати його на екрані блокування."
+          }
+        }
+      }
+    },
+    "trip.start_refused": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone can't show the cart on the Lock Screen right now. End another Live Activity or try again later."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone сейчас не может показать корзину на экране блокировки. Заверши другую Live Activity или попробуй позже."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone зараз не може показати кошик на екрані блокування. Заверши іншу Live Activity або спробуй пізніше."
+          }
+        }
+      }
+    },
     "trip.remaining %lld": {
       "extractionState": "manual",
       "localizations": {
