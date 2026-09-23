@@ -2,12 +2,15 @@ import AuthenticationServices
 import Foundation
 
 extension AppSession {
-    func start() async {
+    /// Runs the app's startup once. `retryingFailure` lets a background request (Siri) run it
+    /// again after a start that ended on the Welcome failure. That retry only loads the stores
+    /// again: the store wipe stays with the Welcome Retry the user taps.
+    func start(retryingFailure: Bool = false) async {
         if let startupTask {
             await startupTask.value
             return
         }
-        guard !started else { return }
+        guard !started || (retryingFailure && startFailed) else { return }
         started = true
         let task = Task { @MainActor in
             await bootstrapSession()
@@ -16,6 +19,12 @@ extension AppSession {
         startupTask = task
         await task.value
         startupTask = nil
+    }
+
+    /// The last start ended on the Welcome failure rather than on sign-in or a ready session.
+    var startFailed: Bool {
+        guard startupTask == nil, account == nil, case .failed = welcomePhase else { return false }
+        return true
     }
 
     func ensureHouseholdCartIfNeeded() async {

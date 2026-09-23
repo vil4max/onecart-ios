@@ -6,6 +6,8 @@ enum CartIntentError: LocalizedError, Equatable {
     case readOnly
     case emptyName
     case failed
+    /// The app's startup failed; unlike `signedOut`, the user has nothing to sign in to.
+    case unavailable
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +19,8 @@ enum CartIntentError: LocalizedError, Equatable {
             String(localized: "intent.error.empty_name")
         case .failed:
             String(localized: "sync.generic_failure")
+        case .unavailable:
+            String(localized: "intent.error.unavailable")
         }
     }
 }
@@ -93,8 +97,10 @@ extension AppSession {
     }
 
     /// Siri may launch the app in the background: finish startup and the household cart first.
+    /// A start that failed is run again here, so one bad launch does not refuse every request.
     private func cartListForIntent() async throws -> ShoppingListEntity {
-        await start()
+        await start(retryingFailure: true)
+        guard !startFailed else { throw CartIntentError.unavailable }
         guard account != nil, !needsWelcome else { throw CartIntentError.signedOut }
         if activeFamilySpace == nil {
             await ensureHouseholdCartIfNeeded()

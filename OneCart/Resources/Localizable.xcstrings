@@ -6748,6 +6748,29 @@
           }
         }
       }
+    },
+    "intent.error.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OneCart couldn't start. Open the app to continue."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось запустить OneCart. Откройте приложение, чтобы продолжить."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося запустити OneCart. Відкрийте застосунок, щоб продовжити."
+          }
+        }
+      }
     }
   },
   "version": "1.1"

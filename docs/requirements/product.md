@@ -174,7 +174,7 @@ Proposed 2026-09-22: the owner asked for the feature; the wording below awaits o
 
 **REQ-SIRI-030** «Я в магазине с OneCart» starts the shopping trip (REQ-WIDGET-040) without opening the app.
 
-**REQ-SIRI-040** The three actions are App Shortcuts with phrases in English, Russian and Ukrainian, and appear in the Shortcuts app. Every phrase names the app; "OneCart" is accepted as an alternative name for "OneCart Family". Siri may launch the app in the background, so a request finishes the app's startup first and follows the normal CloudKit schedule afterwards.
+**REQ-SIRI-040** The three actions are App Shortcuts with phrases in English, Russian and Ukrainian, and appear in the Shortcuts app. Every phrase names the app; "OneCart" is accepted as an alternative name for "OneCart Family". Siri may launch the app in the background, so a request finishes the app's startup first and follows the normal CloudKit schedule afterwards. A startup that fails is reported as the app being unavailable, never as a sign-in problem, and the next request runs it again; only the Welcome Retry may reset local data.
 
 ## Default cart identity
 
@@ -256,7 +256,7 @@ core path from [core.md](../core.md), not every suite.
 | REQ-SIRI-010 | `CartIntentTests` → `splitsSeveralNamesAndDropsBlanksAndRepeats`, `addsNameOnlyLinesAndKeepsExistingOnes`, `refusesAnEmptyRequestOrASignedOutSession`, `speaksWhatWasAddedAndWhatWasAlreadyThere` |
 | REQ-SIRI-020 | `CartIntentTests` → `readsTheLinesStillToBuy`, `speaksAShortListOrTheCartState` |
 | REQ-SIRI-030 | `CartIntentTests` → `startsTheShoppingTrip` |
-| REQ-SIRI-040 | `CartIntentTests` → `everyPhraseIsTranslatedAndNamesTheApp` |
+| REQ-SIRI-040 | `CartIntentTests` → `aFailedStartIsReportedAndRetriedOnTheNextRequest`, `aStartWithoutAnAccountIsReportedAsSignedOut`, `everyPhraseIsTranslatedAndNamesTheApp` |
 
 Fragile-test matrix (`F1`–`F11`) to requirement: `F1`, `F3`, `F11` →
 REQ-AUTH-080; `F2` → REQ-AUTH-010; `F4`, `F5`, `F8` → REQ-SYNC-010 and

@@ -118,6 +118,64 @@ final class CartIntentTests: XCTestCase {
         XCTAssertEqual(fixture.backend.requested.first?.state.nextItems.map(\.name), ["Хлеб"])
     }
 
+    // MARK: - REQ-SIRI-040 background startup
+
+    /// A session that runs the real startup path against a store directory the test controls.
+    private func makeStartingSession(credential: AppleSignInCredential?) throws -> (AppSession, URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneCartSiriStart-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let persistence = PersistenceController(inMemory: false, storeDirectoryURL: directory, cloudKitEnabled: false)
+        let session = try makeTestSession(
+            persistence: persistence,
+            appleSignIn: InMemoryAppleSignIn(credential: credential)
+        )
+        return (session, directory)
+    }
+
+    private let siriUser = AppleSignInCredential(userID: "siri-user", email: nil, givenName: "Alex", familyName: nil)
+
+    func test_REQ_SIRI_040_aFailedStartIsReportedAndRetriedOnTheNextRequest() async throws {
+        let (session, directory) = try makeStartingSession(credential: siriUser)
+        // A directory occupying the sqlite path makes the store load fail, as in FragileStoreLoadTests.
+        let privateURL = directory.appendingPathComponent("OneCart-private.sqlite")
+        try FileManager.default.createDirectory(at: privateURL, withIntermediateDirectories: true)
+
+        do {
+            _ = try await session.addItemsFromIntent("Milk")
+            XCTFail("A failed start must not reach the cart")
+        } catch {
+            XCTAssertEqual(error as? CartIntentError, .unavailable)
+        }
+        XCTAssertNotEqual(
+            CartIntentError.unavailable.errorDescription,
+            CartIntentError.signedOut.errorDescription,
+            "A signed-in user must not be told to sign in"
+        )
+        // Siri never performs the store wipe; only the Welcome Retry may.
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: privateURL.path, isDirectory: &isDirectory))
+        XCTAssertTrue(isDirectory.boolValue)
+
+        try FileManager.default.removeItem(at: privateURL)
+        let result = try await session.addItemsFromIntent("Milk")
+
+        XCTAssertEqual(result.added, ["Milk"])
+        XCTAssertNotNil(session.account)
+    }
+
+    func test_REQ_SIRI_040_aStartWithoutAnAccountIsReportedAsSignedOut() async throws {
+        let (session, _) = try makeStartingSession(credential: nil)
+
+        do {
+            _ = try await session.remainingItemsForIntent()
+            XCTFail("Siri must not read a signed-out session")
+        } catch {
+            XCTAssertEqual(error as? CartIntentError, .signedOut)
+        }
+    }
+
     // MARK: - REQ-SIRI-040 phrases
 
     func test_REQ_SIRI_040_everyPhraseIsTranslatedAndNamesTheApp() throws {
