@@ -9,7 +9,7 @@ Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: A1–A3, B1–B3, C1 and R1 on `main` (not pushed); CloudKit Production schema deployed; review fixes L1–L7 and S1–S6 approved and open; tag held. Duo check blocked on a runtime.
+Current outcome: every Writer step on `main` (not pushed), review rounds clean, smoke pass done; release gate, push and `tf-1.7.0-1` next. Duo check blocked on a runtime.
 
 Authorized scope (owner, direct, 2026-09-23, answers in this session and the approved plan):
 
@@ -45,7 +45,7 @@ Material assumptions:
   round, no installed runtime supports the device (see Evidence history).
 - Nothing MetricKit reports leaves the device, so `docs/privacy.md` does not change; B2
   confirms it from the code.
-Next step: dispatch writers L and S; tag held until they land.
+Next step: `just verify`, `just release --check`, push `main`, `Tests`, `just tf-check`, tag.
 Out of scope: open items 2, 4, 5, 6 and 7 (App Store URL check, git history rewrite, device
 checks, CI runner label, SonarCloud); `ArrangementView` and hinge APIs; lifting the portrait lock
 without a separate owner decision; FU06 (`PersistenceController` `@unchecked Sendable`) beyond
@@ -65,7 +65,7 @@ pushed before the schema deploy; a commit by the other developer is lost or over
 | B3 scene-sized chrome | writer B | `Features/Account/CartShareActivityBridge.swift`, `Application/LaunchChrome.swift`, `Features/Account/AccountView.swift` | none | done `9318c38` (toolbars unchanged, see Evidence history) |
 | D Duo check | integrator | fixes found on the Duo simulator | as found | blocked (no runtime supports the device) |
 | L1–L7 trip lifecycle, stale date, refusal texts, trip a11y | writer L | `ShoppingTripActivityController.swift`, `AppSession+ShoppingTrip.swift`, `AppSession+Widget.swift`, `AppSession+FamilySelection.swift`, `SessionBootstrapper.swift`, `ShoppingTripLiveActivity.swift`, `EndShoppingTripIntent.swift`, `CartProgressHeader.swift`, their tests | REQ-WIDGET-040…060, REQ-SIRI-030 | done `019d219`…`d1b7eda` |
-| S1–S6 Siri startup, errors, separators, order, speech | writer S | `AppSession+Intents.swift`, `Intents/CartAppIntents.swift`, `Intents/OneCartShortcuts.swift`, `AppSession+Welcome.swift` (`start()`), `HouseholdCartCoordinator.swift`, `AppShortcuts.xcstrings`, `CartIntentTests.swift`, `CartTestSupport.swift`, SIRI wording in `product.md` | REQ-SIRI-010…040 | open |
+| S1–S6 Siri startup, errors, separators, order, speech | writer S | `AppSession+Intents.swift`, `Intents/CartAppIntents.swift`, `Intents/OneCartShortcuts.swift`, `AppSession+Welcome.swift` (`start()`), `HouseholdCartCoordinator.swift`, `AppShortcuts.xcstrings`, `CartIntentTests.swift`, `CartTestSupport.swift`, SIRI wording in `product.md` | REQ-SIRI-010…040 | done `04c26fb`…`d13c80b` |
 | R Release 1.7.0 and re-freeze | integrator | version settings, `docs/operations/releases/1.7.0.md`, status docs | none | open |
 
 Shared files: `OneCart.xcodeproj/project.xcproj` and `Resources/Localizable.xcstrings`. Each
@@ -138,6 +138,30 @@ writer adds only its own entries; the integrator resolves conflicts.
   sizes (outside this slice). Screenshots:
   `agent-artifacts/2026-09-23/onecart-backlog-1.7.0/work/l7-screenshots/`.
 
+- 2026-09-23: writer S landed S1 `04c26fb`, S2 `dbebbf7`, S3 `def2670`, S4 `98828c2`, S5
+  `f7e9aac`, S6 `d13c80b` (cherry-picked; the REQ coverage table conflicted four times and was
+  merged by keeping writer L's REQ-WIDGET rows and writer S's REQ-SIRI rows). Each step began with a
+  REQ-SIRI test failing on the unfixed code; `just verify` OK before each commit. S6: Apple's
+  `LocalizedStringResource` and `IntentSystemContext.locale` documentation confirms late
+  resolution in the request's language, so dialogs and `CartIntentError` now carry
+  `LocalizedStringResource`. Outside the owned list: one line in `AppSession+CartMutations.swift`
+  (a task-local `CartIntentContext` suppresses the in-app alert) and two new test files. A
+  background start arms the store wipe as a foreground start does; the wipe still runs only on the
+  user's Welcome Retry, so `SessionBootstrapper` needed no change.
+- 2026-09-23, `main` at `d13c80b`: `just verify` OK (DoD), 258 XCTest + Swift Testing + 3 UI,
+  0 failures; `spec_trace.py` 56/56.
+- 2026-09-23, review round 1 on L and S (`/code-review high`): medium — `clearAccountData` now ended
+  the trip unconditionally, so a failed startup (e.g. Siri while iCloud is briefly unavailable) or a
+  reload before the account is restored ended a signed-in user's trip; fixed spec-first in
+  `9ecf5ee` (`test_REQ_WIDGET_060_failedStartup_keepsTheRunningTrip` failed before: 0 running, one
+  end). Low — the startup-deadline timer relied on same-turn ordering; made explicit in `aba4319`.
+  Low, owner trade-off — splitting on the word for "and" splits names that contain it. Round 2 on
+  the two fixes: no finding. `just verify` after each: OK (DoD), 259 XCTest + Swift Testing + 3 UI.
+- 2026-09-23, simulator smoke on iPhone 17 (iOS 27.0), demo owner at `aba4319`: the trip starts
+  from the header (header shows End trip), a check updates the count (2 → 3 of 5), End trip
+  returns the header to start, and the History day detail shows "Added by" and "Bought by" on each
+  item. Not exercised: the Lock Screen card and Dynamic Island, Siri by voice.
+
 ## Untested scope
 
 - CloudKit "added by" across two devices, Live Activity on a device, and iPhone Duo hardware:
@@ -160,18 +184,18 @@ writer adds only its own entries; the integrator resolves conflicts.
 - [x] L5 `fix(trip)`: a swiped-away trip is noticed before starting or reporting: REQ-WIDGET-060 test, `just verify` — c95f585
 - [x] L6 `fix(trip)`: one-hour stale date and cause-specific refusal texts: REQ-WIDGET-040/050 tests, `just verify` — 1125328
 - [x] L7 `fix(a11y)`: trip progress labelled, trip controls ≥ 44 pt, header stacks at large sizes: tests, `just verify` — d1b7eda
-- [ ] S1 `fix(siri)`: a failed background start is reported and retried: REQ-SIRI-040 tests, `just verify`
-- [ ] S2 `fix(siri)`: the startup wait has a 10 s limit: REQ-SIRI-040 test, `just verify`
-- [ ] S3 `fix(siri)`: Siri waits for the household cart instead of blaming iCloud: REQ-SIRI-010 test, `just verify`
-- [ ] S4 `fix(siri)`: a partial multi-item add is reported; no in-app alert from Siri: REQ-SIRI-010 test, `just verify`
-- [ ] S5 `fix(siri)`: split on и/і/and; read back in screen order: REQ-SIRI-010/020 tests, `just verify`
-- [ ] S6 `fix(siri)`: speech in Siri's language with plural counts: REQ-SIRI-040 tests, `just verify`
+- [x] S1 `fix(siri)`: a failed background start is reported and retried: REQ-SIRI-040 tests, `just verify` — 04c26fb
+- [x] S2 `fix(siri)`: the startup wait has a 10 s limit: REQ-SIRI-040 test, `just verify` — dbebbf7
+- [x] S3 `fix(siri)`: Siri waits for the household cart instead of blaming iCloud: REQ-SIRI-010 test, `just verify` — def2670
+- [x] S4 `fix(siri)`: a partial multi-item add is reported; no in-app alert from Siri: REQ-SIRI-010 test, `just verify` — 98828c2
+- [x] S5 `fix(siri)`: split on и/і/and; read back in screen order: REQ-SIRI-010/020 tests, `just verify` — f7e9aac
+- [x] S6 `fix(siri)`: speech in Siri's language with plural counts: REQ-SIRI-040 tests, `just verify` — d13c80b
 
 ## Current checklist
 
 - [x] Writers A and B landed on `main`, `just verify` green (`9318c38`)
 - [ ] iPhone Duo checked in every pose; defects fixed, one commit each
-- [ ] Code review rounds clean of high and medium findings; simulator smoke pass
+- [x] Code review rounds clean of high and medium findings; simulator smoke pass
 - [ ] `main` pushed, `Tests` green
 - [x] `CD_createdByName` deployed to Production (2026-09-23)
 - [ ] `tf-1.7.0-1` tagged after `just tf-check` Ready
