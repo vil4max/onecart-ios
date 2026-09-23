@@ -109,7 +109,6 @@ private final class LaunchRideView: UIView {
     private let titleLabel = UILabel()
     private let cartView = UIImageView()
     private var cartLeadingConstraint: NSLayoutConstraint?
-    private var cartCenterYConstraint: NSLayoutConstraint?
     private var appliedProgress: CGFloat = 0
     private var pendingProgress: CGFloat = 0
     private var pendingTitleOpacity: CGFloat = 1
@@ -172,37 +171,19 @@ private final class LaunchRideView: UIView {
         )
         cartLeadingConstraint = cartLeading
 
-        let initialMidY = Self.screenBounds.height / 2
-        let cartCenterY = cartView.centerYAnchor.constraint(
-            equalTo: topAnchor,
-            constant: initialMidY
-        )
-        cartCenterYConstraint = cartCenterY
-
         NSLayoutConstraint.activate([
             titleLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             titleLabel.topAnchor.constraint(
                 equalTo: safeAreaLayoutGuide.topAnchor,
                 constant: LaunchChromeLayout.titleTopPadding
             ),
-            cartCenterY,
+            // The view covers its scene (`ignoresSafeArea` in `RootView`), so its own centre is
+            // the scene's centre whatever the window size; no screen or device size is assumed.
+            cartView.centerYAnchor.constraint(equalTo: centerYAnchor),
             cartLeading,
             cartView.widthAnchor.constraint(equalToConstant: LaunchChromeLayout.cartSize),
             cartView.heightAnchor.constraint(equalToConstant: LaunchChromeLayout.cartSize),
         ])
-    }
-
-    private static var screenBounds: CGRect {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        if let scene = scenes.first(where: { $0.activationState == .foregroundActive })
-            ?? scenes.first
-        {
-            if let window = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first {
-                return window.bounds
-            }
-            return scene.screen.bounds
-        }
-        return .init(x: 0, y: 0, width: 390, height: 844)
     }
 
     @available(*, unavailable)
@@ -217,32 +198,16 @@ private final class LaunchRideView: UIView {
         commitPending(animated: progress > appliedProgress)
     }
 
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        syncCartCenterYToScreen()
-    }
-
     override func layoutSubviews() {
         super.layoutSubviews()
-        syncCartCenterYToScreen()
         guard bounds.width > 0, driveAnimator == nil else { return }
         commitPending(animated: false)
     }
 
-    private func syncCartCenterYToScreen() {
-        let screenMidY: CGFloat = if let window {
-            convert(CGPoint(x: 0, y: window.bounds.midY), from: window).y
-        } else {
-            Self.screenBounds.midY
-        }
-        if cartCenterYConstraint?.constant != screenMidY {
-            cartCenterYConstraint?.constant = screenMidY
-        }
-    }
-
+    /// Runs only once the view has a width (`apply` and `layoutSubviews` check it), so the
+    /// drive-out ends past the view's own trailing edge.
     private func commitPending(animated: Bool) {
-        let width = screenWidth
-        let leading = LaunchChromeLayout.cartLeading(width: width, progress: pendingProgress)
+        let leading = LaunchChromeLayout.cartLeading(width: bounds.width, progress: pendingProgress)
         let opacity = pendingTitleOpacity
 
         if !animated || pendingProgress <= appliedProgress {
@@ -275,15 +240,5 @@ private final class LaunchRideView: UIView {
         }
         driveAnimator = animator
         animator.startAnimation()
-    }
-
-    private var screenWidth: CGFloat {
-        if bounds.width > 0 {
-            return bounds.width
-        }
-        if let window {
-            return window.bounds.width
-        }
-        return Self.screenBounds.width
     }
 }

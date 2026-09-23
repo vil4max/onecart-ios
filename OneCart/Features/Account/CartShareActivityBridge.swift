@@ -8,21 +8,28 @@ struct CartSharePayload: Identifiable {
     let link: FamilyInviteLink
 }
 
+extension View {
+    /// Presents the invite share sheet from the view that opened it. A wide scene (an unfolded
+    /// iPhone Duo) shows a popover pointing at that control instead of one pinned to the window
+    /// centre, which is the fold; a compact iPhone keeps the full-height sheet it always had.
+    func cartSharePresentation(item: Binding<CartSharePayload?>) -> some View {
+        popover(item: item, arrowEdge: .top) { payload in
+            CartActivityViewController(activityItems: [CartInviteActivityItem(link: payload.link)])
+                // The share sheet draws its own background to the bottom edge, as it did when
+                // it was presented with `.sheet`.
+                .ignoresSafeArea()
+                .presentationCompactAdaptation(.sheet)
+        }
+    }
+}
+
+/// Hosted as the content of `cartSharePresentation`, so SwiftUI owns the presentation and its
+/// anchor; the controller configures no popover of its own.
 struct CartActivityViewController: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context _: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-        if let popover = controller.popoverPresentationController {
-            popover.permittedArrowDirections = []
-            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            let activeScene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
-            if let window = activeScene?.windows.first(where: \.isKeyWindow) ?? activeScene?.windows.first {
-                popover.sourceView = window
-                popover.sourceRect = CGRect(x: window.bounds.midX, y: window.bounds.midY, width: 0, height: 0)
-            }
-        }
-        return controller
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
 
     func updateUIViewController(_: UIActivityViewController, context _: Context) {}

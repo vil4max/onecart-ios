@@ -55,9 +55,6 @@ struct AccountView: View {
                     onSave: { Task { await viewModel.saveCartName() } }
                 )
             }
-            .sheet(item: $viewModel.sharePayload) { payload in
-                CartActivityViewController(activityItems: [CartInviteActivityItem(link: payload.link)])
-            }
             .alert(
                 viewModel.shareAlert?.kind.title ?? "",
                 isPresented: $viewModel.isShowingShareAlert
@@ -221,6 +218,7 @@ struct AccountView: View {
         .disabled(!viewModel.canShareCart)
         .accessibilityHint(Text("account.share_cart_hint"))
         .accessibilityIdentifier("account.share_cart")
+        .cartSharePresentation(item: $viewModel.sharePayload)
     }
 
     private var revokeRow: some View {
