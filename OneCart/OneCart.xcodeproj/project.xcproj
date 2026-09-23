@@ -356,11 +356,18 @@
       ],
     }, {
       "kind": "group",
+      "path": "OneCartUITests",
+      "children": [
+        { "path": "OneCartSmokeUITests.swift", "target-membership": [ "OneCartUITests/compile-sources" ] },
+      ],
+    }, {
+      "kind": "group",
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/OneCart.app", "id": "504EC3041FED79650016851F", "type": "wrapper.application", "index": false },
         { "path": "<PRODUCTS>/OneCartWidgets.appex", "id": "W100000000000000000000001", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "OneCart/copy/Embed App Extensions", "header-preservation": "remove-on-copy" } ] },
         { "path": "<PRODUCTS>/OneCartTests.xctest", "id": "A1000000000000000000000E", "type": "wrapper.cfbundle", "index": false },
+        { "path": "<PRODUCTS>/OneCartUITests.xctest", "id": "B1000000000000000000000E", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],
@@ -448,6 +455,40 @@
         "SWIFT_VERSION": "6.0",
         "TARGETED_DEVICE_FAMILY": "1",
         "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/OneCart.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OneCart",
+      },
+    }, {
+      "name": "OneCartUITests",
+      "id": "B40000000000000000000001",
+      "product": "Products/OneCartUITests.xctest",
+      "product-type": "bundle.ui-testing",
+      "legacy-provisioning-style": "automatic",
+      "legacy-team-id": "BTHRDS7254",
+      "test-host-target": "OneCart",
+      "dependencies": [
+        "OneCart",
+      ],
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "build-settings": {
+        "CODE_SIGN_STYLE": "Automatic",
+        "DEVELOPMENT_TEAM": "BTHRDS7254",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "IPHONEOS_DEPLOYMENT_TARGET": "27.0",
+        "LD_RUNPATH_SEARCH_PATHS": [
+          "$(inherited)",
+          "@executable_path/Frameworks",
+          "@loader_path/Frameworks",
+        ],
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.vil555tim.onecart.uitests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]": "DEBUG",
+        "SWIFT_VERSION": "6.0",
+        "TARGETED_DEVICE_FAMILY": "1",
+        "TEST_TARGET_NAME": "OneCart",
       },
     }, {
       "name": "OneCartWidgets",

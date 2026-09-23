@@ -41,6 +41,17 @@
                ReferencedContainer = "container:OneCart.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B40000000000000000000001"
+               BuildableName = "OneCartUITests.xctest"
+               BlueprintName = "OneCartUITests"
+               ReferencedContainer = "container:OneCart.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -7,6 +7,9 @@
         static let launchArgument = "-oneCartDemoUI"
         static let tabArgument = "-oneCartDemoTab"
         static let roleArgument = "-oneCartDemoRole"
+        /// Starts the role from an empty store so seeding runs again; UI tests pass it on
+        /// every launch because seeding is skipped while the demo cart still has items.
+        static let resetArgument = "-oneCartDemoReset"
 
         enum Role: String {
             case owner
@@ -84,6 +87,9 @@
                     defaults.removePersistentDomain(forName: suiteName)
                 }
             }
+            if role != .welcome, ProcessInfo.processInfo.arguments.contains(resetArgument) {
+                reset(role, suiteName: suiteName)
+            }
             let session = AppSession(
                 persistence: PersistenceController(
                     inMemory: role == .welcome,
@@ -113,6 +119,22 @@
             URL.applicationSupportDirectory
                 .appendingPathComponent("OneCartDemo", isDirectory: true)
                 .appendingPathComponent(role.rawValue, isDirectory: true)
+        }
+
+        /// Runs before the role's `PersistenceController` opens the store. The defaults suite
+        /// goes too: it keeps the active cart ID and archive bookkeeping of the wiped store.
+        private static func reset(_ role: Role, suiteName: String) {
+            let directory = storeDirectoryURL(for: role)
+            if FileManager.default.fileExists(atPath: directory.path) {
+                do {
+                    try FileManager.default.removeItem(at: directory)
+                } catch {
+                    CartSyncLog.action.error(
+                        "demo reset failed error=\(error.localizedDescription, privacy: .public)"
+                    )
+                }
+            }
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         }
 
         @MainActor
