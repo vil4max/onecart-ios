@@ -1,21 +1,23 @@
-# Project state — 2026-09-22
+# Project state — 2026-09-23
 
 Snapshot for resuming work after a pause. Update it when the release or CI state changes.
 
-**Release line frozen since 2026-09-22** (owner decision) while 1.6.0 is in App Review: no release
-step, tag or release task starts until the owner unfreezes it. Feature development on `main`
-continues — two developers work on this project, so commits from another session land on `main`
-during the freeze and are expected.
+**Release line unfrozen for one iteration** (owner, 2026-09-23): the backlog round
+[backlog-1.7.0.md](../tasks/backlog-1.7.0.md) ships 1.7.0 build 1 as `tf-1.7.0-1`, then the release
+line freezes again. No `v` tag or App Store submission in this iteration. Two developers work on
+this project, so commits from another session land on `main` at any time and are expected.
 
-**On `main` beyond the 1.6.0 submission:** the submitted commit is `c8390cf` (build 118). `989f4c4`,
-`92c763f` and `7203f09` add the shopping trip Live Activity and the Siri intents on top of it. They
-are not part of 1.6.0 and ship in a later version.
+**1.6.0:** approved in App Review (2026-09-23); `v1.6.0` marks the submitted commit `c8390cf`
+(build 118).
 
-**Next task:** none assigned to this line; after unfreezing, the owner picks one from
-[Open items](#open-items) in a new session.
+**On `main` beyond the 1.6.0 submission:** `989f4c4`, `92c763f` and `7203f09` add the shopping
+trip Live Activity and the Siri intents. They ship in 1.7.0.
 
-**Owner-only while the release line is frozen:** the 1.6.0 App Review outcome, and confirming that
-the new Support and Privacy Policy URLs ([release.md](../operations/release.md), App Store metadata) go live with 1.6.0.
+**Current task:** [backlog-1.7.0.md](../tasks/backlog-1.7.0.md) (open items 3, 8 and 9).
+
+**Owner-only:** confirming that the new Support and Privacy Policy URLs
+([release.md](../operations/release.md), App Store metadata) went live with 1.6.0, and deploying
+`CD_HistoryItem.CD_createdByName` to the CloudKit Production schema before `tf-1.7.0-1`.
 
 ## Product
 
@@ -69,12 +71,13 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 
 ## Open items
 
-1. Watch App Review for 1.6.0 (owner); on rejection fix on `main`, bump PATCH, tag again.
+1. Resolved 2026-09-23: 1.6.0 approved in App Review; `v1.6.0` on `c8390cf`.
 2. After 1.6.0 is released, check that the App Store listing shows the new Support and Privacy
    Policy URLs.
 3. Redesign follow-ups outside the 1.6.0 round, listed in the [task brief](../tasks/redesign-ios27.md)
-   handoff (no "added by" in the History day detail, unused `OfficialProductThumbnail` and
-   strings, CloudKit test seams).
+   handoff. `OfficialProductThumbnail` and the unused strings were removed in `6e7e93c`; "added
+   by" in the History day detail and CloudKit test seams are in
+   [backlog-1.7.0.md](../tasks/backlog-1.7.0.md).
 4. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
    owner decisions (removal list, rewrite after App Review, revoke retired Supabase key).
 5. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
