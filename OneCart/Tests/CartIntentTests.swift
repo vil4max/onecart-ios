@@ -67,6 +67,33 @@ final class CartIntentTests: XCTestCase {
         }
     }
 
+    func test_REQ_SIRI_010_waitsForAHouseholdCartStillBeingSetUp() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let session = try makeTestSession(persistence: persistence)
+        try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Alex"))
+        session.started = true
+        session.needsWelcome = false
+        XCTAssertNil(session.activeFamilySpace)
+
+        // The cart screen started the setup; Siri arrives while it is still running.
+        let screenSetup = Task { await session.ensureHouseholdCartIfNeeded() }
+        for _ in 0 ..< 100 where !session.isEnsuringHouseholdCart {
+            await Task.yield()
+        }
+        XCTAssertTrue(session.isEnsuringHouseholdCart, "Precondition: the setup is running")
+
+        let result = try await session.addItemsFromIntent("Milk")
+
+        XCTAssertEqual(result.added, ["Milk"])
+        await screenSetup.value
+    }
+
+    func test_REQ_SIRI_010_aLocalFailureIsNotBlamedOnICloud() {
+        XCTAssertNotEqual(CartIntentError.failed.errorDescription, String(localized: "sync.generic_failure"))
+        XCTAssertEqual(CartIntentError.failed.errorDescription, String(localized: "intent.error.failed"))
+    }
+
     func test_REQ_SIRI_010_speaksWhatWasAddedAndWhatWasAlreadyThere() {
         let spoken = CartIntentSpeech.addResult(CartIntentAddResult(added: ["Milk"], alreadyOnCart: ["Bread"]))
         XCTAssertEqual(

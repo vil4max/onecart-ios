@@ -32,6 +32,9 @@ final class HouseholdCartCoordinator {
     private let repository: FamilySpaceRepository
     private let defaults: UserDefaults
     private weak var host: (any HouseholdCartHost)?
+    /// Callers that arrived while this coordinator's setup was running; resumed when it ends.
+    private var isRunningEnsure = false
+    private var ensureWaiters: [CheckedContinuation<Void, Never>] = []
 
     init(
         persistence: PersistenceController,
@@ -57,7 +60,7 @@ final class HouseholdCartCoordinator {
             return
         }
         guard !host.isEnsuringHouseholdCart else {
-            CartSyncLog.action.info("ensureHousehold skip alreadyRunning")
+            await waitForRunningEnsure()
             return
         }
 
@@ -74,7 +77,11 @@ final class HouseholdCartCoordinator {
         CartSyncLog.action.info("ensureHousehold start")
         host.applyEnsuringHouseholdCart(true)
         host.applyHouseholdCartBootstrapFailed(false)
-        defer { host.applyEnsuringHouseholdCart(false) }
+        isRunningEnsure = true
+        defer {
+            host.applyEnsuringHouseholdCart(false)
+            finishRunningEnsure()
+        }
 
         do {
             await host.acceptPendingCloudKitShares()
@@ -119,6 +126,24 @@ final class HouseholdCartCoordinator {
             )
             host.presentHouseholdError(error)
         }
+    }
+
+    /// A caller that needs the cart (Siri) must see the result of the running setup, not an
+    /// empty cart. A flag this coordinator did not raise has nothing to wait for.
+    private func waitForRunningEnsure() async {
+        guard isRunningEnsure else {
+            CartSyncLog.action.info("ensureHousehold skip alreadyRunning")
+            return
+        }
+        CartSyncLog.action.info("ensureHousehold wait alreadyRunning")
+        await withCheckedContinuation { ensureWaiters.append($0) }
+    }
+
+    private func finishRunningEnsure() {
+        isRunningEnsure = false
+        let waiters = ensureWaiters
+        ensureWaiters.removeAll()
+        waiters.forEach { $0.resume() }
     }
 
     func retryHouseholdCartBootstrap() async {

@@ -18,7 +18,8 @@ enum CartIntentError: LocalizedError, Equatable {
         case .emptyName:
             String(localized: "intent.error.empty_name")
         case .failed:
-            String(localized: "sync.generic_failure")
+            // Every `.failed` is local (no cart, or a save that did not land); iCloud runs later.
+            String(localized: "intent.error.failed")
         case .unavailable:
             String(localized: "intent.error.unavailable")
         }
@@ -163,8 +164,11 @@ extension AppSession {
         }
         guard !startFailed else { throw CartIntentError.unavailable }
         guard account != nil, !needsWelcome else { throw CartIntentError.signedOut }
+        // Joins a setup the cart screen already started instead of finding no cart.
         if activeFamilySpace == nil {
-            await ensureHouseholdCartIfNeeded()
+            guard await deadline.wait(for: { await self.ensureHouseholdCartIfNeeded() }) else {
+                throw CartIntentError.unavailable
+            }
         }
         // The timer and the work can finish in the same turn; nothing may change the cart or
         // start a trip after the time Siri was promised an answer by.

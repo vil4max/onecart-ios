@@ -6771,6 +6771,29 @@
           }
         }
       }
+    },
+    "intent.error.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong with the cart. Open OneCart and try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "С корзиной что-то пошло не так. Откройте OneCart и повторите."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "З кошиком щось пішло не так. Відкрийте OneCart і повторіть."
+          }
+        }
+      }
     }
   },
   "version": "1.1"
