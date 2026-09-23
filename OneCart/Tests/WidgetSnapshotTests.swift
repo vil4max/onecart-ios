@@ -528,6 +528,11 @@ private extension XCTestCase {
 }
 
 @MainActor
+private final class PurchaseReturnFlag {
+    var value = false
+}
+
+@MainActor
 private struct WidgetSessionFixture {
     let session: AppSession
     let store: WidgetSnapshotStore
@@ -630,6 +635,31 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         XCTAssertFalse(fixture.session.isShoppingTripActive)
         XCTAssertEqual(backend.ended.count, 1)
         XCTAssertEqual(backend.ended.first?.state?.isAllPurchased, true)
+    }
+
+    func test_REQ_WIDGET_050_lockScreenCheck_updatesTheTripBeforeReturning() async throws {
+        let backend = FakeShoppingTripBackend()
+        let fixture = try await makeWidgetSession(shoppingTripBackend: backend)
+        fixture.session.updateWidgetSnapshot()
+        await fixture.session.startShoppingTrip()
+
+        // The system redraws the card when the intent returns, so the trip's own update
+        // must finish first. A held ActivityKit call shows whether the intent waits for it.
+        backend.holdsEnds = true
+        let returned = PurchaseReturnFlag()
+        let purchase = Task {
+            try await fixture.session.performWidgetPurchase(fixture.request())
+            returned.value = true
+        }
+        await backend.yield { backend.heldEnds == 1 }
+        await backend.yield { returned.value }
+        XCTAssertEqual(backend.heldEnds, 1)
+        XCTAssertFalse(returned.value, "The check returned before the trip was updated")
+
+        backend.releaseEnds()
+        try await purchase.value
+        XCTAssertEqual(backend.ended.map(\.state?.isAllPurchased), [true])
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
     }
 
     func test_REQ_WIDGET_060_signOut_endsTheShoppingTrip() async throws {

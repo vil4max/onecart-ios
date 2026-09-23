@@ -121,6 +121,9 @@ extension AppSession {
                 }
             }
         }
+        // A check on the Live Activity redraws it when the intent returns, so the trip's
+        // queued update must land first (REQ-WIDGET-050).
+        await shoppingTrip.settle()
     }
 
     private func applyPendingWidgetPurchases() async throws {
