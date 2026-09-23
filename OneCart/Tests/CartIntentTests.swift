@@ -1,4 +1,3 @@
-import AuthenticationServices
 import Foundation
 @testable import OneCart
 import XCTest
@@ -92,6 +91,48 @@ final class CartIntentTests: XCTestCase {
     func test_REQ_SIRI_010_aLocalFailureIsNotBlamedOnICloud() {
         XCTAssertNotEqual(CartIntentError.failed.errorDescription, String(localized: "sync.generic_failure"))
         XCTAssertEqual(CartIntentError.failed.errorDescription, String(localized: "intent.error.failed"))
+    }
+
+    func test_REQ_SIRI_010_aFailedNameIsReportedAndTheRestStillGoIn() async throws {
+        let result = try await CartIntentAddResult.adding(["Milk", "Bread", "Eggs", "Salt"]) { name in
+            switch name {
+            case "Bread": .failed
+            case "Salt": .alreadyOnCart
+            default: .added
+            }
+        }
+
+        XCTAssertEqual(result.added, ["Milk", "Eggs"])
+        XCTAssertEqual(result.alreadyOnCart, ["Salt"])
+        XCTAssertEqual(result.failed, ["Bread"])
+        XCTAssertEqual(
+            CartIntentSpeech.addResult(result),
+            [
+                String(localized: "intent.add_item.added \(["Milk", "Eggs"].formatted(.list(type: .and)))"),
+                String(localized: "intent.add_item.already \("Salt")"),
+                String(localized: "intent.add_item.failed \("Bread")"),
+            ].joined(separator: " ")
+        )
+    }
+
+    func test_REQ_SIRI_010_aFailedAddQueuesNoAlertInTheApp() async throws {
+        let fixture = try await makeFixture()
+        // The list goes away underneath the session, so the save itself fails.
+        let context = fixture.session.persistence.container.newBackgroundContext()
+        let listID = fixture.listID
+        try await context.perform {
+            let list = try XCTUnwrap(FamilySpaceRepository.fetchList(id: listID, in: context))
+            list.deletedAt = Date()
+            try context.save()
+        }
+
+        do {
+            _ = try await fixture.session.addItemsFromIntent("Milk")
+            XCTFail("A save that did not land must be reported")
+        } catch {
+            XCTAssertEqual(error as? CartIntentError, .failed)
+        }
+        XCTAssertNil(fixture.session.userAlert, "Siri's failure must not surface later as an app alert")
     }
 
     func test_REQ_SIRI_010_speaksWhatWasAddedAndWhatWasAlreadyThere() {
@@ -285,95 +326,5 @@ final class CartIntentTests: XCTestCase {
                 XCTAssertTrue(translated.contains("${applicationName}"), "\(language): \(phrase)")
             }
         }
-    }
-}
-
-/// Holds startup at the credential check until the test releases it.
-private final class GatedAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
-    private let credential: AppleSignInCredential
-    private let asked = AsyncStream<Void>.makeStream()
-    private let gate = AsyncStream<Void>.makeStream()
-
-    init(credential: AppleSignInCredential) {
-        self.credential = credential
-    }
-
-    func storedCredential() -> AppleSignInCredential? {
-        credential
-    }
-
-    func save(_: AppleSignInCredential) {}
-
-    func clearCredential() {}
-
-    func credentialState(for _: String) async -> AppleSignInCredentialState {
-        asked.continuation.yield()
-        for await _ in gate.stream {}
-        return .authorized
-    }
-
-    func signIn() async throws -> AppleSignInCredential {
-        throw AppleSignInError.failed
-    }
-
-    func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
-        throw AppleSignInError.failed
-    }
-
-    func waitUntilAsked() async {
-        var iterator = asked.stream.makeAsyncIterator()
-        _ = await iterator.next()
-    }
-
-    func release() {
-        gate.continuation.finish()
-    }
-}
-
-/// A manual clock for `CartIntentDeadline`: time moves only when the test says so.
-@MainActor
-private final class IntentTestClock {
-    private let start = ContinuousClock.now
-    private var elapsed: Duration = .zero
-    private var sleepers: [(id: UUID, until: Duration, continuation: CheckedContinuation<Void, Never>)] = []
-
-    func deadline(limit: Duration = CartIntentDeadline.startupLimit) -> CartIntentDeadline {
-        CartIntentDeadline(
-            end: start + limit,
-            now: { self.start + self.elapsed },
-            sleep: { duration in try await self.sleep(for: duration) }
-        )
-    }
-
-    /// Moves time and fires every timer that is due.
-    func advance(by duration: Duration) {
-        elapsed += duration
-        let due = sleepers.filter { $0.until <= elapsed }
-        sleepers.removeAll { $0.until <= elapsed }
-        due.forEach { $0.continuation.resume() }
-    }
-
-    /// Moves time without firing timers, as when work and the timer end in the same instant.
-    func moveNowWithoutFiring(by duration: Duration) {
-        elapsed += duration
-    }
-
-    /// Like `Task.sleep`, a cancelled sleep ends at once and throws.
-    private func sleep(for duration: Duration) async throws {
-        let id = UUID()
-        let until = elapsed + duration
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                sleepers.append((id, until, continuation))
-            }
-        } onCancel: {
-            Task { @MainActor [weak self] in self?.wake(id) }
-        }
-        try Task.checkCancellation()
-    }
-
-    private func wake(_ id: UUID) {
-        guard let index = sleepers.firstIndex(where: { $0.id == id }) else { return }
-        sleepers.remove(at: index).continuation.resume()
     }
 }

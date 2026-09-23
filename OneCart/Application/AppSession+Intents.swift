@@ -31,12 +31,50 @@ struct CartIntentAddResult: Equatable, Sendable {
     var added: [String] = []
     /// Names that already lived on the cart and were left as they are (REQ-CART-090).
     var alreadyOnCart: [String] = []
+    /// Names whose save did not land.
+    var failed: [String] = []
+
+    enum Outcome {
+        case added
+        case alreadyOnCart
+        case failed
+    }
+
+    /// Adds the names one by one. A name that fails is reported and the rest still go in, because
+    /// the names before it are already saved; only a request where nothing landed is an error.
+    @MainActor
+    static func adding(
+        _ names: [String],
+        using add: @MainActor (String) async -> Outcome
+    ) async throws -> CartIntentAddResult {
+        var result = CartIntentAddResult()
+        for name in names {
+            switch await add(name) {
+            case .added:
+                result.added.append(name)
+            case .alreadyOnCart:
+                result.alreadyOnCart.append(name)
+            case .failed:
+                result.failed.append(name)
+            }
+        }
+        if result.added.isEmpty, result.alreadyOnCart.isEmpty {
+            throw CartIntentError.failed
+        }
+        return result
+    }
 }
 
 struct CartIntentRemaining: Equatable, Sendable {
     let totalCount: Int
     /// To-buy names in cart order.
     let names: [String]
+}
+
+/// Marks cart work done for a Siri or Shortcuts request. Siri speaks its own result, so a cart
+/// mutation inside it queues no in-app alert, which would otherwise show up later, out of context.
+enum CartIntentContext {
+    @TaskLocal static var isActive = false
 }
 
 enum CartIntentNames {
@@ -118,19 +156,18 @@ extension AppSession {
         guard canEdit else { throw CartIntentError.readOnly }
         guard let listID = list.id else { throw CartIntentError.failed }
 
-        var result = CartIntentAddResult()
-        for name in names {
-            let existingIDs = Set(products(inListID: listID).compactMap(\.id))
-            guard let productID = await addProduct(to: list, draft: .nameOnly(name)) else {
-                throw CartIntentError.failed
-            }
-            if existingIDs.contains(productID) {
-                result.alreadyOnCart.append(name)
-            } else {
-                result.added.append(name)
+        return try await CartIntentContext.$isActive.withValue(true) {
+            try await CartIntentAddResult.adding(names) { name in
+                // Checked here, in the same turn as the mutation's own check, so a cart that turned
+                // read-only mid-request is reported as a failed name rather than as an app alert.
+                guard canEdit else { return .failed }
+                let existingIDs = Set(products(inListID: listID).compactMap(\.id))
+                guard let productID = await addProduct(to: list, draft: .nameOnly(name)) else {
+                    return .failed
+                }
+                return existingIDs.contains(productID) ? .alreadyOnCart : .added
             }
         }
-        return result
     }
 
     /// What is still to buy, read without changing the cart (REQ-SIRI-020).

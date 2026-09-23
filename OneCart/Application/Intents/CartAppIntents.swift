@@ -60,6 +60,9 @@ enum CartIntentSpeech {
         if !result.alreadyOnCart.isEmpty {
             sentences.append(String(localized: "intent.add_item.already \(list(result.alreadyOnCart))"))
         }
+        if !result.failed.isEmpty {
+            sentences.append(String(localized: "intent.add_item.failed \(list(result.failed))"))
+        }
         return sentences.joined(separator: " ")
     }
 

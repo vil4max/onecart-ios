@@ -353,6 +353,7 @@
             { "path": "FakeCloudUserIdentity.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeMemberNamePrompter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeShoppingTrip.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "CartIntentTestDoubles.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
           ],
         },
       ],

@@ -6542,6 +6542,29 @@
         }
       }
     },
+    "intent.add_item.failed %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't add: %@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось добавить: %@."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося додати: %@."
+          }
+        }
+      }
+    },
     "intent.remaining.title": {
       "extractionState": "manual",
       "localizations": {

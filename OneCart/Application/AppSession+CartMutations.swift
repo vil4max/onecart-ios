@@ -288,6 +288,7 @@ extension AppSession {
             CartSyncLog.action.error(
                 "\(action) fail error=\(error.localizedDescription, privacy: .public)"
             )
+            guard !CartIntentContext.isActive else { return false }
             if error as? RepositoryError == .permissionDenied,
                let lastSyncError,
                lastSyncError.localizedCaseInsensitiveContains("production schema")
