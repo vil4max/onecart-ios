@@ -34,6 +34,16 @@ final class CartIntentTests: XCTestCase {
         XCTAssertEqual(CartIntentNames.split(" ,\n "), [])
     }
 
+    func test_REQ_SIRI_010_splitsOnStandaloneAndWordsInThreeLanguages() {
+        XCTAssertEqual(CartIntentNames.split("молоко и хлеб"), ["молоко", "хлеб"])
+        XCTAssertEqual(CartIntentNames.split("молоко І хліб, сир"), ["молоко", "хліб", "сир"])
+        XCTAssertEqual(CartIntentNames.split("Milk AND bread and eggs"), ["Milk", "bread", "eggs"])
+        XCTAssertEqual(CartIntentNames.split("Сливки и"), ["Сливки"])
+        // The letters inside a word never split it.
+        XCTAssertEqual(CartIntentNames.split("Иван-чай, икра"), ["Иван-чай", "икра"])
+        XCTAssertEqual(CartIntentNames.split("Band-aid; Brandy"), ["Band-aid", "Brandy"])
+    }
+
     func test_REQ_SIRI_010_addsNameOnlyLinesAndKeepsExistingOnes() async throws {
         let fixture = try await makeFixture()
 
@@ -153,8 +163,31 @@ final class CartIntentTests: XCTestCase {
         let remaining = try await fixture.session.remainingItemsForIntent()
 
         XCTAssertEqual(remaining.totalCount, 2)
-        XCTAssertEqual(Set(remaining.names), ["Молоко", "Хлеб"])
+        XCTAssertEqual(remaining.names, ["Молоко", "Хлеб"])
         XCTAssertEqual(fixture.session.products(inListID: fixture.listID).count, 2)
+    }
+
+    func test_REQ_SIRI_020_readsInTheOrderTheCartScreenShows() async throws {
+        let fixture = try await makeFixture()
+        let repository = FamilySpaceRepository(
+            persistence: fixture.session.persistence,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        // Added in this order, so the newest-first fetch reads "Tea, Cheese, Хлеб".
+        for (name, category) in [("Cheese", ProductCategory.dairyEggs), ("Tea", .hotDrinks)] {
+            _ = try await repository.addProduct(
+                to: fixture.listID,
+                draft: ProductDraft(
+                    name: name, quantity: 1, unit: .piece, category: category, estimatedPrice: 0, note: ""
+                )
+            )
+        }
+        try fixture.session.reload()
+
+        let remaining = try await fixture.session.remainingItemsForIntent()
+
+        // The cart screen groups to-buy lines by category: dairy, hot drinks, then other.
+        XCTAssertEqual(remaining.names, ["Cheese", "Tea", "Хлеб"])
     }
 
     func test_REQ_SIRI_020_speaksAShortListOrTheCartState() {

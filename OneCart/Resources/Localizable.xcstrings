@@ -6433,19 +6433,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Adds items to the family cart. Separate several with commas."
+            "value": "Adds items to the family cart. Separate several with commas or \"and\"."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Добавляет товары в семейную корзину. Несколько — через запятую."
+            "value": "Добавляет товары в семейную корзину. Несколько — через запятую или «и»."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Додає товари до сімейного кошика. Кілька — через кому."
+            "value": "Додає товари до сімейного кошика. Кілька — через кому або «і»."
           }
         }
       }

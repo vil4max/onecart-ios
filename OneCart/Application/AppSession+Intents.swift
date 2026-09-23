@@ -67,7 +67,7 @@ struct CartIntentAddResult: Equatable, Sendable {
 
 struct CartIntentRemaining: Equatable, Sendable {
     let totalCount: Int
-    /// To-buy names in cart order.
+    /// To-buy names in the order the cart screen shows them.
     let names: [String]
 }
 
@@ -78,14 +78,33 @@ enum CartIntentContext {
 }
 
 enum CartIntentNames {
-    /// One request may carry several names ("milk, bread; eggs"). Blank parts are dropped and a
-    /// name said twice is added once.
+    /// Standalone words that join dictated names (owner decision): Russian, Ukrainian, English.
+    private static let andWords: Set<String> = ["и", "і", "and"]
+
+    /// One request may carry several names ("milk, bread; eggs", "молоко и хлеб"). Blank parts
+    /// are dropped and a name said twice is added once.
     static func split(_ raw: String) -> [String] {
         var seen = Set<String>()
         return raw
             .split(whereSeparator: { $0 == "," || $0 == ";" || $0.isNewline })
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .flatMap(splitOnAndWords)
             .filter { !$0.isEmpty && seen.insert(FamilyCartMerge.normalizedProductName($0)).inserted }
+    }
+
+    /// Splits on whole words only, so a name that merely contains those letters stays whole.
+    private static func splitOnAndWords(_ part: Substring) -> [String] {
+        var names: [String] = []
+        var words: [Substring] = []
+        for word in part.split(whereSeparator: \.isWhitespace) {
+            if andWords.contains(word.lowercased()) {
+                names.append(words.joined(separator: " "))
+                words = []
+            } else {
+                words.append(word)
+            }
+        }
+        names.append(words.joined(separator: " "))
+        return names
     }
 }
 
@@ -174,9 +193,11 @@ extension AppSession {
     func remainingItemsForIntent(deadline: CartIntentDeadline = .live()) async throws -> CartIntentRemaining {
         let list = try await cartListForIntent(deadline: deadline)
         let lines = list.id.map { products(inListID: $0) } ?? []
+        // The grouping the cart screen draws its to-buy sections with (CartViewModel.toBuySections).
+        let toBuy = ProductCategory.groupedSections(from: lines.filter { !$0.isPurchasedValue }) { $0.categoryValue }
         return CartIntentRemaining(
             totalCount: lines.count,
-            names: lines.filter { !$0.isPurchasedValue }.map(\.displayName)
+            names: toBuy.flatMap(\.items).map(\.displayName)
         )
     }
 
