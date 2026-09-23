@@ -88,3 +88,12 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    decide whether to keep the app.
 8. Follow-ups from [review-changelog.md](../engineering/review-changelog.md) (FU13 Swift 6 strict
    concurrency, FU14 MetricKit / XCUITest smoke).
+9. iPhone Duo support, not scheduled. The foldable device needs the layout checked in every pose,
+   and SwiftUI offers `ArrangementView` for split and overlay presentations around the hinge and
+   cameras. The `iPhone Duo` simulator device type is already present in the installed Xcode 27.0;
+   Apple documents running it through DeviceHub with Xcode 27.1. Read before scoping:
+   [Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo),
+   [ArrangementView](https://developer.apple.com/documentation/swiftui/arrangementview),
+   [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
+   Note: an `ArrangementView` holds content, not navigation — Apple advises against putting
+   `NavigationSplitView` inside one, which matters for the cart and history screens.
