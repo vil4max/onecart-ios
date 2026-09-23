@@ -106,6 +106,9 @@ final class ShoppingTripActivityController {
     /// The all-bought trip still shown until its delayed dismissal. ActivityKit no longer
     /// lists it as running, so Stop or a new trip must remove it by this id.
     @ObservationIgnored private var finishedTripID: String?
+    /// Trips found running at launch. None is adopted until a snapshot names the signed-in
+    /// account and active cart; the one matching it is kept and every other one ended.
+    @ObservationIgnored private var launchTrips: [ShoppingTripActivityRecord]
     @ObservationIgnored private var tail: Task<Void, Never>?
     private let backend: any ShoppingTripActivityBackend
     private let now: () -> Date
@@ -113,17 +116,8 @@ final class ShoppingTripActivityController {
     init(backend: any ShoppingTripActivityBackend, now: @escaping () -> Date = Date.init) {
         self.backend = backend
         self.now = now
-        // A relaunched app adopts the trip it started before; extra ones are leftovers.
-        let running = backend.runningTrips()
-        activeTrip = running.first
-        let leftovers = running.dropFirst().map(\.id)
-        if !leftovers.isEmpty {
-            enqueue { [backend] in
-                for id in leftovers {
-                    await backend.end(id: id, state: nil, dismissal: .immediate)
-                }
-            }
-        }
+        // The account and cart are unknown until the session restores them.
+        launchTrips = backend.runningTrips()
     }
 
     var isActive: Bool {
@@ -176,6 +170,7 @@ final class ShoppingTripActivityController {
             throw ShoppingTripError.unavailable
         }
         guard snapshot.remainingCount > 0 else { throw ShoppingTripError.nothingToBuy }
+        await adoptLaunchTrip(accountID: accountID, familyID: familyID)
         if let activeTrip, activeTrip.accountID == accountID, activeTrip.familyID == familyID {
             return
         }
@@ -200,6 +195,9 @@ final class ShoppingTripActivityController {
     }
 
     private func performSync(with snapshot: WidgetCartSnapshot) async {
+        if let accountID = snapshot.accountID, let familyID = snapshot.familyID {
+            await adoptLaunchTrip(accountID: accountID, familyID: familyID)
+        }
         guard let trip = activeTrip else { return }
         // Swiping the activity away on the Lock Screen ends it outside the app.
         guard backend.runningTrips().contains(where: { $0.id == trip.id }) else {
@@ -233,8 +231,24 @@ final class ShoppingTripActivityController {
         activeTrip = nil
         lastState = nil
         finishedTripID = nil
+        launchTrips = []
         for id in ids.sorted() {
             await backend.end(id: id, state: nil, dismissal: .immediate)
+        }
+    }
+
+    /// Resolves the trips found at launch against the signed-in account and active cart
+    /// (REQ-WIDGET-050): the first match becomes the trip, the rest are ended.
+    private func adoptLaunchTrip(accountID: UUID, familyID: UUID) async {
+        guard !launchTrips.isEmpty else { return }
+        let running = Set(backend.runningTrips().map(\.id))
+        let found = launchTrips.filter { running.contains($0.id) }
+        launchTrips = []
+        if activeTrip == nil {
+            activeTrip = found.first { $0.accountID == accountID && $0.familyID == familyID }
+        }
+        for trip in found where trip.id != activeTrip?.id {
+            await backend.end(id: trip.id, state: nil, dismissal: .immediate)
         }
     }
 

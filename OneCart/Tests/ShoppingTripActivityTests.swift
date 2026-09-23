@@ -164,11 +164,29 @@ struct ShoppingTripActivityTests {
         let kept = ShoppingTripActivityRecord(id: "kept", accountID: Self.accountID, familyID: Self.familyID)
         let leftover = ShoppingTripActivityRecord(id: "leftover", accountID: Self.accountID, familyID: Self.familyID)
         let (controller, backend) = Self.makeController(backend: FakeShoppingTripBackend(running: [kept, leftover]))
+        controller.sync(with: Self.shoppingSnapshot)
         await controller.settle()
 
         #expect(controller.activeTrip == kept)
         #expect(backend.ended.map(\.id) == ["leftover"])
         #expect(backend.ended.first?.dismissal == .immediate)
+    }
+
+    @Test("REQ-WIDGET-050: a relaunched app adopts only the trip of the signed-in account and active cart")
+    func relaunchAdoptsOnlyTheSignedInCartsTrip() async {
+        let otherAccount = ShoppingTripActivityRecord(id: "a-other-account", accountID: UUID(), familyID: Self.familyID)
+        let otherCart = ShoppingTripActivityRecord(id: "b-other-cart", accountID: Self.accountID, familyID: UUID())
+        let kept = ShoppingTripActivityRecord(id: "c-kept", accountID: Self.accountID, familyID: Self.familyID)
+        let backend = FakeShoppingTripBackend(running: [otherAccount, otherCart, kept])
+        let (controller, _) = Self.makeController(backend: backend)
+
+        controller.sync(with: Self.shoppingSnapshot)
+        await controller.settle()
+
+        #expect(controller.activeTrip == kept)
+        #expect(backend.running == [kept])
+        #expect(Set(backend.ended.map(\.id)) == [otherAccount.id, otherCart.id])
+        #expect(backend.ended.allSatisfy { $0.dismissal == .immediate })
     }
 
     // MARK: - End

@@ -24,4 +24,8 @@ extension AppSession: ShoppingTripControlling {
     func endShoppingTrip() async {
         await shoppingTrip.end().value
     }
+
+    func endShoppingTripWithoutAccount() {
+        shoppingTrip.end()
+    }
 }

@@ -668,6 +668,21 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         XCTAssertFalse(fixture.session.isShoppingTripActive)
     }
 
+    func test_REQ_WIDGET_060_launchWithoutSignedInAccount_endsTheLeftoverTrip() async throws {
+        let leftover = ShoppingTripActivityRecord(id: "leftover", accountID: UUID(), familyID: UUID())
+        let backend = FakeShoppingTripBackend(running: [leftover])
+        let fixture = try await makeWidgetSession(started: false, shoppingTripBackend: backend)
+        fixture.session.clearStoredAppleCredential()
+
+        await fixture.session.start()
+        await fixture.session.shoppingTrip.settle()
+
+        XCTAssertTrue(fixture.session.needsWelcome)
+        XCTAssertTrue(backend.running.isEmpty)
+        XCTAssertEqual(backend.ended.map(\.id), ["leftover"])
+        XCTAssertFalse(fixture.session.isShoppingTripActive)
+    }
+
     func test_REQ_AUTH_070_deleteAccount_clearsWidgetSnapshotAndPendingPurchases() async throws {
         let fixture = try await makeWidgetSession()
         try fixture.store.enqueuePurchase(fixture.request())

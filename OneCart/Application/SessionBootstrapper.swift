@@ -22,6 +22,8 @@ protocol SessionBootstrapHost: AnyObject {
     func applyWelcomeFailed(_ message: String)
     func applyWelcomeReady(needsWelcome: Bool)
     func clearStoredAppleCredential()
+    /// Launch ends without a signed-in account: a trip left running belongs to nobody.
+    func endShoppingTripWithoutAccount()
 }
 
 @MainActor
@@ -92,6 +94,8 @@ final class SessionBootstrapper {
             }
         }
 
+        // No credential, or a revoked or unknown one: nobody is signed in (REQ-WIDGET-060).
+        host.endShoppingTripWithoutAccount()
         host.applyWelcomeSignIn()
     }
 
