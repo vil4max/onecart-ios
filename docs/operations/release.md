@@ -81,6 +81,8 @@ or (after model field adds):
    `CD_FamilySpace`, `CD_ShoppingList`, `CD_Product`, `CD_Store`, `CD_PurchaseHistory`, `CD_HistoryItem`  
    and that soft-delete / attribution fields such as `CD_deletedAt`, `CD_createdByName`, and
    `CD_purchasedByName` appear on the types that use them (especially `CD_Product`).
+   Since 1.7.0 `CD_HistoryItem` also carries `CD_createdByName` (who added an archived item);
+   deploy it before tagging a 1.7.0 or later TestFlight build.
 3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
 4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 

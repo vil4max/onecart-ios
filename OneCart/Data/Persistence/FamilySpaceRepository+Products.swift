@@ -279,6 +279,7 @@ extension FamilySpaceRepository {
                 item.note = product.note
                 item.purchasedAt = product.purchasedAt ?? now
                 item.purchasedByName = product.purchasedByName
+                item.createdByName = product.createdByName
                 item.storeName = product.store?.name
                 item.createdAt = product.createdAt
                 item.updatedAt = now

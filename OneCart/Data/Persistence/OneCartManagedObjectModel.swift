@@ -252,6 +252,7 @@ enum OneCartManagedObjectModel {
             attribute("note", .stringAttributeType),
             attribute("purchasedAt", .dateAttributeType),
             attribute("purchasedByName", .stringAttributeType),
+            attribute("createdByName", .stringAttributeType),
             attribute("storeName", .stringAttributeType),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),

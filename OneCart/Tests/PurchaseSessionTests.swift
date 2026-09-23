@@ -42,6 +42,35 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertEqual(space.activeLists.first?.statusValue, .active)
     }
 
+    /// REQ-SYNC-020: the archived line keeps who added the item, not only who bought it.
+    func test_REQ_SYNC_020_archiveKeepsWhoAddedAndWhoBought() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let familyID = try await repository.createFamilySpace(name: "Семья")
+        let listID = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
+        let breadID = try await repository.addProduct(
+            to: listID,
+            draft: productDraft(name: "Хлеб"),
+            createdByName: "Анна"
+        )
+        let milkID = try await repository.addProduct(to: listID, draft: productDraft(name: "Молоко"))
+        for id in [breadID, milkID] {
+            try await repository.togglePurchased(id: id, participantDisplayName: "Игорь")
+        }
+
+        _ = try await repository.completePurchased(listID: listID)
+        await persistence.container.viewContext.perform {
+            persistence.container.viewContext.processPendingChanges()
+        }
+
+        let history = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.sortedHistory.first)
+        let bread = try XCTUnwrap(history.sortedItems.first { $0.id == breadID })
+        XCTAssertEqual(bread.createdByName, "Анна")
+        XCTAssertEqual(bread.purchasedByName, "Игорь")
+        let milk = try XCTUnwrap(history.sortedItems.first { $0.id == milkID })
+        XCTAssertNil(milk.createdByName, "an item added without a name archives without a creator")
+        XCTAssertEqual(milk.purchasedByName, "Игорь")
+    }
+
     func testCompletePurchasedWithoutChecksDoesNothing() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, productID) = try await seedCart(repository: repository)

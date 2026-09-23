@@ -33,8 +33,8 @@ struct HistoryDayDetailView: View {
     }
 }
 
-/// One archived line: category tile, name and who bought it; the same shape as `CartProductRow`
-/// without its controls.
+/// One archived line: category tile, name, who added it and who bought it; the same shape as
+/// `CartProductRow` without its controls (REQ-SYNC-020).
 struct HistoryProductRow: View {
     let item: HistoryItemEntity
 
@@ -48,10 +48,13 @@ struct HistoryProductRow: View {
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
 
-                if let boughtBy = item.purchasedByName?
-                    .trimmingCharacters(in: .whitespacesAndNewlines),
-                    !boughtBy.isEmpty
-                {
+                if let addedBy = Self.displayableName(item.createdByName) {
+                    Text("history.added_by \(addedBy)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if let boughtBy = Self.displayableName(item.purchasedByName) {
                     Text("history.bought_by \(boughtBy)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -62,5 +65,12 @@ struct HistoryProductRow: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("history.item_row")
+    }
+
+    private static func displayableName(_ name: String?) -> String? {
+        guard let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
     }
 }

@@ -114,4 +114,63 @@ struct HostedHistoryViewTests {
             #expect(!hosted.containsText(word), "a control mentioning \(word) is on the day detail")
         }
     }
+
+    @Test("REQ-SYNC-020: an archived item names who added it next to who bought it; no name, no caption")
+    func dayDetailShowsWhoAdded() async throws {
+        let fixture = try await CartFixture.make()
+        let breadID = try await fixture.repository.addProduct(
+            to: fixture.listID,
+            draft: ProductDraft(
+                name: "Bread",
+                quantity: 1,
+                unit: .piece,
+                category: .bakery,
+                estimatedPrice: 0,
+                note: ""
+            ),
+            createdByName: "Maria"
+        )
+        let milkID = try await fixture.repository.addProduct(
+            to: fixture.listID,
+            draft: ProductDraft(
+                name: "Milk",
+                quantity: 1,
+                unit: .piece,
+                category: .dairyEggs,
+                estimatedPrice: 0,
+                note: ""
+            )
+        )
+        for id in [breadID, milkID] {
+            try await fixture.repository.togglePurchased(id: id, participantDisplayName: "Alex")
+        }
+        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
+        // A blank name synced from another device must read as no name, not as "Added by ".
+        try await fixture.persistence.performBackgroundTask { context in
+            let request = HistoryItemEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", milkID as NSUUID)
+            for item in try context.fetch(request) {
+                item.createdByName = "   "
+            }
+        }
+        await fixture.settle()
+        let browser = FakeHistoryBrowser()
+        browser.history = try fixture.history
+        let viewModel = HistoryViewModel(history: browser, calendar: Self.calendar)
+        let day = try #require(viewModel.dayGroups.first)
+        let hosted = HostedView(NavigationStack { HistoryDayDetailView(viewModel: viewModel, group: day) })
+        defer { hosted.tearDown() }
+
+        let rows = hosted.elements(identifier: "history.item_row")
+        #expect(rows.count == 2)
+        let addedBy = String(localized: "history.added_by \("Maria")")
+        let boughtBy = String(localized: "history.bought_by \("Alex")")
+        let bread = try #require(rows.first { $0.label?.hasPrefix("Bread") == true })
+        #expect(bread.label?.contains(addedBy) == true)
+        #expect(bread.label?.contains(boughtBy) == true)
+        let milk = try #require(rows.first { $0.label?.hasPrefix("Milk") == true })
+        #expect(milk.label?
+            .contains(String(localized: "history.added_by \("")").trimmingCharacters(in: .whitespaces)) == false)
+        #expect(milk.label?.contains(boughtBy) == true)
+    }
 }

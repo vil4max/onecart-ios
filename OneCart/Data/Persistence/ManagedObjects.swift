@@ -365,6 +365,7 @@ final class HistoryItemEntity: NSManagedObject {
     @NSManaged var note: String?
     @NSManaged var purchasedAt: Date?
     @NSManaged var purchasedByName: String?
+    @NSManaged var createdByName: String?
     @NSManaged var storeName: String?
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
@@ -476,6 +477,7 @@ enum HistoryItems {
             item.storeName ?? "",
             item.createdAt.map { String($0.timeIntervalSinceReferenceDate) } ?? "",
             item.updatedAt.map { String($0.timeIntervalSinceReferenceDate) } ?? "",
+            item.createdByName ?? "",
         ]
     }
 }

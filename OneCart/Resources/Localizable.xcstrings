@@ -2867,6 +2867,29 @@
         }
       }
     },
+    "history.added_by %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added by %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавил(а) %@"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додав(ла) %@"
+          }
+        }
+      }
+    },
     "history.bought_by %@": {
       "extractionState": "manual",
       "localizations": {
