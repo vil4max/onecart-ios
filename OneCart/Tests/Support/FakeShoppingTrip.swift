@@ -34,6 +34,7 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     /// Ended with a delayed dismissal: no longer running, still on the Lock Screen.
     private(set) var lingering: [String] = []
     private var nextID = 1
+    private var phaseHandler: (@MainActor (String, ShoppingTripActivityPhase) -> Void)?
 
     /// Every card the Lock Screen shows: running trips and finished ones not yet dismissed.
     var shownIDs: [String] {
@@ -42,6 +43,10 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
 
     init(running: [ShoppingTripActivityRecord] = []) {
         self.running = running
+    }
+
+    func observePhases(_ handler: @escaping @MainActor (String, ShoppingTripActivityPhase) -> Void) {
+        phaseHandler = handler
     }
 
     func runningTrips() -> [ShoppingTripActivityRecord] {
@@ -80,6 +85,12 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
             lingering.append(id)
         }
         ended.append(Ended(id: id, state: state, dismissal: dismissal))
+        guard wasShown else { return }
+        // ActivityKit reports the app's own ends through the same state updates.
+        phaseHandler?(id, .ended)
+        if dismissal == .immediate {
+            phaseHandler?(id, .dismissed)
+        }
     }
 
     func releaseEnds() {
@@ -96,9 +107,14 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
         }
     }
 
-    /// The user swiped the activity away on the Lock Screen.
-    func dismissFromLockScreen(id: String) {
+    /// The user swiped the activity away on the Lock Screen. `notifies: false` models a state
+    /// update the app has not received yet.
+    func dismissFromLockScreen(id: String, notifies: Bool = true) {
         running.removeAll { $0.id == id }
+        lingering.removeAll { $0 == id }
+        if notifies {
+            phaseHandler?(id, .dismissed)
+        }
     }
 }
 

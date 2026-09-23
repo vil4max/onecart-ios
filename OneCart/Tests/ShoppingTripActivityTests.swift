@@ -275,6 +275,34 @@ struct ShoppingTripActivityTests {
         #expect(backend.updates.isEmpty)
     }
 
+    @Test("REQ-WIDGET-060: a card swiped away is noticed without waiting for a cart change")
+    func lockScreenDismissalIsObserved() async throws {
+        let (controller, backend) = Self.makeController()
+        try await controller.start(with: Self.shoppingSnapshot)
+        let id = try #require(controller.activeTrip?.id)
+
+        backend.dismissFromLockScreen(id: id)
+        await controller.settle()
+
+        #expect(!controller.isActive)
+        #expect(backend.ended.isEmpty)
+    }
+
+    @Test("REQ-WIDGET-060: starting after the card was swiped away puts a new card up")
+    func startAfterAnUnreportedDismissalRequestsANewTrip() async throws {
+        let (controller, backend) = Self.makeController()
+        try await controller.start(with: Self.shoppingSnapshot)
+        let id = try #require(controller.activeTrip?.id)
+        backend.dismissFromLockScreen(id: id, notifies: false)
+
+        try await controller.start(with: Self.shoppingSnapshot)
+
+        #expect(backend.requested.count == 2)
+        #expect(controller.isActive)
+        #expect(controller.activeTrip?.id != id)
+        #expect(backend.shownIDs.count == 1)
+    }
+
     // MARK: - Cart screen
 
     @Test("REQ-WIDGET-040: the cart offers the trip only when there is something to buy and it can run")

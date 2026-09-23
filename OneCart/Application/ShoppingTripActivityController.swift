@@ -29,10 +29,20 @@ enum ShoppingTripError: LocalizedError, Equatable {
     }
 }
 
+/// How an activity left the running set, as ActivityKit reports it.
+enum ShoppingTripActivityPhase: Equatable, Sendable {
+    /// No longer updated; the card may still show until it is dismissed.
+    case ended
+    /// Gone from the Lock Screen, for example swiped away by the user.
+    case dismissed
+}
+
 /// The ActivityKit surface the controller needs; tests substitute a fake.
 @MainActor
 protocol ShoppingTripActivityBackend: AnyObject {
     var areActivitiesEnabled: Bool { get }
+    /// Reports every trip activity that ends or is dismissed, whoever caused it.
+    func observePhases(_ handler: @escaping @MainActor (String, ShoppingTripActivityPhase) -> Void)
     func runningTrips() -> [ShoppingTripActivityRecord]
     func request(
         attributes: ShoppingTripAttributes,
@@ -44,8 +54,16 @@ protocol ShoppingTripActivityBackend: AnyObject {
 
 @MainActor
 final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
+    private var phaseHandler: (@MainActor (String, ShoppingTripActivityPhase) -> Void)?
+    private var watchers: [String: Task<Void, Never>] = [:]
+
     var areActivitiesEnabled: Bool {
         ActivityAuthorizationInfo().areActivitiesEnabled
+    }
+
+    func observePhases(_ handler: @escaping @MainActor (String, ShoppingTripActivityPhase) -> Void) {
+        phaseHandler = handler
+        Activity<ShoppingTripAttributes>.activities.forEach(watch)
     }
 
     func runningTrips() -> [ShoppingTripActivityRecord] {
@@ -64,10 +82,12 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
         attributes: ShoppingTripAttributes,
         state: ShoppingTripAttributes.ContentState
     ) throws -> String {
-        try Activity<ShoppingTripAttributes>.request(
+        let activity = try Activity<ShoppingTripAttributes>.request(
             attributes: attributes,
             content: ActivityContent(state: state, staleDate: nil)
-        ).id
+        )
+        watch(activity)
+        return activity.id
     }
 
     func update(id: String, state: ShoppingTripAttributes.ContentState) async {
@@ -88,6 +108,28 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
 
     private nonisolated static func activity(id: String) -> Activity<ShoppingTripAttributes>? {
         Activity<ShoppingTripAttributes>.activities.first { $0.id == id }
+    }
+
+    /// Follows one activity until it is dismissed; a swipe on the Lock Screen reaches the
+    /// app only through these state updates.
+    private func watch(_ activity: Activity<ShoppingTripAttributes>) {
+        let id = activity.id
+        guard watchers[id] == nil else { return }
+        watchers[id] = Task { [weak self] in
+            for await state in activity.activityStateUpdates {
+                let phase: ShoppingTripActivityPhase? = switch state {
+                case .ended: .ended
+                case .dismissed: .dismissed
+                default: nil
+                }
+                guard let phase else { continue }
+                self?.phaseHandler?(id, phase)
+                if phase == .dismissed {
+                    break
+                }
+            }
+            self?.watchers[id] = nil
+        }
     }
 }
 
@@ -118,6 +160,9 @@ final class ShoppingTripActivityController {
         self.now = now
         // The account and cart are unknown until the session restores them.
         launchTrips = backend.runningTrips()
+        backend.observePhases { [weak self] id, phase in
+            self?.activityLeft(id: id, phase: phase)
+        }
     }
 
     var isActive: Bool {
@@ -171,6 +216,11 @@ final class ShoppingTripActivityController {
         }
         guard snapshot.remainingCount > 0 else { throw ShoppingTripError.nothingToBuy }
         await adoptLaunchTrip(accountID: accountID, familyID: familyID)
+        if let trip = activeTrip, !backend.runningTrips().contains(where: { $0.id == trip.id }) {
+            // Swiped away before its state update reached the app; the new card replaces it.
+            activeTrip = nil
+            lastState = nil
+        }
         if let activeTrip, activeTrip.accountID == accountID, activeTrip.familyID == familyID {
             return
         }
@@ -234,6 +284,21 @@ final class ShoppingTripActivityController {
         launchTrips = []
         for id in ids.sorted() {
             await backend.end(id: id, state: nil, dismissal: .immediate)
+        }
+    }
+
+    /// An activity ended or was dismissed outside the queue, most often by a swipe on the
+    /// Lock Screen (REQ-WIDGET-060); the cart then offers to start a trip again.
+    private func activityLeft(id: String, phase: ShoppingTripActivityPhase) {
+        enqueue { [self] in
+            if activeTrip?.id == id {
+                activeTrip = nil
+                lastState = nil
+            }
+            if phase == .dismissed, finishedTripID == id {
+                finishedTripID = nil
+            }
+            launchTrips.removeAll { $0.id == id }
         }
     }
 
