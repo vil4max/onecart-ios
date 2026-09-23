@@ -118,7 +118,57 @@ enum OneCartShareLinkJoin {
             share.publicPermission = .readWrite
             changed = true
         }
-        for participant in share.participants where participant.role != .owner {
+        if ShareParticipantRules.grantReadWrite(to: share.participants) {
+            changed = true
+        }
+        return changed
+    }
+}
+
+/// What share mutations read and change on one participant. `CKShare.Participant` has no public
+/// initializer, so this seam lets tests drive the decisions below with plain objects; the
+/// CloudKit type is the only production conformer. Class-bound because a permission change must
+/// land on the participant the share holds.
+protocol ShareParticipantHandle: AnyObject {
+    var userRecordName: String? { get }
+    var lookupEmailAddress: String? { get }
+    var isOwner: Bool { get }
+    var permission: CKShare.ParticipantPermission { get set }
+}
+
+extension CKShare.Participant: ShareParticipantHandle {
+    var userRecordName: String? {
+        userIdentity.userRecordID?.recordName
+    }
+
+    var lookupEmailAddress: String? {
+        userIdentity.lookupInfo?.emailAddress
+    }
+
+    var isOwner: Bool {
+        role == .owner
+    }
+}
+
+/// Participant decisions of the share mutations, free of CloudKit I/O.
+enum ShareParticipantRules {
+    /// The participant a members-list row stands for (REQ-SHARE-040): the row id is the stable
+    /// UUID of the participant's record name, or of the lookup email when CloudKit hides it.
+    static func participant<Participant: ShareParticipantHandle>(
+        forMemberID memberID: UUID,
+        in participants: [Participant]
+    ) -> Participant? {
+        participants.first { participant in
+            let key = participant.userRecordName ?? participant.lookupEmailAddress
+            return key.map(FamilyInviteLinkBuilder.stableUUID(for:)) == memberID
+        }
+    }
+
+    /// Every non-owner participant may edit the cart (REQ-SHARE-020); the owner is never touched.
+    /// Returns whether any permission changed.
+    static func grantReadWrite(to participants: [some ShareParticipantHandle]) -> Bool {
+        var changed = false
+        for participant in participants where !participant.isOwner {
             guard participant.permission != .readWrite else { continue }
             participant.permission = .readWrite
             changed = true

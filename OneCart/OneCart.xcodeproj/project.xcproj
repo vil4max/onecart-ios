@@ -318,6 +318,7 @@
         { "path": "MemberNamePromptTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "ShoppingTripActivityTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartIntentTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "ShareParticipantRulesTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",

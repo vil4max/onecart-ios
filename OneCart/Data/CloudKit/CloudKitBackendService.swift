@@ -179,11 +179,8 @@ final class CloudKitBackendService: Sendable {
             )
             throw OneCartCloudKitError.shareEnvironmentMismatch
         }
-        guard let participant = share.participants.first(where: {
-            let recordName = $0.userIdentity.userRecordID?.recordName
-                ?? $0.userIdentity.lookupInfo?.emailAddress
-            return recordName.map(FamilyInviteLinkBuilder.stableUUID(for:)) == member.id
-        }) else {
+        guard let participant = ShareParticipantRules.participant(forMemberID: member.id, in: share.participants)
+        else {
             throw OneCartCloudKitError.participantNotFound
         }
         let doorBefore = share.publicPermission
