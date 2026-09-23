@@ -55,13 +55,16 @@ protocol AppleSignInCredentialStoring: AnyObject {
     func clear()
 }
 
+/// The synchronous credential calls are main-actor requirements: the session and the
+/// bootstrapper call them there, and the Keychain-backed service keeps its non-Sendable store
+/// on the main actor. A nonisolated implementation still satisfies them.
 protocol AppleSignInAuthenticating: AnyObject, Sendable {
-    func storedCredential() -> AppleSignInCredential?
-    func save(_ credential: AppleSignInCredential)
-    func clearCredential()
+    @MainActor func storedCredential() -> AppleSignInCredential?
+    @MainActor func save(_ credential: AppleSignInCredential)
+    @MainActor func clearCredential()
     func credentialState(for userID: String) async -> AppleSignInCredentialState
     func signIn() async throws -> AppleSignInCredential
-    func makeCredential(from authorization: ASAuthorization) throws -> AppleSignInCredential
+    @MainActor func makeCredential(from authorization: ASAuthorization) throws -> AppleSignInCredential
 }
 
 final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
@@ -155,16 +158,17 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     }
 }
 
-// Unchecked: the credential store is immutable, and the continuation is touched only by the
-// main-actor `signIn()` and the AuthenticationServices delegate callbacks it triggers.
-final class AppleSignInService: NSObject, AppleSignInAuthenticating, @unchecked Sendable {
+/// Main-actor isolated: the store, the continuation and the controller are touched only by the
+/// session, `signIn()` and the AuthenticationServices callbacks, which all run there.
+@MainActor
+final class AppleSignInService: NSObject, AppleSignInAuthenticating {
     static let shared = AppleSignInService()
 
-    private let store: AppleSignInCredentialStoring
+    private let store: any AppleSignInCredentialStoring
     private var continuation: CheckedContinuation<AppleSignInCredential, Error>?
     private var authorizationController: ASAuthorizationController?
 
-    init(store: AppleSignInCredentialStoring = KeychainAppleSignInCredentialStore()) {
+    init(store: any AppleSignInCredentialStoring = KeychainAppleSignInCredentialStore()) {
         self.store = store
         super.init()
     }
@@ -181,7 +185,7 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating, @unchecked 
         store.clear()
     }
 
-    func credentialState(for userID: String) async -> AppleSignInCredentialState {
+    nonisolated func credentialState(for userID: String) async -> AppleSignInCredentialState {
         #if targetEnvironment(simulator)
             return .authorized
         #else
@@ -193,7 +197,6 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating, @unchecked 
         #endif
     }
 
-    @MainActor
     func signIn() async throws -> AppleSignInCredential {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
@@ -213,7 +216,7 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating, @unchecked 
         try credential(from: authorization)
     }
 
-    private static func mapCredentialState(
+    private nonisolated static func mapCredentialState(
         _ state: ASAuthorizationAppleIDProvider.CredentialState
     ) -> AppleSignInCredentialState {
         switch state {
@@ -296,6 +299,7 @@ extension AppleSignInService: ASAuthorizationControllerPresentationContextProvid
     }
 }
 
+@MainActor
 enum AppleSignInPresentationAnchor {
     static var current: ASPresentationAnchor {
         let scenes = UIApplication.shared.connectedScenes

@@ -72,6 +72,8 @@ final class FamilySpaceRepository: Sendable {
         self.permissionAuthorizer = permissionAuthorizer
     }
 
+    /// Reads the view context, so the objects it returns belong to the main actor.
+    @MainActor
     func fetchFamilySpaces(for userID: UUID? = nil) throws -> [FamilySpace] {
         let request = FamilySpace.fetchRequest()
         request.predicate = NSPredicate(format: "deletedAt == nil")
@@ -91,6 +93,8 @@ final class FamilySpaceRepository: Sendable {
         }
     }
 
+    /// Reads the view context, so the object it returns belongs to the main actor.
+    @MainActor
     func fetchFamilySpace(id: UUID) throws -> FamilySpace? {
         let request = FamilySpace.fetchRequest()
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [

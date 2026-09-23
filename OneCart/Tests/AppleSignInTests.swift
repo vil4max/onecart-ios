@@ -75,6 +75,7 @@ final class AppleSignInTests: XCTestCase {
         XCTAssertNil(defaults.string(forKey: store.backupKey))
     }
 
+    @MainActor
     func test_REQ_AUTH_020_credentialStateForNeverIssuedUserID() async throws {
         let service = try AppleSignInService(store: makeKeychainStore().store)
         let state = await service.credentialState(for: "onecart.tests.\(UUID().uuidString)")

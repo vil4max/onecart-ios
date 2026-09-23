@@ -137,7 +137,8 @@ final class InMemoryAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable 
     }
 
     func credentialState(for userID: String) async -> AppleSignInCredentialState {
-        storedCredential()?.userID == userID ? .authorized : .notFound
+        // Reads under the lock: `storedCredential()` is a main-actor requirement, this is not.
+        lock.withLock { credential }?.userID == userID ? .authorized : .notFound
     }
 
     func signIn() async throws -> AppleSignInCredential {
