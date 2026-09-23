@@ -145,7 +145,9 @@ struct CartIntentDeadline {
         return await withCheckedContinuation { continuation in
             outcome.continuation = continuation
             let timer = Task { @MainActor in
-                try? await sleep(remaining)
+                // A timer cancelled because the work finished must not report a timeout.
+                do { try await sleep(remaining) } catch { return }
+                guard !Task.isCancelled else { return }
                 outcome.resolve(false)
             }
             Task { @MainActor in
