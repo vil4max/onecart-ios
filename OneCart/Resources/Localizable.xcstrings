@@ -6335,6 +6335,29 @@
         }
       }
     },
+    "trip.progress_a11y": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopping progress"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прогресс покупок"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прогрес покупок"
+          }
+        }
+      }
+    },
     "intent.end_trip.title": {
       "extractionState": "manual",
       "localizations": {

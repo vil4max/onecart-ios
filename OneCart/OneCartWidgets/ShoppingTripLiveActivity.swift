@@ -66,15 +66,15 @@ private struct ShoppingTripLockScreenView: View {
                 ShoppingTripEndButton()
             }
 
-            ProgressView(value: state.progress)
-                .tint(OneCartPalette.primary(for: scheme, accent: state.accentColor))
+            ShoppingTripProgressBar(state: state, tint: OneCartPalette.primary(for: scheme, accent: state.accentColor))
 
             if state.isAllPurchased {
                 Label("widget.all_purchased", systemImage: "checkmark.seal.fill")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: state.accentColor))
             } else {
-                VStack(spacing: 6) {
+                // Rows touch so each check target spans the whole row pitch without overlapping.
+                VStack(spacing: 0) {
                     ForEach(state.nextItems) { item in
                         ShoppingTripItemRow(item: item, attributes: attributes, accent: state.accentColor)
                     }
@@ -97,15 +97,16 @@ private struct ShoppingTripExpandedBottom: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ProgressView(value: state.progress)
-                .tint(OneCartPalette.primary(for: .dark, accent: state.accentColor))
+            ShoppingTripProgressBar(state: state, tint: OneCartPalette.primary(for: .dark, accent: state.accentColor))
 
             if state.isAllPurchased {
                 Label("widget.all_purchased", systemImage: "checkmark.seal.fill")
                     .font(.footnote.weight(.semibold))
             } else {
-                ForEach(state.nextItems.prefix(Self.visibleItems)) { item in
-                    ShoppingTripItemRow(item: item, attributes: attributes, accent: state.accentColor)
+                VStack(spacing: 0) {
+                    ForEach(state.nextItems.prefix(Self.visibleItems)) { item in
+                        ShoppingTripItemRow(item: item, attributes: attributes, accent: state.accentColor)
+                    }
                 }
             }
 
@@ -120,6 +121,8 @@ private struct ShoppingTripExpandedBottom: View {
 }
 
 private struct ShoppingTripProgressRing: View {
+    /// 9 pt at the default text size, scaled with Dynamic Type.
+    @ScaledMetric(relativeTo: .caption2) private var symbolSize: CGFloat = 9
     let state: ShoppingTripAttributes.ContentState
 
     var body: some View {
@@ -127,7 +130,7 @@ private struct ShoppingTripProgressRing: View {
             Image(systemName: "cart.fill")
         } currentValueLabel: {
             Image(systemName: state.isAllPurchased ? "checkmark" : "cart.fill")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: symbolSize, weight: .bold))
         }
         .gaugeStyle(.accessoryCircularCapacity)
         .tint(OneCartPalette.primary(for: .dark, accent: state.accentColor))
@@ -137,7 +140,26 @@ private struct ShoppingTripProgressRing: View {
 
 // MARK: - Shared pieces
 
+/// Minimum tap target (HIG: 44 pt).
+private let shoppingTripTapTarget: CGFloat = 44
+
+private struct ShoppingTripProgressBar: View {
+    let state: ShoppingTripAttributes.ContentState
+    let tint: Color
+
+    var body: some View {
+        ProgressView(value: state.progress)
+            .tint(tint)
+            .accessibilityLabel(Text("trip.progress_a11y"))
+            .accessibilityValue(Text("cart.progress_completed \(state.purchasedCount) \(state.totalCount)"))
+    }
+}
+
 private struct ShoppingTripItemRow: View {
+    /// The row pitch the list had with 6 pt spacing; the check target fills it. Three rows at
+    /// 44 pt would push the card past the 160 pt the Lock Screen shows without truncating.
+    static let height: CGFloat = 30
+
     let item: ShoppingTripItem
     let attributes: ShoppingTripAttributes
     let accent: AppAccentColor
@@ -158,10 +180,15 @@ private struct ShoppingTripItemRow: View {
                 Image(systemName: "circle")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    .frame(width: shoppingTripTapTarget, height: Self.height)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            // The wider target reaches into the card's trailing padding; the circle stays put.
+            .padding(.trailing, -(shoppingTripTapTarget - 24) / 2)
             .accessibilityLabel(Text("widget.toggle_mark_a11y \(item.name)"))
         }
+        .frame(minHeight: Self.height)
         .accessibilityElement(children: .contain)
     }
 }
@@ -173,8 +200,12 @@ private struct ShoppingTripEndButton: View {
                 .font(.caption.weight(.bold))
                 .frame(width: 28, height: 28)
                 .background(.quaternary, in: Circle())
+                .frame(width: shoppingTripTapTarget, height: shoppingTripTapTarget)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // A 44 pt target around the 28 pt circle; the layout keeps the circle's size.
+        .padding(-(shoppingTripTapTarget - 28) / 2)
         .accessibilityLabel(Text("trip.end_button"))
     }
 }

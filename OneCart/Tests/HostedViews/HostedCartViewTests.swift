@@ -180,6 +180,27 @@ struct HostedCartViewTests {
         })
     }
 
+    @Test(
+        "REQ-WIDGET-040: the trip control sits beside the progress, and below it at accessibility text sizes",
+        arguments: [DynamicTypeSize.large, .accessibility3]
+    )
+    func progressHeaderStacksAtAccessibilitySizes(size: DynamicTypeSize) async throws {
+        let (_, harness) = try await Self.cartWithLines()
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
+        defer { hosted.tearDown() }
+
+        let progress = try #require(hosted.element(identifier: "cart.progress")).node.accessibilityFrame
+        let control = try #require(hosted.element(identifier: "cart.shoppingTrip")).node.accessibilityFrame
+        if size.isAccessibilitySize {
+            #expect(control.minY >= progress.maxY - 1, "progress \(progress), control \(control)")
+        } else {
+            #expect(
+                progress.minY < control.midY && control.midY < progress.maxY,
+                "progress \(progress), control \(control)"
+            )
+        }
+    }
+
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
     func readOnlyCartHidesComposer() async throws {
         let (_, harness) = try await Self.cartWithLines()

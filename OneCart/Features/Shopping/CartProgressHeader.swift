@@ -3,15 +3,26 @@ import SwiftUI
 /// Trip progress at the top of the cart: "N of M completed" with a bar, or the all-bought
 /// title once every line is checked, plus the control that puts the trip on the Lock Screen.
 struct CartProgressHeader: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let viewModel: CartViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                progressLabel
-                if viewModel.showsShoppingTripControl {
-                    Spacer(minLength: 8)
-                    shoppingTripButton
+            // At accessibility sizes the control moves under the progress so neither truncates.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    progressLabel
+                    if viewModel.showsShoppingTripControl {
+                        shoppingTripButton
+                    }
+                }
+            } else {
+                HStack(spacing: 6) {
+                    progressLabel
+                    if viewModel.showsShoppingTripControl {
+                        Spacer(minLength: 8)
+                        shoppingTripButton
+                    }
                 }
             }
 
