@@ -64,7 +64,7 @@ pushed before the schema deploy; a commit by the other developer is lost or over
 | B2 MetricKit | writer B | a new `Application/` file, `AppDelegate.swift`, a new test | none | done `aa03564`, C1 `1479d7b` |
 | B3 scene-sized chrome | writer B | `Features/Account/CartShareActivityBridge.swift`, `Application/LaunchChrome.swift`, `Features/Account/AccountView.swift` | none | done `9318c38` (toolbars unchanged, see Evidence history) |
 | D Duo check | integrator | fixes found on the Duo simulator | as found | blocked (no runtime supports the device) |
-| L1–L7 trip lifecycle, stale date, refusal texts, trip a11y | writer L | `ShoppingTripActivityController.swift`, `AppSession+ShoppingTrip.swift`, `AppSession+Widget.swift`, `AppSession+FamilySelection.swift`, `SessionBootstrapper.swift`, `ShoppingTripLiveActivity.swift`, `EndShoppingTripIntent.swift`, `CartProgressHeader.swift`, their tests | REQ-WIDGET-040…060, REQ-SIRI-030 | open |
+| L1–L7 trip lifecycle, stale date, refusal texts, trip a11y | writer L | `ShoppingTripActivityController.swift`, `AppSession+ShoppingTrip.swift`, `AppSession+Widget.swift`, `AppSession+FamilySelection.swift`, `SessionBootstrapper.swift`, `ShoppingTripLiveActivity.swift`, `EndShoppingTripIntent.swift`, `CartProgressHeader.swift`, their tests | REQ-WIDGET-040…060, REQ-SIRI-030 | done `019d219`…`d1b7eda` |
 | S1–S6 Siri startup, errors, separators, order, speech | writer S | `AppSession+Intents.swift`, `Intents/CartAppIntents.swift`, `Intents/OneCartShortcuts.swift`, `AppSession+Welcome.swift` (`start()`), `HouseholdCartCoordinator.swift`, `AppShortcuts.xcstrings`, `CartIntentTests.swift`, `CartTestSupport.swift`, SIRI wording in `product.md` | REQ-SIRI-010…040 | open |
 | R Release 1.7.0 and re-freeze | integrator | version settings, `docs/operations/releases/1.7.0.md`, status docs | none | open |
 
@@ -124,6 +124,20 @@ writer adds only its own entries; the integrator resolves conflicts.
   dialog (one new field, no index or security-role change) and deployed. Console: "The schema is
   deployed to Production"; Production `CD_HistoryItem` lists `CD_createdByName STRING`.
 
+- 2026-09-23: writer L landed L1 `019d219`, L2 `1bc8307`, L3 `a38f62c`, L4 `580c737`, L5
+  `c95f585`, L6 `1125328`, L7 `d1b7eda` (cherry-picked, no conflict). Each step began with a
+  REQ-WIDGET test that failed on the unfixed code (L2 and L4 made reliable with a fake backend that
+  holds `end` until released); `just verify` printed `verify OK (DoD)` after every step.
+  `ShoppingTripError.unavailable` became `.noCart`, `.activitiesOff`, `.systemRefused` with their
+  own texts. After a relaunch the header offers start until the first cart update adopts the
+  running trip. Owner decision the same day: "Keep 3 rows, 30 pt tall" — the card's check control
+  is 44 pt wide and 30 pt tall, because three 44 pt rows would pass the 160 pt Live Activity
+  height Apple says may be truncated; the stop control is 44 × 44. Known limits: a finished card
+  that outlives an app relaunch still waits out its five minutes (the finishing id is in memory);
+  the revoked-credential branch runs only on a device; cart rows wrap badly at accessibility
+  sizes (outside this slice). Screenshots:
+  `agent-artifacts/2026-09-23/onecart-backlog-1.7.0/work/l7-screenshots/`.
+
 ## Untested scope
 
 - CloudKit "added by" across two devices, Live Activity on a device, and iPhone Duo hardware:
@@ -139,13 +153,13 @@ writer adds only its own entries; the integrator resolves conflicts.
 - [x] C1 `refactor(diagnostics)`: MetricKit reports read through the iOS 27 `MetricManager` instead of the to-be-deprecated `MXMetricManager`: `just verify` — 1479d7b
 - [x] B3 `fix(layout)`: share and launch chrome sized to the scene: `just verify`, iPhone 17 screenshots — 9318c38
 - [x] R1 `chore(release)`: 1.7.0 prepared: `just verify`, `just release --check` — 1180a7d
-- [ ] L1 `fix(trip)`: Stop dismisses a finished trip at once: failing REQ-WIDGET-060 test first, `just verify`
-- [ ] L2 `fix(trip)`: a trip still starting ends when the account goes away: REQ-WIDGET-060 tests, `just verify`
-- [ ] L3 `fix(trip)`: a trip of no signed-in account is dropped at launch: REQ-WIDGET-050/060 tests, `just verify`
-- [ ] L4 `fix(trip)`: a Lock Screen check updates the card before returning: REQ-WIDGET-050 test, `just verify`
-- [ ] L5 `fix(trip)`: a swiped-away trip is noticed before starting or reporting: REQ-WIDGET-060 test, `just verify`
-- [ ] L6 `fix(trip)`: one-hour stale date and cause-specific refusal texts: REQ-WIDGET-040/050 tests, `just verify`
-- [ ] L7 `fix(a11y)`: trip progress labelled, trip controls ≥ 44 pt, header stacks at large sizes: tests, `just verify`
+- [x] L1 `fix(trip)`: Stop dismisses a finished trip at once: failing REQ-WIDGET-060 test first, `just verify` — 019d219
+- [x] L2 `fix(trip)`: a trip still starting ends when the account goes away: REQ-WIDGET-060 tests, `just verify` — 1bc8307
+- [x] L3 `fix(trip)`: a trip of no signed-in account is dropped at launch: REQ-WIDGET-050/060 tests, `just verify` — a38f62c
+- [x] L4 `fix(trip)`: a Lock Screen check updates the card before returning: REQ-WIDGET-050 test, `just verify` — 580c737
+- [x] L5 `fix(trip)`: a swiped-away trip is noticed before starting or reporting: REQ-WIDGET-060 test, `just verify` — c95f585
+- [x] L6 `fix(trip)`: one-hour stale date and cause-specific refusal texts: REQ-WIDGET-040/050 tests, `just verify` — 1125328
+- [x] L7 `fix(a11y)`: trip progress labelled, trip controls ≥ 44 pt, header stacks at large sizes: tests, `just verify` — d1b7eda
 - [ ] S1 `fix(siri)`: a failed background start is reported and retried: REQ-SIRI-040 tests, `just verify`
 - [ ] S2 `fix(siri)`: the startup wait has a 10 s limit: REQ-SIRI-040 test, `just verify`
 - [ ] S3 `fix(siri)`: Siri waits for the household cart instead of blaming iCloud: REQ-SIRI-010 test, `just verify`
