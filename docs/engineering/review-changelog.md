@@ -160,8 +160,8 @@ Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with
 - FU10 Rich product editor fields (qty/unit/price/notes) behind a secondary “details” action
 - FU11 Optional Settings surface (appearance) only if system appearance proves insufficient
 - FU12 Pre-merge GitHub Actions — done 2026-09-16, see [ADR 0003](../decisions/0003-ci-split.md)
-- FU13 Swift 6 language mode / strict concurrency across targets
-- FU14 MetricKit / XCUITest smoke beyond unit fragile suite
+- FU13 Swift 6 language mode / strict concurrency across targets — done 2026-09-23: Swift 6 mode since `6063ea1`; the `AppleSignInService` and repository view-context escape hatches isolated in `f53582b` ([backlog-1.7.0.md](../tasks/done/backlog-1.7.0.md)); FU06 remains
+- FU14 MetricKit / XCUITest smoke beyond unit fragile suite — done 2026-09-23: `OneCartUITests` demo-mode smoke suite in every `Tests` run (`4f0be81`); on-device MetricKit logging through `MetricManager` (`aa03564`, `1479d7b`)
 
 ### RC16 — Stability-first minimal shell (docs + UX)
 - Status: done (this train)

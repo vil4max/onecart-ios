@@ -1,15 +1,15 @@
 # Task — backlog round 1.7.0 (iPhone Duo, History "added by", UI smoke, concurrency)
 
 Assignee: UI · OneCart (Claude Code session, 2026-09-23)
-State: claimed
+State: done
 Requested by: SDLC Orchestrator relaying an owner request (2026-09-23); scope confirmed by the owner directly in this session the same day
-Evidence: see Evidence history
+Evidence: `tf-1.7.0-1` on `403d909`; see Evidence history
 Depends-on: none
 Parallelism: up to 2
 
 ## Current status and authorization
 
-Current outcome: every Writer step on `main` (not pushed), review rounds clean, smoke pass done; release gate, push and `tf-1.7.0-1` next. Duo check blocked on a runtime.
+Current outcome: done — every Writer step on `main`, pushed as `403d909`, `tf-1.7.0-1` tagged; release line frozen again. Duo check blocked on a runtime (open item 9).
 
 Authorized scope (owner, direct, 2026-09-23, answers in this session and the approved plan):
 
@@ -45,7 +45,7 @@ Material assumptions:
   round, no installed runtime supports the device (see Evidence history).
 - Nothing MetricKit reports leaves the device, so `docs/privacy.md` does not change; B2
   confirms it from the code.
-Next step: `just verify`, `just release --check`, push `main`, `Tests`, `just tf-check`, tag.
+Next step: none; the owner's device checks follow the What to Test of `tf-1.7.0-1`.
 Out of scope: open items 2, 4, 5, 6 and 7 (App Store URL check, git history rewrite, device
 checks, CI runner label, SonarCloud); `ArrangementView` and hinge APIs; lifting the portrait lock
 without a separate owner decision; FU06 (`PersistenceController` `@unchecked Sendable`) beyond
@@ -162,6 +162,17 @@ writer adds only its own entries; the integrator resolves conflicts.
   returns the header to start, and the History day detail shows "Added by" and "Bought by" on each
   item. Not exercised: the Lock Screen card and Dynamic Island, Siri by voice.
 
+- 2026-09-23: `just verify` OK (DoD) and `just release --check` "Release preflight OK" on
+  `403d909`; pushed `64eccac..403d909` (30 commits, private-data scan clean); `Tests` run
+  35852905594 success; `just tf-check` Ready; `tf-1.7.0-1` pushed with the What to Test
+  annotation; the `TestFlight` workflow succeeded and `origin/testflight` is `403d909`.
+
+## Resume prompt
+
+OneCart 1.7.0 round is done: `tf-1.7.0-1` on `403d909`, release line frozen again. Nothing is in
+flight. On resume, read `docs/planning/project-state.md` (open items 2, 4–12) and wait for the
+owner to pick the next task; do not unfreeze the release line or tag without the owner's word.
+
 ## Untested scope
 
 - CloudKit "added by" across two devices, Live Activity on a device, and iPhone Duo hardware:
@@ -194,9 +205,9 @@ writer adds only its own entries; the integrator resolves conflicts.
 ## Current checklist
 
 - [x] Writers A and B landed on `main`, `just verify` green (`9318c38`)
-- [ ] iPhone Duo checked in every pose; defects fixed, one commit each
+- [ ] iPhone Duo checked in every pose — blocked: no simulator runtime supports the device (open item 9)
 - [x] Code review rounds clean of high and medium findings; simulator smoke pass
-- [ ] `main` pushed, `Tests` green
+- [x] `main` pushed (`64eccac..403d909`), `Tests` green on `403d909`
 - [x] `CD_createdByName` deployed to Production (2026-09-23)
-- [ ] `tf-1.7.0-1` tagged after `just tf-check` Ready
-- [ ] Release line frozen again; FU13 and FU14 closed; brief moved to `docs/tasks/done/`
+- [x] `tf-1.7.0-1` tagged after `just tf-check` Ready
+- [x] Release line frozen again; FU13 and FU14 closed; brief moved to `docs/tasks/done/`

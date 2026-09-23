@@ -1,33 +1,39 @@
-# Project state — 2026-09-23
+# Project state — 2026-09-23 (after tf-1.7.0-1)
 
 Snapshot for resuming work after a pause. Update it when the release or CI state changes.
 
-**Release line unfrozen for one iteration** (owner, 2026-09-23): the backlog round
-[backlog-1.7.0.md](../tasks/backlog-1.7.0.md) ships 1.7.0 build 1 as `tf-1.7.0-1`, then the release
-line freezes again. No `v` tag or App Store submission in this iteration. Two developers work on
-this project, so commits from another session land on `main` at any time and are expected.
+**Release line frozen again since 2026-09-23** (owner decision) after the one-iteration unfreeze
+that shipped `tf-1.7.0-1` ([backlog-1.7.0.md](../tasks/done/backlog-1.7.0.md)): no release step, tag
+or release task starts until the owner unfreezes it. Feature development on `main` continues — two
+developers work on this project, so commits from another session land on `main` at any time and
+are expected.
 
 **1.6.0:** approved in App Review (2026-09-23); `v1.6.0` marks the submitted commit `c8390cf`
 (build 118).
 
-**On `main` beyond the 1.6.0 submission:** `989f4c4`, `92c763f` and `7203f09` add the shopping
-trip Live Activity and the Siri intents. They ship in 1.7.0.
+**1.7.0:** `tf-1.7.0-1` on `403d909` (2026-09-23); the `TestFlight` workflow fast-forwarded
+`testflight`, Xcode Cloud builds it — [releases/1.7.0.md](../operations/releases/1.7.0.md). It
+carries the other developer's Live Activity and Siri work (REQ-WIDGET-040…060 and
+REQ-SIRI-010…040 still proposed), the review fixes to it, and the backlog round.
 
-**Current task:** [backlog-1.7.0.md](../tasks/backlog-1.7.0.md) (open items 3, 8 and 9).
+**Next task:** none assigned to this line; after unfreezing, the owner picks one from
+[Open items](#open-items) in a new session.
 
-**Owner-only:** confirming that the new Support and Privacy Policy URLs
-([release.md](../operations/release.md), App Store metadata) went live with 1.6.0, and deploying
-`CD_HistoryItem.CD_createdByName` to the CloudKit Production schema before `tf-1.7.0-1`.
+**Owner-only:** the `tf-1.7.0-1` device checks in its What to Test (tag annotation), confirming
+that the new Support and Privacy Policy URLs ([release.md](../operations/release.md), App Store
+metadata) went live with 1.6.0, and approving or amending the proposed REQ-WIDGET-040…060 and
+REQ-SIRI-010…040. `CD_HistoryItem.CD_createdByName` is in the CloudKit Production schema
+(2026-09-23).
 
 ## Product
 
 | Item | State |
 |---|---|
 | App Store | **1.5.0 (114)** Ready for Distribution (seen 2026-09-22) — [releases/1.5.0.md](../operations/releases/1.5.0.md) |
-| In App Review | **1.6.0**, Waiting for Review (submitted by the owner 2026-09-22) — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
-| TestFlight | 1.6.0 rounds `tf-1.6.0-2` (build 117) and `tf-1.6.0-3` — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
+| App Review | **1.6.0** approved 2026-09-23 (build 118, `v1.6.0` on `c8390cf`) — [releases/1.6.0.md](../operations/releases/1.6.0.md) |
+| TestFlight | 1.7.0 round `tf-1.7.0-1` on `403d909` — [releases/1.7.0.md](../operations/releases/1.7.0.md) |
 | Scope | Stability first: SIWA → one living cart → name-only add → Completed → History by day → invite from Settings ([product.md](../requirements/product.md)) |
-| Version in repo | `MARKETING_VERSION` 1.6.0, build 1 (iOS 27 redesign, MVVM refactoring and test coverage — [task brief](../tasks/redesign-ios27.md); 1.3.0 was hidden in TestFlight behind an older 1.4 record — [releases/1.5.0.md](../operations/releases/1.5.0.md)) (Xcode Cloud assigns uploaded build numbers) |
+| Version in repo | `MARKETING_VERSION` 1.7.0, build 1 ([backlog-1.7.0.md](../tasks/done/backlog-1.7.0.md)) (Xcode Cloud assigns uploaded build numbers) |
 | Minimum OS | iOS 27.0, raised 2026-09-21 in every target configuration; devices below iOS 27 can no longer install or update |
 
 ## Delivery flow
@@ -74,10 +80,9 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 1. Resolved 2026-09-23: 1.6.0 approved in App Review; `v1.6.0` on `c8390cf`.
 2. After 1.6.0 is released, check that the App Store listing shows the new Support and Privacy
    Policy URLs.
-3. Redesign follow-ups outside the 1.6.0 round, listed in the [task brief](../tasks/redesign-ios27.md)
-   handoff. `OfficialProductThumbnail` and the unused strings were removed in `6e7e93c`; "added
-   by" in the History day detail and CloudKit test seams are in
-   [backlog-1.7.0.md](../tasks/backlog-1.7.0.md).
+3. Done 2026-09-23: the redesign follow-ups — thumbnail and strings removed in `6e7e93c`; History
+   "added by" `677e7b6`; CloudKit participant seam `5b3ab04`
+   ([backlog-1.7.0.md](../tasks/done/backlog-1.7.0.md)).
 4. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
    owner decisions (removal list, rewrite after App Review, revoke retired Supabase key).
 5. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
@@ -89,8 +94,10 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    image risk"). The `#if compiler(>=6.4)` guard in `CartWidgetViews.swift` is removed.
 7. SonarCloud Automatic Analysis is attached to PRs but not part of CI (Sonar in CI was declined);
    decide whether to keep the app.
-8. Follow-ups from [review-changelog.md](../engineering/review-changelog.md) (FU13 Swift 6 strict
-   concurrency, FU14 MetricKit / XCUITest smoke).
+8. Done 2026-09-23: FU13 (Swift 6 language mode since `6063ea1`; escape hatches isolated in
+   `f53582b`) and FU14 (UI smoke suite `4f0be81`, MetricKit logging `aa03564` → `1479d7b`). FU06
+   (`PersistenceController` `@unchecked Sendable`) stays open in
+   [review-changelog.md](../engineering/review-changelog.md).
 9. iPhone Duo support, not scheduled. The foldable device needs the layout checked in every pose,
    and SwiftUI offers `ArrangementView` for split and overlay presentations around the hinge and
    cameras. The `iPhone Duo` simulator device type is already present in the installed Xcode 27.0;
@@ -100,3 +107,16 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
    Note: an `ArrangementView` holds content, not navigation — Apple advises against putting
    `NavigationSplitView` inside one, which matters for the cart and history screens.
+   2026-09-23: layout preparation landed (`9318c38`: share and launch chrome sized to the scene);
+   the check in every pose is blocked — no installed simulator runtime (26.5, 27.0, 27.2
+   `24B5084k`) supports the device type (`simctl create` → `SimError 403`). Toolbar items were
+   left without `Label` titles until a Duo runtime shows whether vertical bars need them. The
+   27.2 runtime installed for the check can be removed on the owner's word.
+10. Member removal matches a participant by record name or email only, while the members list
+    also identifies by phone number: a member known only by phone is listed but cannot be removed
+    ("participant not found"). Found in the 1.7.0 round (`ShareParticipantRules`); a behaviour
+    change for a separate owner-approved fix, spec-first under REQ-SHARE-040.
+11. Cart rows wrap names mid-word at accessibility text sizes (seen in the 1.7.0 L7 screenshots);
+    not in any round yet.
+12. The trip card's check control is 44 × 30 pt (owner decision 2026-09-23: three rows within the
+    160 pt Live Activity height); revisit if Apple changes the height limit.
