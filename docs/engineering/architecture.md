@@ -141,7 +141,7 @@ Same SQLite filenames as older installs (no rename):
 | `OneCart-private.sqlite` | private database |
 | `OneCart-shared.sqlite` | shared database |
 
-DEBUG demo mode (`-oneCartDemoUI`) opens the same filenames under `Application Support/OneCartDemo/<role>/` and keeps its Sign in with Apple credential in memory, so seeded demo rows never reach the real stores, CloudKit, or the Keychain.
+DEBUG demo mode (`-oneCartDemoUI`) opens the same filenames under `Application Support/OneCartDemo/<role>/` and keeps its Sign in with Apple credential in memory, so seeded demo rows never reach the real stores, CloudKit, or the Keychain. `-oneCartDemoReset` wipes that role's demo store before seeding; the UI smoke suite (`OneCartUITests`, run by the shared scheme's Test action) launches every test with it so no state carries between runs.
 
 New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online.
 
