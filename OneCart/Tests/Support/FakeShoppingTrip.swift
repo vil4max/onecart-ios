@@ -27,7 +27,14 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     private(set) var requested: [Requested] = []
     private(set) var updates: [Updated] = []
     private(set) var ended: [Ended] = []
+    /// Ended with a delayed dismissal: no longer running, still on the Lock Screen.
+    private(set) var lingering: [String] = []
     private var nextID = 1
+
+    /// Every card the Lock Screen shows: running trips and finished ones not yet dismissed.
+    var shownIDs: [String] {
+        running.map(\.id) + lingering
+    }
 
     init(running: [ShoppingTripActivityRecord] = []) {
         self.running = running
@@ -58,7 +65,12 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     }
 
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {
+        let wasShown = shownIDs.contains(id)
         running.removeAll { $0.id == id }
+        lingering.removeAll { $0 == id }
+        if wasShown, case .after = dismissal {
+            lingering.append(id)
+        }
         ended.append(Ended(id: id, state: state, dismissal: dismissal))
     }
 

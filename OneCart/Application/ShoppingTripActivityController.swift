@@ -103,6 +103,9 @@ final class ShoppingTripActivityController {
     private(set) var activeTrip: ShoppingTripActivityRecord?
 
     @ObservationIgnored private var lastState: ShoppingTripAttributes.ContentState?
+    /// The all-bought trip still shown until its delayed dismissal. ActivityKit no longer
+    /// lists it as running, so Stop or a new trip must remove it by this id.
+    @ObservationIgnored private var finishedTripID: String?
     @ObservationIgnored private var tail: Task<Void, Never>?
     private let backend: any ShoppingTripActivityBackend
     private let now: () -> Date
@@ -187,11 +190,12 @@ final class ShoppingTripActivityController {
         } catch {
             throw ShoppingTripError.unavailable
         }
-        let previous = activeTrip
+        let replaced = [activeTrip?.id, finishedTripID].compactMap(\.self)
         activeTrip = ShoppingTripActivityRecord(id: id, accountID: accountID, familyID: familyID)
         lastState = state
-        if let previous {
-            await backend.end(id: previous.id, state: nil, dismissal: .immediate)
+        finishedTripID = nil
+        for previous in replaced {
+            await backend.end(id: previous, state: nil, dismissal: .immediate)
         }
     }
 
@@ -211,6 +215,7 @@ final class ShoppingTripActivityController {
         if state.isAllPurchased {
             activeTrip = nil
             lastState = nil
+            finishedTripID = trip.id
             await backend.end(
                 id: trip.id,
                 state: state,
@@ -224,9 +229,10 @@ final class ShoppingTripActivityController {
     }
 
     private func performEnd() async {
-        let ids = Set(backend.runningTrips().map(\.id) + [activeTrip?.id].compactMap(\.self))
+        let ids = Set(backend.runningTrips().map(\.id) + [activeTrip?.id, finishedTripID].compactMap(\.self))
         activeTrip = nil
         lastState = nil
+        finishedTripID = nil
         for id in ids.sorted() {
             await backend.end(id: id, state: nil, dismissal: .immediate)
         }

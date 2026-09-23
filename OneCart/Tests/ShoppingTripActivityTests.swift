@@ -45,6 +45,12 @@ struct ShoppingTripActivityTests {
         item("Milk"), item("Bread"), item("Eggs"), item("Cheese"), item("Apples", purchased: true),
     ])
 
+    private static let allBoughtSnapshot = snapshot(items: shoppingSnapshot.items.map { item in
+        var bought = item
+        bought.isPurchased = true
+        return bought
+    })
+
     private static func makeController(
         backend: FakeShoppingTripBackend = FakeShoppingTripBackend()
     ) -> (ShoppingTripActivityController, FakeShoppingTripBackend) {
@@ -162,6 +168,35 @@ struct ShoppingTripActivityTests {
             ShoppingTripActivityController.completedDismissalDelay
         )))
         #expect(!controller.isActive)
+    }
+
+    @Test("REQ-WIDGET-060: stop on the finished trip dismisses it at once")
+    func stopDismissesTheFinishedTrip() async throws {
+        let (controller, backend) = Self.makeController()
+        try await controller.start(with: Self.shoppingSnapshot)
+        let id = try #require(controller.activeTrip?.id)
+        controller.sync(with: Self.allBoughtSnapshot)
+        await controller.settle()
+        #expect(backend.shownIDs == [id])
+
+        await controller.end().value
+
+        #expect(backend.ended.last == .init(id: id, state: nil, dismissal: .immediate))
+        #expect(backend.shownIDs.isEmpty)
+    }
+
+    @Test("REQ-WIDGET-060: starting again while the finished trip is shown leaves one card")
+    func restartReplacesTheFinishedTrip() async throws {
+        let (controller, backend) = Self.makeController()
+        try await controller.start(with: Self.shoppingSnapshot)
+        controller.sync(with: Self.allBoughtSnapshot)
+        await controller.settle()
+
+        // A line is un-checked within the five minutes and the trip starts again.
+        try await controller.start(with: Self.shoppingSnapshot)
+
+        let id = try #require(controller.activeTrip?.id)
+        #expect(backend.shownIDs == [id])
     }
 
     @Test("REQ-WIDGET-060: another cart, another account or an emptied cart ends the trip at once")
