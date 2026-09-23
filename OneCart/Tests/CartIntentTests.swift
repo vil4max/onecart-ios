@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 @testable import OneCart
 import XCTest
@@ -121,7 +122,11 @@ final class CartIntentTests: XCTestCase {
     // MARK: - REQ-SIRI-040 background startup
 
     /// A session that runs the real startup path against a store directory the test controls.
-    private func makeStartingSession(credential: AppleSignInCredential?) throws -> (AppSession, URL) {
+    private func makeStartingSession(
+        credential: AppleSignInCredential?,
+        appleSignIn: AppleSignInAuthenticating? = nil,
+        backend: FakeShoppingTripBackend = FakeShoppingTripBackend()
+    ) throws -> (AppSession, URL) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartSiriStart-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -129,7 +134,8 @@ final class CartIntentTests: XCTestCase {
         let persistence = PersistenceController(inMemory: false, storeDirectoryURL: directory, cloudKitEnabled: false)
         let session = try makeTestSession(
             persistence: persistence,
-            appleSignIn: InMemoryAppleSignIn(credential: credential)
+            appleSignIn: appleSignIn ?? InMemoryAppleSignIn(credential: credential),
+            shoppingTripBackend: backend
         )
         return (session, directory)
     }
@@ -176,6 +182,59 @@ final class CartIntentTests: XCTestCase {
         }
     }
 
+    func test_REQ_SIRI_040_stopsWaitingForAStartupThatTakesTooLong() async throws {
+        let signIn = GatedAppleSignIn(credential: siriUser)
+        let (session, _) = try makeStartingSession(credential: nil, appleSignIn: signIn)
+        let clock = IntentTestClock()
+        let reported = expectation(description: "Siri reports the app unavailable")
+
+        let request = Task { @MainActor in
+            do {
+                _ = try await session.addItemsFromIntent("Milk", deadline: clock.deadline())
+                XCTFail("A request must not wait past the limit")
+            } catch {
+                XCTAssertEqual(error as? CartIntentError, .unavailable)
+            }
+            reported.fulfill()
+        }
+        await signIn.waitUntilAsked()
+        clock.advance(by: CartIntentDeadline.startupLimit)
+        await fulfillment(of: [reported], timeout: 5)
+
+        // Startup was left running and finishes once the slow step answers.
+        signIn.release()
+        await request.value
+        await session.start()
+        XCTAssertNotNil(session.account)
+        XCTAssertFalse(session.products.contains { $0.displayName == "Milk" }, "Nothing is added after Siri gave up")
+    }
+
+    func test_REQ_SIRI_040_aTripThatWouldStartAfterTheLimitDoesNotStart() async throws {
+        let signIn = GatedAppleSignIn(credential: siriUser)
+        let backend = FakeShoppingTripBackend()
+        let (session, _) = try makeStartingSession(credential: nil, appleSignIn: signIn, backend: backend)
+        let clock = IntentTestClock()
+
+        let request = Task { @MainActor in
+            try await session.startShoppingTripFromIntent(deadline: clock.deadline())
+        }
+        await signIn.waitUntilAsked()
+        // Time passes while the timer has not fired yet: startup then finishes first.
+        clock.moveNowWithoutFiring(by: .seconds(11))
+        signIn.release()
+        do {
+            try await request.value
+            XCTFail("A trip must not start after the limit")
+        } catch {
+            XCTAssertEqual(error as? CartIntentError, .unavailable)
+        }
+        XCTAssertTrue(backend.requested.isEmpty)
+
+        _ = try await session.addItemsFromIntent("Milk", deadline: IntentTestClock().deadline())
+        try await session.startShoppingTripFromIntent(deadline: IntentTestClock().deadline())
+        XCTAssertEqual(backend.requested.count, 1, "Within the limit the same request starts the trip")
+    }
+
     // MARK: - REQ-SIRI-040 phrases
 
     func test_REQ_SIRI_040_everyPhraseIsTranslatedAndNamesTheApp() throws {
@@ -199,5 +258,95 @@ final class CartIntentTests: XCTestCase {
                 XCTAssertTrue(translated.contains("${applicationName}"), "\(language): \(phrase)")
             }
         }
+    }
+}
+
+/// Holds startup at the credential check until the test releases it.
+private final class GatedAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
+    private let credential: AppleSignInCredential
+    private let asked = AsyncStream<Void>.makeStream()
+    private let gate = AsyncStream<Void>.makeStream()
+
+    init(credential: AppleSignInCredential) {
+        self.credential = credential
+    }
+
+    func storedCredential() -> AppleSignInCredential? {
+        credential
+    }
+
+    func save(_: AppleSignInCredential) {}
+
+    func clearCredential() {}
+
+    func credentialState(for _: String) async -> AppleSignInCredentialState {
+        asked.continuation.yield()
+        for await _ in gate.stream {}
+        return .authorized
+    }
+
+    func signIn() async throws -> AppleSignInCredential {
+        throw AppleSignInError.failed
+    }
+
+    func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
+        throw AppleSignInError.failed
+    }
+
+    func waitUntilAsked() async {
+        var iterator = asked.stream.makeAsyncIterator()
+        _ = await iterator.next()
+    }
+
+    func release() {
+        gate.continuation.finish()
+    }
+}
+
+/// A manual clock for `CartIntentDeadline`: time moves only when the test says so.
+@MainActor
+private final class IntentTestClock {
+    private let start = ContinuousClock.now
+    private var elapsed: Duration = .zero
+    private var sleepers: [(id: UUID, until: Duration, continuation: CheckedContinuation<Void, Never>)] = []
+
+    func deadline(limit: Duration = CartIntentDeadline.startupLimit) -> CartIntentDeadline {
+        CartIntentDeadline(
+            end: start + limit,
+            now: { self.start + self.elapsed },
+            sleep: { duration in try await self.sleep(for: duration) }
+        )
+    }
+
+    /// Moves time and fires every timer that is due.
+    func advance(by duration: Duration) {
+        elapsed += duration
+        let due = sleepers.filter { $0.until <= elapsed }
+        sleepers.removeAll { $0.until <= elapsed }
+        due.forEach { $0.continuation.resume() }
+    }
+
+    /// Moves time without firing timers, as when work and the timer end in the same instant.
+    func moveNowWithoutFiring(by duration: Duration) {
+        elapsed += duration
+    }
+
+    /// Like `Task.sleep`, a cancelled sleep ends at once and throws.
+    private func sleep(for duration: Duration) async throws {
+        let id = UUID()
+        let until = elapsed + duration
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                sleepers.append((id, until, continuation))
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.wake(id) }
+        }
+        try Task.checkCancellation()
+    }
+
+    private func wake(_ id: UUID) {
+        guard let index = sleepers.firstIndex(where: { $0.id == id }) else { return }
+        sleepers.remove(at: index).continuation.resume()
     }
 }
