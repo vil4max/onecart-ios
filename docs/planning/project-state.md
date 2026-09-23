@@ -111,7 +111,7 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    the check in every pose is blocked — no installed simulator runtime (26.5, 27.0, 27.2
    `24B5084k`) supports the device type (`simctl create` → `SimError 403`). Toolbar items were
    left without `Label` titles until a Duo runtime shows whether vertical bars need them. The
-   27.2 runtime installed for the check can be removed on the owner's word.
+   27.2 runtime installed for the check was removed on the owner's word the same day.
 10. Member removal matches a participant by record name or email only, while the members list
     also identifies by phone number: a member known only by phone is listed but cannot be removed
     ("participant not found"). Found in the 1.7.0 round (`ShareParticipantRules`); a behaviour
