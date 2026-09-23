@@ -9,7 +9,7 @@ struct MetricPayloadSummaryTests {
     private static let end = begin.addingTimeInterval(86400)
     private static let window = "2026-09-21T14:13:20Z/2026-09-22T14:13:20Z"
 
-    @Test("a metric payload reports its window, version, times, memory, launches and hangs")
+    @Test("a metric report states its window, version, times, memory, launches and hangs")
     func fullMetricLine() {
         let snapshot = MetricSnapshot(
             begin: Self.begin,
@@ -29,50 +29,60 @@ struct MetricPayloadSummaryTests {
         )
     }
 
-    @Test("a metric the payload lacks is left out rather than reported as zero")
+    @Test("a metric the report lacks is left out rather than reported as zero")
     func missingMetricsAreOmitted() {
         let snapshot = MetricSnapshot(begin: Self.begin, end: Self.end, appVersion: "1.7.0", launchCount: 0)
 
         #expect(MetricPayloadSummary.line(for: snapshot) == "metrics \(Self.window) v1.7.0 launches=0")
     }
 
-    @Test("a diagnostic payload counts each kind and names at most three crashes by signal")
-    func diagnosticLine() {
-        let crash = DiagnosticSnapshot.Crash(signal: 11, exceptionType: 1, exceptionCode: 2)
+    @Test("a metric report without an environment leaves the version out")
+    func missingVersionIsOmitted() {
+        let snapshot = MetricSnapshot(begin: Self.begin, end: Self.end, appVersion: nil, hangCount: 2)
+
+        #expect(MetricPayloadSummary.line(for: snapshot) == "metrics \(Self.window) hangs=2")
+    }
+
+    @Test("a crash report is identified by signal, exception type and code, without a call stack")
+    func crashLine() {
         let snapshot = DiagnosticSnapshot(
             begin: Self.begin,
             end: Self.end,
             appVersion: "1.7.0",
-            crashes: [crash, crash, DiagnosticSnapshot.Crash(), crash],
-            hangCount: 2,
-            cpuExceptionCount: 0,
-            diskWriteExceptionCount: 1,
-            launchDiagnosticCount: 0
+            kind: .crash(signal: 11, exceptionType: 1, exceptionCode: 2)
         )
 
         #expect(
             MetricPayloadSummary.line(for: snapshot)
-                == "diagnostics \(Self.window) v1.7.0 crashes=4 hangs=2 cpuExceptions=0 diskWrites=1 launches=0 "
-                + "crash(signal=11,type=1,code=2) crash(signal=11,type=1,code=2) crash(unknown)"
+                == "diagnostics \(Self.window) v1.7.0 crash(signal=11,type=1,code=2)"
         )
     }
 
-    @Test("a diagnostic payload without a version or crashes still reports its counts")
-    func emptyDiagnosticLine() {
+    @Test("a crash report without signal or exception details is still logged as a crash")
+    func crashWithoutDetails() {
         let snapshot = DiagnosticSnapshot(
             begin: Self.begin,
             end: Self.end,
-            appVersion: nil,
-            crashes: [],
-            hangCount: 0,
-            cpuExceptionCount: 0,
-            diskWriteExceptionCount: 0,
-            launchDiagnosticCount: 0
+            appVersion: "1.7.0",
+            kind: .crash(signal: nil, exceptionType: nil, exceptionCode: nil)
         )
 
-        #expect(
-            MetricPayloadSummary.line(for: snapshot)
-                == "diagnostics \(Self.window) crashes=0 hangs=0 cpuExceptions=0 diskWrites=0 launches=0"
+        #expect(MetricPayloadSummary.line(for: snapshot) == "diagnostics \(Self.window) v1.7.0 crash(unknown)")
+    }
+
+    @Test(
+        "every other diagnostic report is named by its kind",
+        arguments: zip(
+            [
+                DiagnosticSnapshot.Kind.hang, .cpuException, .diskWriteException, .appLaunch, .memoryException,
+                .unknown,
+            ],
+            ["hang", "cpuException", "diskWriteException", "appLaunch", "memoryException", "unknown"]
         )
+    )
+    func diagnosticKindLine(kind: DiagnosticSnapshot.Kind, name: String) {
+        let snapshot = DiagnosticSnapshot(begin: Self.begin, end: Self.end, appVersion: "1.7.0", kind: kind)
+
+        #expect(MetricPayloadSummary.line(for: snapshot) == "diagnostics \(Self.window) v1.7.0 \(name)")
     }
 }
