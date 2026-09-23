@@ -2,14 +2,20 @@
 
 Snapshot for resuming work after a pause. Update it when the release or CI state changes.
 
-**Project state:** Frozen since 2026-09-22 (owner decision) while 1.6.0 is in App Review; no work
-starts until the owner unfreezes the project.
+**Release line frozen since 2026-09-22** (owner decision) while 1.6.0 is in App Review: no release
+step, tag or release task starts until the owner unfreezes it. Feature development on `main`
+continues — two developers work on this project, so commits from another session land on `main`
+during the freeze and are expected.
 
-**Next task:** none assigned; after unfreezing, the owner picks one from [Open items](#open-items)
-in a new session.
+**On `main` beyond the 1.6.0 submission:** the submitted commit is `c8390cf` (build 118). `989f4c4`,
+`92c763f` and `7203f09` add the shopping trip Live Activity and the Siri intents on top of it. They
+are not part of 1.6.0 and ship in a later version.
 
-**Owner-only while frozen:** the 1.6.0 App Review outcome, and confirming that the new Support and
-Privacy Policy URLs ([release.md](../operations/release.md), App Store metadata) go live with 1.6.0.
+**Next task:** none assigned to this line; after unfreezing, the owner picks one from
+[Open items](#open-items) in a new session.
+
+**Owner-only while the release line is frozen:** the 1.6.0 App Review outcome, and confirming that
+the new Support and Privacy Policy URLs ([release.md](../operations/release.md), App Store metadata) go live with 1.6.0.
 
 ## Product
 
