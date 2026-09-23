@@ -1,7 +1,8 @@
 import Foundation
 
-/// Why a Siri or Shortcuts request could not reach the cart; Siri speaks the description.
-enum CartIntentError: LocalizedError, Equatable {
+/// Why a Siri or Shortcuts request could not reach the cart. App Intents wraps a thrown error
+/// that provides a `LocalizedStringResource` and speaks it in the language of the request.
+enum CartIntentError: LocalizedError, CustomLocalizedStringResourceConvertible, Equatable {
     case signedOut
     case readOnly
     case emptyName
@@ -9,20 +10,24 @@ enum CartIntentError: LocalizedError, Equatable {
     /// The app's startup failed; unlike `signedOut`, the user has nothing to sign in to.
     case unavailable
 
-    var errorDescription: String? {
+    var localizedStringResource: LocalizedStringResource {
         switch self {
         case .signedOut:
-            String(localized: "intent.error.signed_out")
+            "intent.error.signed_out"
         case .readOnly:
-            String(localized: "intent.error.read_only")
+            "intent.error.read_only"
         case .emptyName:
-            String(localized: "intent.error.empty_name")
+            "intent.error.empty_name"
         case .failed:
             // Every `.failed` is local (no cart, or a save that did not land); iCloud runs later.
-            String(localized: "intent.error.failed")
+            "intent.error.failed"
         case .unavailable:
-            String(localized: "intent.error.unavailable")
+            "intent.error.unavailable"
         }
+    }
+
+    var errorDescription: String? {
+        String(localized: localizedStringResource)
     }
 }
 

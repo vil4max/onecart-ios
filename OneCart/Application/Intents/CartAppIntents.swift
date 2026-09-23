@@ -18,7 +18,7 @@ struct AddCartItemsIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let result = try await OneCartAppComposition.session.addItemsFromIntent(names)
-        return .result(dialog: "\(CartIntentSpeech.addResult(result))")
+        return .result(dialog: IntentDialog(CartIntentSpeech.addResult(result)))
     }
 }
 
@@ -30,7 +30,7 @@ struct RemainingCartItemsIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let remaining = try await OneCartAppComposition.session.remainingItemsForIntent()
-        return .result(dialog: "\(CartIntentSpeech.remaining(remaining))")
+        return .result(dialog: IntentDialog(CartIntentSpeech.remaining(remaining)))
     }
 }
 
@@ -47,42 +47,45 @@ struct StartShoppingTripIntent: LiveActivityIntent {
     }
 }
 
-/// What Siri says back; kept apart from the intents so tests check the exact sentences.
+/// What Siri says back; kept apart from the intents so tests check the exact sentences. Every
+/// sentence stays a `LocalizedStringResource`: App Intents resolves it late, in the language of
+/// the request, where `String(localized:)` would fix the app's own language at once.
 enum CartIntentSpeech {
     /// Siri reads a short list; the rest is summarized as "N more".
     static let spokenNameLimit = 5
 
-    static func addResult(_ result: CartIntentAddResult) -> String {
-        var sentences: [String] = []
+    static func addResult(_ result: CartIntentAddResult) -> LocalizedStringResource {
+        var sentences: [LocalizedStringResource] = []
         if !result.added.isEmpty {
-            sentences.append(String(localized: "intent.add_item.added \(list(result.added))"))
+            sentences.append("intent.add_item.added \(result.added, format: .list(type: .and))")
         }
         if !result.alreadyOnCart.isEmpty {
-            sentences.append(String(localized: "intent.add_item.already \(list(result.alreadyOnCart))"))
+            sentences.append("intent.add_item.already \(result.alreadyOnCart, format: .list(type: .and))")
         }
         if !result.failed.isEmpty {
-            sentences.append(String(localized: "intent.add_item.failed \(list(result.failed))"))
+            sentences.append("intent.add_item.failed \(result.failed, format: .list(type: .and))")
         }
-        return sentences.joined(separator: " ")
+        return joined(sentences) ?? CartIntentError.failed.localizedStringResource
     }
 
-    static func remaining(_ remaining: CartIntentRemaining) -> String {
+    static func remaining(_ remaining: CartIntentRemaining) -> LocalizedStringResource {
         if remaining.totalCount == 0 {
-            return String(localized: "widget.empty")
+            return "widget.empty"
         }
         if remaining.names.isEmpty {
-            return String(localized: "widget.all_purchased")
+            return "widget.all_purchased"
         }
         let spoken = Array(remaining.names.prefix(spokenNameLimit))
-        var sentence = String(localized: "intent.remaining.list \(remaining.names.count) \(list(spoken))")
+        let list: LocalizedStringResource =
+            "intent.remaining.list \(remaining.names.count) \(spoken, format: .list(type: .and))"
         let unspoken = remaining.names.count - spoken.count
-        if unspoken > 0 {
-            sentence += " " + String(localized: "trip.more \(unspoken)")
-        }
-        return sentence
+        guard unspoken > 0 else { return list }
+        return joined([list, "intent.remaining.more \(unspoken)"]) ?? list
     }
 
-    private static func list(_ names: [String]) -> String {
-        names.formatted(.list(type: .and))
+    /// One dialog of several sentences; each part is still resolved in the request's language.
+    private static func joined(_ sentences: [LocalizedStringResource]) -> LocalizedStringResource? {
+        guard let first = sentences.first else { return nil }
+        return sentences.dropFirst().reduce(first) { "intent.sentences \($0) \($1)" }
     }
 }

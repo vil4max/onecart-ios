@@ -6565,6 +6565,29 @@
         }
       }
     },
+    "intent.sentences %@ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
+          }
+        }
+      }
+    },
     "intent.remaining.title": {
       "extractionState": "manual",
       "localizations": {
@@ -6617,19 +6640,192 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Left to buy (%1$lld): %2$@."
+            "value": "%1$#@items@ left to buy: %2$@."
+          },
+          "substitutions": {
+            "items": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg item"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg items"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Осталось купить (%1$lld): %2$@."
+            "value": "Осталось купить %1$#@items@: %2$@."
+          },
+          "substitutions": {
+            "items": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товар"
+                    }
+                  },
+                  "few": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товара"
+                    }
+                  },
+                  "many": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товаров"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товара"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Лишилося купити (%1$lld): %2$@."
+            "value": "Лишилося купити %1$#@items@: %2$@."
+          },
+          "substitutions": {
+            "items": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товар"
+                    }
+                  },
+                  "few": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товари"
+                    }
+                  },
+                  "many": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товарів"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg товару"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "intent.remaining.more %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "And %lld more."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "And %lld more."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "И ещё %lld товар."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "И ещё %lld товара."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "И ещё %lld товаров."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "И ещё %lld товара."
+                }
+              }
+            }
+          }
+        },
+        "uk": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "І ще %lld товар."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "І ще %lld товари."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "І ще %lld товарів."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "І ще %lld товару."
+                }
+              }
+            }
           }
         }
       }
@@ -6715,13 +6911,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сначала открой OneCart и войди."
+            "value": "Сначала откройте OneCart и войдите."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Спершу відкрий OneCart і увійди."
+            "value": "Спершу відкрийте OneCart і увійдіть."
           }
         }
       }
@@ -6761,13 +6957,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Скажи, что добавить."
+            "value": "Скажите, что добавить."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Скажи, що додати."
+            "value": "Скажіть, що додати."
           }
         }
       }

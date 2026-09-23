@@ -2,6 +2,19 @@ import AuthenticationServices
 import Foundation
 @testable import OneCart
 
+/// Resolves a dialog the way Siri does: late, in the language of the request.
+func spoken(_ resource: LocalizedStringResource, in language: String = "en") -> String {
+    var resource = resource
+    resource.locale = Locale(identifier: language)
+    return String(localized: resource)
+}
+
+/// "What's left" for `count` to-buy lines named A, B, C… plus one bought line.
+func remainingSpeech(count: Int) -> LocalizedStringResource {
+    let names = (0 ..< count).map { String(UnicodeScalar(UInt8(65 + $0))) }
+    return CartIntentSpeech.remaining(CartIntentRemaining(totalCount: count + 1, names: names))
+}
+
 /// Holds startup at the credential check until the test releases it.
 final class GatedAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private let credential: AppleSignInCredential

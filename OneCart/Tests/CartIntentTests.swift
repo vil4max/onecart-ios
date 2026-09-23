@@ -116,12 +116,8 @@ final class CartIntentTests: XCTestCase {
         XCTAssertEqual(result.alreadyOnCart, ["Salt"])
         XCTAssertEqual(result.failed, ["Bread"])
         XCTAssertEqual(
-            CartIntentSpeech.addResult(result),
-            [
-                String(localized: "intent.add_item.added \(["Milk", "Eggs"].formatted(.list(type: .and)))"),
-                String(localized: "intent.add_item.already \("Salt")"),
-                String(localized: "intent.add_item.failed \("Bread")"),
-            ].joined(separator: " ")
+            spoken(CartIntentSpeech.addResult(result)),
+            "Added to the cart: Milk and Eggs. Already on the cart: Salt. Couldn't add: Bread."
         )
     }
 
@@ -146,11 +142,9 @@ final class CartIntentTests: XCTestCase {
     }
 
     func test_REQ_SIRI_010_speaksWhatWasAddedAndWhatWasAlreadyThere() {
-        let spoken = CartIntentSpeech.addResult(CartIntentAddResult(added: ["Milk"], alreadyOnCart: ["Bread"]))
         XCTAssertEqual(
-            spoken,
-            String(localized: "intent.add_item.added \("Milk")") + " "
-                + String(localized: "intent.add_item.already \("Bread")")
+            spoken(CartIntentSpeech.addResult(CartIntentAddResult(added: ["Milk"], alreadyOnCart: ["Bread"]))),
+            "Added to the cart: Milk. Already on the cart: Bread."
         )
     }
 
@@ -192,20 +186,15 @@ final class CartIntentTests: XCTestCase {
 
     func test_REQ_SIRI_020_speaksAShortListOrTheCartState() {
         XCTAssertEqual(
-            CartIntentSpeech.remaining(CartIntentRemaining(totalCount: 0, names: [])),
-            String(localized: "widget.empty")
+            spoken(CartIntentSpeech.remaining(CartIntentRemaining(totalCount: 0, names: []))),
+            "Cart is empty"
         )
         XCTAssertEqual(
-            CartIntentSpeech.remaining(CartIntentRemaining(totalCount: 2, names: [])),
-            String(localized: "widget.all_purchased")
+            spoken(CartIntentSpeech.remaining(CartIntentRemaining(totalCount: 2, names: []))),
+            "All purchased!"
         )
-        let names = ["A", "B", "C", "D", "E", "F", "G"]
-        let spoken = CartIntentSpeech.remaining(CartIntentRemaining(totalCount: 9, names: names))
-        let listed = ["A", "B", "C", "D", "E"].formatted(.list(type: .and))
-        XCTAssertEqual(
-            spoken,
-            String(localized: "intent.remaining.list \(7) \(listed)") + " " + String(localized: "trip.more \(2)")
-        )
+        XCTAssertEqual(spoken(remainingSpeech(count: 1)), "1 item left to buy: A.")
+        XCTAssertEqual(spoken(remainingSpeech(count: 7)), "7 items left to buy: A, B, C, D, and E. And 2 more.")
     }
 
     // MARK: - REQ-SIRI-030 shopping trip
