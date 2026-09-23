@@ -13,6 +13,7 @@ extension Notification.Name {
 final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private static let metadataLock = NSLock()
     private static var pendingShareMetadata: [CKShare.Metadata] = []
+    private let metricKitLogger = MetricKitLogger()
 
     func application(
         _ application: UIApplication,
@@ -20,6 +21,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
             UIApplication.LaunchOptionsKey: Any
         ]?
     ) -> Bool {
+        metricKitLogger.start()
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
         return true
