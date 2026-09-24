@@ -3,6 +3,7 @@ import Foundation
 @testable import OneCart
 import SwiftUI
 import Testing
+import UIKit
 
 /// The cart hosted over the ViewModel fakes: bootstrap states, sections, the composer, and the
 /// negative constraints that the screen carries no price and no share control.
@@ -201,6 +202,76 @@ struct HostedCartViewTests {
         }
     }
 
+    @Test(
+        "REQ-CART-130: the name spans the row's content width at accessibility sizes, and the current layout at .large",
+        arguments: [DynamicTypeSize.large, .accessibility1, .accessibility3, .accessibility5]
+    )
+    func productNameSpansRowContentWidth(size: DynamicTypeSize) async throws {
+        // A dedicated single-line fixture, kept local to this test, so the row's name and
+        // toggle elements are unambiguous; the shared `cartWithLines()` fixture is untouched.
+        let fixture = try await CartFixture.make()
+        _ = try await fixture.addProduct(named: "Апельсиновый сок")
+        let harness = try CartHarness(fixture: fixture)
+        harness.state.activeFamilySpace = try fixture.family
+        harness.state.cartTitle = "Family"
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
+        defer { hosted.tearDown() }
+
+        let nameFrame = try #require(hosted.element(identifier: "cart.product_name")).node.accessibilityFrame
+        let toggleFrame = try #require(hosted.element(identifier: "cart.product_toggle")).node.accessibilityFrame
+
+        if size.isAccessibilitySize {
+            // Row content width: there is no accessibility identifier on the row itself (the
+            // category tile is `accessibilityHidden`), so this is the union of the name and
+            // toggle frames — the row's leading edge (today, the name's own leading edge) to
+            // its trailing edge (the toggle's). Today the name sits beside the toggle, so this
+            // union always exceeds the name's own width by at least the toggle's width and the
+            // row's spacing; after REQ-CART-130 stacks the tile and toggle above or below the
+            // name, the name reaches both edges and the two widths converge.
+            let rowContentWidth = max(nameFrame.maxX, toggleFrame.maxX) - min(nameFrame.minX, toggleFrame.minX)
+            withKnownIssue("REQ-CART-130: the tile and toggle narrow the name at accessibility sizes (backlog #11)") {
+                #expect(
+                    abs(nameFrame.width - rowContentWidth) < 1,
+                    "name \(nameFrame), row content width \(rowContentWidth)"
+                )
+            }
+
+            if size == .accessibility1 || size == .accessibility3 {
+                let category = size.uiContentSizeCategoryForMeasurement
+                let font = UIFont.preferredFont(
+                    forTextStyle: .body,
+                    compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
+                )
+                let wordWidth = ("Апельсиновый" as NSString).size(withAttributes: [.font: font]).width
+                if size == .accessibility1 {
+                    // Today's row content width (name + spacing + toggle) already exceeds the
+                    // word's rendered width at this size, so the word already fits without the
+                    // fix: asserted directly, not as a known issue, per KIT-D-005 point 2 —
+                    // withKnownIssue would fail here because no issue would be recorded.
+                    #expect(
+                        wordWidth <= rowContentWidth + 1,
+                        "word width \(wordWidth), row content width \(rowContentWidth)"
+                    )
+                } else {
+                    withKnownIssue(
+                        "REQ-CART-130: the tile and toggle narrow the name at accessibility sizes (backlog #11)"
+                    ) {
+                        #expect(
+                            wordWidth <= rowContentWidth + 1,
+                            "word width \(wordWidth), row content width \(rowContentWidth)"
+                        )
+                    }
+                }
+            }
+        } else {
+            // At .large the current layout holds: the name and the toggle sit on the same line.
+            #expect(
+                toggleFrame.minY < nameFrame.midY && nameFrame.midY < toggleFrame.maxY,
+                "name \(nameFrame), toggle \(toggleFrame)"
+            )
+        }
+    }
+
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
     func readOnlyCartHidesComposer() async throws {
         let (_, harness) = try await Self.cartWithLines()
@@ -212,5 +283,20 @@ struct HostedCartViewTests {
             .contains(String(localized: "cart.read_only_title")) == true)
         #expect(hosted.element(identifier: "cart.add") == nil)
         #expect(hosted.elements(identifier: "cart.product_toggle").allSatisfy { !$0.isEnabled })
+    }
+}
+
+private extension DynamicTypeSize {
+    /// `UIFont.preferredFont(compatibleWith:)` reads `UIContentSizeCategory`, not
+    /// `DynamicTypeSize`; the two enums share the same ordinal steps from their first
+    /// accessibility size to their last, so this maps each size REQ-CART-130 measures to its
+    /// matching category.
+    var uiContentSizeCategoryForMeasurement: UIContentSizeCategory {
+        switch self {
+        case .accessibility1: .accessibilityMedium
+        case .accessibility3: .accessibilityExtraLarge
+        case .accessibility5: .accessibilityExtraExtraExtraLarge
+        default: .large
+        }
     }
 }

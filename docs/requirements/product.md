@@ -490,6 +490,7 @@ core path from [core.md](../core.md), not every suite.
 | REQ-CART-100 | `CartAccessTests` → `customCartNameStopsFollowingParticipantNickname`, `personalCartNameUsesAccountDisplayName`, `renamingParticipantUpdatesPersonalCartTitleWhileAutoNamed` |
 | REQ-CART-110 | `CartAccessTests` → `renameActiveCartUpdatesFamilySpaceName`; `GuestMemberSessionTests` → `guestCannotRenameOrRevokeSharedCart` |
 | REQ-CART-120 | `FamilyCartMergeTests` → `contentSummaryAndLegacyNameMigrationRules` |
+| REQ-CART-130 | `HostedCartViewTests` → `@Test "REQ-CART-130: the name spans the row's content width at accessibility sizes, and the current layout at .large"` |
 | REQ-HIST-010 | `PurchaseSessionTests` → `historyDayGroupsByPurchasedAt` |
 | REQ-HIST-020 | `PurchaseSessionTests` → `archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `archivePurchasedBeforeMovesOnlyStaleCheckedItems`, `archiveStalePurchasedIfNeededViaSession` |
 | REQ-HIST-030 | `HistoryPaginationTests` → `fetchHistoryDefaultLimitIs30`, `loadMoreHistoryAppends` |
