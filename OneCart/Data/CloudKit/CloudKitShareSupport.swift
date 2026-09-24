@@ -132,6 +132,7 @@ enum OneCartShareLinkJoin {
 protocol ShareParticipantHandle: AnyObject {
     var userRecordName: String? { get }
     var lookupEmailAddress: String? { get }
+    var lookupPhoneNumber: String? { get }
     var isOwner: Bool { get }
     var permission: CKShare.ParticipantPermission { get set }
 }
@@ -143,6 +144,10 @@ extension CKShare.Participant: ShareParticipantHandle {
 
     var lookupEmailAddress: String? {
         userIdentity.lookupInfo?.emailAddress
+    }
+
+    var lookupPhoneNumber: String? {
+        userIdentity.lookupInfo?.phoneNumber
     }
 
     var isOwner: Bool {

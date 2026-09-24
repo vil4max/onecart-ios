@@ -10,17 +10,20 @@ struct ShareParticipantRulesTests {
     private final class FakeParticipant: ShareParticipantHandle {
         let userRecordName: String?
         let lookupEmailAddress: String?
+        let lookupPhoneNumber: String?
         let isOwner: Bool
         var permission: CKShare.ParticipantPermission
 
         init(
             recordName: String? = nil,
             email: String? = nil,
+            phone: String? = nil,
             isOwner: Bool = false,
             permission: CKShare.ParticipantPermission = .readOnly
         ) {
             userRecordName = recordName
             lookupEmailAddress = email
+            lookupPhoneNumber = phone
             self.isOwner = isOwner
             self.permission = permission
         }
@@ -83,6 +86,22 @@ struct ShareParticipantRulesTests {
                 in: [FakeParticipant]()
             ) == nil
         )
+    }
+
+    @Test("REQ-SHARE-040: a member known only by phone resolves to that participant")
+    func removalFindsParticipantByPhoneNumber() {
+        let phoneOnly = FakeParticipant(phone: "phone-only-member")
+
+        // Today's lookup keys by record name then email only (backlog #10); this records the
+        // known defect until share-040-fix adds phone to the shared key.
+        withKnownIssue("REQ-SHARE-040: removal ignores the phone number (backlog #10)") {
+            #expect(
+                ShareParticipantRules.participant(
+                    forMemberID: Self.memberID(for: "phone-only-member"),
+                    in: [phoneOnly]
+                ) === phoneOnly
+            )
+        }
     }
 
     // MARK: - REQ-SHARE-020 everyone who joined can edit
