@@ -646,12 +646,16 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         // The system redraws the card when the intent returns, so the trip's own update
         // must finish first. A held ActivityKit call shows whether the intent waits for it.
         backend.holdsEnds = true
+        // The purchase saves on a Core Data background context before it reaches the trip, so
+        // main-actor yields alone can run out first on a loaded CI runner.
+        let endHeld = expectation(description: "The trip's end reached ActivityKit")
+        backend.onHeldEnd = { endHeld.fulfill() }
         let returned = PurchaseReturnFlag()
         let purchase = Task {
             try await fixture.session.performWidgetPurchase(fixture.request())
             returned.value = true
         }
-        await backend.yield { backend.heldEnds == 1 }
+        await fulfillment(of: [endHeld], timeout: 5)
         await backend.yield { returned.value }
         XCTAssertEqual(backend.heldEnds, 1)
         XCTAssertFalse(returned.value, "The check returned before the trip was updated")

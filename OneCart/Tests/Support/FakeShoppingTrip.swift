@@ -28,6 +28,9 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     /// While set, `end` waits for `releaseEnds()`, which holds every later queued operation.
     var holdsEnds = false
     private(set) var heldEnds = 0
+    /// Called when `end` starts waiting. A test whose path runs work off the main actor first
+    /// (a Core Data background save) waits on this instead of `yield(until:)`.
+    var onHeldEnd: (() -> Void)?
     private var endWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var running: [ShoppingTripActivityRecord] = []
     private(set) var requested: [Requested] = []
@@ -79,6 +82,7 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {
         if holdsEnds {
             heldEnds += 1
+            onHeldEnd?()
             await withCheckedContinuation { endWaiters.append($0) }
         }
         let wasShown = shownIDs.contains(id)
