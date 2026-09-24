@@ -3,5 +3,3 @@
 # A bracketed letter keeps each rule from matching the scanner's own keyword in this file.
 ^AGENTS\.md:includes private financial information, compensatio[n] expectations or offers,$
 ^docs/tasks/git\-history\-privacy\-cleanup\.md:caree[r]\ or\ social\ notes,\ naming\ brainstorms,\ competitive\ research,\ business\ strategy,\ learning$
-# Fictional phone numbers in the North American 555 test range, only inside unit tests (REQ-SHARE-040 phone-only member).
-^OneCart/Tests/[^:]+\.swift:.*"\+1555[0-9]{7}"
