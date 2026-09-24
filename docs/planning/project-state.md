@@ -111,7 +111,8 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    the check in every pose is blocked — no installed simulator runtime (26.5, 27.0, 27.2
    `24B5084k`) supports the device type (`simctl create` → `SimError 403`). Toolbar items were
    left without `Label` titles until a Duo runtime shows whether vertical bars need them. The
-   27.2 runtime installed for the check was removed on the owner's word the same day.
+   27.2 runtime installed for the check was removed on the owner's word the same day, downloaded
+   again on 2026-09-24 and kept for now (it does not support the Duo; see item 13).
 10. Member removal matches a participant by record name or email only, while the members list
     also identifies by phone number: a member known only by phone is listed but cannot be removed
     ("participant not found"). Found in the 1.7.0 round (`ShareParticipantRules`); a behaviour
@@ -120,3 +121,9 @@ to its spec-pyramid and agent-coordination shakedown experiment.
     not in any round yet.
 12. The trip card's check control is 44 × 30 pt (owner decision 2026-09-23: three rows within the
     160 pt Live Activity height); revisit if Apple changes the height limit.
+13. Toolbar priorities on iPhone Duo (owner request 2026-09-24), part of item 9:
+    [task brief](../tasks/iphone-duo-toolbars.md). A static audit against Apple's bar rules found
+    two high risks: the cart's members button is a custom view and the name sheets' Cancel/Save
+    are title-only, and neither kind is presented in a vertical bar. Blocked on a Duo-capable
+    simulator runtime (the device type needs iOS 27.1+) and on an owner decision about the
+    member count in the cart bar.
