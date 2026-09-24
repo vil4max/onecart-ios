@@ -157,15 +157,24 @@ extension CKShare.Participant: ShareParticipantHandle {
 
 /// Participant decisions of the share mutations, free of CloudKit I/O.
 enum ShareParticipantRules {
+    /// The identity CloudKit exposes for a participant (REQ-SHARE-040): record name, then lookup
+    /// email, then lookup phone number — the same order the members list and removal both use, so
+    /// a listed member always resolves to the participant that produced its row. A record name or
+    /// email that CloudKit reports as an empty string is not skipped in favor of the next kind:
+    /// only a missing (`nil`) value falls through, matching the members list's existing guard that
+    /// drops a row on an empty key rather than resolving it against a lower-priority identity.
+    static func memberKey(for participant: some ShareParticipantHandle) -> String? {
+        participant.userRecordName ?? participant.lookupEmailAddress ?? participant.lookupPhoneNumber
+    }
+
     /// The participant a members-list row stands for (REQ-SHARE-040): the row id is the stable
-    /// UUID of the participant's record name, or of the lookup email when CloudKit hides it.
+    /// UUID of `memberKey(for:)`.
     static func participant<Participant: ShareParticipantHandle>(
         forMemberID memberID: UUID,
         in participants: [Participant]
     ) -> Participant? {
         participants.first { participant in
-            let key = participant.userRecordName ?? participant.lookupEmailAddress
-            return key.map(FamilyInviteLinkBuilder.stableUUID(for:)) == memberID
+            memberKey(for: participant).map(FamilyInviteLinkBuilder.stableUUID(for:)) == memberID
         }
     }
 

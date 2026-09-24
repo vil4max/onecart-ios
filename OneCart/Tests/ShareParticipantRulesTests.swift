@@ -92,16 +92,36 @@ struct ShareParticipantRulesTests {
     func removalFindsParticipantByPhoneNumber() {
         let phoneOnly = FakeParticipant(phone: "phone-only-member")
 
-        // Today's lookup keys by record name then email only (backlog #10); this records the
-        // known defect until share-040-fix adds phone to the shared key.
-        withKnownIssue("REQ-SHARE-040: removal ignores the phone number (backlog #10)") {
-            #expect(
-                ShareParticipantRules.participant(
-                    forMemberID: Self.memberID(for: "phone-only-member"),
-                    in: [phoneOnly]
-                ) === phoneOnly
-            )
-        }
+        #expect(
+            ShareParticipantRules.participant(
+                forMemberID: Self.memberID(for: "phone-only-member"),
+                in: [phoneOnly]
+            ) === phoneOnly
+        )
+    }
+
+    @Test("REQ-SHARE-040: the record name wins over email and phone")
+    func removalPrefersRecordNameOverEmailAndPhone() {
+        let all = FakeParticipant(recordName: "_igor", email: "igor@example.com", phone: "phone-only-member")
+
+        #expect(
+            ShareParticipantRules.participant(
+                forMemberID: Self.memberID(for: "_igor"),
+                in: [all]
+            ) === all
+        )
+        #expect(
+            ShareParticipantRules.participant(
+                forMemberID: Self.memberID(for: "igor@example.com"),
+                in: [all]
+            ) == nil
+        )
+        #expect(
+            ShareParticipantRules.participant(
+                forMemberID: Self.memberID(for: "phone-only-member"),
+                in: [all]
+            ) == nil
+        )
     }
 
     // MARK: - REQ-SHARE-020 everyone who joined can edit

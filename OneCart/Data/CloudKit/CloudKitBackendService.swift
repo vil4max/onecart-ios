@@ -139,10 +139,9 @@ final class CloudKitBackendService: Sendable {
         let currentRecordName = share.currentUserParticipant?
             .userIdentity.userRecordID?.recordName
         let participants = share.participants.compactMap { participant -> ShareParticipantSummary? in
-            let recordName = participant.userIdentity.userRecordID?.recordName
-                ?? participant.userIdentity.lookupInfo?.emailAddress
-                ?? participant.userIdentity.lookupInfo?.phoneNumber
-            guard let recordName, !recordName.isEmpty else { return nil }
+            guard let recordName = ShareParticipantRules.memberKey(for: participant), !recordName.isEmpty else {
+                return nil
+            }
             let name = participant.userIdentity.nameComponents.map {
                 PersonNameComponentsFormatter.localizedString(
                     from: $0,
