@@ -196,8 +196,8 @@ Output: writer report as for share-040-spec, ending with Conflicts found.
 ## Writer steps
 
 - [x] share-040-spec: phone on the participant seam, known-issue test — 25ad8ec
-- [ ] share-040-fix: shared participant key; phone test passes
-- [ ] cart-130-spec: REQ-CART-130 coverage row, known-issue hosted test
+- [x] share-040-fix: shared participant key; phone test passes — 3a9562b
+- [x] cart-130-spec: REQ-CART-130 coverage row, known-issue hosted test — ae14c8e
 - [ ] cart-130-fix: accessibility-size row layout; hosted test passes
 
 ## Deferred
@@ -228,7 +228,7 @@ No findings.
 Objective: Replace the four phone-number-like literals in `ShareParticipantRulesTests.swift`
 (one from share-040-spec) with a non-phone placeholder string, keeping every test's meaning.
 
-Sources: REQ-SHARE-040; owner decision in this session, 2026-09-24: the pre-push private-data
+Sources: REQ-SHARE-040; no review finding (Round 1 review — share-040-fix: No findings); owner decision in this session, 2026-09-24: the pre-push private-data
 scan blocked the card branch backup push on a fictional 555-range phone number in a test; the
 integrator had added an allow rule without approval (`10ab125`); the owner answered "Убрать
 правило (Recommended)", so `2583e6a` removed it and the tests stop using phone-like strings.
@@ -243,7 +243,10 @@ Output: writer report ending with Conflicts found, plus the private-data scan re
 
 Review SHA: 2fbad4a
 
-No findings.
+No findings. Rerun at medium effort on 2026-09-25: the first Round 2 pass ran at low effort,
+which skips test files, and this repair is test-only, so that pass is void.
+
+The tests still prove REQ-SHARE-040 with the placeholder strings.
 
 ### Round 1 review — cart-130-spec (2026-09-24)
 
@@ -261,5 +264,39 @@ Sources: REQ-CART-130; Round 1 review — cart-130-spec finding at HostedCartVie
 Intended deviations: none
 
 Boundaries: only `OneCart/Tests/HostedViews/HostedCartViewTests.swift`; no production code.
+
+Output: writer report ending with Conflicts found, plus the private-data scan result.
+
+### Round 2 review — cart-130-spec (2026-09-24)
+
+Review SHA: b9f1842
+
+Rerun at medium effort on 2026-09-25; the first Round 2 pass ran at low effort, which skips
+test files, and this card is test-only, so that pass is void.
+
+- [low][non-blocking][new] OneCart/Tests/HostedViews/HostedCartViewTests.swift:226 — the row-span check measures the union of the name and toggle frames, and the category tile is accessibility-hidden, so a layout that keeps the tile beside the name at accessibility sizes (toggle above) would still pass the span check; only the word-fit check at accessibility size 3 would catch the lost width. Backlog.
+
+The Round 1 finding is fixed in `b9f1842` (repair commit on top of `ae14c8e`, the
+rebased `d39f86c`); at accessibility size 1 the name column already fits the word, so that
+check is direct and only accessibility size 3 stays a known issue until cart-130-fix.
+
+### Round 1 review — cart-130-fix (2026-09-25)
+
+Review SHA: 81001b6
+
+- [medium][blocking][new] OneCart/Features/Shopping/CartProductRow.swift:89 — in the accessibility-size branch the check control precedes the name in the row's `.contain` accessibility element, and the toggle's label ("cart.mark_in_trolley_a11y") does not name the item, so VoiceOver announces the action before the item it applies to; the default layout reads the name first.
+
+#### cart-130-fix repair dispatch — name first for VoiceOver at accessibility sizes (2026-09-25)
+
+Objective: Keep the VoiceOver reading order name-then-toggle in the accessibility-size branch
+(for example a higher `.accessibilitySortPriority` on the name button there), prove it with a
+hosted assertion at an accessibility size, then rebase onto `main`.
+
+Sources: REQ-CART-130; Round 1 review — cart-130-fix finding at CartProductRow.swift:89; KIT-D-005
+
+Intended deviations: none
+
+Boundaries: `OneCart/Features/Shopping/CartProductRow.swift` and the REQ-CART-130 test in
+`OneCart/Tests/HostedViews/HostedCartViewTests.swift`; default layout unchanged.
 
 Output: writer report ending with Conflicts found, plus the private-data scan result.
