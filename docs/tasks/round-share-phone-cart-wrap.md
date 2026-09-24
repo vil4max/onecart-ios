@@ -195,7 +195,7 @@ Output: writer report as for share-040-spec, ending with Conflicts found.
 
 ## Writer steps
 
-- [ ] share-040-spec: phone on the participant seam, known-issue test
+- [x] share-040-spec: phone on the participant seam, known-issue test — 25ad8ec
 - [ ] share-040-fix: shared participant key; phone test passes
 - [ ] cart-130-spec: REQ-CART-130 coverage row, known-issue hosted test
 - [ ] cart-130-fix: accessibility-size row layout; hosted test passes
@@ -210,3 +210,9 @@ The deferred part is the signed two-device CloudKit removal of a member who join
 Deferred approval: pending
 
 ## Reviews
+
+### Round 1 review — share-040-spec (2026-09-24)
+
+Review SHA: 25ad8ec
+
+No findings.
