@@ -89,9 +89,15 @@ struct CartProductRow: View {
                     HStack(spacing: 12) {
                         CartCategoryThumbnail(category: resolvedCategory, isDimmed: isPurchased)
                         Spacer(minLength: 8)
+                        // The toggle's own label never names the item, so without a priority
+                        // VoiceOver would read it before the name it applies to (it sits first
+                        // in visual/z-order here, above the name). Raise the name's priority so
+                        // reading order stays name, then toggle, matching the default layout.
                         ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
+                            .accessibilitySortPriority(0)
                     }
                     nameButton
+                        .accessibilitySortPriority(1)
                 }
             } else {
                 HStack(spacing: 12) {

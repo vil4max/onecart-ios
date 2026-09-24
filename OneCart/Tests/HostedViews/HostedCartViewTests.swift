@@ -256,6 +256,29 @@ struct HostedCartViewTests {
         }
     }
 
+    @Test(
+        "REQ-CART-130: the name reads before the toggle at accessibility sizes",
+        arguments: [DynamicTypeSize.accessibility1, .accessibility3, .accessibility5]
+    )
+    func productNameReadsBeforeToggleAtAccessibilitySizes(size: DynamicTypeSize) async throws {
+        // The toggle's own accessibility label ("mark/unmark in trolley") never names the item,
+        // so VoiceOver must reach the name first; the row's identifiers appear in the hosted
+        // element list in the order VoiceOver would announce them (HostedView.elements walks
+        // the accessibility tree in the order `accessibilityElements` reports it).
+        let fixture = try await CartFixture.make()
+        _ = try await fixture.addProduct(named: "Апельсиновый сок")
+        let harness = try CartHarness(fixture: fixture)
+        harness.state.activeFamilySpace = try fixture.family
+        harness.state.cartTitle = "Family"
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
+        defer { hosted.tearDown() }
+
+        let identifiers = hosted.identifiers
+        let nameIndex = try #require(identifiers.firstIndex(of: "cart.product_name"))
+        let toggleIndex = try #require(identifiers.firstIndex(of: "cart.product_toggle"))
+        #expect(nameIndex < toggleIndex, "identifiers in order: \(identifiers)")
+    }
+
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
     func readOnlyCartHidesComposer() async throws {
         let (_, harness) = try await Self.cartWithLines()
