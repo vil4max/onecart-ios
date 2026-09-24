@@ -154,6 +154,12 @@ Status: approved
 
 Living list; To Buy grouped by Metro category sections; Completed stays a flat list; `+` FAB overlays the list (inline name row + keyboard); Metro-style category icon; pull-to-refresh / appear hard sync; nav may show «Updating…»
 
+### REQ-CART-130 — Whole words at accessibility text sizes
+
+Status: approved
+
+When the text size is an accessibility size, the cart row gives the item name the full width of the row, with the category tile and the check control beside each other above or below it, so a word of the name breaks across lines only when the word alone is wider than the row.
+
 ### REQ-SHELL-020 — История tab
 
 Status: approved
@@ -271,7 +277,7 @@ Do **not** wipe personal stores / `hardReset` to “fix” a stuck invite — us
 
 Status: approved
 
-Kick (`CKShare.removeParticipant`). Invite door unchanged. Rejoin: yes, while door is `.readWrite`.
+Kick (`CKShare.removeParticipant`). Invite door unchanged. Rejoin: yes, while door is `.readWrite`. The member to remove is found by the same identity the members list shows: iCloud record name, then email, then phone number, so every listed member other than the owner can be removed.
 
 #### REQ-SHARE-050 — Leave cart
 

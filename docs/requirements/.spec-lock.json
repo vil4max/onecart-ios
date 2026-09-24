@@ -1,0 +1,305 @@
+{
+  "requirements": {
+    "REQ-AUTH-010": {
+      "active": true,
+      "fingerprint": "65b3969560aee0392ba08fe45ced92b7eaaad1b589ad839ffc270cc14239bf66",
+      "normative_text": "Install Welcome Sign in with Apple short cart pitch iCloud errors Retry",
+      "revision": 1
+    },
+    "REQ-AUTH-020": {
+      "active": true,
+      "fingerprint": "9f9e328e098616cc7f2c1f7c6b80e3af5cab80b8587f0ad20223a656d79f3aa7",
+      "normative_text": "Sign in with Apple credentials in Keychain local session display name only",
+      "revision": 1
+    },
+    "REQ-AUTH-030": {
+      "active": true,
+      "fingerprint": "09f29fb22453cf00a33a9dab6e1d9eab860331491aa2d6fff7454b6b2c96ea4b",
+      "normative_text": "Device iCloud CKContainer accountStatus must be available SIWA alone is not enough",
+      "revision": 1
+    },
+    "REQ-AUTH-040": {
+      "active": true,
+      "fingerprint": "5c4b5584be26994e7eb4f2a29ac6bd11fdf0a444ac9c59046c4a31393cd4c4e7",
+      "normative_text": "Display name the name Sign in with Apple provides kept on the device and editable in \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 It is shared with the members of the active cart through a synced member profile MemberProfile one row per iCloud user per cart in the cart s CloudKit zone keyed by the CloudKit user record name Each device writes its own profile on sign in when a cart becomes active or is joined and whenever the name changes repeats write nothing the newest updatedAt wins and older rows of the same user become tombstones The cart members list names each participant from their profile then their iCloud name then a numbered label Member 2 your own row shows your name When Apple provides no name the app asks once after sign in what the family should call you Save or Not now Not now is remembered and never asks again The same name appears on items you add createdByName mark Completed purchasedByName Avatar and banner stay device local",
+      "revision": 1
+    },
+    "REQ-AUTH-050": {
+      "active": true,
+      "fingerprint": "0ec38eb155c7f0168f449cb7cb569382de97948c609c2d773775bde4a20eeab4",
+      "normative_text": "Private carts on disk are scoped by SIWA derived cachedForUserID shared store carts stay visible to the iCloud participant",
+      "revision": 1
+    },
+    "REQ-AUTH-060": {
+      "active": true,
+      "fingerprint": "e45d671c8718d4a40ad854ab04f376d93547bceb8b97b406c19965de327d3868",
+      "normative_text": "Sign out clears the SIWA Keychain session and returns to Welcome it does not sign out of device iCloud It also clears the widget snapshot and pending widget actions",
+      "revision": 1
+    },
+    "REQ-AUTH-070": {
+      "active": true,
+      "fingerprint": "faba9775a25e4c034376177a80c471de1f8b527253edf5dccc0f76e140d2aae6",
+      "normative_text": "Delete Account permanently deletes private CloudKit zones for this iCloud user clears the SIWA Keychain session and local stores and returns to Welcome Owner deletion removes the shared family cart for members a member leaves the shared cart first so others keep it",
+      "revision": 1
+    },
+    "REQ-AUTH-080": {
+      "active": true,
+      "fingerprint": "00d8ddd5592ff032bf87ec7f9ec67b4308cbbaed71e25b1cfbb778e21209f189",
+      "normative_text": "If cloud deletion fails keep credentials and preserve local SQLite Pending cloud deletion opens in local recovery mode without CloudKit mirroring retry deletion to finish Once cloud deletion is confirmed failed local cleanup must finish before successful sign out",
+      "revision": 1
+    },
+    "REQ-CART-010": {
+      "active": true,
+      "fingerprint": "6425551eebfbf9ab1351dc8d914a5d72288b2e41473ae03c6f28c336f90ca900",
+      "normative_text": "One per family lives forever never closes",
+      "revision": 1
+    },
+    "REQ-CART-020": {
+      "active": true,
+      "fingerprint": "781431dd56b0283176dac0fd92843398097016a84294c7f40ac94ee492d5f124",
+      "normative_text": "A name plus state still needed or Completed checked",
+      "revision": 1
+    },
+    "REQ-CART-030": {
+      "active": true,
+      "fingerprint": "52ec5bcc87be2970715c51a7270668b8f836a8ee2e388569c77b17d5632a24a7",
+      "normative_text": "Family adds name only items to the shared cart",
+      "revision": 1
+    },
+    "REQ-CART-040": {
+      "active": true,
+      "fingerprint": "14b29a2ee6e421970e719e6d922b01914e5378fca6f532ba5e5edd3b830dddbc",
+      "normative_text": "Shopper checks items as they pick them they move to Completed strikethrough still on the living cart",
+      "revision": 1
+    },
+    "REQ-CART-050": {
+      "active": true,
+      "fingerprint": "319aad0cacbbfa7087de45b008df1d6c3ab656070dbd9fe55e45059820c2518c",
+      "normative_text": "Completed items cannot be swipe deleted uncheck first if the mark was a mistake To buy items can still be deleted",
+      "revision": 1
+    },
+    "REQ-CART-060": {
+      "active": true,
+      "fingerprint": "e79f9a0e50f4ff810e1db25d454edba8af3278830b3c8a9b10ca456cafb8c3dc",
+      "normative_text": "Money is not a promise on this train items are name only Price fields may exist in Core Data for sync legacy but there is no price UI or input",
+      "revision": 1
+    },
+    "REQ-CART-070": {
+      "active": true,
+      "fingerprint": "2bb10092d7e351d31924df7dc28ad9fb5c24d848aabd01e89dce077b170e83a1",
+      "normative_text": "After sign in one household cart isHouseholdDefault Tap for an empty cart row with keyboard type a name keyboard Done to save",
+      "revision": 1
+    },
+    "REQ-CART-080": {
+      "active": true,
+      "fingerprint": "9f4e8cf0b60d699783d75c2538b16358e3c9c4f24657ac0fca57ee2526f62b0b",
+      "normative_text": "Prefer an existing iCloud cart for this account over creating a duplicate empty one",
+      "revision": 1
+    },
+    "REQ-CART-090": {
+      "active": true,
+      "fingerprint": "ff62d28faad427281e5b2381a838f1ac59357cb87daaf4ee869258ab7ba8b68e",
+      "normative_text": "Same normalized name within one cart case whitespace diacritic insensitive \u041c\u043e\u043b\u043e\u043a\u043e \u043c\u043e\u043b\u043e\u043a\u043e keep one row Adding an existing name returns the living row and reveals it instead of creating a second line concurrent adds from different devices different Product id merge first writer wins on sync Same Product id within one cart keep one row Cross cart join merge private shared LWW is deferred accept switches to the shared cart only",
+      "revision": 1
+    },
+    "REQ-CART-100": {
+      "active": true,
+      "fingerprint": "2841a6a2aa218891d48e06046e452338e4dfd7cf7c3db9d9dc00d12e9d5f3857",
+      "normative_text": "Personal cart title starts as cart personal_title from the nickname fallback cart default_title OneCart Family Changing nickname retitles only while the cart still has that auto title after Rename cart the title is independent",
+      "revision": 1
+    },
+    "REQ-CART-110": {
+      "active": true,
+      "fingerprint": "0b8f7f7fb32a1bd5b5c51d330a723a023abaf19238128a953efd5923cdad1ac8",
+      "normative_text": "Owner can rename the active cart FamilySpace name personal or shared invitees see the shared title",
+      "revision": 1
+    },
+    "REQ-CART-120": {
+      "active": true,
+      "fingerprint": "bca69480d8c037337a96c2c1f515b544086ea24b1a75425c760b8ed3ca0af624",
+      "normative_text": "Legacy starter names Shopping list \u0421\u043f\u0438\u0441\u043e\u043a \u043f\u043e\u043a\u0443\u043f\u043e\u043a \u041d\u0430\u0448\u0430 \u0441\u0435\u043c\u044c\u044f still migrate via FamilyCartMerge",
+      "revision": 1
+    },
+    "REQ-CART-130": {
+      "active": true,
+      "fingerprint": "316404d93ab3cb31a128d6fe69833a8ad656a9c8bdd001425d06b2bfac2260b1",
+      "normative_text": "When the text size is an accessibility size the cart row gives the item name the full width of the row with the category tile and the check control beside each other above or below it so a word of the name breaks across lines only when the word alone is wider than the row",
+      "revision": 1
+    },
+    "REQ-HIST-010": {
+      "active": true,
+      "fingerprint": "c546144c90ba1637dd3c6a94492e29badfa76ca503db15c33015ab7091960983",
+      "normative_text": "Purchases grouped by the calendar day they were marked completed",
+      "revision": 1
+    },
+    "REQ-HIST-020": {
+      "active": true,
+      "fingerprint": "7706eb8f0e695e570fe8617f3c762387989fc4a6c7615cae97d0b6b926e53826",
+      "normative_text": "There is no manual Finish shopping Done CTA When the app opens or returns to foreground on a later calendar day items Completed before the start of today move into History grouped by purchase day",
+      "revision": 1
+    },
+    "REQ-HIST-030": {
+      "active": true,
+      "fingerprint": "233ea0c879be8a5d8241e9b2ca48895e4cd9c30a03040df99283c8f547d3c4a3",
+      "normative_text": "History by day answers what the family bought",
+      "revision": 1
+    },
+    "REQ-HIST-040": {
+      "active": true,
+      "fingerprint": "50e23990cf9913fa310ca2289a8e8a7d0e80a8910802cb1f73c4d0a0724595d0",
+      "normative_text": "History and suggestion frequency count each family ID item ID once including when multiple devices independently archive the same purchase Duplicate transport records may remain in CloudKit",
+      "revision": 1
+    },
+    "REQ-HIST-050": {
+      "active": true,
+      "fingerprint": "83bb1d468355f763ec4f4b72d15f00113f2d4b54b1f8f3f2b3893b65572307d7",
+      "normative_text": "History is never user cleared retention size optimization is a later backlog item",
+      "revision": 1
+    },
+    "REQ-SHARE-010": {
+      "active": true,
+      "fingerprint": "4c4e842b918da5a22d193c6f3032a217cb67ee69e2cdf93a5e91d4d7c03c1d50",
+      "normative_text": "People joined via CKShare link join publicPermission readWrite everyone can add and check items Anyone with the invite URL can join and edit until the owner revokes the link or removes the member The cart entity is durable never deleted recreated",
+      "revision": 1
+    },
+    "REQ-SHARE-020": {
+      "active": true,
+      "fingerprint": "9aae9d7386e866f201476ce0f95617ec716ef5f11387b389e697c59a860f24f0",
+      "normative_text": "Anyone with the share URL can join and edit Messages Telegram Mail and forwards Legacy onecart invite tokens are gone",
+      "revision": 1
+    },
+    "REQ-SHARE-030": {
+      "active": true,
+      "fingerprint": "18ad82ae978cdfd21031ae3bf880560f9b1869cfcdca9d4e771e3fc407d251ac",
+      "normative_text": "Share creation and persistence have caller deadlines and retryAfterSeconds backoff when CloudKit asks A deadline ends the wait an underlying CloudKit operation can still finish later",
+      "revision": 1
+    },
+    "REQ-SHARE-040": {
+      "active": true,
+      "fingerprint": "db186573b482469e42cc27ab8c3647adb1cb82cf58e3325aad12858741ec214a",
+      "normative_text": "Kick CKShare removeParticipant Invite door unchanged Rejoin yes while door is readWrite The member to remove is found by the same identity the members list shows iCloud record name then email then phone number so every listed member other than the owner can be removed",
+      "revision": 1
+    },
+    "REQ-SHARE-050": {
+      "active": true,
+      "fingerprint": "48f9e59bd508042d64bc7e756b8440b630e47e8941c60e12d9a1f7431bad30d0",
+      "normative_text": "Guest purges local shared zone returns to personal cart Rejoin yes with an open invite link",
+      "revision": 1
+    },
+    "REQ-SHARE-060": {
+      "active": true,
+      "fingerprint": "0d24a2423230f9d7a8be7d362bbc3e9e99d15bfad69387529bfc342122f823f0",
+      "normative_text": "Closes door only publicPermission none Not a guest ban Current members stay Rejoin no until owner Share again",
+      "revision": 1
+    },
+    "REQ-SHARE-070": {
+      "active": true,
+      "fingerprint": "fe52d91400b81ad5d7d01774d9ac024786bb1723f489a10fbbb1724d0c64d026",
+      "normative_text": "Must persist door readWrite before handing out the URL repairs a closed CloudKit invite door without wiping the cart Rejoin opens joining",
+      "revision": 1
+    },
+    "REQ-SHARE-080": {
+      "active": true,
+      "fingerprint": "c61251e3ee8d6949d2611945a248484122701104413a5bee0964b3dba553f403",
+      "normative_text": "Background preparation reads an existing open invite only it never creates a share or reopens a revoked link Explicitly invite from \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u041a\u043e\u0440\u0437\u0438\u043d\u0430",
+      "revision": 1
+    },
+    "REQ-SHARE-090": {
+      "active": true,
+      "fingerprint": "e0f168580a40b8212b2eaae025b5f4aadd6a6891132af621d740f25b5f007fca",
+      "normative_text": "Invitee SIWA open share Accept in iCloud active cart becomes the shared family cart Personal FamilySpace stays on disk but is hidden from the session list until Leave Join merge is deferred no private shared product copy for now No join alert",
+      "revision": 1
+    },
+    "REQ-SHARE-100": {
+      "active": true,
+      "fingerprint": "f2c77ad077216e0833999e511411213d81915627868677505537a47cf91aae3d",
+      "normative_text": "List Family members verify two users share a Family push share to whole Family",
+      "revision": 1
+    },
+    "REQ-SHARE-110": {
+      "active": true,
+      "fingerprint": "716d64d9416ce30c410ce599a645a111194324cb417001f6e2ae0b742305eefe",
+      "normative_text": "Any cart member can open \u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u043a\u043e\u0440\u0437\u0438\u043d\u043e\u0439 and forward the same invite link Owner Revoke invite closes the door for new joins existing members stay Share again reopens joining on the same durable cart Remove kicks a member not a ban Leave exits the guest rejoin with an open link",
+      "revision": 1
+    },
+    "REQ-SHELL-010": {
+      "active": true,
+      "fingerprint": "2b7a0606c6826606734867206671255106f994dd29af527be9747a01e601a9df",
+      "normative_text": "Living list To Buy grouped by Metro category sections Completed stays a flat list FAB overlays the list inline name row keyboard Metro style category icon pull to refresh appear hard sync nav may show Updating",
+      "revision": 1
+    },
+    "REQ-SHELL-020": {
+      "active": true,
+      "fingerprint": "c8c48dcb9a491e485fdfba5e02c9895450eecdbed33b8f1973b2e28938214089",
+      "normative_text": "Days newest first tap a day for its products read only no delete small caption explains overnight archive last 30 history sessions show more",
+      "revision": 1
+    },
+    "REQ-SHELL-030": {
+      "active": true,
+      "fingerprint": "a4fe41280b69634b8ca2836982e3b6f0ff7cae746372b1ee00a9d0c177d560fa",
+      "normative_text": "One screen in three groups \u041a\u043e\u0440\u0437\u0438\u043d\u0430 name members share revoke or leave \u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435 theme one choice sets both the app icon and the accent color one row opens the app s page in the system Settings for language notifications and permissions \u0410\u043a\u043a\u0430\u0443\u043d\u0442 name Sign out keeps the iCloud cart permanent CloudKit account deletion Appearance and language follow the device the app has no theme accent or language picker owner 2026 09 22",
+      "revision": 1
+    },
+    "REQ-SHELL-040": {
+      "active": true,
+      "fingerprint": "cf8ede337d402f2c38551bee104e95323b8e8ace502ffd232abf2e13f93a1fac",
+      "normative_text": "Share is a secondary action in \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 not a primary cart CTA",
+      "revision": 1
+    },
+    "REQ-SHELL-050": {
+      "active": true,
+      "fingerprint": "68e4ec7564dc93ff051e889fe0d2221452a3ac524a67476ea81212935a5a4d45",
+      "normative_text": "Failures use a system alert OK not toast banner chrome",
+      "revision": 1
+    },
+    "REQ-SHELL-060": {
+      "active": true,
+      "fingerprint": "60731a9bb10fd5742217110fb710d8fc1a34be8bbff116c550482b59f9edfcc5",
+      "normative_text": "App display name Welcome share branding OneCart Family module and bundle id remain OneCart com vil555tim onecart",
+      "revision": 1
+    },
+    "REQ-SYNC-010": {
+      "active": true,
+      "fingerprint": "bcd01182e96aa9c0023b276fc3271f2e63416a869737d8fd3ae4f30e6436b06f",
+      "normative_text": "Local edits save immediately and propagate through iCloud offline changes wait for connectivity and CloudKit scheduling",
+      "revision": 1
+    },
+    "REQ-SYNC-020": {
+      "active": true,
+      "fingerprint": "fa86b3d619ffb077272ac9a90eb0a693302d31722a2eea876ccdbf66b33fad41",
+      "normative_text": "Who added who completed an item without calls",
+      "revision": 1
+    },
+    "REQ-SYNC-030": {
+      "active": true,
+      "fingerprint": "d21cd7080116f23a35b7c9947bd16bd1199965754f5b818151bb7cd5bf45ef0c",
+      "normative_text": "Completed updates propagate through CloudKit when synchronization runs",
+      "revision": 1
+    },
+    "REQ-SYNC-040": {
+      "active": true,
+      "fingerprint": "2de3afa5da53159a1f84406ebc19b340aa6c226c1d4916f2ae98febccaf87107",
+      "normative_text": "A newly installed device may create a provisional personal cart while iCloud imports When an older personal cart arrives for the same account its list becomes active after local provisional products and history are copied by stable identifiers The provisional source is retained Selecting a shared cart also retains other shared families on disk selection never deletes another family",
+      "revision": 1
+    },
+    "REQ-WIDGET-010": {
+      "active": true,
+      "fingerprint": "41fdd339a920e0cbd6a8d6bd2936225a8eb17e50ef8b5363c8f7a9ca2f5e2f2d",
+      "normative_text": "Home and Lock Screen widgets display a compact snapshot with up to six needed and two completed items totals cover the full cart",
+      "revision": 1
+    },
+    "REQ-WIDGET-020": {
+      "active": true,
+      "fingerprint": "44e5d460741c88e7919bc585e33e9e874cb800c1df13152aaa2161214bc621cd",
+      "normative_text": "Purchase actions run through the app session and persist to Core Data Pending commands carry account cart identity and an explicit purchased state they are acknowledged only after a successful save and retried after startup foreground or imported changes CloudKit propagation still follows its normal schedule",
+      "revision": 1
+    },
+    "REQ-WIDGET-030": {
+      "active": true,
+      "fingerprint": "9d24a8125dd0af904e0cc17d85075fdec0f3777ca7bf68d90806cfcb752c64c2",
+      "normative_text": "Family activity notifications are local notifications created when the app observes imported cart changes They require notification permission and an opportunity for the app to observe those changes delivery is not an instantaneous server push guarantee",
+      "revision": 1
+    }
+  },
+  "version": 1
+}
