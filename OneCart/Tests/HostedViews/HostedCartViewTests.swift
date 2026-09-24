@@ -223,49 +223,29 @@ struct HostedCartViewTests {
         if size.isAccessibilitySize {
             // Row content width: there is no accessibility identifier on the row itself (the
             // category tile is `accessibilityHidden`), so this is the union of the name and
-            // toggle frames — the row's leading edge (today, the name's own leading edge) to
-            // its trailing edge (the toggle's). Today the name sits beside the toggle, so this
-            // union always exceeds the name's own width by at least the toggle's width and the
-            // row's spacing; after REQ-CART-130 stacks the tile and toggle above or below the
-            // name, the name reaches both edges and the two widths converge.
+            // toggle frames — the row's leading edge to its trailing edge. With the fixed
+            // layout the tile and toggle share a line above the name, and the name spans the
+            // same leading-to-trailing width below them, so the two widths converge.
             let rowContentWidth = max(nameFrame.maxX, toggleFrame.maxX) - min(nameFrame.minX, toggleFrame.minX)
-            withKnownIssue("REQ-CART-130: the tile and toggle narrow the name at accessibility sizes (backlog #11)") {
-                #expect(
-                    abs(nameFrame.width - rowContentWidth) < 1,
-                    "name \(nameFrame), row content width \(rowContentWidth)"
-                )
-            }
+            #expect(
+                abs(nameFrame.width - rowContentWidth) < 1,
+                "name \(nameFrame), row content width \(rowContentWidth)"
+            )
 
             if size == .accessibility1 || size == .accessibility3 {
                 // The word must fit the name column itself (`cart.product_name`'s own frame),
                 // not the wider row content width: that is the actual box the name's text
-                // wraps inside, so this is what would catch a mid-word break, and what would
-                // catch a regression that re-narrows the name after the fix lands.
+                // wraps inside, so this is what would catch a mid-word break.
                 let category = size.uiContentSizeCategoryForMeasurement
                 let font = UIFont.preferredFont(
                     forTextStyle: .body,
                     compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
                 )
                 let wordWidth = ("Апельсиновый" as NSString).size(withAttributes: [.font: font]).width
-                if size == .accessibility1 {
-                    // Today's name column is already wide enough for the word at this size, so
-                    // the word already fits without the fix: asserted directly, not as a known
-                    // issue, per KIT-D-005 point 2 — withKnownIssue would fail here because no
-                    // issue would be recorded.
-                    #expect(
-                        wordWidth <= nameFrame.width + 1,
-                        "word width \(wordWidth), name width \(nameFrame.width)"
-                    )
-                } else {
-                    withKnownIssue(
-                        "REQ-CART-130: the tile and toggle narrow the name at accessibility sizes (backlog #11)"
-                    ) {
-                        #expect(
-                            wordWidth <= nameFrame.width + 1,
-                            "word width \(wordWidth), name width \(nameFrame.width)"
-                        )
-                    }
-                }
+                #expect(
+                    wordWidth <= nameFrame.width + 1,
+                    "word width \(wordWidth), name width \(nameFrame.width)"
+                )
             }
         } else {
             // At .large the current layout holds: the name and the toggle sit on the same line.

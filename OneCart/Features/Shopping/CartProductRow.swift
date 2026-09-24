@@ -56,6 +56,8 @@ struct CartCategoryThumbnail: View {
 
 /// One cart line: category tile, name (tap to rename), who added or completed it, and the check control.
 struct CartProductRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let product: ProductEntity
     let canEdit: Bool
     var showsCategoryLabel = false
@@ -79,39 +81,25 @@ struct CartProductRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            CartCategoryThumbnail(category: resolvedCategory, isDimmed: isPurchased)
-
-            Button(action: onRename) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.displayName)
-                        .font(.body)
-                        .strikethrough(isPurchased)
-                        .foregroundStyle(isPurchased ? .secondary : .primary)
-                        .multilineTextAlignment(.leading)
-                        .animation(.easeInOut(duration: 0.25), value: isPurchased)
-
-                    if showsCategoryLabel {
-                        Text(resolvedCategory.localizedTitleKey)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        Group {
+            // REQ-CART-130: at accessibility sizes the tile and toggle share a line above the
+            // name, so the name keeps the full row width and wraps on whole words.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 12) {
+                        CartCategoryThumbnail(category: resolvedCategory, isDimmed: isPurchased)
+                        Spacer(minLength: 8)
+                        ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
                     }
-
-                    if let caption {
-                        Text(caption)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
+                    nameButton
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+            } else {
+                HStack(spacing: 12) {
+                    CartCategoryThumbnail(category: resolvedCategory, isDimmed: isPurchased)
+                    nameButton
+                    ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
+                }
             }
-            .buttonStyle(.plain)
-            .disabled(!canEdit)
-            .accessibilityHint(canEdit ? Text("cart.rename_hint") : Text(""))
-            .accessibilityIdentifier("cart.product_name")
-
-            ProductPurchaseToggle(isPurchased: isPurchased, canEdit: canEdit, action: onToggle)
         }
         .padding(.vertical, 2)
         .background {
@@ -124,6 +112,37 @@ struct CartProductRow: View {
         }
         .animation(.easeInOut(duration: 0.3), value: isHighlighted)
         .accessibilityElement(children: .contain)
+    }
+
+    private var nameButton: some View {
+        Button(action: onRename) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(product.displayName)
+                    .font(.body)
+                    .strikethrough(isPurchased)
+                    .foregroundStyle(isPurchased ? .secondary : .primary)
+                    .multilineTextAlignment(.leading)
+                    .animation(.easeInOut(duration: 0.25), value: isPurchased)
+
+                if showsCategoryLabel {
+                    Text(resolvedCategory.localizedTitleKey)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let caption {
+                    Text(caption)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!canEdit)
+        .accessibilityHint(canEdit ? Text("cart.rename_hint") : Text(""))
+        .accessibilityIdentifier("cart.product_name")
     }
 
     private var caption: LocalizedStringKey? {
