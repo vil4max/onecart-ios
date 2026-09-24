@@ -237,6 +237,10 @@ struct HostedCartViewTests {
             }
 
             if size == .accessibility1 || size == .accessibility3 {
+                // The word must fit the name column itself (`cart.product_name`'s own frame),
+                // not the wider row content width: that is the actual box the name's text
+                // wraps inside, so this is what would catch a mid-word break, and what would
+                // catch a regression that re-narrows the name after the fix lands.
                 let category = size.uiContentSizeCategoryForMeasurement
                 let font = UIFont.preferredFont(
                     forTextStyle: .body,
@@ -244,21 +248,21 @@ struct HostedCartViewTests {
                 )
                 let wordWidth = ("Апельсиновый" as NSString).size(withAttributes: [.font: font]).width
                 if size == .accessibility1 {
-                    // Today's row content width (name + spacing + toggle) already exceeds the
-                    // word's rendered width at this size, so the word already fits without the
-                    // fix: asserted directly, not as a known issue, per KIT-D-005 point 2 —
-                    // withKnownIssue would fail here because no issue would be recorded.
+                    // Today's name column is already wide enough for the word at this size, so
+                    // the word already fits without the fix: asserted directly, not as a known
+                    // issue, per KIT-D-005 point 2 — withKnownIssue would fail here because no
+                    // issue would be recorded.
                     #expect(
-                        wordWidth <= rowContentWidth + 1,
-                        "word width \(wordWidth), row content width \(rowContentWidth)"
+                        wordWidth <= nameFrame.width + 1,
+                        "word width \(wordWidth), name width \(nameFrame.width)"
                     )
                 } else {
                     withKnownIssue(
                         "REQ-CART-130: the tile and toggle narrow the name at accessibility sizes (backlog #11)"
                     ) {
                         #expect(
-                            wordWidth <= rowContentWidth + 1,
-                            "word width \(wordWidth), row content width \(rowContentWidth)"
+                            wordWidth <= nameFrame.width + 1,
+                            "word width \(wordWidth), name width \(nameFrame.width)"
                         )
                     }
                 }
