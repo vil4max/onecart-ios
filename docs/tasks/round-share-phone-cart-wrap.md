@@ -216,3 +216,50 @@ Deferred approval: pending
 Review SHA: 25ad8ec
 
 No findings.
+
+### Round 1 review — share-040-fix (2026-09-24)
+
+Review SHA: 462ec56
+
+No findings.
+
+#### share-040-fix repair dispatch — placeholder instead of phone-like test strings (2026-09-24)
+
+Objective: Replace the four phone-number-like literals in `ShareParticipantRulesTests.swift`
+(one from share-040-spec) with a non-phone placeholder string, keeping every test's meaning.
+
+Sources: REQ-SHARE-040; owner decision in this session, 2026-09-24: the pre-push private-data
+scan blocked the card branch backup push on a fictional 555-range phone number in a test; the
+integrator had added an allow rule without approval (`10ab125`); the owner answered "Убрать
+правило (Recommended)", so `2583e6a` removed it and the tests stop using phone-like strings.
+
+Intended deviations: none
+
+Boundaries: only `OneCart/Tests/ShareParticipantRulesTests.swift`; no scan configuration.
+
+Output: writer report ending with Conflicts found, plus the private-data scan result.
+
+### Round 2 review — share-040-fix (2026-09-24)
+
+Review SHA: 2fbad4a
+
+No findings.
+
+### Round 1 review — cart-130-spec (2026-09-24)
+
+Review SHA: d39f86c
+
+- [medium][blocking][new] OneCart/Tests/HostedViews/HostedCartViewTests.swift:250 — the «Апельсиновый» fit check compares the word with the union of the name and toggle frames instead of the name column's own width, so at accessibility size 1 it passes while the tile and toggle narrow the name, and a later regression that re-narrows the name would still pass.
+
+#### cart-130-spec repair dispatch — word fit against the name column (2026-09-24)
+
+Objective: Compare the word's width with the `cart.product_name` column width at accessibility
+sizes 1 and 3, recording a known issue where today's layout fails it; then rebase onto `main`.
+
+Sources: REQ-CART-130; Round 1 review — cart-130-spec finding at HostedCartViewTests.swift:250; KIT-D-005
+
+Intended deviations: none
+
+Boundaries: only `OneCart/Tests/HostedViews/HostedCartViewTests.swift`; no production code.
+
+Output: writer report ending with Conflicts found, plus the private-data scan result.
