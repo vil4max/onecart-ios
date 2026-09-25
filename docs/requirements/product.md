@@ -23,7 +23,7 @@ needs owner approval, exactly as before the IDs existed. Areas are `AUTH`
 (session and account), `CART` (living cart and items), `HIST` (History by day),
 `SHARE` (invite, join, membership), `SYNC` (propagation and merge), `SHELL`
 (tabs, titles, error surface), `WIDGET` (widgets and notifications) and `SIRI`
-(Siri and Shortcuts, proposed 2026-09-22). Numbers
+(Siri and Shortcuts). Numbers
 rise in tens so a later statement can be inserted without renumbering; a
 retired ID is never reused.
 
@@ -31,8 +31,8 @@ Each requirement is a heading with its own `Status:` line, followed by its
 statement; the statement ends at the next heading, so context prose sits before
 a section's first requirement. The owner approved moving the statements from
 inline labels to headings on 2026-09-24 without changing their wording; the
-approved set is the one approved on 2026-09-21, and the Live Activity and Siri
-requirements stay proposed.
+approved set is the one approved on 2026-09-21. The Live Activity and Siri
+requirements, proposed on 2026-09-22, were approved without change on 2026-09-25.
 
 A behavior carries one ID, placed at its canonical statement. Prose elsewhere
 that summarizes the same behavior is left unlabelled rather than given a second
@@ -377,51 +377,51 @@ Family activity notifications are local notifications created when the app obser
 
 ### Shopping trip (Live Activity)
 
-Proposed 2026-09-22: the owner asked for the feature; the wording below awaits owner approval.
+Proposed 2026-09-22 at the owner's request; the owner approved the wording below without change on 2026-09-25.
 
 #### REQ-WIDGET-040 — Starting a shopping trip
 
-Status: proposed
+Status: approved
 
 The shopper starts a shopping trip from the cart's progress header («Я в магазине»). The control shows only on an editable cart with lines still to buy while Live Activities are allowed for OneCart; a refusal is a system alert. The trip is one Live Activity for the signed-in account and the active cart. The Lock Screen shows the cart title, «N из M куплено» with a progress bar, the first three to-buy lines with a check control, how many more lines remain, and a stop control. The Dynamic Island shows the remaining count (compact), a progress ring (minimal) and the title, progress, two lines and the stop control (expanded).
 
 #### REQ-WIDGET-050 — The trip follows the cart
 
-Status: proposed
+Status: approved
 
 The trip reads the same snapshot as the widgets and changes with it, skipping updates that change nothing. A check on the activity runs the widget purchase path (REQ-WIDGET-020). A relaunched app adopts its running trip and ends any extra one. The trip is local to the shopper's iPhone: it updates only when the app observes a change (C1: no push server), and it is not shown on other members' devices. Each start and update marks the card stale one hour later, so a card the app has not changed for an hour is shown as possibly out of date.
 
 #### REQ-WIDGET-060 — Ending the trip
 
-Status: proposed
+Status: approved
 
 The trip ends immediately when the shopper stops it (in the cart or on the activity), when the cart is emptied, when the active cart or account changes, and on sign out or account deletion. Once every line is checked it shows the all-bought state and is dismissed five minutes later. A trip the shopper swipes away on the Lock Screen is treated as ended. The system's own Live Activity limits (about eight hours) still apply.
 
 ## Siri and Shortcuts
 
-Proposed 2026-09-22: the owner asked for the feature; the wording below awaits owner approval.
+Proposed 2026-09-22 at the owner's request; the owner approved the wording below without change on 2026-09-25.
 
 ### REQ-SIRI-010 — Add by voice
 
-Status: proposed
+Status: approved
 
 «Добавь в OneCart» asks what to add and adds name-only lines (REQ-CART-030, REQ-CART-060) to the list the cart screen shows. One request may carry several names separated by commas, semicolons, line breaks or the standalone words «и», «і» and "and" (whole words in any case, so a name that merely contains those letters stays whole); blanks are dropped and a repeated name is added once. A name already on the cart keeps its line (REQ-CART-090). Siri says what was added, what was already there and what could not be added; a name that fails does not stop the rest, and a failure is spoken, never queued as an alert in the app. A signed-out session, a read-only cart or an empty request is refused with a spoken reason. A cart still being set up is waited for; a local failure is reported as one, not as an iCloud problem.
 
 ### REQ-SIRI-020 — What is left
 
-Status: proposed
+Status: approved
 
 «Что осталось в OneCart» reads the to-buy names in the order the cart screen shows them (its category sections, REQ-SHELL-010), at most five followed by how many more remain, or says that the cart is empty or everything is bought. It never changes the cart.
 
 ### REQ-SIRI-030 — Start a trip by voice
 
-Status: proposed
+Status: approved
 
 «Я в магазине с OneCart» starts the shopping trip (REQ-WIDGET-040) without opening the app.
 
 ### REQ-SIRI-040 — App Shortcuts and startup
 
-Status: proposed
+Status: approved
 
 The three actions are App Shortcuts with phrases in English, Russian and Ukrainian, and appear in the Shortcuts app. Every phrase names the app; "OneCart" is accepted as an alternative name for "OneCart Family". Siri may launch the app in the background, so a request finishes the app's startup first and follows the normal CloudKit schedule afterwards. A startup that fails is reported as the app being unavailable, never as a sign-in problem, and the next request runs it again; only the Welcome Retry may reset local data. A request waits for startup at most 10 seconds, then reports the app unavailable and changes nothing afterwards (no line is added and no trip starts) while startup goes on. Answers and refusals are spoken in the language of the request, with plural forms for counts; Russian and Ukrainian use the formal register.
 

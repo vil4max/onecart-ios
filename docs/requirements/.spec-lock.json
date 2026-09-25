@@ -258,6 +258,30 @@
       "normative_text": "App display name Welcome share branding OneCart Family module and bundle id remain OneCart com vil555tim onecart",
       "revision": 1
     },
+    "REQ-SIRI-010": {
+      "active": true,
+      "fingerprint": "5d773925a8f2d43f04c87afb488c57d97fa3493611942ed753abbf1ad3f3ae50",
+      "normative_text": "\u0414\u043e\u0431\u0430\u0432\u044c \u0432 OneCart asks what to add and adds name only lines REQ CART 030 REQ CART 060 to the list the cart screen shows One request may carry several names separated by commas semicolons line breaks or the standalone words \u0438 \u0456 and and whole words in any case so a name that merely contains those letters stays whole blanks are dropped and a repeated name is added once A name already on the cart keeps its line REQ CART 090 Siri says what was added what was already there and what could not be added a name that fails does not stop the rest and a failure is spoken never queued as an alert in the app A signed out session a read only cart or an empty request is refused with a spoken reason A cart still being set up is waited for a local failure is reported as one not as an iCloud problem",
+      "revision": 1
+    },
+    "REQ-SIRI-020": {
+      "active": true,
+      "fingerprint": "8047803910561c9947838cd750dc4df6f096bc4e946b44f4f9c5962d3a1f4e32",
+      "normative_text": "\u0427\u0442\u043e \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c \u0432 OneCart reads the to buy names in the order the cart screen shows them its category sections REQ SHELL 010 at most five followed by how many more remain or says that the cart is empty or everything is bought It never changes the cart",
+      "revision": 1
+    },
+    "REQ-SIRI-030": {
+      "active": true,
+      "fingerprint": "f49f80881a8a3abcf2844c9f1eaca202c46695f2b55463bd4135e00db63fec9d",
+      "normative_text": "\u042f \u0432 \u043c\u0430\u0433\u0430\u0437\u0438\u043d\u0435 \u0441 OneCart starts the shopping trip REQ WIDGET 040 without opening the app",
+      "revision": 1
+    },
+    "REQ-SIRI-040": {
+      "active": true,
+      "fingerprint": "7794491327556b6e38a077b1a29cea086f7fbae117b1ea174a46a6daeddc050c",
+      "normative_text": "The three actions are App Shortcuts with phrases in English Russian and Ukrainian and appear in the Shortcuts app Every phrase names the app OneCart is accepted as an alternative name for OneCart Family Siri may launch the app in the background so a request finishes the app s startup first and follows the normal CloudKit schedule afterwards A startup that fails is reported as the app being unavailable never as a sign in problem and the next request runs it again only the Welcome Retry may reset local data A request waits for startup at most 10 seconds then reports the app unavailable and changes nothing afterwards no line is added and no trip starts while startup goes on Answers and refusals are spoken in the language of the request with plural forms for counts Russian and Ukrainian use the formal register",
+      "revision": 1
+    },
     "REQ-SYNC-010": {
       "active": true,
       "fingerprint": "bcd01182e96aa9c0023b276fc3271f2e63416a869737d8fd3ae4f30e6436b06f",
@@ -298,6 +322,24 @@
       "active": true,
       "fingerprint": "9d24a8125dd0af904e0cc17d85075fdec0f3777ca7bf68d90806cfcb752c64c2",
       "normative_text": "Family activity notifications are local notifications created when the app observes imported cart changes They require notification permission and an opportunity for the app to observe those changes delivery is not an instantaneous server push guarantee",
+      "revision": 1
+    },
+    "REQ-WIDGET-040": {
+      "active": true,
+      "fingerprint": "7408c43c40ca5655e134faa9e6d5637ff21ba5e1bc73f6bb238fe5c682c75e95",
+      "normative_text": "The shopper starts a shopping trip from the cart s progress header \u042f \u0432 \u043c\u0430\u0433\u0430\u0437\u0438\u043d\u0435 The control shows only on an editable cart with lines still to buy while Live Activities are allowed for OneCart a refusal is a system alert The trip is one Live Activity for the signed in account and the active cart The Lock Screen shows the cart title N \u0438\u0437 M \u043a\u0443\u043f\u043b\u0435\u043d\u043e with a progress bar the first three to buy lines with a check control how many more lines remain and a stop control The Dynamic Island shows the remaining count compact a progress ring minimal and the title progress two lines and the stop control expanded",
+      "revision": 1
+    },
+    "REQ-WIDGET-050": {
+      "active": true,
+      "fingerprint": "ed77d6b6f5bf1f3d69a81b96af4817c4562e7c7a52e2d83f264782a46d7bd2ef",
+      "normative_text": "The trip reads the same snapshot as the widgets and changes with it skipping updates that change nothing A check on the activity runs the widget purchase path REQ WIDGET 020 A relaunched app adopts its running trip and ends any extra one The trip is local to the shopper s iPhone it updates only when the app observes a change C1 no push server and it is not shown on other members devices Each start and update marks the card stale one hour later so a card the app has not changed for an hour is shown as possibly out of date",
+      "revision": 1
+    },
+    "REQ-WIDGET-060": {
+      "active": true,
+      "fingerprint": "81643a88c1bd2c2fc2d374e2b6636b99aa8bc96bc1dbac91d040631c8695b3fc",
+      "normative_text": "The trip ends immediately when the shopper stops it in the cart or on the activity when the cart is emptied when the active cart or account changes and on sign out or account deletion Once every line is checked it shows the all bought state and is dismissed five minutes later A trip the shopper swipes away on the Lock Screen is treated as ended The system s own Live Activity limits about eight hours still apply",
       "revision": 1
     }
   },

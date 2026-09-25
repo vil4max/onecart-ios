@@ -14,15 +14,14 @@ are expected.
 **1.7.0:** `tf-1.7.0-1` on `403d909` (2026-09-23); the `TestFlight` workflow fast-forwarded
 `testflight`, Xcode Cloud builds it — [releases/1.7.0.md](../operations/releases/1.7.0.md). It
 carries the other developer's Live Activity and Siri work (REQ-WIDGET-040…060 and
-REQ-SIRI-010…040 still proposed), the review fixes to it, and the backlog round.
+REQ-SIRI-010…040, approved by the owner on 2026-09-25), the review fixes to it, and the backlog round.
 
 **Next task:** none assigned to this line; after unfreezing, the owner picks one from
 [Open items](#open-items) in a new session.
 
 **Owner-only:** the `tf-1.7.0-1` device checks in its What to Test (tag annotation), confirming
 that the new Support and Privacy Policy URLs ([release.md](../operations/release.md), App Store
-metadata) went live with 1.6.0, and approving or amending the proposed REQ-WIDGET-040…060 and
-REQ-SIRI-010…040. `CD_HistoryItem.CD_createdByName` is in the CloudKit Production schema
+metadata) went live with 1.6.0. `CD_HistoryItem.CD_createdByName` is in the CloudKit Production schema
 (2026-09-23).
 
 ## Product
