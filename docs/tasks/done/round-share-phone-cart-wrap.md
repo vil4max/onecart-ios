@@ -1,9 +1,9 @@
 # Task — round: remove phone-only members and keep whole words at accessibility sizes
 
 Assignee: UI · OneCart (Claude Code session, 2026-09-24)
-State: claimed
+State: done
 Requested by: SDLC Orchestrator relaying the owner's scope choice (2026-09-24); plan approved by the owner directly in this session the same day
-Evidence: pending
+Evidence: coverage matrix below (REQ-SHARE-040 and REQ-CART-130 OK, 0 GAP) from the just verify xcresult after cart-130-fix; lock --check clean; every card review closed with no high or medium finding (see Reviews); landed as 25ad8ec, 3a9562b, ae14c8e, b9f1842, 2bca73d, be5a9a8
 Depends-on: none
 Parallelism: up to 2
 Profile: round
@@ -11,7 +11,7 @@ Plan hash: d70bb7505e92e9d8fba5526113a9635c8ba9e40fd39eff54c3137152befb959f
 
 ## Current status and authorization
 
-Current outcome: package approved; requirements REQ-SHARE-040 (amended) and REQ-CART-130 (new) applied and locked; cards not started.
+Current outcome: done — four cards landed on `main`, reviews closed, matrix OK, lock clean; the device-only two-device CloudKit check is deferred (approved).
 
 Authorized scope:
 
@@ -24,6 +24,8 @@ Authorized scope:
    round (docs/tasks/round-share-phone-cart-wrap.md)?" with both requirement texts and the four
    cards quoted): "Утвердить package (Recommended)". The integrator applied both requirement
    texts with `Status: approved` in the round-opening commit, before `lock --write`.
+5. Close (owner, in this session, 2026-09-25, AskUserQuestion): deferral "Утвердить
+   (Recommended)"; push of `main` after a fresh `just ci`: "Push main (Recommended)".
 
 Blocking decisions: none.
 Permitted deviations: none.
@@ -31,7 +33,7 @@ Material assumptions: the phone number CloudKit returns in
 `userIdentity.lookupInfo.phoneNumber` is the same raw string on both the members list and the
 removal lookup, so the shared key needs no normalization; checked in (b) by reading both from
 the same `CKShare.Participant`.
-Next step: dispatch share-040-spec and cart-130-spec in parallel.
+Next step: none; the deferred device check lives in project-state open item 5.
 Out of scope: the "no longer in the share" wording, phone normalization, History row
 wrapping, any release step or push of `main`.
 
@@ -198,16 +200,16 @@ Output: writer report as for share-040-spec, ending with Conflicts found.
 - [x] share-040-spec: phone on the participant seam, known-issue test — 25ad8ec
 - [x] share-040-fix: shared participant key; phone test passes — 3a9562b
 - [x] cart-130-spec: REQ-CART-130 coverage row, known-issue hosted test — ae14c8e
-- [ ] cart-130-fix: accessibility-size row layout; hosted test passes
+- [x] cart-130-fix: accessibility-size row layout; hosted test passes — 2bca73d
 
 ## Deferred
 
 | Requirement | Status | Reason | Backlog | Expiry |
 |---|---|---|---|---|
-| REQ-SHARE-040 | Deferred | device-only | [project-state open item 5](../planning/project-state.md#open-items) | 2026-11-30 |
+| REQ-SHARE-040 | Deferred | device-only | [project-state open item 5](../../planning/project-state.md#open-items) | 2026-11-30 |
 
 The deferred part is the signed two-device CloudKit removal of a member who joined by phone.
-Deferred approval: pending
+Deferred approval: owner, 2026-09-25, AskUserQuestion "Закрытие round: утвердить отложенную проверку (KIT-D-014)?" → "Утвердить (Recommended)".
 
 ## Reviews
 
@@ -300,3 +302,21 @@ Boundaries: `OneCart/Features/Shopping/CartProductRow.swift` and the REQ-CART-13
 `OneCart/Tests/HostedViews/HostedCartViewTests.swift`; default layout unchanged.
 
 Output: writer report ending with Conflicts found, plus the private-data scan result.
+
+### Round 2 review — cart-130-fix (2026-09-25)
+
+Review SHA: be5a9a8
+
+No findings. The Round 1 finding is fixed in `be5a9a8` (repair on top of `2bca73d`, the rebased
+`81001b6`): the name button's accessibility sort priority is above the toggle's in the
+accessibility-size branch only, and a new REQ-CART-130 hosted test checks the order at
+accessibility sizes 1, 3 and 5.
+
+## Coverage matrix
+
+<!-- spec_trace:matrix:begin -->
+| Requirement | Status | Detail |
+|---|---|---|
+| REQ-CART-130 | OK | passed |
+| REQ-SHARE-040 | OK | passed |
+<!-- spec_trace:matrix:end -->

@@ -113,12 +113,12 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    left without `Label` titles until a Duo runtime shows whether vertical bars need them. The
    27.2 runtime installed for the check was removed on the owner's word the same day, downloaded
    again on 2026-09-24 and kept for now (it does not support the Duo; see item 13).
-10. Member removal matches a participant by record name or email only, while the members list
-    also identifies by phone number: a member known only by phone is listed but cannot be removed
-    ("participant not found"). Found in the 1.7.0 round (`ShareParticipantRules`); a behaviour
-    change for a separate owner-approved fix, spec-first under REQ-SHARE-040.
-11. Cart rows wrap names mid-word at accessibility text sizes (seen in the 1.7.0 L7 screenshots);
-    not in any round yet.
+10. Done 2026-09-25: a member known only by phone number can be removed — one participant key
+    for the members list and the removal lookup (REQ-SHARE-040, `3a9562b`); the signed two-device
+    CloudKit check stays with item 5
+    ([round brief](../tasks/done/round-share-phone-cart-wrap.md)).
+11. Done 2026-09-25: at accessibility text sizes the cart row puts the category tile and check
+    control above the name, so names wrap on whole words (REQ-CART-130, `2bca73d`, `be5a9a8`).
 12. The trip card's check control is 44 × 30 pt (owner decision 2026-09-23: three rows within the
     160 pt Live Activity height); revisit if Apple changes the height limit.
 13. Toolbar priorities on iPhone Duo (owner request 2026-09-24), part of item 9:
@@ -127,3 +127,10 @@ to its spec-pyramid and agent-coordination shakedown experiment.
     are title-only, and neither kind is presented in a vertical bar. Blocked on a Duo-capable
     simulator runtime (the device type needs iOS 27.1+) and on an owner decision about the
     member count in the cart bar.
+14. REQ-CART-130 test gap (low, from the round review): the row-span check measures the union of
+    the name and toggle frames, and the category tile is hidden from accessibility, so a layout
+    that keeps the tile beside the name at accessibility sizes would still pass it; anchor the
+    row's leading edge (`HostedCartViewTests.productNameSpansRowContentWidth`).
+15. Lab experiments (kit decision KIT-D-046, 2026-09-24): check whether OneCart ships any lab
+    experiment, and if so gate it to TestFlight at run time and name the rule in
+    [core.md](../core.md).
