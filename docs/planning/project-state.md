@@ -95,8 +95,11 @@ to its spec-pyramid and agent-coordination shakedown experiment.
    repository variables to it, and treat preview withdrawal as a TestFlight outage — no `tf-`
    tag can pass without a green `Tests` run ([ADR 0003](../decisions/0003-ci-split.md), "Runner
    image risk"). The `#if compiler(>=6.4)` guard in `CartWidgetViews.swift` is removed.
-7. SonarCloud Automatic Analysis is attached to PRs but not part of CI (Sonar in CI was declined);
-   decide whether to keep the app.
+7. Decided 2026-09-25: keep SonarCloud Automatic Analysis as is (on PRs, outside CI; Sonar in CI
+   stays declined). The owner delegated the choice to the SDLC orchestrator session, which
+   answered: it gates nothing and costs nothing while OneCart lands on `main` with few PRs, and
+   removal needs an owner action in GitHub/SonarCloud for no measured gain. Revisit if a
+   PR-based flow returns or the analysis starts producing noise.
 8. Done 2026-09-23: FU13 (Swift 6 language mode since `6063ea1`; escape hatches isolated in
    `f53582b`) and FU14 (UI smoke suite `4f0be81`, MetricKit logging `aa03564` → `1479d7b`). FU06
    (`PersistenceController` `@unchecked Sendable`) stays open in
