@@ -83,8 +83,11 @@ to its spec-pyramid and agent-coordination shakedown experiment.
 3. Done 2026-09-23: the redesign follow-ups — thumbnail and strings removed in `6e7e93c`; History
    "added by" `677e7b6`; CloudKit participant seam `5b3ab04`
    ([backlog-1.7.0.md](../tasks/done/backlog-1.7.0.md)).
-4. Git history privacy cleanup — [task brief](../tasks/git-history-privacy-cleanup.md), blocked on
-   owner decisions (removal list, rewrite after App Review, revoke retired Supabase key).
+4. Done 2026-09-21: Git history privacy cleanup — history rewritten and moved to the new public
+   repository `vil4max/onecart-ios`; the old one is the private `vil4max/OneCart-archive`
+   ([task brief](../tasks/git-history-privacy-cleanup.md)). The local agent checkpoint refs it
+   left open no longer exist (checked 2026-09-25). Owner-only, outside the repository: revoke
+   the retired Supabase publishable key or delete that project.
 5. Signed two-device CloudKit sharing and widget checks on iOS 27 devices (not covered by CI).
 6. CI runs the Runtime's shared `Tests` workflow on the public-preview `xcode-27` image (Xcode
    27.0, iPhone 17 on iOS 27.0), the only GitHub-hosted label carrying the iOS 27 SDK the app now
