@@ -45,7 +45,7 @@ Material assumptions:
   round, no installed runtime supports the device (see Evidence history).
 - Nothing MetricKit reports leaves the device, so `docs/privacy.md` does not change; B2
   confirms it from the code.
-Next step: none; the owner's device checks follow the What to Test of `tf-1.7.0-1`.
+Next step: after the 2026-09-25 session reset, wait for the owner to lift the hold on pilot 2 (#14, #15, FU06), then submit its start gate from the draft named under State; the owner's device checks for `tf-1.7.0-1` stay open.
 Out of scope: open items 2, 4, 5, 6 and 7 (App Store URL check, git history rewrite, device
 checks, CI runner label, SonarCloud); `ArrangementView` and hinge APIs; lifting the portrait lock
 without a separate owner decision; FU06 (`PersistenceController` `@unchecked Sendable`) beyond
@@ -211,3 +211,25 @@ owner to pick the next task; do not unfreeze the release line or tag without the
 - [x] `CD_createdByName` deployed to Production (2026-09-23)
 - [x] `tf-1.7.0-1` tagged after `just tf-check` Ready
 - [x] Release line frozen again; FU13 and FU14 closed; brief moved to `docs/tasks/done/`
+
+## State
+
+Handoff at the session reset, 2026-09-25:
+
+- `main` equals `origin/main` at `308bf9d`, clean; no task branches or agent worktrees remain.
+- The phone-member removal and whole-word cart round is done
+  ([round-share-phone-cart-wrap.md](round-share-phone-cart-wrap.md)).
+- All 57 requirements are approved (the Live Activity and Siri set on 2026-09-25) and locked.
+- Open items 4 and 7 are closed. The release line stays frozen.
+- Pilot 2 (#14 + #15 + FU06) is on hold by the owner. Its draft plan is in the agent artifacts
+  bank (`2026-09-25/onecart-pilot2-round-plan/outputs/round-plan-draft.md`).
+- Owner answers already given for pilot 2: Foundation Models refinement is product behavior, not a
+  lab experiment, so #15 closes with no gate and no core line.
+- Pushes follow KIT-D-048 from the next session on: request, orchestrator approval, own commits
+  only.
+
+## Baselines
+
+- `just ci` passed on `389d095`; the later commits up to `308bf9d` change docs only.
+- `spec_trace.py --approved-only --strict`: 57 approved, 57 covered; `lock --check` clean.
+- Private-data scan of the pushed range `933e2af..308bf9d`: clean.
