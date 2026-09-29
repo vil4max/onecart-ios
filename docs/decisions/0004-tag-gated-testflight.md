@@ -74,7 +74,8 @@ owner's, or an agent's when the owner has authorized it; `AGENTS.md` records the
   (`git push origin :refs/tags/tf-X.Y.Z-N`). A tag on a commit `testflight` already contains
   moves nothing; rebuild such a commit with Start Build on `testflight` in App Store Connect.
 - The local pre-push smoke run is unchanged: it already ran on every branch push and skips
-  tag-only pushes.
+  tag-only pushes. (Removed on 2026-09-29: push hooks build and test nothing; `just verify`
+  and the `Tests` workflow run the tests.)
 - Because the App Review candidate is now a TestFlight round's build, the one remaining Xcode
   Cloud workflow must archive with distribution preparation **TestFlight and App Store**. Apple:
   choose "TestFlight (Internal Testing Only)" to distribute a development version to your team,

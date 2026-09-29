@@ -100,8 +100,9 @@ just verify
 
 Config: [`Tooling/runtime.yml`](Tooling/runtime.yml). Local overrides: `Tooling/runtime.local.yml.example` → `Tooling/runtime.local.yml`.
 
-Install the repository pre-push hook once with `./scripts/install-hooks.sh`.
-It runs smoke tests for branch updates and skips tag-only pushes and ref deletions.
+There are no repository git hooks: a push builds and tests nothing. `just verify` and the CI
+`Tests` workflow run the tests, UI smoke tests included. A clone that ran the former
+`scripts/install-hooks.sh` deletes its copy at `.git/hooks/pre-push`.
 
 ### Docs
 

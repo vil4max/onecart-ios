@@ -107,7 +107,7 @@ project: OneCart/OneCart.xcodeproj
 | `assets/` | Brand / store masters (not in the app bundle) |
 | `Tooling/` | Engineering Runtime — see [Tooling/README.md](Tooling/README.md) |
 | `justfile` | App-owned shim that imports `Tooling/justfile` (+ `demo` recipe) |
-| `scripts/install-hooks.sh` | Installs the repository pre-push hook |
+| `scripts/smoke-tests.sh` | Runs `just test`; kept for clones whose `.git/hooks/pre-push` still calls it |
 
 ## Definition of Done
 
@@ -129,5 +129,7 @@ just demo role=owner
 just demo-tab role=member tab=cart
 ```
 
-Install repository hooks once with `./scripts/install-hooks.sh`. The pre-push hook
-runs smoke tests for branch updates and skips tag-only pushes and ref deletions.
+OneCart has no repository git hooks. Push hooks build and test nothing (owner decision,
+2026-09-29): the tests, UI smoke tests included, run in `just verify` and in the CI `Tests`
+workflow (`just ci`). A clone that ran the former `scripts/install-hooks.sh` deletes its copy
+at `.git/hooks/pre-push`.
