@@ -11,7 +11,7 @@ func spoken(_ resource: LocalizedStringResource, in language: String = "en") -> 
 
 /// "What's left" for `count` to-buy lines named A, B, C… plus one bought line.
 func remainingSpeech(count: Int) -> LocalizedStringResource {
-    let names = (0 ..< count).map { String(UnicodeScalar(UInt8(65 + $0))) }
+    let names = (0..<count).map { String(UnicodeScalar(UInt8(65 + $0))) }
     return CartIntentSpeech.remaining(CartIntentRemaining(totalCount: count + 1, names: names))
 }
 

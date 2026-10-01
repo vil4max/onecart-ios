@@ -62,8 +62,9 @@ struct HostedHistoryViewTests {
         #expect(rows.last?.label?.contains(String(localized: "history.day_yesterday")) == false)
         #expect(rows.last?.label?.contains("Milk") == true)
 
-        #expect(hosted.element(identifier: "history.overnight_caption")?
-            .label == String(localized: "history.how_it_works"))
+        #expect(
+            hosted.element(identifier: "history.overnight_caption")?
+                .label == String(localized: "history.how_it_works"))
 
         // REQ-HIST-050: the only buttons are the day rows; no label reads as a deletion.
         #expect(hosted.buttons.allSatisfy { $0.identifier == "history.day_row" })
@@ -106,8 +107,9 @@ struct HostedHistoryViewTests {
         #expect(rows.first?.label?.hasPrefix("Bread") == true)
         #expect(rows.first?.label?.contains(String(localized: "history.bought_by \("Alex")")) == true)
         #expect(hosted.containsLabel(String(localized: "common.category.bakery")))
-        #expect(hosted.element(identifier: "history.read_only_footer")?
-            .label == String(localized: "history.read_only_footer"))
+        #expect(
+            hosted.element(identifier: "history.read_only_footer")?
+                .label == String(localized: "history.read_only_footer"))
         #expect(hosted.buttons.isEmpty)
         #expect(hosted.uiLabelTexts.contains(String(localized: "history.day_yesterday")))
         for word in Self.clearingWords {
@@ -169,8 +171,9 @@ struct HostedHistoryViewTests {
         #expect(bread.label?.contains(addedBy) == true)
         #expect(bread.label?.contains(boughtBy) == true)
         let milk = try #require(rows.first { $0.label?.hasPrefix("Milk") == true })
-        #expect(milk.label?
-            .contains(String(localized: "history.added_by \("")").trimmingCharacters(in: .whitespaces)) == false)
+        #expect(
+            milk.label?
+                .contains(String(localized: "history.added_by \("")").trimmingCharacters(in: .whitespaces)) == false)
         #expect(milk.label?.contains(boughtBy) == true)
     }
 }

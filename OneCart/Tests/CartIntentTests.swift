@@ -87,7 +87,7 @@ final class CartIntentTests: XCTestCase {
 
         // The cart screen started the setup; Siri arrives while it is still running.
         let screenSetup = Task { await session.ensureHouseholdCartIfNeeded() }
-        for _ in 0 ..< 100 where !session.isEnsuringHouseholdCart {
+        for _ in 0..<100 where !session.isEnsuringHouseholdCart {
             await Task.yield()
         }
         XCTAssertTrue(session.isEnsuringHouseholdCart, "Precondition: the setup is running")

@@ -90,7 +90,7 @@ struct MemberProfileTests {
             cloudUserIdentity: FakeCloudUserIdentity(recordName: "_alex")
         )
 
-        for _ in 0 ..< 4 {
+        for _ in 0..<4 {
             fixture.session.schedulePublishMemberProfile()
         }
         await fixture.session.memberProfileTask?.value

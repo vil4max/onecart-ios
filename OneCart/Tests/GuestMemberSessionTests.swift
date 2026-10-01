@@ -15,9 +15,10 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertEqual(fixture.session.cartTitle, "Семейная")
         XCTAssertEqual(fixture.session.familySpaces.map(\.id), [fixture.sharedID])
         XCTAssertEqual(Set(fixture.session.products.map(\.displayName)), ["Milk"])
-        XCTAssertNotNil(try fixture.session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: fixture.privateID)
-        ).first)
+        XCTAssertNotNil(
+            try fixture.session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: fixture.privateID)
+            ).first)
     }
 
     func test_REQ_CART_110_guestCannotRenameOrRevokeSharedCart() async throws {
@@ -71,9 +72,10 @@ final class GuestMemberSessionTests: XCTestCase {
 
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.privateID)
         XCTAssertEqual(fixture.session.access, .owner)
-        XCTAssertTrue(fixture.session.familySpaces.allSatisfy {
-            fixture.session.persistence.scope(for: $0) == .private
-        })
+        XCTAssertTrue(
+            fixture.session.familySpaces.allSatisfy {
+                fixture.session.persistence.scope(for: $0) == .private
+            })
     }
 
     func test_REQ_SHARE_050_guestLeaveCartReturnsToPersonal() async throws {
@@ -84,9 +86,10 @@ final class GuestMemberSessionTests: XCTestCase {
 
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.privateID)
         XCTAssertEqual(fixture.session.access, .owner)
-        XCTAssertTrue(fixture.session.familySpaces.allSatisfy {
-            fixture.session.persistence.scope(for: $0) == .private
-        })
+        XCTAssertTrue(
+            fixture.session.familySpaces.allSatisfy {
+                fixture.session.persistence.scope(for: $0) == .private
+            })
         XCTAssertNil(fixture.session.userAlert)
         XCTAssertEqual(Set(fixture.session.products.map(\.displayName)), ["Private bread"])
     }
@@ -103,7 +106,7 @@ final class GuestMemberSessionTests: XCTestCase {
             code: CKError.Code.unknownItem.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission.",
+                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
             ]
         )
         XCTAssertTrue(CloudKitUserFacingError.isBenignShareLeaveFailure(unavailable))

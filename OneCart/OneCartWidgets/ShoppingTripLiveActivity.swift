@@ -171,12 +171,14 @@ private struct ShoppingTripItemRow: View {
                 .font(.footnote.weight(.medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button(intent: ToggleProductPurchasedIntent(
-                productID: item.id.uuidString,
-                accountID: attributes.accountID.uuidString,
-                familyID: attributes.familyID.uuidString,
-                isPurchased: true
-            )) {
+            Button(
+                intent: ToggleProductPurchasedIntent(
+                    productID: item.id.uuidString,
+                    accountID: attributes.accountID.uuidString,
+                    familyID: attributes.familyID.uuidString,
+                    isPurchased: true
+                )
+            ) {
                 Image(systemName: "circle")
                     .font(.title3)
                     .foregroundStyle(.secondary)

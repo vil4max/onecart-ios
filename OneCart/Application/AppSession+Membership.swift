@@ -6,8 +6,8 @@ import OSLog
 extension AppSession {
     func revokeInviteLink() async {
         guard account != nil,
-              let family = activeFamilySpace,
-              access?.isOwner == true
+            let family = activeFamilySpace,
+            access?.isOwner == true
         else {
             CartSyncLog.action.error("revokeInvite denied missingOwnerOrFamily")
             return
@@ -36,8 +36,8 @@ extension AppSession {
 
     func renameActiveCart(_ rawName: String) async {
         guard let family = activeFamilySpace,
-              let familyID = family.id,
-              access?.isOwner == true
+            let familyID = family.id,
+            access?.isOwner == true
         else { return }
         let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -71,7 +71,7 @@ extension AppSession {
                 try await persistence.acceptShareInvitations(from: toAccept)
             } catch {
                 if alreadyJoinedMatchingShare(in: metadata),
-                   CloudKitUserFacingError.isBenignShareAcceptFailure(error)
+                    CloudKitUserFacingError.isBenignShareAcceptFailure(error)
                 {
                     CartSyncLog.action.info(
                         "acceptShare soft-success matchingShare error=\(error.localizedDescription, privacy: .public)"
@@ -107,8 +107,9 @@ extension AppSession {
 
     func removeMember(_ member: FamilyMember) async {
         guard let family = activeFamilySpace,
-              access?.isOwner == true,
-              !member.isCurrentUser else { return }
+            access?.isOwner == true,
+            !member.isCurrentUser
+        else { return }
         guard online else {
             presentAlert(String(localized: "alert.members_need_network"), kind: .error)
             return
@@ -132,8 +133,9 @@ extension AppSession {
 
     func leaveCurrentFamily() async {
         guard let account,
-              let family = activeFamilySpace,
-              access?.isParticipant == true else { return }
+            let family = activeFamilySpace,
+            access?.isParticipant == true
+        else { return }
         let familyID = family.id
 
         CartSyncLog.action.info(
@@ -172,12 +174,12 @@ extension AppSession {
         let pendingRootIDs = Set(metadata.compactMap(\.hierarchicalRootRecordID))
         for family in familySpaces where persistence.scope(for: family) == .shared {
             if let share = try? persistence.container.fetchShares(matching: [family.objectID])[family.objectID],
-               pendingShareNames.contains(share.recordID.recordName)
+                pendingShareNames.contains(share.recordID.recordName)
             {
                 return true
             }
             if let recordID = persistence.container.recordID(for: family.objectID),
-               pendingRootIDs.contains(recordID)
+                pendingRootIDs.contains(recordID)
             {
                 return true
             }
@@ -188,7 +190,7 @@ extension AppSession {
     private func recoverAfterLeaveTimeout() async {
         await withTaskGroup(of: Bool.self) { group in
             group.addTask {
-                for _ in 0 ..< 8 {
+                for _ in 0..<8 {
                     try? await Task.sleep(nanoseconds: 1_500_000_000)
                     if await self.attemptLeaveRecoveryPass() {
                         return true

@@ -126,7 +126,7 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
 
     func destroyDetachedAccountStores(destroyStore: ((URL) throws -> Void)? = nil) throws {
         guard container.persistentStoreCoordinator.persistentStores.isEmpty,
-              try readAccountDeletionPhase() == .cloudDeleted
+            try readAccountDeletionPhase() == .cloudDeleted
         else { throw AccountDeletionStoreError.cleanupRequired }
         let coordinator = container.persistentStoreCoordinator
         for fileName in ["OneCart-private.sqlite", "OneCart-shared.sqlite"] {

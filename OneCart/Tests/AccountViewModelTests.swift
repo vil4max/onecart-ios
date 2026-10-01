@@ -54,7 +54,7 @@ final class AccountViewModelTests: XCTestCase {
 
         // Without an active family the first share fails immediately.
         viewModel.shareCart()
-        for _ in 0 ..< 50 where viewModel.isSharing {
+        for _ in 0..<50 where viewModel.isSharing {
             try await Task.sleep(nanoseconds: 2_000_000)
         }
         XCTAssertFalse(viewModel.isSharing)
@@ -94,7 +94,7 @@ struct AccountHarness {
 
     /// The share runs on its own task; the fake answers immediately, so a few yields drain it.
     func awaitShareCompletion() async {
-        for _ in 0 ..< 1000 where viewModel.isSharing {
+        for _ in 0..<1000 where viewModel.isSharing {
             await Task.yield()
         }
     }

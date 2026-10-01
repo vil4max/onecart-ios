@@ -132,16 +132,19 @@ final class CloudSyncCoordinator {
         ) { [weak self] notification in
             // Delivered on the main queue. The event object is not Sendable, so only its
             // values cross into the main-actor closure.
-            guard let event = notification.userInfo?[
-                NSPersistentCloudKitContainer.eventNotificationUserInfoKey
-            ] as? NSPersistentCloudKitContainer.Event else { return }
+            guard
+                let event = notification.userInfo?[
+                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                ] as? NSPersistentCloudKitContainer.Event
+            else { return }
             let isFinished = event.endDate != nil
             let eventError = event.error
             let eventType = event.type
             MainActor.assumeIsolated {
                 guard let self,
-                      let host = self.host,
-                      !self.persistence.accountDeletionRecoveryRequired else { return }
+                    let host = self.host,
+                    !self.persistence.accountDeletionRecoveryRequired
+                else { return }
                 if !isFinished {
                     host.applySyncState(.syncing)
                 } else if let error = eventError {

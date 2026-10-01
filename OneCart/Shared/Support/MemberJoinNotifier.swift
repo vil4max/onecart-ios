@@ -24,8 +24,9 @@ enum MemberJoinNotifier {
         let newcomers = current.filter { diff.newcomerIDs.contains($0.id) }
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized
-                || settings.authorizationStatus == .provisional
+            guard
+                settings.authorizationStatus == .authorized
+                    || settings.authorizationStatus == .provisional
             else { return }
             for member in newcomers {
                 let content = UNMutableNotificationContent()
@@ -73,7 +74,8 @@ enum MemberJoinDiff {
             return Result(newcomerIDs: [], nextStoredIDs: currentIDs, shouldNotify: false)
         }
         let baseline = previousIDs.isEmpty ? storedIDs : previousIDs.union(storedIDs)
-        let newcomerIDs = current
+        let newcomerIDs =
+            current
             .filter { !baseline.contains($0.id) && !$0.isCurrentUser }
             .map(\.id)
         return Result(

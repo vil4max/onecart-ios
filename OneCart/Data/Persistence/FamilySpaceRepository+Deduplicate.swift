@@ -91,7 +91,7 @@ extension FamilySpaceRepository {
                 }
                 // Read-only participants cannot export these writes; leave the merge to a writer's device.
                 guard let winner = ordered.first,
-                      ordered.allSatisfy({ self.permissionAuthorizer.canUpdate($0.objectID) })
+                    ordered.allSatisfy({ self.permissionAuthorizer.canUpdate($0.objectID) })
                 else {
                     continue
                 }
@@ -128,7 +128,7 @@ extension FamilySpaceRepository {
 
         for object in objects {
             guard let stableID = stableID(object),
-                  let storeIdentifier = object.objectID.persistentStore?.identifier
+                let storeIdentifier = object.objectID.persistentStore?.identifier
             else {
                 continue
             }

@@ -196,7 +196,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     private func waitForReloads(_ count: Int, on host: ReloadCountingHost) async throws {
-        for _ in 0 ..< 100 where host.reloadCount < count {
+        for _ in 0..<100 where host.reloadCount < count {
             try await Task.sleep(nanoseconds: 20_000_000)
         }
     }

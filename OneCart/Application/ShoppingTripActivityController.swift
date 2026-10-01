@@ -108,12 +108,13 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
 
     func end(id: String, state: ShoppingTripAttributes.ContentState?, dismissal: ShoppingTripDismissal) async {
         guard let activity = Self.activity(id: id) else { return }
-        let policy: ActivityUIDismissalPolicy = switch dismissal {
-        case .immediate:
-            .immediate
-        case let .after(date):
-            .after(date)
-        }
+        let policy: ActivityUIDismissalPolicy =
+            switch dismissal {
+            case .immediate:
+                .immediate
+            case let .after(date):
+                .after(date)
+            }
         await activity.end(state.map { ActivityContent(state: $0, staleDate: nil) }, dismissalPolicy: policy)
     }
 
@@ -128,11 +129,12 @@ final class LiveShoppingTripActivityBackend: ShoppingTripActivityBackend {
         guard watchers[id] == nil else { return }
         watchers[id] = Task { [weak self] in
             for await state in activity.activityStateUpdates {
-                let phase: ShoppingTripActivityPhase? = switch state {
-                case .ended: .ended
-                case .dismissed: .dismissed
-                default: nil
-                }
+                let phase: ShoppingTripActivityPhase? =
+                    switch state {
+                    case .ended: .ended
+                    case .dismissed: .dismissed
+                    default: nil
+                    }
                 guard let phase else { continue }
                 self?.phaseHandler?(id, phase)
                 if phase == .dismissed {

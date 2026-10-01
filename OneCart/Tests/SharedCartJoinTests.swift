@@ -16,9 +16,10 @@ final class SharedCartJoinTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: privateID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: privateID)
+            ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
@@ -34,9 +35,10 @@ final class SharedCartJoinTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: privateID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: privateID)
+            ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Test 1"])
     }
 
@@ -53,9 +55,10 @@ final class SharedCartJoinTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(session.access, .member)
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: privateID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: privateID)
+            ).first)
     }
 
     func test_REQ_SHARE_090_reloadPrefersSharedOverStoredPrivate() async throws {
@@ -148,9 +151,10 @@ final class SharedCartJoinTests: XCTestCase {
             persistenceScope(for: session.activeFamilySpace, in: session.persistence),
             .shared
         )
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: privateID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: privateID)
+            ).first)
         XCTAssertTrue(session.products.isEmpty)
     }
 
@@ -203,15 +207,17 @@ final class SharedCartJoinTests: XCTestCase {
 
         XCTAssertEqual(session.activeFamilySpace?.id, newSharedID)
         XCTAssertEqual(session.access, .member)
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: oldSharedID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: oldSharedID)
+            ).first)
         let oldFamily = try XCTUnwrap(repository.fetchFamilySpace(id: oldSharedID))
         XCTAssertNil(oldFamily.deletedAt)
         XCTAssertEqual(oldFamily.activeLists.flatMap(\.sortedProducts).map(\.displayName), ["Old"])
-        XCTAssertNotNil(try session.persistence.container.viewContext.fetch(
-            familySpaceRequest(id: privateID)
-        ).first)
+        XCTAssertNotNil(
+            try session.persistence.container.viewContext.fetch(
+                familySpaceRequest(id: privateID)
+            ).first)
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["New"])
     }
 

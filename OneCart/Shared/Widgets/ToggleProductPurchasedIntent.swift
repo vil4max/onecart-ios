@@ -41,9 +41,9 @@ public struct ToggleProductPurchasedIntent: LiveActivityIntent {
 
     public func perform() async throws -> some IntentResult {
         guard let productID = UUID(uuidString: productID),
-              let accountID = UUID(uuidString: accountID),
-              let familyID = UUID(uuidString: familyID),
-              let requestID = UUID(uuidString: requestID)
+            let accountID = UUID(uuidString: accountID),
+            let familyID = UUID(uuidString: familyID),
+            let requestID = UUID(uuidString: requestID)
         else {
             throw WidgetPurchaseError.invalidRequest
         }

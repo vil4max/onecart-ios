@@ -303,9 +303,10 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(fixture.session.syncState, .failed)
         XCTAssertTrue(fixture.persistence.accountDeletionRecoveryRequired)
         XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
-        XCTAssertTrue(fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
-            $0.cloudKitContainerOptions == nil
-        })
+        XCTAssertTrue(
+            fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
+                $0.cloudKitContainerOptions == nil
+            })
 
         fixture.cloud.errorToThrow = nil
         await fixture.session.deleteAccount()
@@ -334,13 +335,15 @@ final class AccountDeletionTests: XCTestCase {
             cloudKitEnabled: true
         )
         XCTAssertFalse(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
-        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
-            $0.cloudKitContainerOptions != nil
-        })
+        XCTAssertTrue(
+            relaunched.container.persistentStoreDescriptions.allSatisfy {
+                $0.cloudKitContainerOptions != nil
+            })
     }
 
-    func test_REQ_AUTH_080_deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring(
-    ) async throws {
+    func test_REQ_AUTH_080_deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring()
+        async throws
+    {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
@@ -357,9 +360,10 @@ final class AccountDeletionTests: XCTestCase {
             cloudKitEnabled: true
         )
         XCTAssertTrue(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
-        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
-            $0.cloudKitContainerOptions == nil
-        })
+        XCTAssertTrue(
+            relaunched.container.persistentStoreDescriptions.allSatisfy {
+                $0.cloudKitContainerOptions == nil
+            })
     }
 
     func test_deleteAccount_whenRetryFailsBeforeDestructiveRequest_keepsEarlierPendingMarker() async throws {
@@ -374,9 +378,10 @@ final class AccountDeletionTests: XCTestCase {
 
         XCTAssertEqual(fixture.cloud.callCount, 2)
         XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .pendingCloud)
-        XCTAssertTrue(fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
-            $0.cloudKitContainerOptions == nil
-        })
+        XCTAssertTrue(
+            fixture.persistence.container.persistentStoreDescriptions.allSatisfy {
+                $0.cloudKitContainerOptions == nil
+            })
     }
 
     func test_REQ_AUTH_070_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
@@ -418,9 +423,10 @@ final class AccountDeletionTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
         try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
-        XCTAssertThrowsError(try fixture.persistence.destroyDetachedAccountStores { _ in
-            throw TestAccountDeletionError.simulated
-        })
+        XCTAssertThrowsError(
+            try fixture.persistence.destroyDetachedAccountStores { _ in
+                throw TestAccountDeletionError.simulated
+            })
         fixture.session.online = false
 
         await fixture.session.deleteAccount()
@@ -437,9 +443,10 @@ final class AccountDeletionTests: XCTestCase {
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
         try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
 
-        XCTAssertThrowsError(try fixture.persistence.destroyDetachedAccountStores { _ in
-            throw TestAccountDeletionError.simulated
-        })
+        XCTAssertThrowsError(
+            try fixture.persistence.destroyDetachedAccountStores { _ in
+                throw TestAccountDeletionError.simulated
+            })
         XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .cloudDeleted)
         let relaunched = PersistenceController(
             storeDirectoryURL: fixture.persistence.storeDirectoryURL,
@@ -481,9 +488,10 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertEqual(session.syncState, .failed)
         XCTAssertFalse(session.isDeletingAccount)
         XCTAssertEqual(session.activeFamilySpace?.id, fixture.familyID)
-        XCTAssertTrue(relaunched.container.persistentStoreDescriptions.allSatisfy {
-            $0.cloudKitContainerOptions == nil
-        })
+        XCTAssertTrue(
+            relaunched.container.persistentStoreDescriptions.allSatisfy {
+                $0.cloudKitContainerOptions == nil
+            })
         XCTAssertEqual(cloud.callCount, 0)
     }
 
@@ -618,7 +626,7 @@ final class AccountDeletionTests: XCTestCase {
             code: CKError.Code.unknownItem.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission.",
+                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
             ]
         )
         // unknownItem alone is treated as already-deleted zone for account purge.
@@ -635,10 +643,11 @@ final class AccountDeletionTests: XCTestCase {
         let first = CKRecordZone(zoneName: "first").zoneID
         let second = CKRecordZone(zoneName: "second").zoneID
 
-        XCTAssertNoThrow(try CloudKitBackendService.validateAccountDeletionResults(
-            [first: .success(()), second: .success(())],
-            requestedZoneIDs: [first, second]
-        ))
+        XCTAssertNoThrow(
+            try CloudKitBackendService.validateAccountDeletionResults(
+                [first: .success(()), second: .success(())],
+                requestedZoneIDs: [first, second]
+            ))
     }
 
     func test_validateAccountDeletionResults_whenOneZoneFails_propagatesFailure() {
@@ -646,10 +655,12 @@ final class AccountDeletionTests: XCTestCase {
         let second = CKRecordZone(zoneName: "second").zoneID
         let failure = NSError(domain: CKError.errorDomain, code: CKError.Code.zoneBusy.rawValue)
 
-        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
-            [first: .success(()), second: .failure(failure)],
-            requestedZoneIDs: [first, second]
-        )) { error in
+        XCTAssertThrowsError(
+            try CloudKitBackendService.validateAccountDeletionResults(
+                [first: .success(()), second: .failure(failure)],
+                requestedZoneIDs: [first, second]
+            )
+        ) { error in
             XCTAssertEqual(error as NSError, failure)
         }
     }
@@ -657,24 +668,28 @@ final class AccountDeletionTests: XCTestCase {
     func test_validateAccountDeletionResults_whenZonesAlreadyGone_completes() {
         let codes: [CKError.Code] = [.zoneNotFound, .userDeletedZone, .unknownItem]
         let zoneIDs = codes.map { CKRecordZone(zoneName: "gone-\($0.rawValue)").zoneID }
-        let results = Dictionary(uniqueKeysWithValues: zip(zoneIDs, codes).map { zoneID, code in
-            (zoneID, Result<Void, Error>.failure(NSError(domain: CKError.errorDomain, code: code.rawValue)))
-        })
+        let results = Dictionary(
+            uniqueKeysWithValues: zip(zoneIDs, codes).map { zoneID, code in
+                (zoneID, Result<Void, Error>.failure(NSError(domain: CKError.errorDomain, code: code.rawValue)))
+            })
 
-        XCTAssertNoThrow(try CloudKitBackendService.validateAccountDeletionResults(
-            results,
-            requestedZoneIDs: zoneIDs
-        ))
+        XCTAssertNoThrow(
+            try CloudKitBackendService.validateAccountDeletionResults(
+                results,
+                requestedZoneIDs: zoneIDs
+            ))
     }
 
     func test_validateAccountDeletionResults_whenResultMissing_throws() {
         let first = CKRecordZone(zoneName: "first").zoneID
         let missing = CKRecordZone(zoneName: "missing").zoneID
 
-        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
-            [first: .success(())],
-            requestedZoneIDs: [first, missing]
-        )) { error in
+        XCTAssertThrowsError(
+            try CloudKitBackendService.validateAccountDeletionResults(
+                [first: .success(())],
+                requestedZoneIDs: [first, missing]
+            )
+        ) { error in
             XCTAssertEqual(
                 error as? CloudKitBackendService.AccountDeletionResultError,
                 .missingZoneResult
@@ -687,24 +702,29 @@ final class AccountDeletionTests: XCTestCase {
         let failure = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.partialFailure.rawValue,
-            userInfo: [CKPartialErrorsByItemIDKey: [
-                "gone": NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue),
-                "denied": NSError(domain: CKError.errorDomain, code: CKError.Code.permissionFailure.rawValue),
-            ]]
+            userInfo: [
+                CKPartialErrorsByItemIDKey: [
+                    "gone": NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue),
+                    "denied": NSError(domain: CKError.errorDomain, code: CKError.Code.permissionFailure.rawValue),
+                ]
+            ]
         )
 
-        XCTAssertThrowsError(try CloudKitBackendService.validateAccountDeletionResults(
-            [zoneID: .failure(failure)],
-            requestedZoneIDs: [zoneID]
-        )) { error in
+        XCTAssertThrowsError(
+            try CloudKitBackendService.validateAccountDeletionResults(
+                [zoneID: .failure(failure)],
+                requestedZoneIDs: [zoneID]
+            )
+        ) { error in
             XCTAssertEqual(error as NSError, failure)
         }
     }
 
     func test_isIdempotentAccountDeletionFailure_whenInspectionLimitExceeded_rejectsUnverifiedResults() {
-        let partialErrors = Dictionary(uniqueKeysWithValues: (0 ..< 25).map { index in
-            ("zone-\(index)", NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue))
-        })
+        let partialErrors = Dictionary(
+            uniqueKeysWithValues: (0..<25).map { index in
+                ("zone-\(index)", NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue))
+            })
         let failure = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.partialFailure.rawValue,

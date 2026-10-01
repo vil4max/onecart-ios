@@ -26,7 +26,9 @@ public final class WidgetSnapshotStore: Sendable {
         pendingDirectoryURL: URL? = nil
     ) {
         self.suiteName = suiteName
-        self.pendingDirectoryURL = pendingDirectoryURL ?? FileManager.default
+        self.pendingDirectoryURL =
+            pendingDirectoryURL
+            ?? FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: OneCartAppGroup.identifier)?
             .appendingPathComponent("WidgetPurchases", isDirectory: true)
         // Logged once per store; `shared` lives for the whole process.
@@ -53,7 +55,7 @@ public final class WidgetSnapshotStore: Sendable {
     public func loadSnapshot() -> WidgetCartSnapshot? {
         mutex.withLock { _ in
             guard let userDefaults,
-                  let data = userDefaults.data(forKey: snapshotKey)
+                let data = userDefaults.data(forKey: snapshotKey)
             else {
                 return nil
             }
@@ -66,7 +68,7 @@ public final class WidgetSnapshotStore: Sendable {
         mutex.withLock { _ in
             guard let userDefaults else { return false }
             guard let data = userDefaults.data(forKey: snapshotKey),
-                  var snapshot = try? JSONDecoder().decode(WidgetCartSnapshot.self, from: data)
+                var snapshot = try? JSONDecoder().decode(WidgetCartSnapshot.self, from: data)
             else {
                 return false
             }
@@ -116,7 +118,7 @@ public final class WidgetSnapshotStore: Sendable {
             if FileManager.default.fileExists(atPath: url.path) {
                 let existing = try JSONDecoder().decode(WidgetPurchaseRequest.self, from: Data(contentsOf: url))
                 guard existing.accountID == request.accountID, existing.familyID == request.familyID,
-                      existing.productID == request.productID, existing.isPurchased == request.isPurchased
+                    existing.productID == request.productID, existing.isPurchased == request.isPurchased
                 else { throw WidgetPurchaseError.invalidRequest }
                 return
             }

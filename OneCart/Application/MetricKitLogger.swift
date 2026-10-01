@@ -84,15 +84,16 @@ struct DiagnosticSnapshot: Equatable {
 enum MetricPayloadSummary {
     static func line(for metrics: MetricSnapshot) -> String {
         var fields = ["metrics", window(metrics.begin, metrics.end)]
-        fields.append(contentsOf: [
-            metrics.appVersion.map { "v\($0)" },
-            metrics.foregroundSeconds.map { "fg=\(seconds($0))" },
-            metrics.backgroundSeconds.map { "bg=\(seconds($0))" },
-            metrics.cpuSeconds.map { "cpu=\(seconds($0))" },
-            metrics.peakMemoryMegabytes.map { "peakMem=\(Int($0.rounded()))MB" },
-            metrics.launchCount.map { "launches=\($0)" },
-            metrics.hangCount.map { "hangs=\($0)" },
-        ].compactMap(\.self))
+        fields.append(
+            contentsOf: [
+                metrics.appVersion.map { "v\($0)" },
+                metrics.foregroundSeconds.map { "fg=\(seconds($0))" },
+                metrics.backgroundSeconds.map { "bg=\(seconds($0))" },
+                metrics.cpuSeconds.map { "cpu=\(seconds($0))" },
+                metrics.peakMemoryMegabytes.map { "peakMem=\(Int($0.rounded()))MB" },
+                metrics.launchCount.map { "launches=\($0)" },
+                metrics.hangCount.map { "hangs=\($0)" },
+            ].compactMap(\.self))
         return fields.joined(separator: " ")
     }
 
@@ -167,16 +168,17 @@ extension MetricSnapshot {
 
 extension DiagnosticSnapshot {
     init(_ report: DiagnosticReport) {
-        let kind: Kind = switch report.result {
-        case let .crash(crash):
-            .crash(signal: crash.signal, exceptionType: crash.exceptionType, exceptionCode: crash.exceptionCode)
-        case .hang: .hang
-        case .cpuException: .cpuException
-        case .diskWriteException: .diskWriteException
-        case .appLaunch: .appLaunch
-        case .memoryException: .memoryException
-        @unknown default: .unknown
-        }
+        let kind: Kind =
+            switch report.result {
+            case let .crash(crash):
+                .crash(signal: crash.signal, exceptionType: crash.exceptionType, exceptionCode: crash.exceptionCode)
+            case .hang: .hang
+            case .cpuException: .cpuException
+            case .diskWriteException: .diskWriteException
+            case .appLaunch: .appLaunch
+            case .memoryException: .memoryException
+            @unknown default: .unknown
+            }
         self.init(
             begin: report.timeRange.start,
             end: report.timeRange.end,

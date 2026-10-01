@@ -44,7 +44,8 @@ final class CloudKitBackendService: Sendable {
         displayName: String?
     ) async throws -> OneCartAccount {
         if persistence.inMemory || !persistence.cloudKitEnabled {
-            let namespaceKey = persistence.inMemory
+            let namespaceKey =
+                persistence.inMemory
                 ? "onecart.in-memory-user"
                 : "apple:\(appleUserID)"
             return OneCartAccount(
@@ -132,7 +133,7 @@ final class CloudKitBackendService: Sendable {
                     isCurrentUser: true,
                     avatarURL: nil,
                     bannerURL: nil
-                ),
+                )
             ]
         }
 

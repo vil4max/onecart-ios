@@ -441,7 +441,7 @@ enum HistoryItems {
         for entry in entries where !entry.isDeletedValue {
             for item in entry.sortedItems {
                 guard let familyID = item.familySpace?.id ?? entry.familySpace?.id,
-                      let productID = item.id
+                    let productID = item.id
                 else {
                     items.append(item)
                     continue

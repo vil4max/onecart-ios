@@ -68,8 +68,8 @@ struct HistoryView: View {
         /// Demo launches (`-oneCartDemoHistoryDetail`) open the newest day for screenshots.
         private func openDemoDetailIfRequested(_ groups: [HistoryDayGroup]) {
             guard !hasOpenedDemoDetail,
-                  ProcessInfo.processInfo.arguments.contains("-oneCartDemoHistoryDetail"),
-                  let newest = groups.first
+                ProcessInfo.processInfo.arguments.contains("-oneCartDemoHistoryDetail"),
+                let newest = groups.first
             else { return }
             hasOpenedDemoDetail = true
             path = [newest]
@@ -106,7 +106,8 @@ struct HistoryDayGroup: Identifiable, Hashable {
         let grouped = Dictionary(grouping: items) { item in
             calendar.startOfDay(for: item.purchaseMoment)
         }
-        return grouped
+        return
+            grouped
             .map { dayStart, dayItems in
                 HistoryDayGroup(
                     dayStart: dayStart,
@@ -121,15 +122,16 @@ struct HistoryDayGroup: Identifiable, Hashable {
 }
 
 enum HistoryDayFormatting {
-    static func title(for dayStart: Date, calendar: Calendar = .current, now: Date = Date(),
-                      locale: Locale? = nil) -> String
-    {
+    static func title(
+        for dayStart: Date, calendar: Calendar = .current, now: Date = Date(),
+        locale: Locale? = nil
+    ) -> String {
         let effectiveLocale = locale ?? calendar.locale ?? .current
         if calendar.isDate(dayStart, inSameDayAs: now) {
             return String(localized: "history.day_today", locale: effectiveLocale)
         }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)),
-           calendar.isDate(dayStart, inSameDayAs: yesterday)
+            calendar.isDate(dayStart, inSameDayAs: yesterday)
         {
             return String(localized: "history.day_yesterday", locale: effectiveLocale)
         }

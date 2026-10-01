@@ -60,8 +60,8 @@ extension AppSession {
     @discardableResult
     private func leaveSharedCartIfParticipantForDeletion() async throws -> Bool {
         guard access?.isParticipant == true,
-              let family = activeFamilySpace,
-              let familyID = family.id
+            let family = activeFamilySpace,
+            let familyID = family.id
         else { return false }
 
         CartSyncLog.action.info(
@@ -123,7 +123,7 @@ extension AppSession {
 
     private func accountDeletionFailureMessage(for error: Error) -> String {
         if let cloudKitError = error as? OneCartCloudKitError,
-           case .accountUnavailable = cloudKitError
+            case .accountUnavailable = cloudKitError
         {
             return userFacingMessage(for: error)
         }

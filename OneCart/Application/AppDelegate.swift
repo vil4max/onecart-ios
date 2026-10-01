@@ -17,9 +17,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
 
     func application(
         _ application: UIApplication,
-        didFinishLaunchingWithOptions _: [
-            UIApplication.LaunchOptionsKey: Any
-        ]?
+        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         metricKitLogger.start()
         UNUserNotificationCenter.current().delegate = self

@@ -63,12 +63,14 @@ struct WidgetPurchaseToggle: View {
     var font: Font = .title3
 
     var body: some View {
-        Button(intent: ToggleProductPurchasedIntent(
-            productID: item.id.uuidString,
-            accountID: snapshot.accountID?.uuidString ?? "",
-            familyID: snapshot.familyID?.uuidString ?? "",
-            isPurchased: !item.isPurchased
-        )) {
+        Button(
+            intent: ToggleProductPurchasedIntent(
+                productID: item.id.uuidString,
+                accountID: snapshot.accountID?.uuidString ?? "",
+                familyID: snapshot.familyID?.uuidString ?? "",
+                isPurchased: !item.isPurchased
+            )
+        ) {
             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                 .font(font)
                 .symbolRenderingMode(.hierarchical)

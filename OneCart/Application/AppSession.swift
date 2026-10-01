@@ -108,7 +108,7 @@ final class AppSession {
     static func householdCartName(for account: OneCartAccount) -> String {
         let trimmed = account.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
-              !ParticipantDisplayName.isPlaceholder(trimmed)
+            !ParticipantDisplayName.isPlaceholder(trimmed)
         else {
             return defaultFamilyName
         }

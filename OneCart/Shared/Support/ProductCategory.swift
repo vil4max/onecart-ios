@@ -144,27 +144,35 @@ enum ProductCategory: String, CaseIterable, Identifiable {
             category: .babyFood
         ),
         CategoryRule(
-            keywords: ["морожен", "мороженое", "пельмен", "вареник", "заморож", "наггетс",
-                       "ice cream", "frozen", "dumpling", "nugget"],
+            keywords: [
+                "морожен", "мороженое", "пельмен", "вареник", "заморож", "наггетс",
+                "ice cream", "frozen", "dumpling", "nugget",
+            ],
             prefixes: [],
             category: .frozen
         ),
         CategoryRule(
-            keywords: ["конфет", "шоколад", "торт", "печенье", "печив", "чипс", "снек", "вафл",
-                       "зефир", "маршмел", "попкорн", "candy", "chocolate", "cookie", "cake",
-                       "chips", "snack", "cracker", "waffle"],
+            keywords: [
+                "конфет", "шоколад", "торт", "печенье", "печив", "чипс", "снек", "вафл",
+                "зефир", "маршмел", "попкорн", "candy", "chocolate", "cookie", "cake",
+                "chips", "snack", "cracker", "waffle",
+            ],
             prefixes: [],
             category: .sweetsSnacks
         ),
         CategoryRule(
-            keywords: ["хлеб", "хліб", "батон", "булк", "лаваш", "выпеч", "круассан", "бублик",
-                       "багет", "bread", "bakery", "bagel", "bun", "pastry", "croissant", "lavash"],
+            keywords: [
+                "хлеб", "хліб", "батон", "булк", "лаваш", "выпеч", "круассан", "бублик",
+                "багет", "bread", "bakery", "bagel", "bun", "pastry", "croissant", "lavash",
+            ],
             prefixes: [],
             category: .bakery
         ),
         CategoryRule(
-            keywords: ["вино", "пиво", "водк", "віскі", "виски", "коньяк", "шампан", "алкогол",
-                       "beer", "wine", "vodka", "whisky", "whiskey", "alcohol", "cider"],
+            keywords: [
+                "вино", "пиво", "водк", "віскі", "виски", "коньяк", "шампан", "алкогол",
+                "beer", "wine", "vodka", "whisky", "whiskey", "alcohol", "cider",
+            ],
             prefixes: [],
             category: .alcohol
         ),
@@ -174,63 +182,81 @@ enum ProductCategory: String, CaseIterable, Identifiable {
             category: .hotDrinks
         ),
         CategoryRule(
-            keywords: ["сок", "вода", "кола", "газиров", "лимонад", "квас", "juice", "water",
-                       "cola", "soda", "lemonade", "drink"],
+            keywords: [
+                "сок", "вода", "кола", "газиров", "лимонад", "квас", "juice", "water",
+                "cola", "soda", "lemonade", "drink",
+            ],
             prefixes: [],
             category: .coldDrinks
         ),
         CategoryRule(
-            keywords: ["соус", "специ", "кетчуп", "майонез", "гірчиц", "горчиц", "приправ",
-                       "перец", "перець", "sauce", "spice", "ketchup", "mayo", "mustard",
-                       "seasoning"],
+            keywords: [
+                "соус", "специ", "кетчуп", "майонез", "гірчиц", "горчиц", "приправ",
+                "перец", "перець", "sauce", "spice", "ketchup", "mayo", "mustard",
+                "seasoning",
+            ],
             prefixes: [],
             category: .saucesSpices
         ),
         CategoryRule(
-            keywords: ["олі", "олія", "уксус", "оцет", "консерв", "масло растит", "подсолнеч",
-                       "оливков", "vinegar", "canned", "olive oil", "sunflower"],
+            keywords: [
+                "олі", "олія", "уксус", "оцет", "консерв", "масло растит", "подсолнеч",
+                "оливков", "vinegar", "canned", "olive oil", "sunflower",
+            ],
             prefixes: [],
             category: .oilCanned
         ),
         CategoryRule(
-            keywords: ["молоко", "йогурт", "сыр", "сир", "кефир", "кефір", "ряженк", "сметан",
-                       "творог", "яйц", "масло сливоч", "milk", "yogurt", "yoghurt", "cheese",
-                       "butter", "kefir", "cottage", "sour cream", "egg"],
+            keywords: [
+                "молоко", "йогурт", "сыр", "сир", "кефир", "кефір", "ряженк", "сметан",
+                "творог", "яйц", "масло сливоч", "milk", "yogurt", "yoghurt", "cheese",
+                "butter", "kefir", "cottage", "sour cream", "egg",
+            ],
             prefixes: [],
             category: .dairyEggs
         ),
         CategoryRule(
-            keywords: ["рыб", "риб", "морепродукт", "кревет", "лосос", "тунц", "селед", "оселед",
-                       "икр", "fish", "seafood", "shrimp", "salmon", "tuna", "crab"],
+            keywords: [
+                "рыб", "риб", "морепродукт", "кревет", "лосос", "тунц", "селед", "оселед",
+                "икр", "fish", "seafood", "shrimp", "salmon", "tuna", "crab",
+            ],
             prefixes: [],
             category: .fishSeafood
         ),
         CategoryRule(
-            keywords: ["мясо", "мʼясо", "м’ясо", "курица", "курка", "фарш", "индейк", "говяд",
-                       "свинин", "баранин", "колбас", "ковбас", "сосис", "ветчин", "бекон",
-                       "стейк", "филе", "meat", "chicken", "beef", "pork", "turkey", "sausage",
-                       "ham", "bacon", "steak", "mince", "poultry"],
+            keywords: [
+                "мясо", "мʼясо", "м’ясо", "курица", "курка", "фарш", "индейк", "говяд",
+                "свинин", "баранин", "колбас", "ковбас", "сосис", "ветчин", "бекон",
+                "стейк", "филе", "meat", "chicken", "beef", "pork", "turkey", "sausage",
+                "ham", "bacon", "steak", "mince", "poultry",
+            ],
             prefixes: [],
             category: .meatPoultry
         ),
         CategoryRule(
-            keywords: ["круп", "макарон", "мук", "сахар", "цукор", "соль", "хлопья", "рис",
-                       "гречк", "овсян", "каша", "pasta", "flour", "sugar", "salt", "cereal",
-                       "rice", "oat", "buckwheat", "grocery", "porridge", "grits"],
+            keywords: [
+                "круп", "макарон", "мук", "сахар", "цукор", "соль", "хлопья", "рис",
+                "гречк", "овсян", "каша", "pasta", "flour", "sugar", "salt", "cereal",
+                "rice", "oat", "buckwheat", "grocery", "porridge", "grits",
+            ],
             prefixes: ["каш"],
             category: .grocery
         ),
         CategoryRule(
-            keywords: ["яблок", "банан", "овощ", "фрукт", "помидор", "огірок", "томат", "зелен",
-                       "ягод", "огурец", "капуст", "морков", "apple", "banana", "tomato", "fruit",
-                       "vegetable", "salad", "cucumber", "lemon", "potato", "onion", "carrot",
-                       "berry", "greens", "lettuce"],
+            keywords: [
+                "яблок", "банан", "овощ", "фрукт", "помидор", "огірок", "томат", "зелен",
+                "ягод", "огурец", "капуст", "морков", "apple", "banana", "tomato", "fruit",
+                "vegetable", "salad", "cucumber", "lemon", "potato", "onion", "carrot",
+                "berry", "greens", "lettuce",
+            ],
             prefixes: [],
             category: .produce
         ),
         CategoryRule(
-            keywords: ["мыло", "мило", "порошок", "шампун", "средств", "засіб", "soap",
-                       "detergent", "shampoo", "laundry", "cleaner", "bleach"],
+            keywords: [
+                "мыло", "мило", "порошок", "шампун", "средств", "засіб", "soap",
+                "detergent", "shampoo", "laundry", "cleaner", "bleach",
+            ],
             prefixes: [],
             category: .household
         ),

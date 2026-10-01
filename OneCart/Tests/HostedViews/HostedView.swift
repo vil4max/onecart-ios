@@ -50,7 +50,7 @@ final class HostedView {
     private static let accessibilityTreeEnabled: Bool = {
         typealias SetEnabled = @convention(c) (Bool) -> Void
         guard let library = dlopen("/usr/lib/libAccessibility.dylib", RTLD_NOW),
-              let symbol = dlsym(library, "_AXSApplicationAccessibilitySetEnabled")
+            let symbol = dlsym(library, "_AXSApplicationAccessibilitySetEnabled")
         else { return false }
         unsafeBitCast(symbol, to: SetEnabled.self)(true)
         return true
@@ -67,13 +67,14 @@ final class HostedView {
                 )
         }
         let controller = UIHostingController(rootView: content)
-        let window = if let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0 is UIWindowScene }) as? UIWindowScene
-        {
-            UIWindow(windowScene: scene)
-        } else {
-            UIWindow(frame: CGRect(origin: .zero, size: size))
-        }
+        let window =
+            if let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0 is UIWindowScene }) as? UIWindowScene
+            {
+                UIWindow(windowScene: scene)
+            } else {
+                UIWindow(frame: CGRect(origin: .zero, size: size))
+            }
         window.frame = CGRect(origin: .zero, size: size)
         window.rootViewController = controller
         window.isHidden = false
@@ -85,7 +86,7 @@ final class HostedView {
     /// Runs layout and short run-loop turns so lists materialize their rows and `.task` /
     /// `.onAppear` work scheduled on the main actor gets to run.
     func settle(turns: Int = 2) {
-        for _ in 0 ..< turns {
+        for _ in 0..<turns {
             window.layoutIfNeeded()
             controller.view.layoutIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
@@ -97,7 +98,7 @@ final class HostedView {
     /// not reentrant, so a nested `RunLoop.run` alone never executes those tasks.
     @discardableResult
     func pump(maxTurns: Int = 40, until condition: () -> Bool) async -> Bool {
-        for _ in 0 ..< maxTurns {
+        for _ in 0..<maxTurns {
             if condition() {
                 return true
             }
@@ -111,7 +112,8 @@ final class HostedView {
     /// the way a person reaches them; cells outside the viewport do not exist yet.
     func scrollToBottom() {
         for scrollView in views(of: UIScrollView.self) {
-            let bottom = scrollView.contentSize.height + scrollView.adjustedContentInset.bottom
+            let bottom =
+                scrollView.contentSize.height + scrollView.adjustedContentInset.bottom
                 - scrollView.bounds.height
             scrollView.setContentOffset(CGPoint(x: 0, y: max(0, bottom)), animated: false)
         }

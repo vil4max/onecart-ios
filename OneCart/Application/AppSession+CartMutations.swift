@@ -70,7 +70,8 @@ extension AppSession {
         pendingCartMutationCount += 1
         defer { finishCartMutation() }
         guard let product = products.first(where: { $0.id == productID }),
-              let familyID = product.familySpace?.id else { return }
+            let familyID = product.familySpace?.id
+        else { return }
         // The row may have been renamed while the classifier ran; its new name gets its own
         // refinement, and this one must not label it with the old name's category.
         let normalized = FamilyCartMerge.normalizedProductName
@@ -290,9 +291,9 @@ extension AppSession {
             )
             guard !CartIntentContext.isActive else { return false }
             if error as? RepositoryError == .permissionDenied,
-               let lastSyncError,
-               lastSyncError.localizedCaseInsensitiveContains("production schema")
-               || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
+                let lastSyncError,
+                lastSyncError.localizedCaseInsensitiveContains("production schema")
+                    || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
             {
                 presentProductionSchemaAlertIfNeeded(CloudKitUserFacingError.productionSchemaMissing)
                 return false
@@ -370,17 +371,18 @@ extension AppSession {
         let personalSpaces = spaces.filter {
             persistence.scope(for: $0) == .private && $0.cachedForUserID == account.id
         }
-        let preferredID = activeFamilySpace.flatMap { family in
-            persistence.scope(for: family) == .private ? family.id : nil
-        } ?? household.restoredPersonalFamilyID(accountID: account.id)
+        let preferredID =
+            activeFamilySpace.flatMap { family in
+                persistence.scope(for: family) == .private ? family.id : nil
+            } ?? household.restoredPersonalFamilyID(accountID: account.id)
         return personalSpaces.first(where: { $0.id == preferredID })
             ?? personalSpaces.first(where: \.isHouseholdDefaultValue) ?? personalSpaces.first
     }
 
     private func syncPersonalCartNameWithParticipant() async {
         guard let account,
-              let personal = personalFamilySpace(for: account),
-              let familyID = personal.id
+            let personal = personalFamilySpace(for: account),
+            let familyID = personal.id
         else { return }
 
         let newName = Self.householdCartName(for: account)

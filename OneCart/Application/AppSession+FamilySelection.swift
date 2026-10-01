@@ -45,18 +45,20 @@ extension AppSession {
         let sharedSpaces = fetchedSpaces.filter { persistence.scope(for: $0) == .shared }
         familySpaces = sharedSpaces.isEmpty ? fetchedSpaces : sharedSpaces
 
-        let storedID = preferredFamilySpaceID
+        let storedID =
+            preferredFamilySpaceID
             ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
             .flatMap(UUID.init(uuidString:))
-        let selected: FamilySpace? = if sharedSpaces.isEmpty {
-            storedID.flatMap { id in
-                fetchedSpaces.first { $0.id == id }
-            } ?? fetchedSpaces.first
-        } else {
-            storedID.flatMap { id in
-                sharedSpaces.first { $0.id == id }
-            } ?? sharedSpaces.first
-        }
+        let selected: FamilySpace? =
+            if sharedSpaces.isEmpty {
+                storedID.flatMap { id in
+                    fetchedSpaces.first { $0.id == id }
+                } ?? fetchedSpaces.first
+            } else {
+                storedID.flatMap { id in
+                    sharedSpaces.first { $0.id == id }
+                } ?? sharedSpaces.first
+            }
 
         activeFamilySpace = selected
         if let selected {

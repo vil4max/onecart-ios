@@ -269,4 +269,3 @@ extension SessionCartMutationTests {
         #expect(afterFresh.categoryValue == .coldDrinks)
     }
 }
-

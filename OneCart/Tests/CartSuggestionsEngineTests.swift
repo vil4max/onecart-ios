@@ -29,7 +29,7 @@ struct CartSuggestionsEngineTests {
     @Test("Excludes items already present in the active cart")
     func excludesCurrentCartItems() {
         let history = ["Молоко", "Хлеб", "Яйца", "Сыр"]
-        let currentCart = ["хлеб", "Сыр"] // Case-insensitive check
+        let currentCart = ["хлеб", "Сыр"]  // Case-insensitive check
 
         let suggestions = CartSuggestionsEngine.suggestions(
             historyItemNames: history,
@@ -147,7 +147,7 @@ struct CartSuggestionsEngineTests {
         let secondFamily = FamilySpace(context: context)
         secondFamily.id = UUID()
         let milkID = UUID()
-        let milkCopies = (0 ..< 3).map { _ in
+        let milkCopies = (0..<3).map { _ in
             makeHistory(in: firstFamily, productID: milkID, name: "Milk", context: context)
         }
         let firstBread = makeHistory(in: firstFamily, productID: UUID(), name: "Bread", context: context)

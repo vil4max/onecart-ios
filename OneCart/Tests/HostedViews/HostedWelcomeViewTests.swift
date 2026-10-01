@@ -67,8 +67,9 @@ struct HostedWelcomeViewTests {
 
         harness.signIn.welcomePhase = .connecting
         #expect(await hosted.pump { hosted.element(identifier: "welcome.connecting") != nil })
-        #expect(hosted.element(identifier: "welcome.connecting")?.label?
-            .contains(String(localized: "welcome.connecting")) == true)
+        #expect(
+            hosted.element(identifier: "welcome.connecting")?.label?
+                .contains(String(localized: "welcome.connecting")) == true)
         #expect(hosted.views(of: ASAuthorizationAppleIDButton.self).isEmpty)
 
         harness.signIn.welcomePhase = .failed("iCloud is unavailable")

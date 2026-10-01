@@ -279,7 +279,7 @@ final class CartActivityDiffTests: XCTestCase {
                 isPurchased: true,
                 createdByName: myName,
                 purchasedByName: partnerName
-            ),
+            )
         ]
 
         let diff = CartActivityDiff.evaluate(

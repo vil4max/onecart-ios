@@ -109,7 +109,7 @@ final class FakeShoppingTripBackend: ShoppingTripActivityBackend {
 
     /// Lets queued work run until `condition` holds; the fake's own tasks run on the main actor.
     func yield(until condition: () -> Bool) async {
-        for _ in 0 ..< 100 where !condition() {
+        for _ in 0..<100 where !condition() {
             await Task.yield()
         }
     }

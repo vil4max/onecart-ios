@@ -146,12 +146,13 @@ final class CartSyncService {
 
     private func waitForCloudImportBestEffort(reason: CartSyncReason) async {
         guard !persistence.inMemory else { return }
-        let nanoseconds: UInt64 = switch reason {
-        case .cloudImport:
-            700_000_000
-        case .pull, .appear, .foreground:
-            250_000_000
-        }
+        let nanoseconds: UInt64 =
+            switch reason {
+            case .cloudImport:
+                700_000_000
+            case .pull, .appear, .foreground:
+                250_000_000
+            }
         try? await Task.sleep(nanoseconds: nanoseconds)
     }
 

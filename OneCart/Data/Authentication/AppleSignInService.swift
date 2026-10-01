@@ -99,7 +99,7 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         if status == errSecSuccess, let data = item as? Data,
-           let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
+            let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
         {
             // Keep only the stable identifier in the App Group backup (no PII).
             defaults.set(credential.userID, forKey: backupKey)

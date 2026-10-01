@@ -15,12 +15,12 @@ public enum OneCartPalette {
 
     private static func storedAccent() -> AppAccentColor {
         if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
-           let accent = AppAccentColor(rawValue: raw)
+            let accent = AppAccentColor(rawValue: raw)
         {
             return accent
         }
         if let raw = UserDefaults.standard.string(forKey: "onecart.accent-color"),
-           let accent = AppAccentColor(rawValue: raw)
+            let accent = AppAccentColor(rawValue: raw)
         {
             return accent
         }
@@ -123,30 +123,32 @@ public enum OneCartPalette {
         light: (CGFloat, CGFloat, CGFloat),
         dark: (CGFloat, CGFloat, CGFloat)
     ) -> Color {
-        Color(UIColor { traits in
-            let components = traits.userInterfaceStyle == .dark ? dark : light
-            return UIColor(
-                red: components.0 / 255,
-                green: components.1 / 255,
-                blue: components.2 / 255,
-                alpha: 1
-            )
-        })
+        Color(
+            UIColor { traits in
+                let components = traits.userInterfaceStyle == .dark ? dark : light
+                return UIColor(
+                    red: components.0 / 255,
+                    green: components.1 / 255,
+                    blue: components.2 / 255,
+                    alpha: 1
+                )
+            })
     }
 
     private static func adaptiveDynamic(
         light: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat),
         dark: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat)
     ) -> Color {
-        Color(UIColor { traits in
-            let accent = currentAccent
-            let components = traits.userInterfaceStyle == .dark ? dark(accent) : light(accent)
-            return UIColor(
-                red: components.0 / 255,
-                green: components.1 / 255,
-                blue: components.2 / 255,
-                alpha: 1
-            )
-        })
+        Color(
+            UIColor { traits in
+                let accent = currentAccent
+                let components = traits.userInterfaceStyle == .dark ? dark(accent) : light(accent)
+                return UIColor(
+                    red: components.0 / 255,
+                    green: components.1 / 255,
+                    blue: components.2 / 255,
+                    alpha: 1
+                )
+            })
     }
 }

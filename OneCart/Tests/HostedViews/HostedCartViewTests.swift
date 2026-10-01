@@ -30,8 +30,9 @@ struct HostedCartViewTests {
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
 
-        #expect(hosted.element(identifier: "home.connecting")?.label?
-            .contains(String(localized: "home.connecting_cart")) == true)
+        #expect(
+            hosted.element(identifier: "home.connecting")?.label?
+                .contains(String(localized: "home.connecting_cart")) == true)
         #expect(await hosted.pump { harness.household.ensureCount == 1 })
         #expect(hosted.element(identifier: "home.retry") == nil)
 
@@ -146,10 +147,12 @@ struct HostedCartViewTests {
         let (_, harness) = try await Self.cartWithLines(purchased: true)
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
-        #expect(hosted.element(identifier: "cart.all_purchased")?.label?
-            .contains(String(localized: "cart.all_purchased_title")) == true)
-        #expect(hosted.element(identifier: "cart.progress")?.label?
-            .contains(String(localized: "cart.all_purchased_title")) == true)
+        #expect(
+            hosted.element(identifier: "cart.all_purchased")?.label?
+                .contains(String(localized: "cart.all_purchased_title")) == true)
+        #expect(
+            hosted.element(identifier: "cart.progress")?.label?
+                .contains(String(localized: "cart.all_purchased_title")) == true)
     }
 
     @Test("REQ-SHELL-010: progress sits at the top of the cart, above the category sections")
@@ -175,10 +178,11 @@ struct HostedCartViewTests {
         #expect(control.label?.contains(String(localized: "trip.start_button")) == true)
         #expect(control.activate())
         #expect(await hosted.pump { harness.trip.startCount == 1 })
-        #expect(await hosted.pump {
-            hosted.element(identifier: "cart.shoppingTrip")?.label?
-                .contains(String(localized: "trip.end_button")) == true
-        })
+        #expect(
+            await hosted.pump {
+                hosted.element(identifier: "cart.shoppingTrip")?.label?
+                    .contains(String(localized: "trip.end_button")) == true
+            })
     }
 
     @Test(
@@ -286,8 +290,9 @@ struct HostedCartViewTests {
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
 
-        #expect(hosted.element(identifier: "cart.read_only")?.label?
-            .contains(String(localized: "cart.read_only_title")) == true)
+        #expect(
+            hosted.element(identifier: "cart.read_only")?.label?
+                .contains(String(localized: "cart.read_only_title")) == true)
         #expect(hosted.element(identifier: "cart.add") == nil)
         #expect(hosted.elements(identifier: "cart.product_toggle").allSatisfy { !$0.isEnabled })
     }

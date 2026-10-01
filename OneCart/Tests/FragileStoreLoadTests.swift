@@ -108,7 +108,7 @@ final class FragileStoreLoadTests: XCTestCase {
             code: NSPersistentStoreIncompatibleVersionHashError,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Das zum Anlegen des Speichers verwendete Modell passt nicht zum aktuellen Modell.",
+                    "Das zum Anlegen des Speichers verwendete Modell passt nicht zum aktuellen Modell."
             ]
         )
         XCTAssertTrue(

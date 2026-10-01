@@ -269,7 +269,7 @@ struct CartViewModelTests {
                 isCurrentUser: true,
                 avatarURL: nil,
                 bannerURL: nil
-            ),
+            )
         ]
 
         #expect(harness.viewModel.sharedCartRemovedMessage == "The shared cart is gone")

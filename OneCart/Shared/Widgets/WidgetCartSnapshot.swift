@@ -64,7 +64,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     public var accentColor: AppAccentColor {
         guard let accentColorRaw else {
             if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
-               let accent = AppAccentColor(rawValue: raw)
+                let accent = AppAccentColor(rawValue: raw)
             {
                 return accent
             }

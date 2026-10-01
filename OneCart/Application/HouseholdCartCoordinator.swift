@@ -168,21 +168,21 @@ final class HouseholdCartCoordinator {
 
     func reconcileProvisionalPersonalCartIfNeeded(for account: OneCartAccount) async throws {
         guard let host, host.account?.id == account.id,
-              !host.isReconcilingPersonalCart, !host.isBusy,
-              host.pendingCartMutationCount == 0,
-              let sourceID = defaults.string(forKey: Self.provisionalFamilyKey(accountID: account.id))
-              .flatMap(UUID.init(uuidString:))
+            !host.isReconcilingPersonalCart, !host.isBusy,
+            host.pendingCartMutationCount == 0,
+            let sourceID = defaults.string(forKey: Self.provisionalFamilyKey(accountID: account.id))
+                .flatMap(UUID.init(uuidString:))
         else { return }
 
         let spaces = try repository.fetchFamilySpaces(for: account.id)
         guard !spaces.contains(where: { persistence.scope(for: $0) == .shared }),
-              let source = spaces.first(where: { $0.id == sourceID }),
-              persistence.scope(for: source) == .private,
-              let sourceDate = source.createdAt
+            let source = spaces.first(where: { $0.id == sourceID }),
+            persistence.scope(for: source) == .private,
+            let sourceDate = source.createdAt
         else { return }
         let candidates = spaces.filter { space in
             guard space.id != sourceID, persistence.scope(for: space) == .private,
-                  let createdAt = space.createdAt
+                let createdAt = space.createdAt
             else { return false }
             return createdAt < sourceDate
         }.sorted { lhs, rhs in
@@ -303,7 +303,7 @@ final class HouseholdCartCoordinator {
         defaults.set(sharedIDs.map(\.uuidString), forKey: knownKey)
 
         if let joinedID = sharedIDs.first(where: { !knownIDs.contains($0.uuidString) }),
-           joinedID != host.activeFamilySpace?.id
+            joinedID != host.activeFamilySpace?.id
         {
             defaults.set(
                 joinedID.uuidString,

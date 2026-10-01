@@ -212,7 +212,7 @@ final class DevicePreferencesTests: XCTestCase {
                     palette.light.0, palette.light.1, palette.light.2,
                     palette.dark.0, palette.dark.1, palette.dark.2,
                 ] {
-                    XCTAssertTrue((0 ... 255).contains(channel), "\(accent.id) \(table.name) channel \(channel)")
+                    XCTAssertTrue((0...255).contains(channel), "\(accent.id) \(table.name) channel \(channel)")
                 }
             }
             // A picked accent must be visible: no two accents may share a colour in any role.

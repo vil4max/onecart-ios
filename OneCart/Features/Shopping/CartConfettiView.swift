@@ -30,11 +30,11 @@ struct CartConfettiView: View {
     private static let palette: [Color] = [
         OneCartPalette.primary,
         OneCartPalette.primaryAccent,
-        Color(red: 0.98, green: 0.75, blue: 0.18), // gold
-        Color(red: 0.32, green: 0.82, blue: 0.58), // mint
-        Color(red: 0.98, green: 0.42, blue: 0.46), // soft coral
-        Color(red: 0.38, green: 0.68, blue: 0.98), // sky blue
-        Color(red: 0.76, green: 0.48, blue: 0.95), // lavender
+        Color(red: 0.98, green: 0.75, blue: 0.18),  // gold
+        Color(red: 0.32, green: 0.82, blue: 0.58),  // mint
+        Color(red: 0.98, green: 0.42, blue: 0.46),  // soft coral
+        Color(red: 0.38, green: 0.68, blue: 0.98),  // sky blue
+        Color(red: 0.76, green: 0.48, blue: 0.95),  // lavender
     ]
 
     var body: some View {
@@ -53,11 +53,13 @@ struct CartConfettiView: View {
 
                                 if dt > 0 {
                                     let currentY = particle.startY + particle.speed * CGFloat(dt)
-                                    let currentX = particle
-                                        .startX + CGFloat(sin(dt * particle.swayFrequency + particle.swayPhase)) *
-                                        particle.swayAmplitude
+                                    let currentX =
+                                        particle
+                                        .startX + CGFloat(sin(dt * particle.swayFrequency + particle.swayPhase))
+                                        * particle.swayAmplitude
                                     let fadeThreshold = max(100, screenHeight - 140)
-                                    let opacity: Double = currentY < fadeThreshold
+                                    let opacity: Double =
+                                        currentY < fadeThreshold
                                         ? 1.0
                                         : max(0.0, Double(1.0 - (currentY - fadeThreshold) / 140.0))
 
@@ -104,21 +106,21 @@ struct CartConfettiView: View {
         let count = 56
         let boundsWidth: CGFloat = max(320, width)
 
-        for index in 0 ..< count {
+        for index in 0..<count {
             let color = Self.palette[index % Self.palette.count]
             let isCircle = index.isMultiple(of: 4)
-            let width = CGFloat.random(in: 7 ... 11)
-            let height = isCircle ? width : CGFloat.random(in: 12 ... 20)
+            let width = CGFloat.random(in: 7...11)
+            let height = isCircle ? width : CGFloat.random(in: 12...20)
 
-            let startX = CGFloat.random(in: 16 ... max(32, boundsWidth - 16))
+            let startX = CGFloat.random(in: 16...max(32, boundsWidth - 16))
             let startY = CGFloat.random(in: -70 ... -15)
-            let speed = CGFloat.random(in: 270 ... 430)
-            let swayFrequency = Double.random(in: 2.2 ... 4.5)
-            let swayAmplitude = CGFloat.random(in: 16 ... 36)
-            let swayPhase = Double.random(in: 0 ... (.pi * 2))
-            let rotationSpeed = Double.random(in: -280 ... 280)
-            let flipSpeed = Double.random(in: 360 ... 900)
-            let delay = Double.random(in: 0.0 ... 0.45)
+            let speed = CGFloat.random(in: 270...430)
+            let swayFrequency = Double.random(in: 2.2...4.5)
+            let swayAmplitude = CGFloat.random(in: 16...36)
+            let swayPhase = Double.random(in: 0...(.pi * 2))
+            let rotationSpeed = Double.random(in: -280...280)
+            let flipSpeed = Double.random(in: 360...900)
+            let delay = Double.random(in: 0.0...0.45)
 
             newParticles.append(
                 ConfettiParticle(

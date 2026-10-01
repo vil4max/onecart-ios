@@ -106,7 +106,7 @@ struct RequirementConstraintTests {
         )
 
         viewModel.shareCart()
-        for _ in 0 ..< 1000 where viewModel.sharePayload == nil {
+        for _ in 0..<1000 where viewModel.sharePayload == nil {
             await Task.yield()
         }
 
@@ -139,12 +139,13 @@ struct RequirementConstraintTests {
         // their name; the rest are private-framework class prefixes.
         let forbidden = ["FamilyControls", "ManagedSettings", "FAFamilyCircle", "FamilyCircle", "FAFamily"]
         let sourcesRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // Tests
-            .deletingLastPathComponent() // OneCart (module sources)
-        let enumerator = try #require(FileManager.default.enumerator(
-            at: sourcesRoot,
-            includingPropertiesForKeys: [.isRegularFileKey]
-        ))
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // OneCart (module sources)
+        let enumerator = try #require(
+            FileManager.default.enumerator(
+                at: sourcesRoot,
+                includingPropertiesForKeys: [.isRegularFileKey]
+            ))
         var scanned = 0
         var hits: [String] = []
         for case let url as URL in enumerator where url.pathExtension == "swift" {

@@ -90,7 +90,8 @@ enum CartIntentNames {
     /// are dropped and a name said twice is added once.
     static func split(_ raw: String) -> [String] {
         var seen = Set<String>()
-        return raw
+        return
+            raw
             .split(whereSeparator: { $0 == "," || $0 == ";" || $0.isNewline })
             .flatMap(splitOnAndWords)
             .filter { !$0.isEmpty && seen.insert(FamilyCartMerge.normalizedProductName($0)).inserted }

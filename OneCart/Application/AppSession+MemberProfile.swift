@@ -20,9 +20,9 @@ extension AppSession {
     /// repository makes repeats free, so callers need not track what was published.
     private func publishMemberProfile() async {
         guard let account,
-              let familyID = activeFamilySpace?.id,
-              persistence.isLoaded,
-              !persistence.accountDeletionRecoveryRequired
+            let familyID = activeFamilySpace?.id,
+            persistence.isLoaded,
+            !persistence.accountDeletionRecoveryRequired
         else { return }
         guard let recordName = await cloudUserIdentity.currentUserRecordName() else { return }
         currentUserRecordName = recordName

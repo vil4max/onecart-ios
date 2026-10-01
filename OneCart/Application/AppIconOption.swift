@@ -88,7 +88,7 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
 public enum AppIconManager {
     public static var current: AppIconOption {
         guard UIApplication.shared.supportsAlternateIcons,
-              let name = UIApplication.shared.alternateIconName
+            let name = UIApplication.shared.alternateIconName
         else {
             return .classic
         }

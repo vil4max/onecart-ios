@@ -95,9 +95,9 @@ enum CloudKitUserFacingError {
         }
 
         if let localized = error as? LocalizedError,
-           let description = localized.errorDescription?.nilIfBlank,
-           !(error is CKError),
-           !looksLikeOpaqueCloudKitCode(description)
+            let description = localized.errorDescription?.nilIfBlank,
+            !(error is CKError),
+            !looksLikeOpaqueCloudKitCode(description)
         {
             return description
         }
@@ -167,7 +167,7 @@ enum CloudKitUserFacingError {
             if let ckError = candidate as? CKError {
                 switch ckError.code {
                 case .networkUnavailable, .networkFailure, .serviceUnavailable, .zoneBusy,
-                     .requestRateLimited, .serverResponseLost:
+                    .requestRateLimited, .serverResponseLost:
                     return true
                 default:
                     break

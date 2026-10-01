@@ -27,16 +27,18 @@ enum FamilyMemberNaming {
             return $0.recordName < $1.recordName
         }
         return ordered.enumerated().map { index, participant in
-            let isCurrent = participant.isCurrentUser
+            let isCurrent =
+                participant.isCurrentUser
                 || participant.recordName == CKCurrentUserDefaultName
                 || participant.recordName == currentUserRecordName
-            let displayName = if isCurrent {
-                account.displayName
-            } else {
-                profileNames[participant.recordName]?.nonBlankMemberName
-                    ?? participant.identityName?.nonBlankMemberName
-                    ?? String(localized: "members.numbered_fallback \(index + 1)")
-            }
+            let displayName =
+                if isCurrent {
+                    account.displayName
+                } else {
+                    profileNames[participant.recordName]?.nonBlankMemberName
+                        ?? participant.identityName?.nonBlankMemberName
+                        ?? String(localized: "members.numbered_fallback \(index + 1)")
+                }
             return FamilyMember(
                 id: FamilyInviteLinkBuilder.stableUUID(for: participant.recordName),
                 displayName: displayName,

@@ -53,7 +53,7 @@ struct CircularLockScreenWidgetView: View {
     var body: some View {
         Gauge(
             value: Double(snapshot.purchasedCount),
-            in: 0 ... Double(max(1, snapshot.totalCount))
+            in: 0...Double(max(1, snapshot.totalCount))
         ) {
             Image(systemName: "cart.fill")
         } currentValueLabel: {
@@ -91,12 +91,14 @@ struct RectangularLockScreenWidgetView: View {
             } else {
                 ForEach(displayItems) { item in
                     HStack(spacing: 6) {
-                        Button(intent: ToggleProductPurchasedIntent(
-                            productID: item.id.uuidString,
-                            accountID: snapshot.accountID?.uuidString ?? "",
-                            familyID: snapshot.familyID?.uuidString ?? "",
-                            isPurchased: !item.isPurchased
-                        )) {
+                        Button(
+                            intent: ToggleProductPurchasedIntent(
+                                productID: item.id.uuidString,
+                                accountID: snapshot.accountID?.uuidString ?? "",
+                                familyID: snapshot.familyID?.uuidString ?? "",
+                                isPurchased: !item.isPurchased
+                            )
+                        ) {
                             Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
                                 .font(.footnote)
                                 .widgetAccentable(item.isPurchased)

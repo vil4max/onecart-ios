@@ -12,7 +12,7 @@ extension FamilySpaceRepository {
             let source = try Self.requireFamilySpace(id: sourceID, in: context)
             let destination = try Self.requireFamilySpace(id: destinationID, in: context)
             guard self.persistence.scope(for: source) == .private,
-                  self.persistence.scope(for: destination) == .private
+                self.persistence.scope(for: destination) == .private
             else { throw RepositoryError.crossShareRelationship }
             guard source.cachedForUserID == accountID, destination.cachedForUserID == accountID else {
                 throw RepositoryError.permissionDenied
@@ -91,7 +91,7 @@ extension FamilySpaceRepository {
             }
             return ["store", "history"].allSatisfy { key in
                 guard object.entity.relationshipsByName[key] != nil,
-                      let related = object.value(forKey: key) as? NSManagedObject
+                    let related = object.value(forKey: key) as? NSManagedObject
                 else { return true }
                 return objectIDs.contains(related.objectID)
             }
@@ -109,9 +109,10 @@ extension FamilySpaceRepository {
         return leftUpdated > rightUpdated
     }
 
-    private static func shouldRestoreAttributes(from source: NSManagedObject,
-                                                onto destination: NSManagedObject) -> Bool
-    {
+    private static func shouldRestoreAttributes(
+        from source: NSManagedObject,
+        onto destination: NSManagedObject
+    ) -> Bool {
         // Tombstones are absorbing: a retry must not revive a destination deletion.
         guard destination.value(forKey: "deletedAt") == nil else { return false }
         if source.value(forKey: "deletedAt") != nil {
@@ -135,7 +136,8 @@ extension FamilySpaceRepository {
             }
             try self.requireUpdatePermission(for: destination)
 
-            let targetList = destination.activeLists.first
+            let targetList =
+                destination.activeLists.first
                 ?? destination.sortedLists.first
             guard let targetList, targetList.id != nil else {
                 throw RepositoryError.listNotFound
@@ -233,10 +235,10 @@ extension FamilySpaceRepository {
         for product in source.sortedProducts {
             let key = FamilyCartMerge.normalizedProductName(product.displayName)
             if let existing = destinationByName[key],
-               FamilyCartMerge.shouldPreferSourceProduct(
-                   sourceUpdatedAt: product.updatedAt,
-                   destinationUpdatedAt: existing.updatedAt
-               )
+                FamilyCartMerge.shouldPreferSourceProduct(
+                    sourceUpdatedAt: product.updatedAt,
+                    destinationUpdatedAt: existing.updatedAt
+                )
             {
                 Self.applyProductFields(from: product, onto: existing, now: now)
                 if let storeID = product.store?.id {

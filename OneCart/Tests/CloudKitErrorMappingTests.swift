@@ -102,7 +102,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             code: CKError.Code.invalidArguments.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Cannot create new type CD_ShoppingList in production schema",
+                    "Cannot create new type CD_ShoppingList in production schema"
             ]
         )
         let mirroring = NSError(
@@ -128,7 +128,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             code: CKError.Code.invalidArguments.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema",
+                    "Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema"
             ]
         )
         let partial = NSError(
@@ -271,7 +271,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
             code: CKError.Code.invalidArguments.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Cannot create or modify field 'CD_createdByName' in record 'CD_Product' in production schema",
+                    "Cannot create or modify field 'CD_createdByName' in record 'CD_Product' in production schema"
             ]
         )
         let partial = NSError(

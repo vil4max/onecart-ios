@@ -76,7 +76,7 @@ extension CloudKitBackendService {
                 throw AccountDeletionResultError.missingZoneResult
             }
             if case let .failure(error) = result,
-               !isIdempotentAccountDeletionFailure(error)
+                !isIdempotentAccountDeletionFailure(error)
             {
                 throw error
             }
@@ -98,14 +98,14 @@ extension CloudKitBackendService {
             depth += 1
             let nsError = current as NSError
             if let partial = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error],
-               !partial.isEmpty
+                !partial.isEmpty
             {
                 queue.append(contentsOf: partial.values)
                 continue
             }
             if let ckError = current as? CKError,
-               let partial = ckError.partialErrorsByItemID,
-               !partial.isEmpty
+                let partial = ckError.partialErrorsByItemID,
+                !partial.isEmpty
             {
                 queue.append(contentsOf: partial.values)
                 continue
@@ -129,8 +129,8 @@ extension CloudKitBackendService {
         if nsError.domain == CKError.errorDomain {
             switch nsError.code {
             case CKError.Code.zoneNotFound.rawValue,
-                 CKError.Code.userDeletedZone.rawValue,
-                 CKError.Code.unknownItem.rawValue:
+                CKError.Code.userDeletedZone.rawValue,
+                CKError.Code.unknownItem.rawValue:
                 return true
             default:
                 break

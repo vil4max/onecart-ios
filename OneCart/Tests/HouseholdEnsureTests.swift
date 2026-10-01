@@ -167,9 +167,11 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, importedID)
         XCTAssertEqual(Set(fixture.session.products.compactMap(\.id)), [localID, remoteID])
         XCTAssertEqual(try fixture.repository.fetchFamilySpace(id: sourceID)?.sortedProducts.first?.id, localID)
-        XCTAssertNil(fixture.defaults.string(forKey: HouseholdCartCoordinator.provisionalFamilyKey(
-            accountID: fixture.account.id
-        )))
+        XCTAssertNil(
+            fixture.defaults.string(
+                forKey: HouseholdCartCoordinator.provisionalFamilyKey(
+                    accountID: fixture.account.id
+                )))
         XCTAssertFalse(fixture.session.isReconcilingPersonalCart)
     }
 
@@ -259,9 +261,11 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         }
 
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)
-        XCTAssertEqual(fixture.defaults.string(forKey: HouseholdCartCoordinator.provisionalFamilyKey(
-            accountID: fixture.account.id
-        )), sourceID?.uuidString)
+        XCTAssertEqual(
+            fixture.defaults.string(
+                forKey: HouseholdCartCoordinator.provisionalFamilyKey(
+                    accountID: fixture.account.id
+                )), sourceID?.uuidString)
         XCTAssertFalse(fixture.session.isReconcilingPersonalCart)
     }
 
@@ -288,10 +292,12 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         } else {
             await session.ensureHouseholdCartIfNeeded()
         }
-        XCTAssertEqual(defaults.string(forKey: HouseholdCartCoordinator.provisionalFamilyKey(accountID: account.id)),
-                       session.activeFamilySpace?.id?.uuidString)
-        return Fixture(persistence: persistence, repository: repository, defaults: defaults,
-                       account: account, session: session)
+        XCTAssertEqual(
+            defaults.string(forKey: HouseholdCartCoordinator.provisionalFamilyKey(accountID: account.id)),
+            session.activeFamilySpace?.id?.uuidString)
+        return Fixture(
+            persistence: persistence, repository: repository, defaults: defaults,
+            account: account, session: session)
     }
 
     private func seedOlderCart(_ fixture: Fixture) async throws -> UUID {

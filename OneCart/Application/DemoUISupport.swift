@@ -25,7 +25,7 @@
             guard isEnabled else { return .owner }
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: roleArgument),
-                  let raw = arguments[safe: index + 1]
+                let raw = arguments[safe: index + 1]
             else {
                 return .owner
             }
@@ -37,7 +37,7 @@
             guard isEnabled else { return nil }
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: tabArgument),
-                  let raw = arguments[safe: index + 1]
+                let raw = arguments[safe: index + 1]
             else {
                 return nil
             }
@@ -51,7 +51,7 @@
             guard isEnabled else { return nil }
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: accentArgument),
-                  let raw = arguments[safe: index + 1]
+                let raw = arguments[safe: index + 1]
             else {
                 return nil
             }
@@ -65,7 +65,7 @@
             guard isEnabled else { return nil }
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: themeArgument),
-                  let raw = arguments[safe: index + 1]
+                let raw = arguments[safe: index + 1]
             else {
                 return nil
             }

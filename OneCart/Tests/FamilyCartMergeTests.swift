@@ -317,7 +317,7 @@ final class PersonalCartContentRestoreTests: XCTestCase {
         try await repository.togglePurchased(id: completedID, participantDisplayName: "Shopper")
         let remoteID = try await repository.addProduct(to: destinationListID, draft: productDraft(name: "Bread"))
 
-        for _ in 0 ..< 2 {
+        for _ in 0..<2 {
             let restored = try await repository.restoreProvisionalPersonalContent(
                 from: sourceID, into: destinationID, accountID: accountID
             )
@@ -338,16 +338,20 @@ final class PersonalCartContentRestoreTests: XCTestCase {
         XCTAssertEqual(original.sortedHistory.first?.id, historyID)
         XCTAssertNil(original.deletedAt)
 
-        try await repository.updateProduct(id: firstID, familySpaceID: destinationID,
-                                           draft: productDraft(name: "Destination edit"))
+        try await repository.updateProduct(
+            id: firstID, familySpaceID: destinationID,
+            draft: productDraft(name: "Destination edit"))
         await persistence.container.viewContext.perform { persistence.container.viewContext.processPendingChanges() }
-        XCTAssertEqual(try repository.fetchFamilySpace(id: destinationID)?.sortedProducts.first { $0.id == firstID }?
-            .displayName, "Destination edit")
-        XCTAssertEqual(try repository.fetchFamilySpace(id: sourceID)?.sortedProducts.first { $0.id == firstID }?
-            .displayName, "Bread")
+        XCTAssertEqual(
+            try repository.fetchFamilySpace(id: destinationID)?.sortedProducts.first { $0.id == firstID }?
+                .displayName, "Destination edit")
+        XCTAssertEqual(
+            try repository.fetchFamilySpace(id: sourceID)?.sortedProducts.first { $0.id == firstID }?
+                .displayName, "Bread")
         let request = ProductEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "familySpace.id == %@ AND id == %@", destinationID as NSUUID,
-                                        historyProductID as NSUUID)
+        request.predicate = NSPredicate(
+            format: "familySpace.id == %@ AND id == %@", destinationID as NSUUID,
+            historyProductID as NSUUID)
         XCTAssertNotNil(try persistence.container.viewContext.fetch(request).first?.deletedAt)
     }
 

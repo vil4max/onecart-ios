@@ -81,12 +81,12 @@ extension FamilySpaceRepository {
             // Rename into an existing living row merges instead of duplicating:
             // the edited duplicate is tombstoned, the earlier row stays visible.
             if let listID = product.list?.id,
-               let collision = try Self.fetchLiveProduct(
-                   normalizedName: wantedKey,
-                   listID: listID,
-                   excludingID: id,
-                   in: context
-               )
+                let collision = try Self.fetchLiveProduct(
+                    normalizedName: wantedKey,
+                    listID: listID,
+                    excludingID: id,
+                    in: context
+                )
             {
                 try self.requireDeletePermission(for: product)
                 product.deletedAt = now
@@ -134,7 +134,8 @@ extension FamilySpaceRepository {
             let nextValue = !product.isPurchasedValue
             product.isPurchased = NSNumber(value: nextValue)
             product.purchasedAt = nextValue ? now : nil
-            product.purchasedByName = nextValue
+            product.purchasedByName =
+                nextValue
                 ? participantDisplayName?.trimmedNilIfEmpty
                 : nil
             product.updatedAt = now
@@ -261,8 +262,11 @@ extension FamilySpaceRepository {
             let names = Set(
                 unarchived.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
             ).sorted()
-            history.memberNames = names.isEmpty ? String(localized: "common.default_group") : names
-                .joined(separator: ", ")
+            history.memberNames =
+                names.isEmpty
+                ? String(localized: "common.default_group")
+                : names
+                    .joined(separator: ", ")
 
             for product in unarchived {
                 let item = HistoryItemEntity(context: context)
@@ -329,7 +333,7 @@ extension FamilySpaceRepository {
             NSPredicate(format: "deletedAt == nil"),
         ])
         request.sortDescriptors = [
-            NSSortDescriptor(key: "createdAt", ascending: false),
+            NSSortDescriptor(key: "createdAt", ascending: false)
         ]
         request.relationshipKeyPathsForPrefetching = ["list", "store"]
         return try context.fetch(request)

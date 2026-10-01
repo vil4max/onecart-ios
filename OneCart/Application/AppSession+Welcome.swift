@@ -88,7 +88,7 @@ extension AppSession {
             bootstrapper.disarmStoreWipe()
             needsWelcome = true
             if let localized = error as? LocalizedError,
-               let description = localized.errorDescription?.nilIfBlank
+                let description = localized.errorDescription?.nilIfBlank
             {
                 welcomePhase = .failed(description)
             } else {

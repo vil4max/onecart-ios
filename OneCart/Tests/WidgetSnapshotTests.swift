@@ -94,11 +94,12 @@ final class WidgetSnapshotTests: XCTestCase {
     func test_REQ_WIDGET_010_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() throws {
         let store = try makeWidgetStore().store
         let id = UUID()
-        store.save(snapshot: WidgetCartSnapshot(
-            cartTitle: "Family", totalCount: 15, purchasedCount: 10,
-            isSyncing: false, lastUpdated: Date(), familyMemberCount: 1,
-            items: [WidgetItemSnapshot(id: id, name: "Milk", isPurchased: false, categoryRaw: "dairyEggs")]
-        ))
+        store.save(
+            snapshot: WidgetCartSnapshot(
+                cartTitle: "Family", totalCount: 15, purchasedCount: 10,
+                isSyncing: false, lastUpdated: Date(), familyMemberCount: 1,
+                items: [WidgetItemSnapshot(id: id, name: "Milk", isPurchased: false, categoryRaw: "dairyEggs")]
+            ))
         XCTAssertTrue(store.toggleItem(id: id))
         XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 11)
         XCTAssertEqual(store.loadSnapshot()?.remainingCount, 4)
@@ -239,22 +240,24 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.accentColor, .berry)
 
         // Snapshot without accentColorRaw (legacy) falls back gracefully to emerald
-        let legacyJson = Data("""
-        {
-            "cartTitle": "Legacy",
-            "totalCount": 0,
-            "purchasedCount": 0,
-            "isSyncing": false,
-            "lastUpdated": 0,
-            "familyMemberCount": 1,
-            "items": []
-        }
-        """.utf8)
+        let legacyJson = Data(
+            """
+            {
+                "cartTitle": "Legacy",
+                "totalCount": 0,
+                "purchasedCount": 0,
+                "isSyncing": false,
+                "lastUpdated": 0,
+                "familyMemberCount": 1,
+                "items": []
+            }
+            """.utf8)
         let legacyDecoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: legacyJson)
         XCTAssertNil(legacyDecoded.accentColorRaw)
-        let expectedFallback = AppAccentColor(
-            rawValue: OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color") ?? ""
-        ) ?? .emerald
+        let expectedFallback =
+            AppAccentColor(
+                rawValue: OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color") ?? ""
+            ) ?? .emerald
         XCTAssertEqual(legacyDecoded.accentColor, expectedFallback)
     }
 
@@ -272,8 +275,9 @@ final class WidgetSnapshotTests: XCTestCase {
 }
 
 extension WidgetSnapshotTests {
-    func test_REQ_WIDGET_020_pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement(
-    ) throws {
+    func test_REQ_WIDGET_020_pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement()
+        throws
+    {
         let fixture = try makeWidgetStore()
         let first = WidgetPurchaseRequest(accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true)
         let second = WidgetPurchaseRequest(
@@ -285,10 +289,11 @@ extension WidgetSnapshotTests {
         let reopened = WidgetSnapshotStore(suiteName: fixture.suite, pendingDirectoryURL: fixture.directory)
 
         XCTAssertEqual(try reopened.pendingPurchases(), [first, second])
-        try reopened.enqueuePurchase(WidgetPurchaseRequest(
-            id: first.id, accountID: first.accountID, familyID: first.familyID,
-            productID: first.productID, isPurchased: true, createdAt: second.createdAt
-        ))
+        try reopened.enqueuePurchase(
+            WidgetPurchaseRequest(
+                id: first.id, accountID: first.accountID, familyID: first.familyID,
+                productID: first.productID, isPurchased: true, createdAt: second.createdAt
+            ))
         XCTAssertEqual(try reopened.pendingPurchases(), [first, second])
         try reopened.acknowledgePurchase(id: first.id)
         XCTAssertEqual(try fixture.store.pendingPurchases(), [second])
@@ -400,16 +405,20 @@ extension WidgetSnapshotTests {
         try await fixture.session.performWidgetPurchase(fixture.request())
 
         XCTAssertEqual(try fixture.store.pendingPurchases(), [first, second])
-        XCTAssertTrue(try XCTUnwrap(fetchProduct(
-            id: fixture.productID, repository: fixture.session.repository
-        )).isPurchasedValue)
+        XCTAssertTrue(
+            try XCTUnwrap(
+                fetchProduct(
+                    id: fixture.productID, repository: fixture.session.repository
+                )
+            ).isPurchasedValue)
         try await fixture.session.repository.addProduct(
             to: fixture.listID, id: missingID, draft: productDraft(name: "Late import")
         )
         try await fixture.session.persistence.performBackgroundTask { context in
-            let imported = try XCTUnwrap(FamilySpaceRepository.fetchProduct(
-                id: missingID, familySpaceID: familyID, in: context
-            ))
+            let imported = try XCTUnwrap(
+                FamilySpaceRepository.fetchProduct(
+                    id: missingID, familySpaceID: familyID, in: context
+                ))
             imported.updatedAt = first.createdAt.addingTimeInterval(-1)
         }
 
@@ -450,9 +459,12 @@ extension WidgetSnapshotTests {
                 XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
             }
         }
-        XCTAssertFalse(try XCTUnwrap(fetchProduct(
-            id: fixture.productID, repository: fixture.session.repository
-        )).isPurchasedValue)
+        XCTAssertFalse(
+            try XCTUnwrap(
+                fetchProduct(
+                    id: fixture.productID, repository: fixture.session.repository
+                )
+            ).isPurchasedValue)
     }
 
     func test_REQ_WIDGET_020_start_withDurableWidgetCommand_appliesItWithoutForegroundTransition() async throws {
@@ -460,9 +472,10 @@ extension WidgetSnapshotTests {
         let purchasedAt = Date().addingTimeInterval(-86400)
         let request = fixture.request(createdAt: purchasedAt)
         try await fixture.session.persistence.performBackgroundTask { context in
-            let product = try XCTUnwrap(FamilySpaceRepository.fetchProduct(
-                id: request.productID, familySpaceID: request.familyID, in: context
-            ))
+            let product = try XCTUnwrap(
+                FamilySpaceRepository.fetchProduct(
+                    id: request.productID, familySpaceID: request.familyID, in: context
+                ))
             product.updatedAt = purchasedAt.addingTimeInterval(-1)
         }
         try fixture.store.enqueuePurchase(request)
@@ -471,9 +484,10 @@ extension WidgetSnapshotTests {
         await fixture.session.start()
 
         XCTAssertEqual(fixture.session.account?.id, fixture.accountID)
-        let product = try XCTUnwrap(fetchProduct(
-            id: fixture.productID, repository: fixture.session.repository
-        ))
+        let product = try XCTUnwrap(
+            fetchProduct(
+                id: fixture.productID, repository: fixture.session.repository
+            ))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.purchasedAt, purchasedAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -588,9 +602,10 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
     func test_clear_removesWidgetSnapshotAndPendingPurchases() throws {
         let fixture = try makeWidgetStore()
         fixture.store.save(snapshot: .placeholder)
-        try fixture.store.enqueuePurchase(WidgetPurchaseRequest(
-            accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true
-        ))
+        try fixture.store.enqueuePurchase(
+            WidgetPurchaseRequest(
+                accountID: UUID(), familyID: UUID(), productID: UUID(), isPurchased: true
+            ))
 
         try fixture.store.clear()
 

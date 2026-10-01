@@ -153,7 +153,7 @@ final class AccountViewModel {
                 isCurrentUser: true,
                 avatarURL: account.avatarURL,
                 bannerURL: account.bannerURL
-            ),
+            )
         ]
     }
 

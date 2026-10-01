@@ -220,8 +220,7 @@ final class FamilySpaceRepository: Sendable {
                 store.updatedAt = now
             }
             for entry in (space.historyEntries?.allObjects as? [PurchaseHistoryEntity] ?? [])
-                where entry.deletedAt == nil
-            {
+            where entry.deletedAt == nil {
                 entry.deletedAt = now
                 entry.updatedAt = now
             }

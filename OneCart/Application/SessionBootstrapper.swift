@@ -158,17 +158,18 @@ final class SessionBootstrapper {
                 host.installCloudObservers()
             }
 
-            let restoredAccount: OneCartAccount = if persistence.accountDeletionRecoveryRequired {
-                OneCartAccount(
-                    id: appleCredential.accountID,
-                    displayName: preferredName ?? String(localized: "common.default_user")
-                )
-            } else {
-                try await backend.restoredAccount(
-                    appleUserID: appleCredential.userID,
-                    displayName: preferredName
-                )
-            }
+            let restoredAccount: OneCartAccount =
+                if persistence.accountDeletionRecoveryRequired {
+                    OneCartAccount(
+                        id: appleCredential.accountID,
+                        displayName: preferredName ?? String(localized: "common.default_user")
+                    )
+                } else {
+                    try await backend.restoredAccount(
+                        appleUserID: appleCredential.userID,
+                        displayName: preferredName
+                    )
+                }
             let account = OneCartAccount(
                 id: restoredAccount.id,
                 displayName: ParticipantDisplayName.displayOrPlaceholder(

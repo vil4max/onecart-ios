@@ -52,7 +52,7 @@ final class StableIDTests: XCTestCase {
 
         try await persistence.performBackgroundTask { context in
             guard let family = try Self.fetchFamilySpace(id: familyID, in: context),
-                  let list = try Self.fetchList(id: listID, in: context)
+                let list = try Self.fetchList(id: listID, in: context)
             else {
                 throw RepositoryError.familySpaceNotFound
             }

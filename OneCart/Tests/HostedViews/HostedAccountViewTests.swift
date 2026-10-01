@@ -73,8 +73,9 @@ struct HostedAccountViewTests {
         #expect(hosted.element(identifier: "account.leave_cart") == nil)
 
         #expect(hosted.element(identifier: "account.share_cart")?.label == String(localized: "account.share_cart"))
-        #expect(hosted.element(identifier: "account.revoke_invite")?
-            .label == String(localized: "account.revoke_invite"))
+        #expect(
+            hosted.element(identifier: "account.revoke_invite")?
+                .label == String(localized: "account.revoke_invite"))
 
         #expect(hosted.element(identifier: "account.display_name")?.label == "Alex")
         #expect(hosted.element(identifier: "account.sign_out")?.label == String(localized: "account.sign_out"))
@@ -82,9 +83,10 @@ struct HostedAccountViewTests {
         // language picker; one row opens the app's page in the system Settings.
         #expect(!hosted.containsLabel(String(localized: "accent.berry")))
         #expect(!hosted.containsLabel(String(localized: "theme.dark")))
-        #expect(await hosted.pump {
-            AppIconOption.allCases.allSatisfy { hosted.element(label: $0.title) != nil }
-        })
+        #expect(
+            await hosted.pump {
+                AppIconOption.allCases.allSatisfy { hosted.element(label: $0.title) != nil }
+            })
         for option in AppIconOption.allCases {
             let icon = try #require(hosted.element(label: option.title))
             #expect(icon.isSelected == (option == harness.isolated.preferences.appIcon))
@@ -105,12 +107,15 @@ struct HostedAccountViewTests {
         #expect(deleteAccount.label == String(localized: "account.delete_account"))
         // REQ-SHELL-060: the about footer carries the user-facing name.
         #expect(hosted.element(identifier: "account.app_name")?.label == "OneCart Family")
-        #expect(hosted.element(identifier: "account.version")?.label?
-            .contains(harness.viewModel.appVersion.version) == true)
+        #expect(
+            hosted.element(identifier: "account.version")?.label?
+                .contains(harness.viewModel.appVersion.version) == true)
         #expect(await hosted.pump { harness.membership.refreshAccountSharingCount == 1 })
         // REQ-HIST-050: Settings has no History control either.
-        #expect(!hosted.buttons
-            .contains { $0.label?.localizedCaseInsensitiveContains(String(localized: "history.nav_title")) == true })
+        #expect(
+            !hosted.buttons
+                .contains { $0.label?.localizedCaseInsensitiveContains(String(localized: "history.nav_title")) == true }
+        )
     }
 
     @Test("REQ-SHELL-030: a member's Settings offers Leave, keeps Share, and hides Rename and Revoke")
@@ -189,10 +194,11 @@ struct HostedAccountViewTests {
         #expect(await hosted.pump { hosted.element(identifier: "account.share_cart")?.isEnabled == true })
 
         harness.state.isDeletingAccount = true
-        #expect(await hosted.pump {
-            hosted.scrollToBottom()
-            return hosted.element(identifier: "account.delete_account")?.isEnabled == false
-        })
+        #expect(
+            await hosted.pump {
+                hosted.scrollToBottom()
+                return hosted.element(identifier: "account.delete_account")?.isEnabled == false
+            })
 
         let icon = try #require(hosted.element(label: AppIconOption.ocean.title))
         #expect(icon.activate())

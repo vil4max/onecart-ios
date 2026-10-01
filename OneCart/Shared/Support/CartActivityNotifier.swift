@@ -140,8 +140,9 @@ public enum CartActivityNotifier {
         guard diff.shouldNotify else { return }
 
         notificationCenter.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized
-                || settings.authorizationStatus == .provisional
+            guard
+                settings.authorizationStatus == .authorized
+                    || settings.authorizationStatus == .provisional
             else { return }
 
             for event in diff.events {
@@ -195,7 +196,7 @@ public enum CartActivityNotifier {
 
     private static func loadStoredSnapshot(cartID: UUID, defaults: UserDefaults) -> [CartItemSnapshot] {
         guard let data = defaults.data(forKey: snapshotKey(cartID: cartID)),
-              let items = try? JSONDecoder().decode([CartItemSnapshot].self, from: data)
+            let items = try? JSONDecoder().decode([CartItemSnapshot].self, from: data)
         else {
             return []
         }

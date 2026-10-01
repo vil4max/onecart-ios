@@ -8,7 +8,8 @@ extension PersistenceController {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
         let stamp = formatter.string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        let diagnosticsRoot = storeDirectoryURL
+        let diagnosticsRoot =
+            storeDirectoryURL
             .appendingPathComponent("OneCart-diagnostics", isDirectory: true)
             .appendingPathComponent(stamp, isDirectory: true)
         try FileManager.default.createDirectory(
@@ -93,12 +94,14 @@ extension PersistenceController {
             let isDebugProcess = false
         #endif
 
-        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(
-            previous: previous,
-            current: current,
-            storeFilesExist: storeFilesExist,
-            isDebugProcess: isDebugProcess
-        ) else { return }
+        guard
+            Self.shouldWipeLocalStoresForCloudKitEnvironment(
+                previous: previous,
+                current: current,
+                storeFilesExist: storeFilesExist,
+                isDebugProcess: isDebugProcess
+            )
+        else { return }
 
         logger.error(
             // swiftlint:disable:next line_length
@@ -122,10 +125,12 @@ extension PersistenceController {
 
     static func oneCartStoreFilesExist(in directory: URL) -> Bool {
         let fileManager = FileManager.default
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        ) else { return false }
+        guard
+            let contents = try? fileManager.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: nil
+            )
+        else { return false }
         return contents.contains { url in
             let name = url.lastPathComponent.lowercased()
             guard name.hasPrefix("onecart-") else { return false }
@@ -135,10 +140,12 @@ extension PersistenceController {
 
     static func removeAllOneCartStoreFiles(in directory: URL) {
         let fileManager = FileManager.default
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        ) else { return }
+        guard
+            let contents = try? fileManager.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: nil
+            )
+        else { return }
 
         for url in contents {
             let name = url.lastPathComponent.lowercased()

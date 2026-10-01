@@ -45,11 +45,12 @@ struct ShoppingTripActivityTests {
         item("Milk"), item("Bread"), item("Eggs"), item("Cheese"), item("Apples", purchased: true),
     ])
 
-    private static let allBoughtSnapshot = snapshot(items: shoppingSnapshot.items.map { item in
-        var bought = item
-        bought.isPurchased = true
-        return bought
-    })
+    private static let allBoughtSnapshot = snapshot(
+        items: shoppingSnapshot.items.map { item in
+            var bought = item
+            bought.isPurchased = true
+            return bought
+        })
 
     private static func makeController(
         backend: FakeShoppingTripBackend = FakeShoppingTripBackend()
@@ -243,9 +244,12 @@ struct ShoppingTripActivityTests {
 
         let ended = try #require(backend.ended.first)
         #expect(ended.state?.isAllPurchased == true)
-        #expect(ended.dismissal == .after(Self.fixedNow.addingTimeInterval(
-            ShoppingTripActivityController.completedDismissalDelay
-        )))
+        #expect(
+            ended.dismissal
+                == .after(
+                    Self.fixedNow.addingTimeInterval(
+                        ShoppingTripActivityController.completedDismissalDelay
+                    )))
         #expect(!controller.isActive)
     }
 

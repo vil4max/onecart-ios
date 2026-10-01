@@ -313,7 +313,8 @@ struct AccountView: View {
     }
 
     private var aboutFooter: some View {
-        Section {} footer: {
+        Section {
+        } footer: {
             VStack(spacing: 2) {
                 Text("common.app_name")
                     .accessibilityIdentifier("account.app_name")

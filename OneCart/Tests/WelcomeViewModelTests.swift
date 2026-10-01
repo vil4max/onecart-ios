@@ -42,10 +42,11 @@ struct WelcomeViewModelTests {
         viewModel.reportSignInFailure(DescribedError())
         viewModel.reportSignInFailure(PlainError())
 
-        #expect(signIn.reportedFailures == [
-            "iCloud is unavailable",
-            String(localized: "welcome.sign_in_failed"),
-        ])
+        #expect(
+            signIn.reportedFailures == [
+                "iCloud is unavailable",
+                String(localized: "welcome.sign_in_failed"),
+            ])
         #expect(viewModel.phase == .failed(String(localized: "welcome.sign_in_failed")))
     }
 

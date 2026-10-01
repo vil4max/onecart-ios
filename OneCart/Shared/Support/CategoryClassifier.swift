@@ -70,26 +70,26 @@ struct CompositeCategoryClassifier: CategoryClassifying {
             return await withTimeout(nanoseconds: timeoutNanoseconds) {
                 let session = LanguageModelSession(
                     instructions: """
-                    You classify grocery shopping-list item names into exactly one Metro-style category.
-                    Categories:
-                    - meatPoultry: meat, poultry, sausages, ham
-                    - fishSeafood: fish, seafood, shrimp, caviar
-                    - dairyEggs: milk, cheese, yogurt, butter, eggs
-                    - grocery: cereals, pasta, flour, sugar, salt, porridge
-                    - oilCanned: cooking oil, vinegar, canned food
-                    - produce: fruits, vegetables, greens, berries
-                    - frozen: frozen food, ice cream, dumplings
-                    - bakery: bread, lavash, bakery goods (not sweets)
-                    - saucesSpices: sauces, ketchup, mayo, spices
-                    - alcohol: beer, wine, spirits
-                    - coldDrinks: water, juice, soda, soft drinks
-                    - hotDrinks: tea, coffee, cocoa
-                    - sweetsSnacks: candy, chocolate, cookies, chips, snacks
-                    - babyFood: baby food, infant formula
-                    - household: cleaning and non-food household goods
-                    - other: anything else or unsure
-                    Respond with the category only via structured output.
-                    """
+                        You classify grocery shopping-list item names into exactly one Metro-style category.
+                        Categories:
+                        - meatPoultry: meat, poultry, sausages, ham
+                        - fishSeafood: fish, seafood, shrimp, caviar
+                        - dairyEggs: milk, cheese, yogurt, butter, eggs
+                        - grocery: cereals, pasta, flour, sugar, salt, porridge
+                        - oilCanned: cooking oil, vinegar, canned food
+                        - produce: fruits, vegetables, greens, berries
+                        - frozen: frozen food, ice cream, dumplings
+                        - bakery: bread, lavash, bakery goods (not sweets)
+                        - saucesSpices: sauces, ketchup, mayo, spices
+                        - alcohol: beer, wine, spirits
+                        - coldDrinks: water, juice, soda, soft drinks
+                        - hotDrinks: tea, coffee, cocoa
+                        - sweetsSnacks: candy, chocolate, cookies, chips, snacks
+                        - babyFood: baby food, infant formula
+                        - household: cleaning and non-food household goods
+                        - other: anything else or unsure
+                        Respond with the category only via structured output.
+                        """
                 )
                 let response = try await session.respond(
                     to: "Classify this grocery item name: \(trimmed)",

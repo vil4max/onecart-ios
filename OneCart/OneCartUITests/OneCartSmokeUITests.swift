@@ -158,7 +158,7 @@ private extension XCUIApplication {
         if element.waitForExistence(timeout: 3) {
             return true
         }
-        for _ in 0 ..< maxSwipes {
+        for _ in 0..<maxSwipes {
             swipeUp()
             if element.waitForExistence(timeout: 2) {
                 return true

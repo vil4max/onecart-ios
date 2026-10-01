@@ -38,7 +38,7 @@ enum FamilyInviteLinkBuilder {
         // Fast path: reuse an existing share URL only after the invite door is
         // confirmed open (Revoke sets publicPermission=.none; Share must reopen it).
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
-           let url = existing.url
+            let url = existing.url
         {
             try await ensureInviteDoorOpen(existing, persistence: persistence)
             return FamilyInviteLink(
@@ -58,7 +58,7 @@ enum FamilyInviteLinkBuilder {
         )
 
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
-           let url = existing.url
+            let url = existing.url
         {
             try await ensureInviteDoorOpen(existing, persistence: persistence)
             return FamilyInviteLink(
@@ -130,15 +130,16 @@ enum FamilyInviteLinkBuilder {
         attempts: Int = 3
     ) async throws -> CKShare {
         var lastError: Error = OneCartCloudKitError.stillSyncing
-        for attempt in 0 ..< attempts {
+        for attempt in 0..<attempts {
             try Task.checkCancellation()
             if attempt > 0 {
                 try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
-                let delayNanoseconds = if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
-                    UInt64(seconds * 1_000_000_000)
-                } else {
-                    UInt64(800_000_000 * attempt)
-                }
+                let delayNanoseconds =
+                    if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
+                        UInt64(seconds * 1_000_000_000)
+                    } else {
+                        UInt64(800_000_000 * attempt)
+                    }
                 try await Task.sleep(nanoseconds: delayNanoseconds)
             }
             do {
@@ -160,8 +161,8 @@ enum FamilyInviteLinkBuilder {
         if let ckError = error as? CKError {
             switch ckError.code {
             case .zoneBusy, .serviceUnavailable, .requestRateLimited, .serverResponseLost,
-                 .networkUnavailable, .networkFailure, .notAuthenticated,
-                 .accountTemporarilyUnavailable, .partialFailure:
+                .networkUnavailable, .networkFailure, .notAuthenticated,
+                .accountTemporarilyUnavailable, .partialFailure:
                 return true
             default:
                 break

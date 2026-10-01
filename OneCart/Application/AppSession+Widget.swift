@@ -22,7 +22,7 @@ extension AppSession {
     /// cart it is the empty snapshot, whose missing IDs end a running trip.
     func makeWidgetSnapshot(theme activeTheme: AppTheme, accent activeAccent: AppAccentColor) -> WidgetCartSnapshot {
         guard let accountID = account?.id, let familyID = activeFamilySpace?.id,
-              let list = activeLists.first ?? lists.first
+            let list = activeLists.first ?? lists.first
         else {
             return WidgetCartSnapshot(
                 cartTitle: "OneCart Family",

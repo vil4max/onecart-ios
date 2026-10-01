@@ -36,7 +36,7 @@ enum MemberProfileNames {
         var newest: [String: MemberProfileEntity] = [:]
         for profile in profiles where !profile.isDeletedValue {
             guard let recordName = profile.userRecordName?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !recordName.isEmpty
+                !recordName.isEmpty
             else { continue }
             if let current = newest[recordName], !isPreferred(profile, over: current) {
                 continue

@@ -38,7 +38,7 @@ final class HistoryPaginationTests: XCTestCase {
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID), "The fixture family space must exist")
 
         let now = Date()
-        for index in 0 ..< entryCount {
+        for index in 0..<entryCount {
             let entry = PurchaseHistoryEntity(context: context)
             try persistence.assign(entry, toSameStoreAs: space, in: context)
             entry.id = UUID()
