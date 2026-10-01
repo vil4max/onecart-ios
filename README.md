@@ -24,6 +24,14 @@ Family; version 1.7.0 is in TestFlight.
   [decision records](docs/decisions/), and every step is in the
   [commit history](https://github.com/vil4max/onecart-ios/commits/main).
 
+### Follow one requirement
+
+1. Requirement: `REQ-AUTH-080`, "Failed cloud deletion", in [docs/requirements/product.md](docs/requirements/product.md) (line 340): status approved; its row in the [coverage matrix](docs/requirements/product.md#coverage) (line 480) names the tests.
+2. Tests: [OneCart/Tests/AccountDeletionTests.swift](OneCart/Tests/AccountDeletionTests.swift), test names that carry `REQ_AUTH_080`.
+3. Hosted CI: the [Tests run of 2026-10-01](https://github.com/vil4max/onecart-ios/actions/runs/36840704958); its log shows the `AccountDeletionTests` suite passing. Run logs need a signed-in GitHub account.
+
+The tools that check the requirement trace and the task briefs, the process rules and the decision log are private; ids such as `KIT-D-NNN` in docs and commit messages refer to that private decision log. The requirement-to-test matrix is kept in the requirements file and is not checked by CI.
+
 **Stack:** Swift 6, SwiftUI, Core Data with CloudKit (private and shared stores, `CKShare`
 invites), WidgetKit, Live Activities, App Intents, Foundation Models; iOS 27+, iPhone.
 
