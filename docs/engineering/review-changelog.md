@@ -138,7 +138,7 @@ Product: `OneCart/`. Docs index: [docs/README.md](../README.md). Tooling configs
 
 ## Follow-ups (explicitly not in this PR)
 
-Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with `Tooling/backend/` (historical RC paths that say `HostBuild/` are obsolete). Feature Account UI lives under `OneCart/Features/Account/` (not `Settings/` / `MoreView`). Style configs `Tooling/.swiftlint.yml` / `.swiftformat` are **app-owned** (see `Tooling/docs/style-config.md`).
+Living note (Runtime / Global Order): harness slice is `Tooling/` **0.2.2** with `Tooling/backend/` (historical RC paths that say `HostBuild/` are obsolete). Feature Account UI lives under `OneCart/Features/Account/` (not `Settings/` / `MoreView`). Style configs `Tooling/.swiftlint.yml` / `Tooling/.swift-format` are **app-owned** (see `Tooling/docs/style-config.md`).
 
 - FU01 Multi-cart UI (personal + N invited)
   - One durable personal cart + N invited shared carts in a switcher

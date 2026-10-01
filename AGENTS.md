@@ -79,7 +79,7 @@ workflows are the Runtime's shared templates, identical in every app: [`Tooling/
 
 Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
 
-Style: `Tooling/.swiftlint.yml` and `Tooling/.swiftformat` are managed by the Runtime on the shared pipeline and identical in every iOS app; `just baseline` fails on drift — see [`Tooling/docs/style-config.md`](Tooling/docs/style-config.md).
+Style: `Tooling/.swiftlint.yml` and `Tooling/.swift-format` (Apple's swift-format, which ships with the Xcode toolchain) are managed by the Runtime on the shared pipeline and identical in every iOS app; `just baseline` fails on drift — see [`Tooling/docs/style-config.md`](Tooling/docs/style-config.md).
 
 ```yaml
 scheme: OneCart
