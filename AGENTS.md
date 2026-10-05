@@ -22,7 +22,7 @@ with the behavior it describes. Exclude personal notes, internal handoffs,
 machine-specific paths, and unsupported claims.
 <!-- /repository-visibility-policy -->
 
-Project facts only. Shared agent behavior: `${VIL4KIT_ROOT:-$HOME/vil4kit}/portable/AGENT_BEHAVIOR.md`.
+Project facts only. Shared agent behavior: `${VIL4KIT_ROOT:-$HOME/vil4kit}/harness/portable/AGENT_BEHAVIOR.md`.
 
 ## Project
 
