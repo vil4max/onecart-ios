@@ -1,12 +1,9 @@
-# Lessons
+# Regression notes
 
-Record a lesson only when a failure changed a spec, a requirement, a decision,
-the core, or agent instructions. Name the check that now catches it. Earlier
-review findings with regression evidence:
-[engineering/review-changelog.md](engineering/review-changelog.md).
+A note is recorded when a failure changed a spec, a requirement, a decision or the core,
+and it names the check that now catches the failure.
 
 | Date | Failure | Layer changed | Check that now catches it | Replay |
 |---|---|---|---|---|
 | 2026-09-21 | The store-wipe gate classified Core Data failures by matching English words in a localized message, so on a non-English device Retry never recovered, while an unrelated Cocoa error from a later bootstrap step could destroy both stores | `architecture.md` F2: the wipe is armed only by a failure of `persistence.load()` itself, classified by `NSCocoaErrorDomain` code | `FragileStoreLoadTests.test_REQ_AUTH_010_wrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure`, `test_REQ_AUTH_010_postLoadCocoaSaveErrorDoesNotArmHardReset` | Wrap a Cocoa store-load error in `PersistenceError.loadFailed` with a non-English description; it must classify |
 | 2026-09-21 | After a partial store load, retrying in the same process failed with Cocoa 134081, so a user who hit a transient failure had to relaunch the app | `architecture.md` F11 added | `FragileStoreLoadTests.test_REQ_AUTH_080_partialLoadFailureAllowsRetryInSameProcess` | Fail one of the two stores, retry `load()` in the same process |
-| 2026-09-21 | `just verify` failed on files the repository does not own: SwiftLint walked build output inside `.claude/worktrees/**`, so a parallel agent's generated sources broke the gate | App-owned lint configuration: `Tooling/.swiftlint.yml` now excludes `.claude` | `just lint` no longer walks agent worktrees; the Runtime default is reported to `agent-engineering-kit` separately | Build inside a worktree under `.claude/worktrees/` with derived data in the repository, then run `just lint` |

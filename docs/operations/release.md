@@ -1,24 +1,20 @@
-# Release (owner runbook)
+# Release runbook
 
 Bundle ID `com.vil555tim.onecart` · Team `BTHRDS7254` · Container `iCloud.com.vil555tim.onecart`.
 
-## Preflight (this branch)
+## Versioning and preflight
 
-Local release candidate: **1.3.0 (1)** for both the app and widget extension.
-Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers. A feature release increments MINOR and resets PATCH to `0`; a fix-only release increments PATCH instead. Do not roll MAJOR without an explicit request.
+Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers. A feature release increments MINOR and resets PATCH to `0`; a fix-only release increments PATCH instead. Do not roll MAJOR without an explicit request. The app and widget extension share one marketing version and build number.
 A new marketing version resets the local build number to **1**; subsequent builds
 of that version must use a higher unused number. Confirm the actual uploaded build
 number in Xcode Cloud / App Store Connect before selecting it for submission.
 
-Release notes and candidate status: [1.3.0](releases/1.3.0.md) (previous: [1.2.1](releases/1.2.1.md)).
-Version **1.2 (91)** was confirmed Ready for Distribution in App Store Connect on September 16, 2026.
-Version **1.2.1 (105)** was submitted for App Review on September 17, 2026 (tag `v1.2.1`).
-App Store Connect version availability, cloud build status, and submission status
-must be checked in an authenticated session before publication.
+Release notes per version: [releases/](releases/). App Store Connect version availability, cloud
+build status, and submission status must be checked in an authenticated session before publication.
 
-**Scope for this train:** living family cart sync + invite/ACL + owner Revoke invite (durable cart). Home & lock screen widgets, persistent auth across relaunch, appearance preferences, local family activity notifications (build 87), and quick suggestion chips (build 88). Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](../requirements/product.md). Do not block release on restoring those features.
+**Scope:** living family cart sync, invite and ACL, owner Revoke invite (durable cart), Home and Lock Screen widgets, persistent sign-in across relaunch, appearance preferences, local family activity notifications, and quick suggestion chips. Three tabs (Корзина / История / Настройки), name-only add, share from «Настройки»; Stores/catalog UI, price and unit input are out on purpose; see [product.md](../requirements/product.md).
 
-### Build 88 Highlights (Quick Suggestion Chips)
+### Quick suggestion chips
 - **1-Tap Add Suggestions:** Frequently purchased items appear directly below the text input inside the composer card when adding an item.
 - **Dynamic Frequency Ranking:** Powered by `CartSuggestionsEngine`, ranking suggestions by purchase frequency from historical shopping sessions, automatically excluding items already in the cart.
 - **Real-Time Text Filtering:** Suggestions filter as the user types with prefix-match priority.
@@ -27,7 +23,7 @@ must be checked in an authenticated session before publication.
   - ![Integrated composer suggestions](../screenshots/suggestions_integrated.png)
   - ![Suggestions added in 1 tap](../screenshots/suggestions_chips_added.png)
 
-### Build 87 Highlights (Smart Family Notifications)
+### Family activity notifications
 - **Item added by partner:** Local notification when the app observes newly imported items from a family member (*«Маша добавила «Сыр» в корзину»*).
 - **All items purchased:** Local celebration notification when the app observes a partner completing the last remaining item (*«Всё куплено! 🎉»*).
 - **Anti-spam:** Ignores self-actions, seeds baseline on first install, suppresses single-user carts, aggregates multiple items into one concise banner.
@@ -82,13 +78,13 @@ or (after model field adds):
    and that soft-delete / attribution fields such as `CD_deletedAt`, `CD_createdByName`, and
    `CD_purchasedByName` appear on the types that use them (especially `CD_Product`).
    Since 1.7.0 `CD_HistoryItem` also carries `CD_createdByName` (who added an archived item);
-   deploy it before tagging a 1.7.0 or later TestFlight build.
+   deploy it before tagging a TestFlight build that includes it.
 3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
 4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 
 Until Production has the fields Core Data expects, sync/share will keep failing even if the binary is fine.
 
-**Agents / CI cannot perform Deploy.** There is no API to promote schema to Production (`cktool` only imports Development). The container admin must click Deploy in CloudKit Console. App builds can only detect the failure and show a clear alert.
+**CI cannot perform Deploy.** There is no API to promote schema to Production (`cktool` only imports Development). The container admin must click Deploy in CloudKit Console. App builds can only detect the failure and show a clear alert.
 
 ## 3. Two-device checklist
 
@@ -166,9 +162,9 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 
 | Field | Value |
 |-------|-------|
-| Repo | `https://github.com/vil4max/onecart-ios.git` (primary repository of the workflow since 2026-09-21; the Xcode Cloud GitHub app needs access to this repository) |
+| Repo | `https://github.com/vil4max/onecart-ios.git` (the Xcode Cloud GitHub app needs access to this repository) |
 | Project | `OneCart/OneCart.xcodeproj` |
-| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" was deactivated on 2026-09-21 (ADR 0004); the remaining workflow has distribution "App Store Connect" (Apple's "TestFlight and App Store") and Restrict Editing on, which an App Review build needs |
+| Workflows | "Internal TestFlight (verified main)" (exact branch `testflight`); exact settings in [ADR 0003](../decisions/0003-ci-split.md). "App Store candidate (release tag)" is deactivated (ADR 0004); the remaining workflow has distribution "App Store Connect" (Apple's "TestFlight and App Store") and Restrict Editing on, which an App Review build needs |
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends and Family** |
 
@@ -184,11 +180,11 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
    build was requested.
 
 **Submit for App Review:** pick the tested TestFlight build of the version in App Store Connect,
-then the owner marks its commit with an annotated `vX.Y.Z` tag. The tag moves nothing;
+then the maintainer marks its commit with an annotated `vX.Y.Z` tag. The tag moves nothing;
 `TestFlight` checks that the commit had its own `tf-X.Y.Z-N` round. Never push `testflight` or
 `release` by hand.
 
-After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends&Family; owner sends `CKShare` link after install.
+After green build: set next build number if ASC expects `1`; confirm family Apple IDs in Friends and Family; send the `CKShare` link after install.
 
 TestFlight builds: 90 days. Xcode Cloud artifacts: 30 days.
 
@@ -208,8 +204,8 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 | Subtitle | `Shared family shopping cart` |
 | Primary category | Shopping |
 | Age rating | 4+ |
-| Support URL | `https://github.com/vil4max/onecart-ios/issues`. Version metadata: set it in the next version record; the 1.2.x value `…/vil4max/OneCart/issues` no longer resolves since the repository move |
-| Privacy Policy URL | `https://github.com/vil4max/onecart-ios/blob/main/docs/privacy.md` (English and Russian, set 2026-09-21; App Store Connect releases it with the next app version) |
+| Support URL | `https://github.com/vil4max/onecart-ios/issues` |
+| Privacy Policy URL | `https://github.com/vil4max/onecart-ios/blob/main/docs/privacy.md` (English and Russian) |
 | Price | Free |
 
 ### Version 1.0: English (U.S.)
@@ -248,9 +244,9 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 
 - Sign-in required: **on**. Reviewers authenticate through the system Sign in with Apple sheet;
   there is no developer-issued username or password; explain this in Review notes.
-- Contact: Maksim Vilchevskiy, `vil4max@gmail.com` (phone kept in App Store Connect only).
+- Contact: the developer contact in [privacy.md](../privacy.md) (phone kept in App Store Connect only).
 - Review attachment: a physical-device recording (~21s, 1290×2796, **1.0 (84)**) kept outside
-  this public repository because it shows the owner's Apple Account name and photo. Upload in
+  this public repository because it shows an Apple Account name and photo. Upload in
   App Store Connect → App Review Information → Attachment. Shows Sign in with Apple, Settings with separate Session / Account
   deletion sections, Delete Account, and return to Welcome.
 
@@ -271,12 +267,11 @@ shopping,cart,grocery,list,family,shared,iCloud,household,history,trolley
 
 - Privacy Nutrition Labels: name, user ID, user content (lists): App Functionality, linked to
   identity, no tracking (`PrivacyInfo.xcprivacy`). No location or store-locator data in the shipping app.
-- Screenshots: replace the four existing 6.5-inch screenshots; they show the removed In Trolley /
-  Finish-shopping UI. Capture current Welcome, Cart, History, and Settings screens in English at
-  an accepted 6.9-inch size (for example, 1290 × 2796); App Store Connect scales them down for
-  smaller iPhone displays.
+- Screenshots: Welcome, Cart, History, and Settings in English and Russian at the 6.9-inch size
+  (1320 × 2868); App Store Connect scales them down for smaller iPhone displays. The current set
+  and how it is captured are in [assets/store/README.md](../../assets/store/README.md).
 
-## 6. Not needed for this pet project
+## 6. Not needed for this app
 
 Own server, Supabase, fastlane, email/password auth, multi-cart UX (code can hold multiple spaces; UI hides creating a second group).
 

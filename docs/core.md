@@ -1,6 +1,6 @@
 # OneCart Family — core
 
-Status: approved, 2026-09-16. Details live in
+Status: approved. Details live in
 [requirements/product.md](requirements/product.md) and
 [decisions/](decisions/).
 

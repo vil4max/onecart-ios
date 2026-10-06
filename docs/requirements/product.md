@@ -15,11 +15,8 @@ One person adds items, another shops, everyone follows synchronized progress. No
 
 ## Requirement IDs
 
-The `REQ-<AREA>-NNN` headings below name behavior the owner approved before the
-IDs existed (recorded as `Status: approved` on the owner's word, 2026-09-21);
-assigning an ID does not add, widen or reinterpret a requirement. Changing what
-a labelled statement *means* — or retiring it — is still an owner decision and
-needs owner approval, exactly as before the IDs existed. Areas are `AUTH`
+The `REQ-<AREA>-NNN` headings below name the app's specified behavior. Assigning an ID does not
+add, widen or reinterpret a requirement. Areas are `AUTH`
 (session and account), `CART` (living cart and items), `HIST` (History by day),
 `SHARE` (invite, join, membership), `SYNC` (propagation and merge), `SHELL`
 (tabs, titles, error surface), `WIDGET` (widgets and notifications) and `SIRI`
@@ -29,15 +26,12 @@ retired ID is never reused.
 
 Each requirement is a heading with its own `Status:` line, followed by its
 statement; the statement ends at the next heading, so context prose sits before
-a section's first requirement. The owner approved moving the statements from
-inline labels to headings on 2026-09-24 without changing their wording; the
-approved set is the one approved on 2026-09-21. The Live Activity and Siri
-requirements, proposed on 2026-09-22, were approved without change on 2026-09-25.
+a section's first requirement.
 
 A behavior carries one ID, placed at its canonical statement. Prose elsewhere
 that summarizes the same behavior is left unlabelled rather than given a second
 ID. Scope statements — non-goals, deferred work, the stability context and the
-"not this train" ideas — carry no IDs, because they describe what is *not* built
+ideas not yet planned — carry no IDs, because they describe what is *not* built
 and there is no behavior to test. Tests cite these IDs by name; see
 [Coverage](#coverage).
 
@@ -136,7 +130,7 @@ History by day answers what the family bought.
 
 Status: approved
 
-Money is not a promise on this train: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
+Money is not part of the current scope: items are **name-only**. Price fields may exist in Core Data for sync/legacy, but there is no price UI or input.
 
 ### What OneCart is not
 
@@ -377,8 +371,6 @@ Family activity notifications are local notifications created when the app obser
 
 ### Shopping trip (Live Activity)
 
-Proposed 2026-09-22 at the owner's request; the owner approved the wording below without change on 2026-09-25.
-
 #### REQ-WIDGET-040 — Starting a shopping trip
 
 Status: approved
@@ -398,8 +390,6 @@ Status: approved
 The trip ends immediately when the shopper stops it (in the cart or on the activity), when the cart is emptied, when the active cart or account changes, and on sign out or account deletion. Once every line is checked it shows the all-bought state and is dismissed five minutes later. A trip the shopper swipes away on the Lock Screen is treated as ended. The system's own Live Activity limits (about eight hours) still apply.
 
 ## Siri and Shortcuts
-
-Proposed 2026-09-22 at the owner's request; the owner approved the wording below without change on 2026-09-25.
 
 ### REQ-SIRI-010 — Add by voice
 
@@ -428,7 +418,7 @@ The three actions are App Shortcuts with phrases in English, Russian and Ukraini
 ## Default cart identity
 
 - Identity flag: `isHouseholdDefault` on new household carts.
-- JSON / rename-legacy-name import path was removed (pre–App Store); wipe app for a clean TestFlight start — see [legacy.md](../planning/legacy-migration.md).
+- The JSON / rename-legacy-name import path was removed before the first App Store release; delete the app for a clean TestFlight start.
 
 ### REQ-CART-100 — Personal cart title
 
@@ -559,12 +549,12 @@ Ship a reliable SIWA → one cart → name-only add → Completed → overnight 
 | Unit / price input | Name-only add |
 | Stores / catalog scrapers | Enlarged CK surface; blocked simple add |
 | Rich product editor (qty / unit / price / notes) | Friction; add fields later on a working core |
-| Multi-cart switcher / audience sheets | Deferred — see FU01; v1 keeps one active cart with durable hidden personal |
+| Multi-cart switcher / audience sheets | Deferred; v1 keeps one active cart with durable hidden personal |
 | Toast / sync banner chrome | Prefer system alert; cart nav shows short «Updating…» only while hard-refreshing |
 
-Deferred until core is solid on real devices: multi-cart UI (personal + N invited, move items — FU01 + Tasks & Ideas board), store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, price input. History size/retention optimization without a Clear History button.
+Deferred until core is solid on real devices: multi-cart UI (personal + N invited, move items), store locator as primary UX, catalog-first shopping, IAP / Family Sharing APIs, price input. History size/retention optimization without a Clear History button.
 
-## Idea: history assistant (not this train)
+## Idea: history assistant (not planned)
 
 History days are a dataset of family habits (what, how often, who). Possible later:
 
@@ -575,11 +565,9 @@ History days are a dataset of family habits (what, how often, who). Possible lat
 Prefer on-device (including optional Foundation Models for category refine), no new cloud dependencies, no uploading family data. Prerequisite: stable core path first.
 
 
-## Future: multi-cart UI (not this train)
+## Future: multi-cart UI (not planned)
 
-Tracked as **FU01** and on [Tasks & Ideas](https://github.com/orgs/vil4labs/projects/2) (App=OneCart).
-
-Scope when greenlit:
+Scope if it is taken on:
 
 - One durable **personal** cart + **N invited** shared carts visible in a switcher
 - Personal accent color distinct from invited/family chrome

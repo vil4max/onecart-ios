@@ -3,16 +3,15 @@
 ## App Review attachment
 
 The physical-device Delete Account recording (~21s, 1290×2796, HEVC, app **1.0 (84)**) is not
-stored here: it shows the owner's Apple Account name and photo. The owner keeps it outside the
-repository and attaches it under App Review Information.
+stored here because it shows an Apple Account name and photo. It is attached in App Store
+Connect under App Review Information.
 
 ## App Store Connect: iPhone 6.9" (1320 × 2868)
 
-Current set for 1.6.0, light theme, captured on 2026-09-22 from the iOS 26/27 redesign (native
-lists, glass add button, progress at the top of the cart, Settings grouped into cart, look & feel
-and account; cart and Settings retaken after the owner's feedback on build 116). English files are in `screenshots/asc-6.9/` (the repository README shows
-them); Russian files with the same names are in `screenshots/asc-6.9/ru/`. Version 1.5.0 was
-submitted with the older 1.0-era set; these replace it in the 1.6.0 version record.
+Current set, light theme, showing the iOS 26/27 design (native lists, glass add button,
+progress at the top of the cart, Settings grouped into cart, look & feel and account). English
+files are in `screenshots/asc-6.9/` (the repository README shows them); Russian files with the
+same names are in `screenshots/asc-6.9/ru/`.
 
 | # | File | Screen |
 |---|------|--------|
@@ -25,7 +24,7 @@ App Store Connect's iPhone 6.5" slot takes only 1242 × 2688 or 1284 × 2778. `s
 (and `asc-6.5/ru/`) holds the same set for it: scaled to 1284 px wide, then cropped 6 px from the
 top and bottom to 2778 px (`sips --resampleWidth 1284`, `sips --cropToHeightWidth 2778 1284`).
 
-How the set is made (Debug build, `just run-sim`, the session's own simulator):
+How the set is made (Debug build, `just run-sim`, the project's run simulator):
 
 - Device iPhone 17 on iOS 27 (1206 × 2622), scaled to 1320 × 2868; the aspect ratios
   differ by less than 0.1 %.

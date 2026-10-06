@@ -3,47 +3,26 @@
 One shared shopping cart for the whole family: anyone adds what is needed, the shopper checks
 items off in the store, and everyone follows the progress and sees what was bought, day by day.
 
-**Status:** live on the [App Store](https://apps.apple.com/app/id6793219621) as OneCart
-Family; version 1.7.0 is in TestFlight.
+Available on the [App Store](https://apps.apple.com/app/id6793219621) as OneCart Family.
 
 <p><img src="assets/store/screenshots/asc-6.9/02-cart.png" alt="The shared cart" width="240" /></p>
 
-## How this app is built
+## Features
 
-- Coding agents work in fixed roles under [AGENTS.md](AGENTS.md): writers implement one card
-  each in their own worktree, an integrator lands the work, and the owner directs product and
-  architecture. A second developer contributed the Live Activity and Siri features.
-- Behavior is specified as numbered requirements (`REQ-AREA-NNN`) that the owner approves:
-  [docs/requirements/product.md](docs/requirements/product.md).
-- One verification gate, `just verify` (lint, build, unit and UI tests), must pass before any
-  change lands.
-- A separate reviewer checks every change for defects before it lands; findings and repairs are
-  recorded in the [task briefs](docs/tasks/).
-- A requirement-to-test matrix proves each approved requirement with named tests
-  ([coverage](docs/requirements/product.md#coverage)); design choices live in
-  [decision records](docs/decisions/), and every step is in the
-  [commit history](https://github.com/vil4max/onecart-ios/commits/main).
-
-### Follow one requirement
-
-1. Requirement: `REQ-AUTH-080`, "Failed cloud deletion", in [docs/requirements/product.md](docs/requirements/product.md) (line 340): status approved; its row in the [coverage matrix](docs/requirements/product.md#coverage) (line 480) names the tests.
-2. Tests: [OneCart/Tests/AccountDeletionTests.swift](OneCart/Tests/AccountDeletionTests.swift), test names that carry `REQ_AUTH_080`.
-3. Hosted CI: the [Tests run of 2026-10-01](https://github.com/vil4max/onecart-ios/actions/runs/36840704958); its log shows the `AccountDeletionTests` suite passing. Run logs need a signed-in GitHub account.
-
-The tools that check the requirement trace and the task briefs, the process rules and the decision log are private; ids such as `KIT-D-NNN` in docs and commit messages refer to that private decision log. The requirement-to-test matrix is kept in the requirements file and is not checked by CI.
+- One living family cart: add items by name, mark them **Completed** at the store.
+- **History by day**: items completed on an earlier day move to History when the app opens.
+- Family sharing through a `CKShare` invite link, with member list, leave and revoke-invite.
+- Sign in with Apple; sync runs through iCloud / CloudKit and works offline-first.
+- Home Screen and Lock Screen widgets, a shopping-trip Live Activity, and Siri / Shortcuts
+  actions to add items, read what is left and start a trip.
+- Quick suggestion chips ranked by purchase history; local notifications for family activity.
+- English, Russian and Ukrainian.
 
 **Stack:** Swift 6, SwiftUI, Core Data with CloudKit (private and shared stores, `CKShare`
-invites), WidgetKit, Live Activities, App Intents, Foundation Models; iOS 27+, iPhone.
+invites), WidgetKit, Live Activities, App Intents, Foundation Models; iOS 27+, iPhone only.
 
----
-
-## Engineering details
-
-User-facing product name: **OneCart Family**. Repo / Xcode module / scheme stay **OneCart**.
-
-One shared family cart on iOS: add what you need, mark items **Completed** at the store, and see purchases in **History by day** (overnight archive when you open the app). Sign in with Apple; sync and invites run through iCloud / CloudKit (`CKShare`).
-
-OneCart Family is maintained as a real product: Sign in with Apple, offline-first Core Data with CloudKit private and shared stores, `CKShare` invites, WidgetKit and App Intents, and XCTest regression suites for cart state, sharing, persistence, synchronization errors, and deletion recovery.
+User-facing product name: **OneCart Family**. The repository, Xcode module and scheme are
+named **OneCart**.
 
 ### Screenshots
 
@@ -54,26 +33,40 @@ OneCart Family is maintained as a real product: Sign in with Apple, offline-firs
   <img src="assets/store/screenshots/asc-6.9/04-settings.png" alt="Settings" width="180" />
 </p>
 
-Store masters and ASC sizes: [`assets/store/`](assets/store/).
+Store masters and App Store Connect sizes: [`assets/store/`](assets/store/).
 
-### Stack
+## Requirements and tests
 
-- SwiftUI, iOS 27+
-- Core Data via `NSPersistentCloudKitContainer`
-- CloudKit private / shared databases
-- `CKShare` link-join invites (`publicPermission = .readWrite`)
-- Offline-first local SQLite stores
+Behavior is specified as numbered requirements (`REQ-AREA-NNN`) in
+[docs/requirements/product.md](docs/requirements/product.md). Each requirement lists the named
+tests that prove it in the [coverage matrix](docs/requirements/product.md#coverage), and the
+tests cite the same IDs in their names. Design choices are recorded in
+[docs/decisions/](docs/decisions/).
+
+## Building
 
 Bundle ID: `com.vil555tim.onecart`  
 CloudKit container: `iCloud.com.vil555tim.onecart`
 
-### Open in Xcode
+Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`), or use the `just` commands, which
+come from the shared build tooling under `Tooling/` (configuration in
+[`Tooling/runtime.yml`](Tooling/runtime.yml)):
 
-Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`).
+```bash
+brew bundle --file=Tooling/Brewfile
+just doctor
+just build
+just test
+just verify   # lint, build, unit and UI tests
+```
 
-For device / TestFlight: App ID capabilities and CloudKit Production — see [docs/operations/release.md](docs/operations/release.md).
+`just verify` and the GitHub Actions `Tests` workflow run the same checks. The repository has no
+git hooks.
 
-### Layout
+For device builds and TestFlight, including App ID capabilities and the CloudKit Production
+schema, see [docs/operations/release.md](docs/operations/release.md).
+
+## Layout
 
 ```text
 .
@@ -83,35 +76,25 @@ For device / TestFlight: App ID capabilities and CloudKit Production — see [do
 │   ├── Features/            # Feature UI + ViewModels
 │   ├── Data/                # Persistence, CloudKit, Auth
 │   ├── Shared/
+│   ├── OneCartWidgets/      # Widgets and Live Activity
 │   ├── Resources/
-│   └── Tests/
+│   ├── Tests/               # Unit tests
+│   └── OneCartUITests/      # UI smoke tests
 ├── docs/                    # See docs/README.md
 ├── assets/                  # Brand / store masters (not in the app bundle)
-├── Tooling/                 # Engineering Runtime — see Tooling/README.md
-├── justfile                 # Thin shim → import Tooling/justfile
+├── Tooling/                 # Shared build and CI tooling
+├── justfile                 # Imports Tooling/justfile, adds demo recipes
 ├── README.md
-├── AGENTS.md
-└── .gitignore
+└── AGENTS.md
 ```
 
-Native SwiftUI only — no web / Capacitor stack.
+Native SwiftUI only; there is no web or cross-platform stack.
 
-### Commands
+## Documentation
 
-```bash
-brew bundle --file=Tooling/Brewfile
-just doctor
-just build
-just test
-just verify
-```
+Start at [docs/README.md](docs/README.md): core goals, requirements, decisions, architecture,
+release runbook and privacy policy.
 
-Config: [`Tooling/runtime.yml`](Tooling/runtime.yml). Local overrides: `Tooling/runtime.local.yml.example` → `Tooling/runtime.local.yml`.
+## License
 
-There are no repository git hooks: a push builds and tests nothing. `just verify` and the CI
-`Tests` workflow run the tests, UI smoke tests included. A clone that ran the former
-`scripts/install-hooks.sh` deletes its copy at `.git/hooks/pre-push`.
-
-### Docs
-
-Start at [docs/README.md](docs/README.md) — architecture, product, release, legacy, review changelog.
+Released under the MIT License; see [LICENSE](LICENSE).

@@ -14,7 +14,7 @@ Product policy (see [product.md](../requirements/product.md)): **one living fami
 |------------------|----------------------------------|
 | Tabs: Корзина / История / Настройки; appearance, icon and language preferences | Unit / price input / Stores / catalog UI |
 | Name-only inline add via `+` empty row + keyboard; category SF Symbol from keywords, optional on-device FM refine | Rich product editor / money UI |
-| Invite + Revoke invite + leave from Настройки; members on the same screen | Multi-cart switcher (FU01) |
+| Invite + Revoke invite + leave from Настройки; members on the same screen | Multi-cart switcher |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |
 
@@ -24,7 +24,7 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 `AppSession` is a `@MainActor @Observable` root that owns the session state and thin wrappers;
 SwiftUI tracks its properties and those of its `@Observable` collaborators directly (no
-`ObservableObject`, Combine bridges or `objectWillChange` since 2026-09-22). Heavy work is delegated:
+`ObservableObject`, Combine bridges or `objectWillChange`). Heavy work is delegated:
 
 | Type | Role |
 |------|------|
@@ -50,9 +50,9 @@ as `@State` from the session and passes them into the screens. Tests drive the V
 fakes that conform to the same protocols (`OneCart/Tests/Support/Fake*.swift`); hosted-view tests
 mount the screens over those fakes.
 
-God-file split train (RC31): composition root target ~200 lines; hard trigger 400+. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
+Size guideline: the composition root stays around 200 lines and is split at 400 or more. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
 
-## Owner files
+## Key files
 
 | Path | Role |
 |------|------|
@@ -96,7 +96,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `OneCart/Features/Account/AccountViewModel.swift` | Share / leave / revoke / rename / display-name / icon presentation state |
 | `OneCart/Features/Account/AccountRows.swift` | Member and action rows |
 | `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
-| `Tooling/` | Engineering Runtime 0.2+ (`backend/`, app-owned style configs) |
+| `Tooling/` | Shared build and CI tooling (`backend/`, style configs) |
 
 ## Trade-offs (recovery / sync)
 
@@ -106,7 +106,7 @@ God-file split train (RC31): composition root target ~200 lines; hard trigger 40
 | `CartSyncOutcome` + failed ≠ synchronized | Coalesced callers receive the final queued refresh outcome; recovery mode keeps `.failed` |
 | History page size 30 + offset fetch | Avoid loading full purchase history into memory; UI “show more” calls `loadMoreHistory` |
 | Device-local profile | Display name and local avatar/banner preferences are separate from CloudKit membership |
-| CI split ([ADR 0003](../decisions/0003-ci-split.md), supersedes NC09; [ADR 0004](../decisions/0004-tag-gated-testflight.md)) | GitHub Actions runs tests on push/PR; an annotated `tf-` tag fast-forwards `testflight`; Xcode Cloud only archives from `testflight` |
+| CI split ([ADR 0003](../decisions/0003-ci-split.md), [ADR 0004](../decisions/0004-tag-gated-testflight.md)) | GitHub Actions runs tests on push/PR; an annotated `tf-` tag fast-forwards `testflight`; Xcode Cloud only archives from `testflight` |
 
 ## Fragile-test matrix (living checklist)
 
@@ -167,7 +167,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 ├── OneCart/          # Xcode product (Application, Features, Data, Shared, Resources, Tests)
 ├── docs/             # this set
 ├── assets/           # brand / store masters (not in app bundle)
-├── Tooling/          # Engineering Runtime — see Tooling/justfile
+├── Tooling/          # Shared build and CI tooling — see Tooling/justfile
 └── justfile          # import Tooling/justfile
 ```
 
