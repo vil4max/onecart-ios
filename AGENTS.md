@@ -1,99 +1,31 @@
-# OneCart — agent notes (thin)
+# OneCart
 
-<!-- repository-visibility-policy -->
-Repository visibility: **PUBLIC**.
+OneCart Family is an iPhone app for one shared family shopping cart: items are added by name,
+checked off in the store, and archived into History by day. Sync and invites run through
+iCloud / CloudKit (`CKShare`); sign-in is Sign in with Apple.
 
-## Data handling
-
-Never include confidential or sensitive personal data in source, documentation,
-Git history, commit messages, issues, pull requests, logs, or artifacts. This
-includes private financial information, compensation expectations or offers,
-personal assessments, health or family details, private correspondence, and
-application records. Use fictional data in examples and tests. Never commit
-credentials, tokens, passwords, session data, or private keys.
-
-## Documentation quality
-
-Write public-facing documentation in clear, technical English for readers
-without access to private workspace context. Keep instructions accurate,
-repository-relative, and reproducible. Distinguish implemented behavior from
-plans, state relevant prerequisites and limitations, and update documentation
-with the behavior it describes. Exclude personal notes, internal handoffs,
-machine-specific paths, and unsupported claims.
-<!-- /repository-visibility-policy -->
-
-Project facts only. Shared agent behavior: `${VIL4KIT_ROOT:-$HOME/vil4kit}/harness/portable/AGENT_BEHAVIOR.md`.
+This repository is public: keep credentials, tokens, personal data and machine-specific paths
+out of source, documentation and commit messages, and use fictional data in examples and tests.
 
 ## Project
 
-- Name: OneCart
-- Supported devices: iPhone only (`TARGETED_DEVICE_FAMILY = 1`); keep app, widget, and test targets aligned.
-- Context: see `.cursor/project-context` (`personal`)
-- Open: `OneCart/OneCart.xcodeproj`
-- Runtime: `Tooling/` (ios-engineering-runtime 0.2.3)
-- Docs index: [docs/README.md](docs/README.md)
+- Open `OneCart/OneCart.xcodeproj` (scheme `OneCart`).
+- Supported devices: iPhone only (`TARGETED_DEVICE_FAMILY = 1`); keep app, widget, and test
+  targets aligned.
+- Build and CI tooling lives in `Tooling/`; configuration is in
+  [`Tooling/runtime.yml`](Tooling/runtime.yml):
 
-## Spec pyramid
+  ```yaml
+  scheme: OneCart
+  project: OneCart/OneCart.xcodeproj
+  ```
 
-Start from [`docs/core.md`](docs/core.md) (approved 2026-09-16). Layers:
-core → `docs/requirements/` + `docs/decisions/` → tests named with
-`REQ-<AREA>-NNN` → code. Index: [`docs/README.md`](docs/README.md). Method:
-kit skill `spec-pyramid`.
+- Style: `Tooling/.swiftlint.yml` and `Tooling/.swift-format` (Apple's swift-format, which ships
+  with the Xcode toolchain) are managed by the shared tooling and identical in every iOS app;
+  `just baseline` fails on drift ([`Tooling/docs/style-config.md`](Tooling/docs/style-config.md)).
+- Documentation index: [docs/README.md](docs/README.md).
 
-- Change starts at the highest affected layer; propose, do not approve, core
-  or requirement edits.
-- Bug → failing spec with a REQ ID first, then the fix.
-- Record a lesson only when a check or upper layer changed:
-  [`docs/lessons.md`](docs/lessons.md).
-
-## Review
-
-For PR review (owner / review agent), start at [docs/engineering/review-changelog.md](docs/engineering/review-changelog.md) and validate each `RCxx` / `NCxx` / `FUxx`. Do not invent scope.
-
-**Stability first:** do not restore Stores/catalog/price UI / rich product forms unless the PR explicitly takes that scope. Core path is SIWA → one living cart → name-only add → Completed → overnight History by day → invite from Настройки — see [docs/requirements/product.md](docs/requirements/product.md).
-
-## CI and releases
-
-Source: [ADR 0003](docs/decisions/0003-ci-split.md) and [ADR 0004](docs/decisions/0004-tag-gated-testflight.md).
-GitHub Actions tests; Xcode Cloud only archives; tags, not pushes, request builds. Both
-workflows are the Runtime's shared templates, identical in every app: [`Tooling/docs/ci.md`](Tooling/docs/ci.md),
-[`Tooling/docs/testflight.md`](Tooling/docs/testflight.md).
-
-- `main` — development. `Tests` (`.github/workflows/tests.yml`) runs on every push and PR and
-  publishes nothing, so tooling and docs commits push freely.
-- `testflight` is moved only by the `TestFlight` workflow (`.github/workflows/testflight.yml`), on an
-  annotated `tf-MAJOR.MINOR.PATCH-BUILD` tag, only by fast-forward. `release` is frozen at `v1.2.1`
-  (nothing moves it since ADR 0004). Never push, force-push, reset, or delete either branch.
-- `tf-` tags: an agent may create and push one after `just tf-check` prints `Ready` for a commit
-  already on `origin/main` (owner decision, 2026-09-21). The annotation is the round's What to
-  Test. Push a release-prep commit as the head of its push: only that commit gets its own
-  `Tests` run and can be tagged.
-- `v` tags and the App Review submission are the owner's; an agent does not create `v` tags.
-- Branches and worktrees exist only while work is in progress: delete merged branches locally and on
-  GitHub right away. Permanent branches are `main`, `testflight`, `release`. No leftover build
-  artifacts in the working tree.
-- Xcode Cloud workflow settings live in App Store Connect, not in the repo; change them only with
-  the owner's explicit approval and update ADR 0003 in the same change.
-
-## Config
-
-Source of truth: [`Tooling/runtime.yml`](Tooling/runtime.yml)
-
-Style: `Tooling/.swiftlint.yml` and `Tooling/.swift-format` (Apple's swift-format, which ships with the Xcode toolchain) are managed by the Runtime on the shared pipeline and identical in every iOS app; `just baseline` fails on drift — see [`Tooling/docs/style-config.md`](Tooling/docs/style-config.md).
-
-```yaml
-scheme: OneCart
-project: OneCart/OneCart.xcodeproj
-```
-
-## Versioning
-
-- Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers.
-- A feature release increments MINOR and resets PATCH to `0`; a fix-only release with no new features increments PATCH instead. Do not roll MAJOR without an explicit request.
-- The build number is separate: reset it to `1` for a new marketing version, then increment within that version.
-- Keep the app and widget extension versions and build numbers aligned in Debug and Release.
-
-## Modules
+## Folder structure
 
 | Path | Role |
 |------|------|
@@ -101,19 +33,15 @@ project: OneCart/OneCart.xcodeproj
 | `OneCart/Features/` | Feature Views + ViewModels (`Shopping/`, `Account/`, `Onboarding/`) |
 | `OneCart/Data/` | Persistence, CloudKit, Auth |
 | `OneCart/Shared/` | Cross-feature helpers |
+| `OneCart/OneCartWidgets/` | Widgets and Live Activity |
 | `OneCart/Resources/` | Bundle resources |
 | `OneCart/Tests/` | Unit tests (`OneCartTests` target) |
-| `docs/` | See [docs/README.md](docs/README.md) |
+| `OneCart/OneCartUITests/` | UI smoke tests |
+| `docs/` | Core goals, requirements, decisions, architecture, release runbook |
 | `assets/` | Brand / store masters (not in the app bundle) |
-| `Tooling/` | Engineering Runtime — see [Tooling/README.md](Tooling/README.md) |
-| `justfile` | App-owned shim that imports `Tooling/justfile` (+ `demo` recipe) |
-| `scripts/smoke-tests.sh` | Runs `just test`; kept for clones whose `.git/hooks/pre-push` still calls it |
-
-## Definition of Done
-
-```bash
-just verify
-```
+| `Tooling/` | Shared build and CI tooling — see [Tooling/README.md](Tooling/README.md) |
+| `justfile` | Imports `Tooling/justfile` and adds the `demo` recipes |
+| `scripts/smoke-tests.sh` | Runs `just test` |
 
 ## Commands
 
@@ -123,13 +51,59 @@ just doctor
 just diagnose
 just build
 just test
-just verify
+just verify          # definition of done: lint, build, unit and UI tests
 just run-sim
 just demo role=owner
 just demo-tab role=member tab=cart
 ```
 
-OneCart has no repository git hooks. Push hooks build and test nothing (owner decision,
-2026-09-29): the tests, UI smoke tests included, run in `just verify` and in the CI `Tests`
-workflow (`just ci`). A clone that ran the former `scripts/install-hooks.sh` deletes its copy
-at `.git/hooks/pre-push`.
+The repository has no git hooks. The tests, UI smoke tests included, run in `just verify` and in
+the CI `Tests` workflow (`just ci`).
+
+## Code and test conventions
+
+- Architecture: MVVM with protocol-based services, no Coordinator and no Clean Domain layer; see
+  [docs/engineering/architecture.md](docs/engineering/architecture.md).
+- Behavior is specified in [docs/requirements/product.md](docs/requirements/product.md) as
+  `REQ-<AREA>-NNN` requirements; the goals behind them are in [docs/core.md](docs/core.md).
+  Tests are named after the requirement they prove: XCTest `test_REQ_<AREA>_<NNN>_…`, Swift
+  Testing `@Test("REQ-<AREA>-<NNN>: …")`.
+- A bug starts with a failing test that carries the requirement ID, then the fix. Record a
+  regression note in [docs/lessons.md](docs/lessons.md) only when a check or an upper layer
+  changed.
+- Stability first: do not restore Stores, catalog, price UI or rich product forms. The core path
+  is Sign in with Apple → one living cart → name-only add → Completed → overnight History by day
+  → invite from Settings.
+- Comments explain intent, invariants and constraints that the code cannot carry.
+
+## Versioning
+
+- Marketing versions use `MAJOR.MINOR.PATCH`, with all three components treated as integers.
+- A feature release increments MINOR and resets PATCH to `0`; a fix-only release with no new
+  features increments PATCH instead. Do not roll MAJOR without an explicit request.
+- The build number is separate: reset it to `1` for a new marketing version, then increment
+  within that version.
+- Keep the app and widget extension versions and build numbers aligned in Debug and Release.
+
+## CI and releases
+
+Decisions: [ADR 0003](docs/decisions/0003-ci-split.md) and
+[ADR 0004](docs/decisions/0004-tag-gated-testflight.md). GitHub Actions runs the tests, Xcode
+Cloud only archives, and tags, not pushes, request builds. Both workflows are the shared
+templates, identical in every app: [`Tooling/docs/ci.md`](Tooling/docs/ci.md),
+[`Tooling/docs/testflight.md`](Tooling/docs/testflight.md).
+
+- `main` is development. `Tests` (`.github/workflows/tests.yml`) runs on every push and pull
+  request and publishes nothing.
+- `testflight` is moved only by the `TestFlight` workflow (`.github/workflows/testflight.yml`), on
+  an annotated `tf-MAJOR.MINOR.PATCH-BUILD` tag, only by fast-forward. `release` is frozen at
+  `v1.2.1`. Never push, force-push, reset, or delete either branch.
+- A `tf-` tag is created for a commit already on `origin/main` after `just tf-check` prints
+  `Ready`. The annotation is the round's What to Test. Push a release-prep commit as the head of
+  its push: only that commit gets its own `Tests` run and can be tagged.
+- `v` tags and the App Review submission belong to the maintainer.
+- Branches and worktrees exist only while work is in progress; delete merged branches locally and
+  on GitHub. Permanent branches are `main`, `testflight` and `release`. Leave no build artifacts
+  in the working tree.
+- Xcode Cloud workflow settings live in App Store Connect, not in the repo; changing them
+  requires updating ADR 0003 in the same change.
