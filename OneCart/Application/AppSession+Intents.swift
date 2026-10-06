@@ -83,7 +83,7 @@ enum CartIntentContext {
 }
 
 enum CartIntentNames {
-    /// Standalone words that join dictated names (owner decision): Russian, Ukrainian, English.
+    /// Standalone words that join dictated names in the three supported languages: Russian, Ukrainian, English.
     private static let andWords: Set<String> = ["и", "і", "and"]
 
     /// One request may carry several names ("milk, bread; eggs", "молоко и хлеб"). Blank parts

@@ -155,7 +155,7 @@ final class ShoppingTripActivityController {
     /// How long the finished trip stays on the Lock Screen once every line is checked.
     static let completedDismissalDelay: TimeInterval = 5 * 60
     /// Without a push server the card changes only while the app runs, so an hour after its
-    /// last change the system marks it stale (owner decision, 2026-09-23).
+    /// last change the system marks it stale.
     static let staleInterval: TimeInterval = 60 * 60
 
     private(set) var activeTrip: ShoppingTripActivityRecord?
