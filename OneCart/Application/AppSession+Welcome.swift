@@ -108,6 +108,8 @@ extension AppSession {
         if let account {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
         }
+        CartActivityNotifier.clearSnapshots(defaults: defaults)
+        backend.resetCachedUserRecordName()
         appleSignIn.clearCredential()
         clearAccountData()
         account = nil

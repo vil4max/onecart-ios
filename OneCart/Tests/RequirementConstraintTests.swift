@@ -160,6 +160,35 @@ struct RequirementConstraintTests {
         #expect(hits.isEmpty, "Family-API references: \(hits)")
     }
 
+    // MARK: - REQ-CART-030 names stay out of public logs
+
+    @Test("REQ-CART-030: item and member names typed by the family are never logged as public")
+    func typedNamesAreNeverLoggedPublic() throws {
+        // A public interpolation lands in clear text in Console and sysdiagnose. Record, zone
+        // and suite names are identifiers, not family content, and do not match these patterns.
+        let forbidden = [".name, privacy: .public", "displayName, privacy: .public", "ByName, privacy: .public"]
+        let sourcesRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // OneCart (module sources)
+        let enumerator = try #require(
+            FileManager.default.enumerator(
+                at: sourcesRoot,
+                includingPropertiesForKeys: [.isRegularFileKey]
+            ))
+        var scanned = 0
+        var hits: [String] = []
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            guard !url.path.contains("/Tests/") else { continue }
+            let text = try String(contentsOf: url, encoding: .utf8)
+            scanned += 1
+            for pattern in forbidden where text.contains(pattern) {
+                hits.append("\(url.lastPathComponent): \(pattern)")
+            }
+        }
+        #expect(scanned > 50, "expected the app sources next to the test folder, scanned \(scanned) files")
+        #expect(hits.isEmpty, "public name interpolations: \(hits)")
+    }
+
     // MARK: - REQ-SHELL-060 OneCart Family branding
 
     @Test("REQ-SHELL-060: the app presents itself as OneCart Family while the module and bundle id stay OneCart")

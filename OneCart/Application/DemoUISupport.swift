@@ -90,14 +90,17 @@
             if role != .welcome, ProcessInfo.processInfo.arguments.contains(resetArgument) {
                 reset(role, suiteName: suiteName)
             }
+            // Preferences share the demo suite: on `.standard` the demo name and accent would reach
+            // the real defaults and the App Group.
+            let demoDefaults = UserDefaults(suiteName: suiteName) ?? .standard
             let session = AppSession(
                 persistence: PersistenceController(
                     inMemory: role == .welcome,
                     storeDirectoryURL: role == .welcome ? nil : storeDirectoryURL(for: role),
                     cloudKitEnabled: false
                 ),
-                preferences: DevicePreferences(defaults: .standard),
-                defaults: UserDefaults(suiteName: suiteName) ?? .standard,
+                preferences: DevicePreferences(defaults: demoDefaults),
+                defaults: demoDefaults,
                 appleSignIn: DemoAppleSignInService(role: role)
             )
             if let initialAccent {
@@ -302,14 +305,12 @@
             case .owner:
                 credential = AppleSignInCredential(
                     userID: "onecart-demo-owner",
-                    email: nil,
                     givenName: "Alex",
                     familyName: nil
                 )
             case .member:
                 credential = AppleSignInCredential(
                     userID: "onecart-demo-member",
-                    email: nil,
                     givenName: "Sam",
                     familyName: nil
                 )
@@ -334,27 +335,12 @@
             credential != nil ? .authorized : .notFound
         }
 
-        func signIn() async throws -> AppleSignInCredential {
-            if let credential {
-                return credential
-            }
-            let cred = AppleSignInCredential(
-                userID: "onecart-demo-owner",
-                email: nil,
-                givenName: "Alex",
-                familyName: nil
-            )
-            credential = cred
-            return cred
-        }
-
         func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
             if let credential {
                 return credential
             }
             return AppleSignInCredential(
                 userID: "onecart-demo-owner",
-                email: nil,
                 givenName: "Alex",
                 familyName: nil
             )

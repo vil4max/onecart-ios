@@ -55,7 +55,6 @@ final class WelcomeViewModel {
         func signInWithTestAccount() async {
             let credential = AppleSignInCredential(
                 userID: "onecart-demo-owner",
-                email: nil,
                 givenName: "Alex",
                 familyName: nil
             )

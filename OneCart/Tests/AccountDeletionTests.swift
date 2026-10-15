@@ -4,6 +4,7 @@ import CloudKit
 import CoreData
 import Foundation
 @testable import OneCart
+import Synchronization
 import XCTest
 
 @MainActor
@@ -50,6 +51,37 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(defaults.array(forKey: "onecart.seen-member-ids.\(account.id.uuidString)"))
         XCTAssertFalse(session.isDeletingAccount)
         XCTAssertNil(session.userAlert)
+    }
+
+    func test_REQ_AUTH_070_deleteAccount_removesActivitySnapshotsAccountKeysAndICloudIdentity() async throws {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        try await persistence.load()
+        let defaults = try makeDefaults()
+        let session = try makeTestSession(
+            persistence: persistence,
+            defaults: defaults,
+            appleSignIn: TrackingAppleSignIn(),
+            accountCloudDataDeleter: RecordingAccountCloudDeleter(),
+            accountLocalStorePreparer: RecordingLocalStorePreparer()
+        )
+        let account = OneCartAccount(id: UUID(), displayName: "Alex")
+        session.account = account
+        session.needsWelcome = false
+        let snapshotKey = "onecart.cart-activity-snapshot.\(UUID().uuidString)"
+        let provisionalKey = HouseholdCartCoordinator.provisionalFamilyKey(accountID: account.id)
+        let restoredKey = "onecart.restored-personal-family-space-id.\(account.id.uuidString)"
+        defaults.set(Data("[{\"name\":\"Milk\"}]".utf8), forKey: snapshotKey)
+        defaults.set(UUID().uuidString, forKey: provisionalKey)
+        defaults.set(UUID().uuidString, forKey: restoredKey)
+        session.backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+
+        await session.deleteAccount()
+
+        XCTAssertNil(session.account)
+        XCTAssertNil(defaults.object(forKey: snapshotKey), "item and member names must not survive deletion")
+        XCTAssertNil(defaults.object(forKey: provisionalKey))
+        XCTAssertNil(defaults.object(forKey: restoredKey))
+        XCTAssertNil(session.backend.cachedUserRecordName.withLock { $0 })
     }
 
     func test_REQ_AUTH_080_deleteAccount_whenCloudFails_keepsSignedInAndLocalState() async throws {
@@ -825,7 +857,6 @@ private final class RecordingLocalStorePreparer: AccountLocalStorePreparing, @un
 private final class TrackingAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
         userID: "delete-account-user",
-        email: nil,
         givenName: "Alex",
         familyName: nil
     )
@@ -846,10 +877,6 @@ private final class TrackingAppleSignIn: AppleSignInAuthenticating, @unchecked S
 
     func credentialState(for _: String) async -> AppleSignInCredentialState {
         .authorized
-    }
-
-    func signIn() async throws -> AppleSignInCredential {
-        try XCTUnwrap(credential)
     }
 
     func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {

@@ -7,7 +7,6 @@ final class AppleSignInTests: XCTestCase {
     func test_REQ_AUTH_040_appleSignInCredentialBuildsDisplayNameAndAccountID() {
         let credential = AppleSignInCredential(
             userID: "001234.abcd",
-            email: "user@example.com",
             givenName: "Иван",
             familyName: "Петров"
         )
@@ -20,7 +19,6 @@ final class AppleSignInTests: XCTestCase {
 
         let withoutName = AppleSignInCredential(
             userID: "001234.abcd",
-            email: nil,
             givenName: nil,
             familyName: nil
         )
@@ -32,7 +30,6 @@ final class AppleSignInTests: XCTestCase {
         let store = try makeKeychainStore().store
         let credential = AppleSignInCredential(
             userID: "001234.abcd",
-            email: nil,
             givenName: "Test",
             familyName: nil
         )
@@ -46,7 +43,6 @@ final class AppleSignInTests: XCTestCase {
         let (store, defaults, service) = try makeKeychainStore()
         let credential = AppleSignInCredential(
             userID: "user.backup.test",
-            email: "backup@example.com",
             givenName: "Backup",
             familyName: "User"
         )
@@ -66,13 +62,49 @@ final class AppleSignInTests: XCTestCase {
         // Store load should fall back to the PII-free defaults backup (userID only)
         let loaded = store.load()
         XCTAssertEqual(loaded?.userID, credential.userID)
-        XCTAssertNil(loaded?.email)
         XCTAssertNil(loaded?.givenName)
         XCTAssertNil(loaded?.familyName)
 
         store.clear()
         XCTAssertNil(store.load())
         XCTAssertNil(defaults.string(forKey: store.backupKey))
+    }
+
+    func test_REQ_AUTH_020_savingTwiceReplacesTheStoredCredential() throws {
+        let (store, defaults, _) = try makeKeychainStore()
+        store.save(AppleSignInCredential(userID: "user.replace", givenName: "Alex", familyName: nil))
+        store.save(AppleSignInCredential(userID: "user.replace", givenName: "Sam", familyName: "Doe"))
+
+        XCTAssertEqual(store.load()?.providedDisplayName, "Sam Doe")
+        XCTAssertEqual(defaults.string(forKey: store.backupKey), "user.replace")
+    }
+
+    func test_REQ_AUTH_020_legacyCredentialWithEmailLoadsAndResavingDropsTheEmail() throws {
+        let (store, _, service) = try makeKeychainStore()
+        // The payload an older build wrote, when the app still requested the Apple ID email.
+        let legacy = Data(
+            #"{"userID":"user.legacy","email":"legacy@example.com","givenName":"Alex","familyName":"Doe"}"#.utf8
+        )
+        let add: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "current-user",
+            kSecValueData as String: legacy,
+        ]
+        XCTAssertEqual(SecItemAdd(add as CFDictionary, nil), errSecSuccess)
+
+        let loaded = try XCTUnwrap(store.load())
+        XCTAssertEqual(loaded.userID, "user.legacy")
+        XCTAssertEqual(loaded.providedDisplayName, "Alex Doe")
+
+        store.save(loaded)
+
+        let stored = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: readKeychainData(service: service)) as? [String: Any]
+        )
+        XCTAssertNil(stored["email"], "the session keeps no Apple ID email")
+        XCTAssertEqual(stored["userID"] as? String, "user.legacy")
+        XCTAssertEqual(stored["givenName"] as? String, "Alex")
     }
 
     @MainActor
@@ -125,5 +157,18 @@ final class AppleSignInTests: XCTestCase {
             SecItemDelete(query as CFDictionary)
         }
         return (KeychainAppleSignInCredentialStore(service: service, defaults: defaults), defaults, service)
+    }
+
+    private func readKeychainData(service: String) throws -> Data {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "current-user",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        XCTAssertEqual(SecItemCopyMatching(query as CFDictionary, &item), errSecSuccess)
+        return try XCTUnwrap(item as? Data)
     }
 }

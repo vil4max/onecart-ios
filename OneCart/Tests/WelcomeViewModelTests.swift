@@ -73,7 +73,6 @@ struct WelcomeViewModelTests {
             let credential = try #require(signIn.completedCredentials.first)
             #expect(credential.userID == "onecart-demo-owner")
             #expect(credential.givenName == "Alex")
-            #expect(credential.email == nil)
             #expect(signIn.completedAuthorizationCount == 0)
         }
     #endif

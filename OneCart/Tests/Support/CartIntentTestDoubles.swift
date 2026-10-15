@@ -39,10 +39,6 @@ final class GatedAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
         return .authorized
     }
 
-    func signIn() async throws -> AppleSignInCredential {
-        throw AppleSignInError.failed
-    }
-
     func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
         throw AppleSignInError.failed
     }

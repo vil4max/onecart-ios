@@ -85,7 +85,10 @@ extension AppSession {
             defaults.removeObject(forKey: activeFamilyKey(accountID: deletedAccountID))
             MemberJoinNotifier.clearSeenMembers(accountID: deletedAccountID, defaults: defaults)
             HouseholdCartCoordinator.clearKnownSharedFamilies(accountID: deletedAccountID, defaults: defaults)
+            HouseholdCartCoordinator.clearPersonalCartKeys(accountID: deletedAccountID, defaults: defaults)
         }
+        CartActivityNotifier.clearSnapshots(defaults: defaults)
+        backend.resetCachedUserRecordName()
         preferences.participantDisplayName = ""
         appleSignIn.clearCredential()
         clearAccountData()

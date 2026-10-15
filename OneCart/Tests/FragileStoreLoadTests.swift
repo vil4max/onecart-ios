@@ -298,7 +298,6 @@ final class FragileStoreLoadTests: XCTestCase {
 private final class SoftRetryAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private let credential = AppleSignInCredential(
         userID: "fragile-retry-user",
-        email: nil,
         givenName: "Test",
         familyName: nil
     )
@@ -313,10 +312,6 @@ private final class SoftRetryAppleSignIn: AppleSignInAuthenticating, @unchecked 
 
     func credentialState(for _: String) async -> AppleSignInCredentialState {
         .authorized
-    }
-
-    func signIn() async throws -> AppleSignInCredential {
-        credential
     }
 
     func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {

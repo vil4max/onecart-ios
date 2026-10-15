@@ -141,10 +141,6 @@ final class InMemoryAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable 
         lock.withLock { credential }?.userID == userID ? .authorized : .notFound
     }
 
-    func signIn() async throws -> AppleSignInCredential {
-        throw AppleSignInError.failed
-    }
-
     func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
         throw AppleSignInError.failed
     }

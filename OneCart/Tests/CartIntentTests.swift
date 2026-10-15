@@ -230,7 +230,7 @@ final class CartIntentTests: XCTestCase {
         return (session, directory)
     }
 
-    private let siriUser = AppleSignInCredential(userID: "siri-user", email: nil, givenName: "Alex", familyName: nil)
+    private let siriUser = AppleSignInCredential(userID: "siri-user", givenName: "Alex", familyName: nil)
 
     func test_REQ_SIRI_040_aFailedStartIsReportedAndRetriedOnTheNextRequest() async throws {
         let (session, directory) = try makeStartingSession(credential: siriUser)

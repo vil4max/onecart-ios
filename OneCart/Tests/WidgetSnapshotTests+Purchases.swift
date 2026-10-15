@@ -223,7 +223,7 @@ struct WidgetSessionFixture {
 
 private final class WidgetAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
     private var credential: AppleSignInCredential? = AppleSignInCredential(
-        userID: "widget-user", email: nil, givenName: "Alex", familyName: nil
+        userID: "widget-user", givenName: "Alex", familyName: nil
     )
 
     func storedCredential() -> AppleSignInCredential? {
@@ -240,10 +240,6 @@ private final class WidgetAppleSignIn: AppleSignInAuthenticating, @unchecked Sen
 
     func credentialState(for _: String) async -> AppleSignInCredentialState {
         .authorized
-    }
-
-    func signIn() async throws -> AppleSignInCredential {
-        try XCTUnwrap(credential)
     }
 
     func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {

@@ -74,7 +74,8 @@ extension AppSession: CloudSyncHost {
                     previous: previous,
                     current: current,
                     currentUserName: currentUserName,
-                    isSharedCart: isShared
+                    isSharedCart: isShared,
+                    defaults: defaults
                 )
             }
         } catch {

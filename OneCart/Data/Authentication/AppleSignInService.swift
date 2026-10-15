@@ -1,11 +1,13 @@
 import AuthenticationServices
 import Foundation
+import OSLog
 import Security
 import UIKit
 
+/// The app requests only the full name. Keychain payloads written by older builds also carry an
+/// `email` key; decoding ignores it, and the next save drops it.
 struct AppleSignInCredential: Codable, Equatable {
     let userID: String
-    let email: String?
     let givenName: String?
     let familyName: String?
 
@@ -63,17 +65,18 @@ protocol AppleSignInAuthenticating: AnyObject, Sendable {
     @MainActor func save(_ credential: AppleSignInCredential)
     @MainActor func clearCredential()
     func credentialState(for userID: String) async -> AppleSignInCredentialState
-    func signIn() async throws -> AppleSignInCredential
     @MainActor func makeCredential(from authorization: ASAuthorization) throws -> AppleSignInCredential
 }
 
 final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
+    private static let logger = Logger(subsystem: "com.vil555tim.onecart", category: "AppleSignIn")
+
     private let service: String
     private let account: String
     private let defaults: UserDefaults
 
     /// App Group backup key. Only the stable `userID` is stored here — never
-    /// the email or name (PII stays in the Keychain).
+    /// the name (PII stays in the Keychain).
     var backupKey: String {
         "onecart.apple-sign-in.backup.\(service).\(account)"
     }
@@ -102,7 +105,7 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
             let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
         {
             // Keep only the stable identifier in the App Group backup (no PII).
-            defaults.set(credential.userID, forKey: backupKey)
+            updateBackup(userID: credential.userID)
             return credential
         }
 
@@ -111,7 +114,6 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         if let userID = defaults.string(forKey: backupKey) {
             let credential = AppleSignInCredential(
                 userID: userID,
-                email: nil,
                 givenName: nil,
                 familyName: nil
             )
@@ -124,11 +126,12 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         return nil
     }
 
+    /// Encodes before touching the Keychain and replaces the item in place: Apple sends the
+    /// name only on the first sign-in, so a failed write must not delete the stored one first.
     func save(_ credential: AppleSignInCredential) {
-        clearKeychain()
         guard let data = try? JSONEncoder().encode(credential) else { return }
-        // Backup stores only the stable userID; email/name live in the Keychain.
-        defaults.set(credential.userID, forKey: backupKey)
+        // Backup stores only the stable userID; the name lives in the Keychain.
+        updateBackup(userID: credential.userID)
         saveKeychain(data: data)
     }
 
@@ -137,40 +140,56 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         defaults.removeObject(forKey: backupKey)
     }
 
-    private func saveKeychain(data: Data) {
-        let query: [String: Any] = [
+    private func updateBackup(userID: String) {
+        guard defaults.string(forKey: backupKey) != userID else { return }
+        defaults.set(userID, forKey: backupKey)
+    }
+
+    private var itemQuery: [String: Any] {
+        [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+        ]
+    }
+
+    private func saveKeychain(data: Data) {
+        let attributes: [String: Any] = [
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
             kSecValueData as String: data,
         ]
-        SecItemAdd(query as CFDictionary, nil)
+        let updateStatus = SecItemUpdate(itemQuery as CFDictionary, attributes as CFDictionary)
+        guard updateStatus == errSecItemNotFound else {
+            if updateStatus != errSecSuccess {
+                Self.logger.error("keychain update fail status=\(updateStatus, privacy: .public)")
+            }
+            return
+        }
+        let addQuery = itemQuery.merging(attributes) { _, new in new }
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        if addStatus != errSecSuccess {
+            Self.logger.error("keychain add fail status=\(addStatus, privacy: .public)")
+        }
     }
 
     private func clearKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(itemQuery as CFDictionary)
+        if status != errSecSuccess, status != errSecItemNotFound {
+            Self.logger.error("keychain delete fail status=\(status, privacy: .public)")
+        }
     }
 }
 
-/// Main-actor isolated: the store, the continuation and the controller are touched only by the
-/// session, `signIn()` and the AuthenticationServices callbacks, which all run there.
+/// Main-actor isolated: the store is touched only by the session and the bootstrapper, which
+/// run there.
 @MainActor
-final class AppleSignInService: NSObject, AppleSignInAuthenticating {
+final class AppleSignInService: AppleSignInAuthenticating {
     static let shared = AppleSignInService()
 
     private let store: any AppleSignInCredentialStoring
-    private var continuation: CheckedContinuation<AppleSignInCredential, Error>?
-    private var authorizationController: ASAuthorizationController?
 
     init(store: any AppleSignInCredentialStoring = KeychainAppleSignInCredentialStore()) {
         self.store = store
-        super.init()
     }
 
     func storedCredential() -> AppleSignInCredential? {
@@ -197,21 +216,6 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
         #endif
     }
 
-    func signIn() async throws -> AppleSignInCredential {
-        try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName, .email]
-
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            self.authorizationController = controller
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
-        }
-    }
-
     func makeCredential(from authorization: ASAuthorization) throws -> AppleSignInCredential {
         try credential(from: authorization)
     }
@@ -233,18 +237,6 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
         }
     }
 
-    private func finish(with result: Result<AppleSignInCredential, Error>) {
-        authorizationController = nil
-        guard let continuation else { return }
-        self.continuation = nil
-        switch result {
-        case let .success(credential):
-            continuation.resume(returning: credential)
-        case let .failure(error):
-            continuation.resume(throwing: error)
-        }
-    }
-
     private func credential(from authorization: ASAuthorization) throws -> AppleSignInCredential {
         guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
             throw AppleSignInError.failed
@@ -256,46 +248,12 @@ final class AppleSignInService: NSObject, AppleSignInAuthenticating {
         let existing = store.load()
         let givenName = appleIDCredential.fullName?.givenName ?? existing?.givenName
         let familyName = appleIDCredential.fullName?.familyName ?? existing?.familyName
-        let email = appleIDCredential.email ?? existing?.email
 
         return AppleSignInCredential(
             userID: appleIDCredential.user,
-            email: email,
             givenName: givenName,
             familyName: familyName
         )
-    }
-}
-
-extension AppleSignInService: ASAuthorizationControllerDelegate {
-    func authorizationController(
-        controller _: ASAuthorizationController,
-        didCompleteWithAuthorization authorization: ASAuthorization
-    ) {
-        do {
-            let credential = try credential(from: authorization)
-            store.save(credential)
-            finish(with: .success(credential))
-        } catch {
-            finish(with: .failure(error))
-        }
-    }
-
-    func authorizationController(
-        controller _: ASAuthorizationController,
-        didCompleteWithError error: Error
-    ) {
-        if let authError = error as? ASAuthorizationError, authError.code == .canceled {
-            finish(with: .failure(AppleSignInError.cancelled))
-            return
-        }
-        finish(with: .failure(error))
-    }
-}
-
-extension AppleSignInService: ASAuthorizationControllerPresentationContextProviding {
-    func presentationAnchor(for _: ASAuthorizationController) -> ASPresentationAnchor {
-        AppleSignInPresentationAnchor.current
     }
 }
 

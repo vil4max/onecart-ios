@@ -245,6 +245,13 @@ final class HouseholdCartCoordinator {
         "onecart.restored-personal-family-space-id.\(accountID.uuidString)"
     }
 
+    /// Account deletion only: sign-out keeps the provenance so signing back in can still
+    /// reconcile the provisional cart with a late import.
+    static func clearPersonalCartKeys(accountID: UUID, defaults: UserDefaults) {
+        defaults.removeObject(forKey: provisionalFamilyKey(accountID: accountID))
+        defaults.removeObject(forKey: restoredPersonalFamilyKey(accountID: accountID))
+    }
+
     func restoredPersonalFamilyID(accountID: UUID) -> UUID? {
         defaults.string(forKey: Self.restoredPersonalFamilyKey(accountID: accountID))
             .flatMap(UUID.init(uuidString:))

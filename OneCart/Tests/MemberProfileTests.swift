@@ -1,6 +1,8 @@
+import CloudKit
 import CoreData
 import Foundation
 @testable import OneCart
+import Synchronization
 import Testing
 
 /// The shared member profile that carries each member's chosen name to the others (REQ-AUTH-040).
@@ -181,6 +183,19 @@ struct MemberProfileTests {
         #expect(identity.callCount >= 1)
         #expect(try await rows(in: fixture).isEmpty)
         #expect(fixture.session.currentUserRecordName == nil)
+    }
+
+    @Test("REQ-AUTH-040: an iCloud account change forgets the cached record name")
+    func accountChangeForgetsCachedRecordName() {
+        let backend = CloudKitBackendService(
+            persistence: PersistenceController(inMemory: true, cloudKitEnabled: false)
+        )
+        backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+
+        NotificationCenter.default.post(name: .CKAccountChanged, object: nil)
+
+        // A profile published after the switch must look up the new user, not reuse the old name.
+        #expect(backend.cachedUserRecordName.withLock { $0 } == nil)
     }
 
     @Test("REQ-AUTH-040: a store written by the previous model opens with the member profile entity")

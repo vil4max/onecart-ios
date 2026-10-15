@@ -11,7 +11,7 @@ extension AppSession {
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> UUID? {
         guard let listID = list.id else { return nil }
         let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
-        CartSyncLog.action.info("addProduct start name=\(draft.name, privacy: .public)")
+        CartSyncLog.action.info("addProduct start")
         var addedID: UUID?
         let succeeded = await performMutation(
             action: "addProduct",
@@ -103,7 +103,6 @@ extension AppSession {
         }
         guard canEdit else {
             CartSyncLog.cart.error("togglePurchased denied canEdit=false")
-            CartSyncLog.action.error("togglePurchased denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
             return
         }
@@ -112,7 +111,6 @@ extension AppSession {
         defer { finishCartMutation() }
         do {
             CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
-            CartSyncLog.action.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
             try await repository.togglePurchased(
                 id: id,
                 familySpaceID: familyID,
@@ -139,13 +137,9 @@ extension AppSession {
             CartSyncLog.cart.info(
                 "togglePurchased done purchased=\(purchasedCount)/\(totalCount)"
             )
-            CartSyncLog.action.info("togglePurchased done")
             CartHaptics.light()
         } catch {
             CartSyncLog.cart.error("togglePurchased failed error=\(error.localizedDescription, privacy: .public)")
-            CartSyncLog.action.error(
-                "togglePurchased fail error=\(error.localizedDescription, privacy: .public)"
-            )
             show(error)
         }
     }
@@ -263,7 +257,7 @@ extension AppSession {
     ) async -> Bool {
         _ = successMessage
         guard canEdit else {
-            CartSyncLog.action.error("\(action) denied canEdit=false")
+            CartSyncLog.action.error("\(action, privacy: .public) denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)
             return false
         }
@@ -283,7 +277,7 @@ extension AppSession {
             try reload()
             cartSync.bumpRevisionAfterLocalChange()
             CartHaptics.success()
-            CartSyncLog.action.info("\(action) done")
+            CartSyncLog.action.info("\(action, privacy: .public) done")
             return true
         } catch {
             CartSyncLog.action.error(

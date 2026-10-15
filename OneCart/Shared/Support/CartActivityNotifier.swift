@@ -113,8 +113,18 @@ public enum CartActivityDiff {
 }
 
 public enum CartActivityNotifier {
+    private static let snapshotKeyPrefix = "onecart.cart-activity-snapshot."
+
     private static func snapshotKey(cartID: UUID) -> String {
-        "onecart.cart-activity-snapshot.\(cartID.uuidString)"
+        snapshotKeyPrefix + cartID.uuidString
+    }
+
+    /// Snapshots carry item and member names. Sign-out and account deletion sweep them by
+    /// prefix: the cart rows that named them may already be gone at that point.
+    static func clearSnapshots(defaults: UserDefaults) {
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(snapshotKeyPrefix) {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     public static func notifyIfNeeded(

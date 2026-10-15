@@ -95,7 +95,7 @@ struct WelcomeView: View {
         VStack(spacing: 12) {
             AppleSignInAuthorizationButton(
                 onRequest: { request in
-                    request.requestedScopes = [.fullName, .email]
+                    request.requestedScopes = [.fullName]
                 },
                 onCompletion: { result in
                     handleSignInResult(result)

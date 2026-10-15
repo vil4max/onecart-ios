@@ -8,6 +8,8 @@ final class CloudKitBackendService: Sendable {
     private let injectedCloudContainer: CKContainer?
     private let cachedCloudContainer = Mutex<CKContainer?>(nil)
     let cachedUserRecordName = Mutex<String?>(nil)
+    /// Written once in `init` and read only in `deinit`, so no two threads touch it at once.
+    nonisolated(unsafe) private var accountChangeObserver: (any NSObjectProtocol)?
 
     /// Lazily created — constructing `CKContainer` in unit tests / Xcode Cloud without iCloud can SEGV.
     var cloudContainer: CKContainer {
@@ -37,6 +39,25 @@ final class CloudKitBackendService: Sendable {
     ) {
         self.persistence = persistence
         injectedCloudContainer = cloudContainer
+        // The backend outlives an iCloud account switch; the old record name would publish this
+        // member's profile under the previous user.
+        accountChangeObserver = NotificationCenter.default.addObserver(
+            forName: .CKAccountChanged,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.resetCachedUserRecordName()
+        }
+    }
+
+    deinit {
+        if let accountChangeObserver {
+            NotificationCenter.default.removeObserver(accountChangeObserver)
+        }
+    }
+
+    func resetCachedUserRecordName() {
+        cachedUserRecordName.withLock { $0 = nil }
     }
 
     func restoredAccount(

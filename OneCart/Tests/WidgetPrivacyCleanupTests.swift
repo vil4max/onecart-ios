@@ -1,4 +1,5 @@
 @testable import OneCart
+import Synchronization
 import XCTest
 
 @MainActor
@@ -40,6 +41,21 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         } catch {
             XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
         }
+    }
+
+    func test_REQ_AUTH_060_signOut_removesActivitySnapshotsAndICloudIdentity() async throws {
+        let defaults = try makeDefaults()
+        let session = try makeTestSession(defaults: defaults)
+        session.account = OneCartAccount(id: UUID(), displayName: "Alex")
+        let snapshotKey = "onecart.cart-activity-snapshot.\(UUID().uuidString)"
+        defaults.set(Data("[{\"name\":\"Milk\"}]".utf8), forKey: snapshotKey)
+        session.backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+
+        session.signOut()
+
+        XCTAssertNil(session.account)
+        XCTAssertNil(defaults.object(forKey: snapshotKey), "item and member names must not survive sign-out")
+        XCTAssertNil(session.backend.cachedUserRecordName.withLock { $0 })
     }
 
     func test_REQ_WIDGET_050_purchaseFromTheTripReachesItAndFinishesIt() async throws {
