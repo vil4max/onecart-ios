@@ -1,8 +1,5 @@
 import AppIntents
 import Foundation
-#if canImport(WidgetKit)
-    import WidgetKit
-#endif
 
 public struct ToggleProductPurchasedIntent: LiveActivityIntent {
     public static let title: LocalizedStringResource = "intent.toggle_purchased.title"

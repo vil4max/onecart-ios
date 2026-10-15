@@ -98,7 +98,8 @@ extension XCTestCase {
         addTeardownBlock {
             try? FileManager.default.removeItem(at: directory)
         }
-        return (WidgetSnapshotStore(suiteName: suite, pendingDirectoryURL: directory), suite, directory)
+        let store = WidgetSnapshotStore(suiteName: suite, pendingDirectoryURL: directory, reloadTimelines: {})
+        return (store, suite, directory)
     }
 
     nonisolated func makeDefaults() throws -> UserDefaults {

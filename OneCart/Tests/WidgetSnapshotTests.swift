@@ -1,6 +1,7 @@
 import AuthenticationServices
 import CoreData
 @testable import OneCart
+import Synchronization
 import XCTest
 
 @MainActor
@@ -102,7 +103,7 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(unknown.category, .other)
     }
 
-    func testThemeRoundtripAndColorScheme() throws {
+    func testThemeRoundtripAndForcedAppearance() throws {
         let darkSnapshot = WidgetCartSnapshot(
             cartTitle: "Dark Cart",
             totalCount: 1,
@@ -114,12 +115,12 @@ final class WidgetSnapshotTests: XCTestCase {
             themeRaw: "dark",
             items: []
         )
-        XCTAssertEqual(darkSnapshot.preferredColorScheme, .dark)
+        XCTAssertEqual(darkSnapshot.forcedAppearance, .dark)
 
         let encoded = try JSONEncoder().encode(darkSnapshot)
         let decoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: encoded)
         XCTAssertEqual(decoded.themeRaw, "dark")
-        XCTAssertEqual(decoded.preferredColorScheme, .dark)
+        XCTAssertEqual(decoded.forcedAppearance, .dark)
 
         let lightSnapshot = WidgetCartSnapshot(
             cartTitle: "Light Cart",
@@ -132,7 +133,7 @@ final class WidgetSnapshotTests: XCTestCase {
             themeRaw: "light",
             items: []
         )
-        XCTAssertEqual(lightSnapshot.preferredColorScheme, .light)
+        XCTAssertEqual(lightSnapshot.forcedAppearance, .light)
 
         let systemSnapshot = WidgetCartSnapshot(
             cartTitle: "System Cart",
@@ -145,7 +146,7 @@ final class WidgetSnapshotTests: XCTestCase {
             themeRaw: "system",
             items: []
         )
-        XCTAssertNil(systemSnapshot.preferredColorScheme)
+        XCTAssertNil(systemSnapshot.forcedAppearance)
     }
 
     @MainActor
@@ -157,7 +158,7 @@ final class WidgetSnapshotTests: XCTestCase {
         session.updateWidgetSnapshot()
         let loaded = try XCTUnwrap(store.loadSnapshot())
         XCTAssertEqual(loaded.themeRaw, "system")
-        XCTAssertNil(loaded.preferredColorScheme)
+        XCTAssertNil(loaded.forcedAppearance)
     }
 
     @MainActor
@@ -212,19 +213,72 @@ final class WidgetSnapshotTests: XCTestCase {
     }
 
     func test_REQ_WIDGET_010_legacySnapshotFallsBackToEmeraldWithEmptySuite() throws {
-        let suite = try makeDefaults()
+        let store = try makeWidgetStore().store
 
-        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: suite), .emerald)
-        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: nil), .emerald)
-        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: "unknown", legacyDefaults: suite), .emerald)
+        XCTAssertEqual(store.withStoredAccent(Self.snapshot(accentRaw: nil)).accentColor, .emerald)
+        XCTAssertEqual(Self.snapshot(accentRaw: nil).fillingMissingAccent(with: nil).accentColor, .emerald)
+        XCTAssertEqual(store.withStoredAccent(Self.snapshot(accentRaw: "unknown")).accentColor, .emerald)
     }
 
     func test_REQ_WIDGET_010_legacySnapshotUsesTheStoredAccent() throws {
-        let suite = try makeDefaults()
-        suite.set("ocean", forKey: "onecart.accent-color")
+        let fixture = try makeWidgetStore()
+        let suite = try XCTUnwrap(UserDefaults(suiteName: fixture.suite))
+        suite.set("ocean", forKey: OneCartAppGroup.accentColorKey)
 
-        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: suite), .ocean)
-        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: "berry", legacyDefaults: suite), .berry)
+        XCTAssertEqual(fixture.store.withStoredAccent(Self.snapshot(accentRaw: nil)).accentColor, .ocean)
+        XCTAssertEqual(fixture.store.withStoredAccent(Self.snapshot(accentRaw: "berry")).accentColor, .berry)
+    }
+
+    /// The snapshot value takes the stored accent from the store it was read through, so an
+    /// injected suite decides the accent and the App Group's value plays no part.
+    func test_REQ_WIDGET_010_snapshotResolvesTheAccentFromTheInjectedSuiteNotTheAppGroup() throws {
+        let appGroupAccent = OneCartAppGroup.defaults?.string(forKey: OneCartAppGroup.accentColorKey)
+        // Never emerald: that is also the fallback, so it could pass without the suite being read.
+        let injected = try XCTUnwrap(
+            AppAccentColor.allCases.first { $0 != .emerald && $0.rawValue != appGroupAccent })
+        let fixture = try makeWidgetStore()
+        let suite = try XCTUnwrap(UserDefaults(suiteName: fixture.suite))
+        suite.set(injected.rawValue, forKey: OneCartAppGroup.accentColorKey)
+        let legacy = Self.snapshot(accentRaw: nil)
+        let berry = Self.snapshot(accentRaw: "berry")
+
+        XCTAssertEqual(legacy.accentColor, .emerald)
+        XCTAssertEqual(fixture.store.withStoredAccent(legacy).accentColor, injected)
+        XCTAssertEqual(legacy.fillingMissingAccent(with: injected.rawValue).accentColorRaw, injected.rawValue)
+        XCTAssertNil(legacy.fillingMissingAccent(with: "unknown").accentColorRaw)
+        XCTAssertEqual(berry.fillingMissingAccent(with: injected.rawValue).accentColor, .berry)
+    }
+
+    func test_REQ_WIDGET_010_storeWriteAndClearRequestATimelineReloadThroughTheInjectedClosure() throws {
+        let suite = try makeDefaultsSuiteName()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let reloads = ReloadCounter()
+        let store = WidgetSnapshotStore(suiteName: suite, pendingDirectoryURL: directory) {
+            reloads.record()
+        }
+
+        XCTAssertNil(store.loadSnapshot())
+        XCTAssertEqual(reloads.count, 0)
+        store.save(snapshot: .placeholder)
+        XCTAssertEqual(reloads.count, 1)
+        try store.clear()
+        XCTAssertEqual(reloads.count, 2)
+    }
+
+    private static func snapshot(accentRaw: String?) -> WidgetCartSnapshot {
+        WidgetCartSnapshot(
+            cartTitle: "Accent Cart",
+            totalCount: 0,
+            purchasedCount: 0,
+            isSyncing: false,
+            lastUpdated: Date(timeIntervalSince1970: 0),
+            familyMemberCount: 1,
+            accentColorRaw: accentRaw,
+            items: []
+        )
     }
 
     @MainActor
@@ -252,7 +306,8 @@ extension WidgetSnapshotTests {
         )
         try fixture.store.enqueuePurchase(first)
         try fixture.store.enqueuePurchase(second)
-        let reopened = WidgetSnapshotStore(suiteName: fixture.suite, pendingDirectoryURL: fixture.directory)
+        let reopened = WidgetSnapshotStore(
+            suiteName: fixture.suite, pendingDirectoryURL: fixture.directory, reloadTimelines: {})
 
         XCTAssertEqual(try reopened.pendingPurchases(), [first, second])
         try reopened.enqueuePurchase(
@@ -294,5 +349,19 @@ extension WidgetSnapshotTests {
         XCTAssertFalse(FileManager.default.fileExists(atPath: malformedURL.path))
         XCTAssertEqual(try Data(contentsOf: quarantinedURL), Data("{invalid".utf8))
         XCTAssertTrue(FileManager.default.fileExists(atPath: unreadableURL.path))
+    }
+}
+
+/// The store's reload closure is `@Sendable` and runs off any actor, so the count is
+/// lock-protected rather than main-actor isolated like `CallCounter`.
+private final class ReloadCounter: Sendable {
+    private let calls = Mutex(0)
+
+    var count: Int {
+        calls.withLock { $0 }
+    }
+
+    func record() {
+        calls.withLock { $0 += 1 }
     }
 }

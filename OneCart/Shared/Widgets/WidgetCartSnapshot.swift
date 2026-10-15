@@ -1,14 +1,4 @@
 import Foundation
-import SwiftUI
-
-public enum OneCartAppGroup {
-    public static let identifier = "group.com.vil555tim.onecart"
-    /// The accent the app last chose; the widget and the palette read it before a snapshot exists.
-    public static let accentColorKey = "onecart.accent-color"
-    public static var defaults: UserDefaults? {
-        UserDefaults(suiteName: identifier)
-    }
-}
 
 public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     public let cartTitle: String
@@ -19,7 +9,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     public let familyMemberCount: Int
     public let activePartnerName: String?
     public let themeRaw: String?
-    public let accentColorRaw: String?
+    public private(set) var accentColorRaw: String?
     public let accountID: UUID?
     public let familyID: UUID?
     public let items: [WidgetItemSnapshot]
@@ -52,7 +42,9 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         self.items = items
     }
 
-    public var preferredColorScheme: ColorScheme? {
+    /// Older builds stored a forced appearance; current builds write "system", so the widget
+    /// follows the device. Each target maps this to its own UI type.
+    public var forcedAppearance: WidgetAppearance? {
         switch themeRaw {
         case "dark":
             .dark
@@ -64,21 +56,22 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     }
 
     public var accentColor: AppAccentColor {
-        Self.accentColor(raw: accentColorRaw, legacyDefaults: OneCartAppGroup.defaults)
+        accentColorRaw.flatMap(AppAccentColor.init(rawValue:)) ?? .emerald
     }
 
-    /// A snapshot written before the accent was stored in it falls back to the accent the
-    /// app last wrote to the App Group, then to emerald.
-    static func accentColor(raw: String?, legacyDefaults: UserDefaults?) -> AppAccentColor {
-        guard let raw else {
-            if let stored = legacyDefaults?.string(forKey: OneCartAppGroup.accentColorKey),
-                let accent = AppAccentColor(rawValue: stored)
-            {
-                return accent
-            }
-            return .emerald
+    /// A snapshot without an accent (written by an older build, or the built-in placeholder
+    /// and empty snapshots) takes the accent the app last stored, then falls back to emerald.
+    /// The reader passes the stored value in, so the value never reads shared storage itself.
+    public func fillingMissingAccent(with storedAccentRaw: String?) -> WidgetCartSnapshot {
+        guard accentColorRaw == nil,
+            let storedAccentRaw,
+            AppAccentColor(rawValue: storedAccentRaw) != nil
+        else {
+            return self
         }
-        return AppAccentColor(rawValue: raw) ?? .emerald
+        var filled = self
+        filled.accentColorRaw = storedAccentRaw
+        return filled
     }
 
     public var remainingCount: Int {
@@ -152,6 +145,11 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         activePartnerName: nil,
         items: []
     )
+}
+
+public enum WidgetAppearance: Sendable, Equatable {
+    case light
+    case dark
 }
 
 public struct WidgetPurchaseRequest: Codable, Sendable, Equatable, Identifiable {

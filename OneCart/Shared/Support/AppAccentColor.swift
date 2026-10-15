@@ -1,5 +1,4 @@
-import SwiftUI
-import UIKit
+import Foundation
 
 public enum AppAccentColor: String, CaseIterable, Identifiable, Sendable {
     case emerald

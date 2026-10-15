@@ -49,7 +49,7 @@ Planned order (status kept here):
 | G6 | One share-mutation path; leave-purge timeout and recovery tests | pending |
 | G7 | Composition root without default singletons; intents through dependencies | pending |
 | G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
-| G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | pending |
+| G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | done (`OneCartPalette` stays shared presentation) |
 | G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | pending |
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | pending |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |

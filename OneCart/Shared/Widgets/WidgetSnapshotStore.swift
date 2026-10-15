@@ -1,16 +1,14 @@
 import Foundation
 import os
 import Synchronization
-#if canImport(WidgetKit)
-    import WidgetKit
-#endif
 
+/// Shared by the app and the widget, so it imports no UI framework: each target defines its
+/// live `shared` instance with WidgetCenter reloads, and tests inject their own closure.
 public final class WidgetSnapshotStore: Sendable {
-    public static let shared = WidgetSnapshotStore()
-
     private let suiteName: String
     private let snapshotKey = "onecart.widget.snapshot"
     private let pendingDirectoryURL: URL?
+    private let reloadTimelines: @Sendable () -> Void
     private let mutex = Mutex<Void>(())
 
     private static let logger = Logger(subsystem: OneCartLog.subsystem, category: "WidgetSnapshot")
@@ -23,9 +21,11 @@ public final class WidgetSnapshotStore: Sendable {
 
     public init(
         suiteName: String = OneCartAppGroup.identifier,
-        pendingDirectoryURL: URL? = nil
+        pendingDirectoryURL: URL? = nil,
+        reloadTimelines: @escaping @Sendable () -> Void
     ) {
         self.suiteName = suiteName
+        self.reloadTimelines = reloadTimelines
         self.pendingDirectoryURL =
             pendingDirectoryURL
             ?? FileManager.default
@@ -41,15 +41,20 @@ public final class WidgetSnapshotStore: Sendable {
     }
 
     public func save(snapshot: WidgetCartSnapshot) {
-        mutex.withLock { _ in
-            guard let userDefaults else { return }
-            if let data = try? JSONEncoder().encode(snapshot) {
-                userDefaults.set(data, forKey: snapshotKey)
-                #if canImport(WidgetKit)
-                    WidgetCenter.shared.reloadAllTimelines()
-                #endif
-            }
+        let saved = mutex.withLock { _ -> Bool in
+            guard let userDefaults, let data = try? JSONEncoder().encode(snapshot) else { return false }
+            userDefaults.set(data, forKey: snapshotKey)
+            return true
         }
+        // Outside the lock: the injected closure may read the store, and Mutex is not reentrant.
+        if saved { reloadTimelines() }
+    }
+
+    /// Fills the accent of a snapshot that carries none from the accent the app last wrote
+    /// to this store's suite, so the widget draws the chosen accent before the app writes
+    /// a snapshot with one. The store reads the suite; the snapshot value never does.
+    public func withStoredAccent(_ snapshot: WidgetCartSnapshot) -> WidgetCartSnapshot {
+        snapshot.fillingMissingAccent(with: userDefaults?.string(forKey: OneCartAppGroup.accentColorKey))
     }
 
     public func loadSnapshot() -> WidgetCartSnapshot? {
@@ -145,9 +150,7 @@ public final class WidgetSnapshotStore: Sendable {
                 try FileManager.default.removeItem(at: pendingDirectoryURL)
             }
         }
-        #if canImport(WidgetKit)
-            WidgetCenter.shared.reloadAllTimelines()
-        #endif
+        reloadTimelines()
     }
 }
 

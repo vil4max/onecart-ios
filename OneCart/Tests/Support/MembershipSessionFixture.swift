@@ -45,7 +45,8 @@ final class MembershipSessionFixture {
         session = Self.makeSession(
             persistence: persistence,
             defaults: defaults,
-            widgetStore: WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: widgetDirectory),
+            widgetStore: WidgetSnapshotStore(
+                suiteName: suiteName, pendingDirectoryURL: widgetDirectory, reloadTimelines: {}),
             classifier: classifier,
             cloudUserIdentity: cloudUserIdentity
         )
@@ -63,7 +64,8 @@ final class MembershipSessionFixture {
         Self.makeSession(
             persistence: persistence,
             defaults: defaults,
-            widgetStore: WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: widgetDirectory),
+            widgetStore: WidgetSnapshotStore(
+                suiteName: suiteName, pendingDirectoryURL: widgetDirectory, reloadTimelines: {}),
             classifier: KeywordCategoryClassifier(),
             cloudUserIdentity: nil
         )

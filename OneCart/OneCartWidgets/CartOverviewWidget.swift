@@ -6,22 +6,34 @@ struct CartWidgetEntry: TimelineEntry {
     let snapshot: WidgetCartSnapshot
 }
 
+extension WidgetSnapshotStore {
+    /// The extension's App Group store. The extension only reads the snapshot today, but a
+    /// write from here still reloads the timelines, as it does in the app.
+    static let shared = WidgetSnapshotStore(reloadTimelines: {
+        WidgetCenter.shared.reloadAllTimelines()
+    })
+}
+
 struct CartWidgetProvider: TimelineProvider {
+    private var store: WidgetSnapshotStore {
+        .shared
+    }
+
     func placeholder(in _: Context) -> CartWidgetEntry {
-        CartWidgetEntry(date: Date(), snapshot: .placeholder)
+        CartWidgetEntry(date: Date(), snapshot: store.withStoredAccent(.placeholder))
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CartWidgetEntry) -> Void) {
         if context.isPreview {
-            completion(CartWidgetEntry(date: Date(), snapshot: .placeholder))
+            completion(CartWidgetEntry(date: Date(), snapshot: store.withStoredAccent(.placeholder)))
             return
         }
-        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
+        let snapshot = store.withStoredAccent(store.loadSnapshot() ?? .empty)
         completion(CartWidgetEntry(date: Date(), snapshot: snapshot))
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<CartWidgetEntry>) -> Void) {
-        let snapshot = WidgetSnapshotStore.shared.loadSnapshot() ?? .empty
+        let snapshot = store.withStoredAccent(store.loadSnapshot() ?? .empty)
         let entry = CartWidgetEntry(date: Date(), snapshot: snapshot)
         // Only the app and the toggle intent write the snapshot, and both reload the
         // timelines, so a periodic refresh would re-read unchanged data.

@@ -22,6 +22,7 @@
         { "path": "CartWidgetViews.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "CartWidgetComponents.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "ShoppingTripLiveActivity.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
+        { "path": "WidgetCartSnapshot+SwiftUI.swift", "target-membership": [ "OneCartWidgets/compile-sources" ] },
         { "path": "OneCartWidgets.entitlements" },
         { "path": "Info.plist" },
         { "path": "PrivacyInfo.xcprivacy", "target-membership": [ "OneCartWidgets/resources" ] },
@@ -31,6 +32,7 @@
       "path": "Application",
       "children": [
         { "path": "AppSession+Widget.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "WidgetSnapshotStore+WidgetCenter.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppDelegate.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "MetricKitLogger.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "SceneDelegate.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -215,13 +217,26 @@
                 "OneCart/compile-sources",
                 "OneCartWidgets/compile-sources",
               ],
+            }, {
+              "path": "ProductCategory+SymbolName.swift",
+              "target-membership": [
+                "OneCart/compile-sources",
+                "OneCartWidgets/compile-sources",
+              ],
             },
+            { "path": "ProductCategory+SwiftUI.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
         }, {
           "kind": "group",
           "path": "Widgets",
           "children": [
             {
+              "path": "OneCartAppGroup.swift",
+              "target-membership": [
+                "OneCart/compile-sources",
+                "OneCartWidgets/compile-sources",
+              ],
+            }, {
               "path": "WidgetCartSnapshot.swift",
               "target-membership": [
                 "OneCart/compile-sources",
