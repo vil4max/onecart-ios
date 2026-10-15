@@ -107,8 +107,9 @@ final class PersistenceRoutingTests: XCTestCase {
 
         XCTAssertEqual(space.displayName, "Наша группа")
         XCTAssertEqual(lists.count, 1)
-        XCTAssertEqual(lists.first?.displayTitle, String(localized: "common.default_list"))
-        XCTAssertEqual(lists.first?.statusValue, .active)
+        XCTAssertEqual(lists.first?.title, String(localized: "common.default_list"))
+        // v1.2.1 shows only lists whose stored status is "active".
+        XCTAssertEqual(lists.first?.status, "active")
         XCTAssertEqual(
             lists.first?.objectID.persistentStore,
             space.objectID.persistentStore
@@ -144,14 +145,7 @@ final class PersistenceRoutingTests: XCTestCase {
 
             _ = try await repository.addProduct(
                 to: listID,
-                draft: ProductDraft(
-                    name: "Хлеб",
-                    quantity: 1,
-                    unit: .piece,
-                    category: .other,
-                    estimatedPrice: 38,
-                    note: ""
-                )
+                draft: ProductDraft(name: "Хлеб", category: .other)
             )
 
             persistence.container.viewContext.reset()

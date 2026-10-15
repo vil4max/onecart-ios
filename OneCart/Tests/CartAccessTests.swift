@@ -218,9 +218,7 @@ final class CartAccessTests: XCTestCase {
         let secondUser = UUID()
         _ = try await repository.createFamilySpace(
             name: "Первая группа",
-            cachedForUserID: firstUser,
-            serverRole: FamilyAccess.owner.rawValue,
-            needsRemoteCreation: true
+            cachedForUserID: firstUser
         )
 
         XCTAssertEqual(try repository.fetchFamilySpaces(for: firstUser).count, 1)

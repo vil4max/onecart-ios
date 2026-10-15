@@ -147,18 +147,15 @@ final class FragileStoreLoadTests: XCTestCase {
         XCTAssertTrue(persistence.container === containerBeforeRetry)
     }
 
-    func testShouldWipeLocalStoresWhenCloudKitEnvironmentChanges() {
-        XCTAssertFalse(
-            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: "production", current: "production")
-        )
-        XCTAssertTrue(
-            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: "development", current: "production")
-        )
-        XCTAssertFalse(
-            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: nil, current: "production")
-        )
+    /// Only a "development" marker (never stamped by a shipped build) wipes the local stores; a
+    /// Production stamp, no stamp, or anything unexpected keeps them.
+    func testShouldWipeLocalStoresOnlyForPrePinDevelopmentMarker() {
+        XCTAssertTrue(PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: "development"))
+        XCTAssertFalse(PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: "production"))
+        XCTAssertFalse(PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: nil))
+        XCTAssertFalse(PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: "unknown"))
+        XCTAssertFalse(PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: "Development"))
+        XCTAssertEqual(CloudKitShareEnvironment.process.rawValue, "production")
     }
 
     func test_REQ_AUTH_010_shouldHardResetStoresOnlyForCoreDataWelcomeFailure() {

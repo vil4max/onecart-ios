@@ -35,19 +35,13 @@ enum RepositoryError: LocalizedError, Equatable {
     }
 }
 
+/// What an add or a rename writes to a cart line (REQ-CART-020, REQ-CART-060): the name and the
+/// category it is grouped under. The legacy quantity, unit, price, note, URL and catalog
+/// attributes stay in the model for CloudKit and older clients, but the app no longer writes
+/// them, so values an older build stored are left as they are.
 struct ProductDraft: Equatable {
     var name: String
-    var quantity: Double
-    var unit: ProductUnit
     var category: ProductCategory
-    var estimatedPrice: Double
-    var note: String
-    var imageURL: String?
-    var sourceURL: String?
-    var originalPrice: Double?
-    var loyaltyPrice: Double?
-    var catalogFetchedAt: Date?
-    var promotionEndsAt: Date?
 }
 
 final class FamilySpaceRepository: Sendable {
@@ -100,8 +94,6 @@ final class FamilySpaceRepository: Sendable {
         name: String,
         createdAt: Date = Date(),
         cachedForUserID: UUID? = nil,
-        serverRole: String? = nil,
-        needsRemoteCreation: Bool = false,
         isHouseholdDefault: Bool = false
     ) async throws -> UUID {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -119,14 +111,13 @@ final class FamilySpaceRepository: Sendable {
             space.createdAt = createdAt
             space.updatedAt = createdAt
             space.cachedForUserID = cachedForUserID
-            space.serverRole = serverRole
-            space.needsRemoteCreation = NSNumber(value: needsRemoteCreation)
             space.isHouseholdDefault = NSNumber(value: isHouseholdDefault)
 
             let list = ShoppingListEntity(context: context)
             try self.persistence.assign(list, toSameStoreAs: space, in: context)
             list.id = UUID()
             list.title = String(localized: "common.default_list")
+            // v1.2.1 shows only lists whose status is "active"; every new list keeps writing it.
             list.status = ShoppingListStatus.active.rawValue
             list.createdAt = createdAt
             list.updatedAt = createdAt
@@ -148,8 +139,6 @@ final class FamilySpaceRepository: Sendable {
                 // Never stamp owner cache metadata onto shared-store records.
                 guard self.persistence.scope(for: space) != .shared else { continue }
                 space.cachedForUserID = userID
-                space.serverRole = "owner"
-                space.needsRemoteCreation = false
             }
         }
     }

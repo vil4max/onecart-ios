@@ -54,7 +54,7 @@ final class CartIntentTests: XCTestCase {
         let lines = fixture.session.products(inListID: fixture.listID)
         XCTAssertEqual(lines.count, 2)
         let milk = try XCTUnwrap(lines.first { $0.displayName == "Молоко" })
-        XCTAssertEqual(milk.estimatedPriceValue, 0)
+        XCTAssertNil(milk.estimatedPrice)
         XCTAssertFalse(milk.isPurchasedValue)
     }
 
@@ -171,9 +171,7 @@ final class CartIntentTests: XCTestCase {
         for (name, category) in [("Cheese", ProductCategory.dairyEggs), ("Tea", .hotDrinks)] {
             _ = try await repository.addProduct(
                 to: fixture.listID,
-                draft: ProductDraft(
-                    name: name, quantity: 1, unit: .piece, category: category, estimatedPrice: 0, note: ""
-                )
+                draft: ProductDraft(name: name, category: category)
             )
         }
         try fixture.session.reload()

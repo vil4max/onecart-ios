@@ -117,7 +117,7 @@ extension SharedCartSeeding {
                 product.id = UUID()
                 product.name = productName
                 product.quantity = NSNumber(value: 1)
-                product.unit = ProductUnit.piece.rawValue
+                product.unit = "piece"
                 product.category = ProductCategory.other.rawValue
                 product.estimatedPrice = NSNumber(value: 0)
                 product.isPurchased = NSNumber(value: false)

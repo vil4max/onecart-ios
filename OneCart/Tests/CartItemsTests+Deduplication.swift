@@ -9,15 +9,7 @@ extension CartItemsTests {
         let listID = try XCTUnwrap(
             repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id
         )
-        let draft = ProductDraft(
-            name: "Молоко",
-            quantity: 1,
-            unit: .piece,
-            category: .dairyEggs,
-            estimatedPrice: 40,
-            note: "",
-            sourceURL: "https://shop.example.com/milk"
-        )
+        let draft = ProductDraft(name: "Молоко", category: .dairyEggs)
 
         let firstID = try await repository.addProduct(
             to: listID,
@@ -28,15 +20,7 @@ extension CartItemsTests {
         // no second row — the existing line is returned.
         let secondID = try await repository.addProduct(
             to: listID,
-            draft: ProductDraft(
-                name: "  молоко ",
-                quantity: 1,
-                unit: .piece,
-                category: .dairyEggs,
-                estimatedPrice: 40,
-                note: "",
-                sourceURL: "https://shop.example.com/milk"
-            ),
+            draft: ProductDraft(name: "  молоко ", category: .dairyEggs),
             createdByName: "Игорь"
         )
 
@@ -116,7 +100,7 @@ extension CartItemsTests {
                 product.id = stableID
                 product.name = name
                 product.quantity = NSNumber(value: 1)
-                product.unit = ProductUnit.piece.rawValue
+                product.unit = "piece"
                 product.category = ProductCategory.other.rawValue
                 product.estimatedPrice = NSNumber(value: 0)
                 product.isPurchased = NSNumber(value: false)

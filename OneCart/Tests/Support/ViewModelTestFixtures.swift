@@ -78,14 +78,7 @@ struct CartFixture {
 
     @discardableResult
     func addProduct(named name: String, purchased: Bool = false) async throws -> UUID {
-        let draft = ProductDraft(
-            name: name,
-            quantity: 1,
-            unit: .piece,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: 0,
-            note: ""
-        )
+        let draft = ProductDraft.nameOnly(name)
         let id = try await repository.addProduct(to: listID, draft: draft)
         if purchased {
             try await repository.togglePurchased(id: id, participantDisplayName: "Alex")

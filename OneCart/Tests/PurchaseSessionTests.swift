@@ -9,11 +9,11 @@ final class PurchaseSessionTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
-            draft: productDraft(name: "Хлеб", quantity: 1, price: 38)
+            draft: productDraft(name: "Хлеб")
         )
         let milkID = try await repository.addProduct(
             to: listID,
-            draft: productDraft(name: "Молоко", quantity: 1, price: 42)
+            draft: productDraft(name: "Молоко")
         )
         try await repository.togglePurchased(
             id: breadID,
@@ -34,12 +34,14 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertEqual(history.sortedItems.first?.displayName, "Хлеб")
         XCTAssertEqual(history.sortedItems.first?.purchasedByName, "Игорь")
         XCTAssertNotNil(history.sortedItems.first?.purchasedAt)
-        XCTAssertEqual(history.totalValue, 38, accuracy: 0.001)
-        XCTAssertEqual(history.memberNames, "Игорь")
+        // No shipped client reads the History total or member names, so the archive leaves them unset.
+        XCTAssertNil(history.total)
+        XCTAssertNil(history.memberNames)
+        XCTAssertNil(history.sortedItems.first?.storeName)
 
         XCTAssertEqual(space.sortedProducts.count, 1)
         XCTAssertEqual(space.sortedProducts.first?.id, milkID)
-        XCTAssertEqual(space.activeLists.first?.statusValue, .active)
+        XCTAssertEqual(space.activeLists.first?.isActive, true)
     }
 
     /// REQ-SYNC-020: the archived line keeps who added the item, not only who bought it.
@@ -91,11 +93,11 @@ final class PurchaseSessionTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
-            draft: productDraft(name: "Хлеб", quantity: 1, price: 38)
+            draft: productDraft(name: "Хлеб")
         )
         let milkID = try await repository.addProduct(
             to: listID,
-            draft: productDraft(name: "Молоко", quantity: 1, price: 42)
+            draft: productDraft(name: "Молоко")
         )
         try await repository.togglePurchased(id: breadID, participantDisplayName: "Игорь")
         try await repository.togglePurchased(id: milkID, participantDisplayName: "Игорь")
@@ -171,11 +173,11 @@ final class PurchaseSessionTests: XCTestCase {
         let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
-            draft: productDraft(name: "Хлеб", quantity: 1, price: 38)
+            draft: productDraft(name: "Хлеб")
         )
         let milkID = try await repository.addProduct(
             to: listID,
-            draft: productDraft(name: "Молоко", quantity: 1, price: 42)
+            draft: productDraft(name: "Молоко")
         )
         try await repository.togglePurchased(id: breadID, participantDisplayName: "Игорь")
         try await repository.togglePurchased(id: milkID, participantDisplayName: "Игорь")

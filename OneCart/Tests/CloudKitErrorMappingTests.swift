@@ -300,35 +300,12 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
     }
 
-    func testCloudKitShareEnvironmentParsesProductionAndSandbox() {
-        XCTAssertEqual(
-            CloudKitShareEnvironment.fromDiagnostic(
-                "CKContainerID: 0x1; containerIdentifier=iCloud.com.vil555tim.onecart, environment=Production"
-            ),
-            .production
-        )
-        XCTAssertEqual(
-            CloudKitShareEnvironment.fromDiagnostic(
-                "CKContainerID: 0x1; containerIdentifier=iCloud.com.vil555tim.onecart, environment=Sandbox"
-            ),
-            .development
-        )
-        XCTAssertEqual(CloudKitShareEnvironment.fromDiagnostic("plain share"), .unknown)
-    }
-
-    func testShareDiagnosticSurvivesMissingPrivateKeys() {
-        let zoneID = CKRecordZone.ID(zoneName: "DiagnosticZone", ownerName: CKCurrentUserDefaultName)
-        let root = CKRecord(recordType: "FamilySpace", recordID: CKRecord.ID(recordName: "root", zoneID: zoneID))
-        let share = CKShare(rootRecord: root)
-
-        // A key the OS does not implement must be skipped instead of raising through KVC.
-        XCTAssertNil(
-            CloudKitShareEnvironment.guardedValue(forKey: "oneCartKeyRemovedByFutureOS", of: share)
-        )
-        XCTAssertTrue(
-            CloudKitShareEnvironment.diagnostic(for: share).contains(String(describing: share))
-        )
-        XCTAssertTrue(CloudKitShareEnvironment.canMutateInProcess(share))
+    /// The process environment is the marker every successful load stamps; the raw values are
+    /// what earlier builds stored, so the wipe check keeps matching them.
+    func testCloudKitShareEnvironmentStampsProductionAndKnowsTheLegacyMarker() {
+        XCTAssertEqual(CloudKitShareEnvironment.process, .production)
+        XCTAssertEqual(CloudKitShareEnvironment.production.rawValue, "production")
+        XCTAssertEqual(CloudKitShareEnvironment.development.rawValue, "development")
     }
 }
 

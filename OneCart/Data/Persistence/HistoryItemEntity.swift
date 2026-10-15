@@ -31,32 +31,12 @@ final class HistoryItemEntity: NSManagedObject {
         name?.nilIfBlank ?? String(localized: "common.default_product")
     }
 
-    var quantityValue: Double {
-        max(quantity?.doubleValue ?? 1, 0)
-    }
-
-    var unitValue: ProductUnit {
-        ProductUnit(rawValue: unit ?? "") ?? .piece
-    }
-
     var categoryValue: ProductCategory {
         ProductCategory.resolved(storedRawValue: category)
     }
 
     var purchaseMoment: Date {
         purchasedAt ?? createdAt ?? history?.purchaseDate ?? .distantPast
-    }
-
-    var estimatedPriceValue: Double {
-        max(estimatedPrice?.doubleValue ?? 0, 0)
-    }
-
-    var imageURLValue: URL? {
-        imageURL.flatMap(URL.init(string:))
-    }
-
-    var sourceURLValue: URL? {
-        sourceURL.flatMap(URL.init(string:))
     }
 
     var createdDate: Date {

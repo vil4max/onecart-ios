@@ -58,15 +58,15 @@ final class FamilySpace: NSManagedObject {
         let values = (lists?.allObjects as? [ShoppingListEntity] ?? [])
             .filter { !$0.isDeletedValue }
         return values.sorted {
-            if $0.statusValue != $1.statusValue {
-                return $0.statusValue == .active
+            if $0.isActive != $1.isActive {
+                return $0.isActive
             }
             return $0.updatedDate > $1.updatedDate
         }
     }
 
     var activeLists: [ShoppingListEntity] {
-        sortedLists.filter { $0.statusValue == .active }
+        sortedLists.filter(\.isActive)
     }
 
     var sortedProducts: [ProductEntity] {
@@ -126,10 +126,11 @@ final class StoreEntity: NSManagedObject {
 
 extension StoreEntity: Identifiable {}
 
-enum ShoppingListStatus: String, CaseIterable {
+/// The only list status the app writes. v1.2.1 shows a list only while its status is "active",
+/// so every list the app creates keeps writing it; the completed and archived values older builds
+/// defined are never written now.
+enum ShoppingListStatus: String {
     case active
-    case completed
-    case archived
 }
 
 @objc(ShoppingListEntity)
@@ -160,12 +161,10 @@ final class ShoppingListEntity: NSManagedObject {
         }
     }
 
-    var displayTitle: String {
-        title?.nilIfBlank ?? String(localized: "cart.default_title")
-    }
-
-    var statusValue: ShoppingListStatus {
-        ShoppingListStatus(rawValue: status ?? "") ?? .active
+    /// Only the retired "completed" and "archived" values mean inactive. A missing, empty or
+    /// unknown status stays active, as every shipped build (v1.2.1 included) reads it.
+    var isActive: Bool {
+        status != "completed" && status != "archived"
     }
 
     var createdDate: Date {
@@ -196,21 +195,6 @@ extension ProductEntity {
             }
             return $0.createdDate > $1.createdDate
         }
-    }
-}
-
-enum ProductUnit: String, CaseIterable, Identifiable {
-    case piece
-    case kg
-    // swiftlint:disable:next identifier_name
-    case g
-    // swiftlint:disable:next identifier_name
-    case l
-    case ml
-    case pack
-
-    var id: String {
-        rawValue
     }
 }
 
@@ -248,32 +232,8 @@ final class ProductEntity: NSManagedObject {
         name?.nilIfBlank ?? String(localized: "common.default_product")
     }
 
-    var quantityValue: Double {
-        max(quantity?.doubleValue ?? 1, 0)
-    }
-
-    var unitValue: ProductUnit {
-        ProductUnit(rawValue: unit ?? "") ?? .piece
-    }
-
     var categoryValue: ProductCategory {
         ProductCategory.resolved(storedRawValue: category)
-    }
-
-    var estimatedPriceValue: Double {
-        max(estimatedPrice?.doubleValue ?? 0, 0)
-    }
-
-    var imageURLValue: URL? {
-        imageURL.flatMap(URL.init(string:))
-    }
-
-    var sourceURLValue: URL? {
-        sourceURL.flatMap(URL.init(string:))
-    }
-
-    var noteValue: String {
-        note ?? ""
     }
 
     var isPurchasedValue: Bool {
@@ -310,10 +270,6 @@ final class PurchaseHistoryEntity: NSManagedObject {
 
     @nonobjc static func fetchRequest() -> NSFetchRequest<PurchaseHistoryEntity> {
         NSFetchRequest<PurchaseHistoryEntity>(entityName: "PurchaseHistory")
-    }
-
-    var totalValue: Double {
-        max(total?.doubleValue ?? 0, 0)
     }
 
     var purchaseDate: Date {

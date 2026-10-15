@@ -180,13 +180,6 @@ final class CloudKitBackendService: Sendable {
         guard let share = try share(forObjectID: objectID) else {
             throw OneCartCloudKitError.familyNotShared
         }
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                // swiftlint:disable:next line_length
-                "removeMember skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
-            )
-            throw OneCartCloudKitError.shareEnvironmentMismatch
-        }
         guard let participant = ShareParticipantRules.participant(forMemberID: member.id, in: share.participants)
         else {
             throw OneCartCloudKitError.participantNotFound
@@ -218,8 +211,7 @@ final class CloudKitBackendService: Sendable {
         let zoneID: CKRecordZone.ID
         if let share = try share(forObjectID: objectID) {
             CartSyncLog.shareACL.info(
-                // swiftlint:disable:next line_length
-                "leaveFamily begin record=\(share.recordID.recordName, privacy: .public) env=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
+                "leaveFamily begin record=\(share.recordID.recordName, privacy: .public)"
             )
             zoneID = share.recordID.zoneID
         } else if let recordID = persistence.container.recordID(for: objectID) {
@@ -296,13 +288,6 @@ extension CloudKitBackendService {
     @discardableResult
     func ensureReadWriteACL(objectID: NSManagedObjectID) async throws -> Bool {
         guard let share = try share(forObjectID: objectID) else { return false }
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                // swiftlint:disable:next line_length
-                "ensureReadWriteACL skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
-            )
-            return false
-        }
         var needsPersist = false
         if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
             needsPersist = true
@@ -325,18 +310,9 @@ extension CloudKitBackendService {
             CartSyncLog.shareACL.info("revokeInvite skip no-share")
             throw OneCartCloudKitError.familyNotShared
         }
-        let shareEnv = CloudKitShareEnvironment.of(share)
         CartSyncLog.shareACL.info(
-            // swiftlint:disable:next line_length
-            "revokeInvite begin record=\(share.recordID.recordName, privacy: .public) shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public) hasURL=\(share.url != nil)"
+            "revokeInvite begin record=\(share.recordID.recordName, privacy: .public) hasURL=\(share.url != nil)"
         )
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                // swiftlint:disable:next line_length
-                "revokeInvite skip incompatible shareEnv=\(shareEnv.rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
-            )
-            throw OneCartCloudKitError.shareEnvironmentMismatch
-        }
         guard share.publicPermission != .none else {
             CartSyncLog.shareACL.info("revokeInvite already closed")
             return

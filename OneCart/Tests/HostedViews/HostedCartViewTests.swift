@@ -111,7 +111,8 @@ struct HostedCartViewTests {
         #expect(await hosted.pump { harness.cart.addedProducts.count == 1 })
         let added = try #require(harness.cart.addedProducts.first)
         #expect(chip.label == String(localized: "cart.suggestion_chip_a11y \(added.draft.name)"))
-        #expect(added.draft.estimatedPrice == 0)
+        // A suggestion adds a name-only line: the draft has no price to carry.
+        #expect(added.draft == .nameOnly(added.draft.name))
         #expect(added.listID == harness.viewModel.primaryListID)
 
         #expect(hosted.element(identifier: "cart.add_close")?.activate() == true)

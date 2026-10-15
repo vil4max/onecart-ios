@@ -257,24 +257,14 @@ extension FamilySpaceRepository {
             let history = PurchaseHistoryEntity(context: context)
             try self.persistence.assign(history, toSameStoreAs: list, in: context)
             history.id = historyID
-            history.total = NSNumber(
-                value: unarchived.reduce(0) { $0 + $1.estimatedPriceValue }
-            )
             history.date = now
             history.createdAt = now
             history.updatedAt = now
             history.familySpace = space
             history.store = list.store
 
-            let names = Set(
-                unarchived.compactMap { $0.purchasedByName?.nilIfBlank }
-            ).sorted()
-            history.memberNames =
-                names.isEmpty
-                ? String(localized: "common.default_group")
-                : names
-                    .joined(separator: ", ")
-
+            // The leftover per-line attributes are copied as stored, so a line an older build
+            // wrote keeps its values in History; nothing here computes new ones.
             for product in unarchived {
                 let item = HistoryItemEntity(context: context)
                 try self.persistence.assign(item, toSameStoreAs: list, in: context)
@@ -291,7 +281,6 @@ extension FamilySpaceRepository {
                 item.purchasedAt = product.purchasedAt ?? now
                 item.purchasedByName = product.purchasedByName
                 item.createdByName = product.createdByName
-                item.storeName = product.store?.name
                 item.createdAt = product.createdAt
                 item.updatedAt = now
                 item.familySpace = space
@@ -371,16 +360,6 @@ extension FamilySpaceRepository {
 
     static func apply(draft: ProductDraft, to product: ProductEntity) {
         product.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        product.quantity = NSNumber(value: max(draft.quantity, 0.001))
-        product.unit = draft.unit.rawValue
         product.category = draft.category.rawValue
-        product.estimatedPrice = NSNumber(value: max(draft.estimatedPrice, 0))
-        product.note = draft.note.trimmingCharacters(in: .whitespacesAndNewlines)
-        product.imageURL = draft.imageURL?.nilIfBlank
-        product.sourceURL = draft.sourceURL?.nilIfBlank
-        product.originalPrice = draft.originalPrice.map { NSNumber(value: max($0, 0)) }
-        product.loyaltyPrice = draft.loyaltyPrice.map { NSNumber(value: max($0, 0)) }
-        product.catalogFetchedAt = draft.catalogFetchedAt
-        product.promotionEndsAt = draft.promotionEndsAt
     }
 }

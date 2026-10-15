@@ -237,20 +237,7 @@
         }
 
         private static func draft(named name: String) -> ProductDraft {
-            ProductDraft(
-                name: name,
-                quantity: 1,
-                unit: .piece,
-                category: ProductCategory.inferred(from: name),
-                estimatedPrice: 0,
-                note: "",
-                imageURL: nil,
-                sourceURL: nil,
-                originalPrice: nil,
-                loyaltyPrice: nil,
-                catalogFetchedAt: nil,
-                promotionEndsAt: nil
-            )
+            .nameOnly(name)
         }
     }
 

@@ -32,6 +32,71 @@ final class ManagedObjectModelTests: XCTestCase {
         }
     }
 
+    /// REQ-SYNC-010: the CloudKit Production schema cannot drop a field and v1.2.1 still reads
+    /// the synced records, so the model keeps every entity, attribute and relationship it has
+    /// shipped, legacy ones the app no longer writes included. Adding a field updates this
+    /// snapshot; removing or renaming one must fail here first.
+    func test_REQ_SYNC_010_modelKeepsEveryShippedEntityAttributeAndRelationship() {
+        let expected: [String: (attributes: Set<String>, relationships: Set<String>)] = [
+            "FamilySpace": (
+                [
+                    "id", "name", "createdAt", "updatedAt", "deletedAt", "cachedForUserID", "serverRole",
+                    "needsRemoteCreation", "isHouseholdDefault",
+                ],
+                ["stores", "lists", "products", "historyEntries", "historyItems", "memberProfiles"]
+            ),
+            "Store": (
+                [
+                    "id", "name", "icon", "colorHex", "address", "latitude", "longitude", "externalAppURL",
+                    "isPinned", "createdAt", "updatedAt", "deletedAt",
+                ],
+                ["familySpace", "lists", "products", "historyEntries"]
+            ),
+            "ShoppingList": (
+                ["id", "title", "status", "createdAt", "updatedAt", "deletedAt"],
+                ["familySpace", "store", "products"]
+            ),
+            "Product": (
+                [
+                    "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice",
+                    "loyaltyPrice", "imageURL", "sourceURL", "catalogFetchedAt", "promotionEndsAt", "note",
+                    "isPurchased", "createdAt", "updatedAt", "purchasedAt", "purchasedByName", "createdByName",
+                    "deletedAt",
+                ],
+                ["familySpace", "list", "store"]
+            ),
+            "PurchaseHistory": (
+                ["id", "total", "date", "memberNames", "createdAt", "updatedAt", "deletedAt"],
+                ["familySpace", "store", "items"]
+            ),
+            "HistoryItem": (
+                [
+                    "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice", "imageURL",
+                    "sourceURL", "note", "purchasedAt", "purchasedByName", "createdByName", "storeName",
+                    "createdAt", "updatedAt", "deletedAt",
+                ],
+                ["familySpace", "history"]
+            ),
+            "MemberProfile": (
+                ["id", "userRecordName", "displayName", "createdAt", "updatedAt", "deletedAt"],
+                ["familySpace"]
+            ),
+        ]
+
+        let model = OneCartManagedObjectModel.makeModel()
+        XCTAssertEqual(model.versionIdentifiers, [AnyHashable("OneCartCoreDataV8")])
+        XCTAssertEqual(Set(model.entitiesByName.keys), Set(expected.keys))
+        for (name, snapshot) in expected {
+            let entity = model.entitiesByName[name]
+            XCTAssertEqual(Set(entity.map { Array($0.attributesByName.keys) } ?? []), snapshot.attributes, name)
+            XCTAssertEqual(
+                Set(entity.map { Array($0.relationshipsByName.keys) } ?? []),
+                snapshot.relationships,
+                name
+            )
+        }
+    }
+
     /// REQ-AUTH-040: the member profile is CloudKit-compatible and belongs to the cart, so it
     /// lands in the cart's zone and every member can read it.
     func test_REQ_AUTH_040_memberProfileBelongsToTheCartWithOptionalFields() throws {
@@ -109,6 +174,22 @@ final class ManagedObjectModelTests: XCTestCase {
         description.shouldMigrateStoreAutomatically = true
         description.shouldInferMappingModelAutomatically = true
         return description
+    }
+
+    /// REQ-CART-010: only the retired statuses hide a list, so every shipped build agrees on it.
+    func test_REQ_CART_010_onlyRetiredStatusesMarkAListInactive() {
+        let model = OneCartManagedObjectModel.makeModel()
+        let context = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+        context.persistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
+        let list = ShoppingListEntity(context: context)
+        for status in [nil, "", "active", "unknown"] {
+            list.status = status
+            XCTAssertTrue(list.isActive, "status \(status ?? "nil")")
+        }
+        for status in ["completed", "archived"] {
+            list.status = status
+            XCTAssertFalse(list.isActive, "status \(status)")
+        }
     }
 
     private static func loadStores(of container: NSPersistentContainer) throws {

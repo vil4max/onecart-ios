@@ -98,9 +98,12 @@ extension PersistenceController {
         container = rebuilt
     }
 
-    static func shouldWipeLocalStoresForCloudKitEnvironment(previous: String?, current: String) -> Bool {
-        guard let previous else { return false }
-        return previous != current
+    /// Defensive only: no shipped build stamped "development" (the marker arrived with the
+    /// Production pin). Stores mirrored from Development would not exist in Production, so such a
+    /// marker would wipe once and re-import. Any other marker, or none, keeps the stores: the wipe
+    /// deletes local files and must not fire on anything it was not made for.
+    static func shouldWipeLocalStoresForCloudKitEnvironment(previous: String?) -> Bool {
+        previous == CloudKitShareEnvironment.development.rawValue
     }
 
     func reconcileCloudKitEnvironmentBeforeLoad() throws {
@@ -108,7 +111,7 @@ extension PersistenceController {
 
         let current = CloudKitShareEnvironment.process.rawValue
         let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
-        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(previous: previous, current: current) else { return }
+        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(previous: previous) else { return }
 
         let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
         logger.error(

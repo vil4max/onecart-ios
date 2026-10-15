@@ -74,7 +74,7 @@ extension WidgetSnapshotTests {
             product.id = UUID()
             product.name = "Store bread"
             product.quantity = NSNumber(value: 1)
-            product.unit = ProductUnit.piece.rawValue
+            product.unit = "piece"
             product.category = ProductCategory.bakery.rawValue
             product.estimatedPrice = NSNumber(value: 0)
             product.isPurchased = NSNumber(value: false)

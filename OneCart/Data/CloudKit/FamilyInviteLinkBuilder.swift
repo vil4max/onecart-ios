@@ -304,14 +304,6 @@ extension FamilyInviteLinkBuilder {
         _ share: CKShare,
         persistence: PersistenceController
     ) async throws {
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                // swiftlint:disable:next line_length
-                "invite door skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public) process=\(CloudKitShareEnvironment.process.rawValue, privacy: .public)"
-            )
-            throw OneCartCloudKitError.shareEnvironmentMismatch
-        }
-
         let doorWasClosed = share.publicPermission == .none
         let aclChanged = OneCartShareLinkJoin.applyReadWriteACL(
             to: share,
@@ -351,10 +343,7 @@ extension FamilyInviteLinkBuilder {
         persistence: PersistenceController,
         timeoutNanoseconds: UInt64 = FamilyInviteShareBudget.persistTimeoutNanoseconds
     ) async throws -> CKShare {
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            throw OneCartCloudKitError.shareEnvironmentMismatch
-        }
-        return try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
+        try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
             try await persistShare(share, persistence: persistence)
         }
     }
@@ -363,13 +352,6 @@ extension FamilyInviteLinkBuilder {
         _ share: CKShare,
         persistence: PersistenceController
     ) async throws -> CKShare {
-        guard CloudKitShareEnvironment.canMutateInProcess(share) else {
-            CartSyncLog.shareACL.error(
-                // swiftlint:disable:next line_length
-                "persistShare skip incompatible shareEnv=\(CloudKitShareEnvironment.of(share).rawValue, privacy: .public)"
-            )
-            throw OneCartCloudKitError.shareEnvironmentMismatch
-        }
         let store = try persistence.store(for: .private)
         return try await withCheckedThrowingContinuation { continuation in
             persistence.container.persistUpdatedShare(share, in: store) { savedShare, error in

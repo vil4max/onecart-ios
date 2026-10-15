@@ -62,7 +62,7 @@ final class StableIDTests: XCTestCase {
             first.id = stableID
             first.name = "Старый"
             first.quantity = NSNumber(value: 1)
-            first.unit = ProductUnit.piece.rawValue
+            first.unit = "piece"
             first.category = ProductCategory.other.rawValue
             first.estimatedPrice = NSNumber(value: 10)
             first.note = ""
@@ -77,7 +77,7 @@ final class StableIDTests: XCTestCase {
             second.id = stableID
             second.name = "Новый"
             second.quantity = NSNumber(value: 1)
-            second.unit = ProductUnit.piece.rawValue
+            second.unit = "piece"
             second.category = ProductCategory.other.rawValue
             second.estimatedPrice = NSNumber(value: 10)
             second.note = ""
@@ -257,7 +257,7 @@ final class ProductNameDeduplicationTests: XCTestCase {
                 product.id = row.id
                 product.name = row.name
                 product.quantity = NSNumber(value: 1)
-                product.unit = ProductUnit.piece.rawValue
+                product.unit = "piece"
                 product.category = ProductCategory.other.rawValue
                 product.estimatedPrice = NSNumber(value: 0)
                 product.isPurchased = NSNumber(value: row.purchasedAt != nil)

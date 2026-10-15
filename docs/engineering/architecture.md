@@ -18,7 +18,7 @@ Product policy (see [product.md](../requirements/product.md)): **one living fami
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |
 | System alert for errors | — |
 
-Store/catalog **UI modules are removed from the target**. Core Data still models `Store` and price fields for the CloudKit sync graph and older local rows. Do not re-wire catalog/store/price screens until two-device invite/sync is solid.
+Store/catalog **UI modules are removed from the target**. Core Data still models `Store` and price fields for the CloudKit sync graph and older local rows. The app writes only a line's name and category (`ProductDraft`) and `status = "active"` on new lists, which v1.2.1 filters on; it no longer writes quantity, unit, price, note, URL, catalog, `serverRole`, `needsRemoteCreation`, History `total`, `memberNames` or `storeName`, and leaves values older builds stored untouched. The Production schema cannot drop fields, so `ManagedObjectModelTests` pins every attribute and relationship name. Do not re-wire catalog/store/price screens until two-device invite/sync is solid.
 
 ## Composition root
 
@@ -149,7 +149,7 @@ There is **no public API to force** a CloudKit import/export mirror ([TN3163](ht
 
 `CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. There is no join product merge. See [product.md](../requirements/product.md) and [privacy.md](../privacy.md).
 
-Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, `MemberProfile`, plus system `CKShare` on root `FamilySpace`. `MemberProfile` (V8, 1.6.0) carries each member's chosen name keyed by their CloudKit user record name, in the cart's zone, so the members list can name link-joined participants (REQ-AUTH-040); `CD_MemberProfile` must exist in the Production schema before a Release build writes it. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
+Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, `MemberProfile`, plus system `CKShare` on root `FamilySpace`. `MemberProfile` (V8, 1.6.0) carries each member's chosen name keyed by their CloudKit user record name, in the cart's zone, so the members list can name link-joined participants (REQ-AUTH-040); `CD_MemberProfile` must exist in the Production schema before a Release build writes it. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe. Debug and Release entitlements both pin the container environment to Production, so share mutations carry no per-share environment check; local stores are wiped before load only when the stored environment marker is exactly `development` (defensive: no shipped build stamped it, since the marker arrived with the pin), and every successful load stamps `production`.
 
 ## Recovery, deadlines and widget writes
 

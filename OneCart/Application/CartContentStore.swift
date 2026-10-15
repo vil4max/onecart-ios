@@ -68,7 +68,7 @@ final class CartContentStore {
     }
 
     func rebuildDerivedCollections() {
-        activeLists = lists.filter { !$0.isDeletedValue && $0.statusValue == .active }
+        activeLists = lists.filter { !$0.isDeletedValue && $0.isActive }
 
         var grouped: [UUID: [ProductEntity]] = [:]
         for product in products where !product.isDeletedValue {

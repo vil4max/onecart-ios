@@ -92,7 +92,7 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         try await insertStaleProduct(id: productID, listID: listID, persistence: persistence)
         let freshID = try await repository.addProduct(
             to: listID,
-            draft: productDraft(name: "Milk", price: 42)
+            draft: productDraft(name: "Milk")
         )
         try await repository.togglePurchased(id: freshID, participantDisplayName: "Second")
         let nextResult = try await repository.completePurchased(listID: listID)
@@ -106,8 +106,7 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         XCTAssertNotEqual(nextID, originalHistoryID)
         XCTAssertEqual(updated.sortedHistory.count, 2)
         XCTAssertEqual(nextHistory.sortedItems.map(\.id), [freshID])
-        XCTAssertEqual(nextHistory.totalValue, 42, accuracy: 0.001)
-        XCTAssertEqual(nextHistory.memberNames, "Second")
+        XCTAssertEqual(nextHistory.sortedItems.first?.purchasedByName, "Second")
         XCTAssertTrue(updated.sortedProducts.isEmpty)
     }
 

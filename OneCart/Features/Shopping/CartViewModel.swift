@@ -229,25 +229,12 @@ final class CartViewModel {
         return .added(productID)
     }
 
-    /// Renames a line, keeping every other field; returns false when nothing was saved.
+    /// Renames a line and re-infers its category; the draft carries nothing else, so every other
+    /// stored field stays as it is. Returns false when nothing was saved.
     func rename(_ product: ProductEntity, to rawName: String) async -> Bool {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !name.isEmpty, name != product.displayName else { return false }
-        let draft = ProductDraft(
-            name: name,
-            quantity: product.quantityValue,
-            unit: product.unitValue,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: product.estimatedPriceValue,
-            note: product.noteValue,
-            imageURL: product.imageURL,
-            sourceURL: product.sourceURL,
-            originalPrice: product.originalPrice?.doubleValue,
-            loyaltyPrice: product.loyaltyPrice?.doubleValue,
-            catalogFetchedAt: product.catalogFetchedAt,
-            promotionEndsAt: product.promotionEndsAt
-        )
-        await cart.updateProduct(product, draft: draft)
+        await cart.updateProduct(product, draft: .nameOnly(name))
         return true
     }
 
@@ -287,16 +274,9 @@ final class CartViewModel {
 }
 
 extension ProductDraft {
-    /// A name-only line (REQ-CART-030, REQ-CART-060): no price, one piece, inferred category.
+    /// A name-only line (REQ-CART-030, REQ-CART-060): the name and its inferred category.
     static func nameOnly(_ name: String) -> ProductDraft {
-        ProductDraft(
-            name: name,
-            quantity: 1,
-            unit: .piece,
-            category: ProductCategory.inferred(from: name),
-            estimatedPrice: 0,
-            note: ""
-        )
+        ProductDraft(name: name, category: ProductCategory.inferred(from: name))
     }
 }
 

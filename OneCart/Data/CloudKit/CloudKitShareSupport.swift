@@ -1,65 +1,15 @@
 import CloudKit
 import UIKit
 
+/// The CloudKit environment of this build, stamped as the local store marker. Debug and Release
+/// entitlements both pin `com.apple.developer.icloud-container-environment` to Production, so the
+/// process only ever sees Production shares and needs no per-share environment check.
 enum CloudKitShareEnvironment: String {
     case production
+    /// Never stamped by a shipped build; kept so a Development-mirrored store would still be wiped.
     case development
-    case unknown
 
-    static var process: CloudKitShareEnvironment {
-        .production
-    }
-
-    static func fromDiagnostic(_ text: String) -> CloudKitShareEnvironment {
-        let normalized = text.lowercased()
-        if normalized.contains("environment=production")
-            || normalized.contains("environment: production")
-            || normalized.contains(", environment=production")
-        {
-            return .production
-        }
-        if normalized.contains("environment=sandbox")
-            || normalized.contains("environment=development")
-            || normalized.contains("environment: sandbox")
-            || normalized.contains("environment: development")
-        {
-            return .development
-        }
-        return .unknown
-    }
-
-    static func diagnostic(for share: CKShare) -> String {
-        var parts = [String(describing: share)]
-        for key in privateContainerKeys {
-            if let value = guardedValue(forKey: key, of: share) {
-                parts.append("\(key)=\(String(describing: value))")
-            }
-        }
-        return parts.joined(separator: " ")
-    }
-
-    /// Undocumented CKShare accessors that may disappear in any OS release. KVC on a missing key
-    /// raises an Objective-C exception Swift cannot catch, so each key is read only while the
-    /// share still responds to its getter; otherwise the description alone decides.
-    static let privateContainerKeys = ["containerID", "containerIdentifier", "_containerID"]
-
-    /// Test seam: same guard as `diagnostic(for:)`, for arbitrary keys.
-    static func guardedValue(forKey key: String, of share: CKShare) -> Any? {
-        guard share.responds(to: NSSelectorFromString(key)) else { return nil }
-        return share.value(forKey: key)
-    }
-
-    static func of(_ share: CKShare) -> CloudKitShareEnvironment {
-        fromDiagnostic(diagnostic(for: share))
-    }
-
-    static func canMutateInProcess(_ share: CKShare) -> Bool {
-        let shareEnvironment = of(share)
-        if shareEnvironment == .unknown {
-            return true
-        }
-        return shareEnvironment == process
-    }
+    static let process: CloudKitShareEnvironment = .production
 }
 
 enum OneCartShareBranding {

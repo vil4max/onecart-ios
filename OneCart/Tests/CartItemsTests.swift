@@ -92,24 +92,82 @@ final class CartItemsTests: XCTestCase {
         XCTAssertTrue(space.sortedProducts[1].isPurchasedValue)
     }
 
-    func test_REQ_CART_020_updateProductRewritesFields() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
+    /// An item is a name plus state (REQ-CART-020) with no money (REQ-CART-060): the draft holds the
+    /// name and its category only, a new line leaves every legacy attribute unset, and an edit
+    /// leaves the values an older build stored on the line untouched.
+    func test_REQ_CART_020_draftCarriesOnlyWhatTheCartEdits() async throws {
+        XCTAssertEqual(
+            Mirror(reflecting: ProductDraft(name: "Хлеб", category: .other)).children.compactMap(\.label),
+            ["name", "category"]
+        )
+
+        let (persistence, repository) = try await makeInMemoryRepository()
         let (familyID, _, productID) = try await seedCart(
             repository: repository,
-            draft: productDraft(name: "Молоко", quantity: 1, price: 40)
+            draft: productDraft(name: "  Молоко ")
         )
+        let added = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
+        XCTAssertEqual(added.name, "Молоко")
+        XCTAssertNil(added.quantity)
+        XCTAssertNil(added.unit)
+        XCTAssertNil(added.estimatedPrice)
+        XCTAssertNil(added.note)
+
+        let catalogDate = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        try await persistence.performBackgroundTask { context in
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)
+            let legacy = try XCTUnwrap(context.fetch(request).first)
+            legacy.quantity = NSNumber(value: 2)
+            legacy.unit = "kg"
+            legacy.estimatedPrice = NSNumber(value: 55)
+            legacy.originalPrice = NSNumber(value: 60)
+            legacy.loyaltyPrice = NSNumber(value: 50)
+            legacy.note = "холодное"
+            legacy.imageURL = "https://shop.example.com/milk.png"
+            legacy.sourceURL = "https://shop.example.com/milk"
+            legacy.catalogFetchedAt = catalogDate
+            legacy.promotionEndsAt = catalogDate
+        }
 
         try await repository.updateProduct(
             id: productID,
             familySpaceID: familyID,
-            draft: productDraft(name: "Молоко 2.5%", quantity: 2, price: 55, note: "холодное")
+            draft: ProductDraft(name: "Молоко 2.5%", category: .dairyEggs)
         )
 
-        let product = try XCTUnwrap(fetchProduct(id: productID, repository: repository))
-        XCTAssertEqual(product.displayName, "Молоко 2.5%")
-        XCTAssertEqual(product.quantityValue, 2, accuracy: 0.001)
-        XCTAssertEqual(product.estimatedPriceValue, 55, accuracy: 0.001)
-        XCTAssertEqual(product.note, "холодное")
+        try await persistence.performBackgroundTask { context in
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)
+            let product = try XCTUnwrap(context.fetch(request).first)
+            XCTAssertEqual(product.name, "Молоко 2.5%")
+            XCTAssertEqual(product.categoryValue, .dairyEggs)
+            XCTAssertEqual(product.quantity, NSNumber(value: 2))
+            XCTAssertEqual(product.unit, "kg")
+            XCTAssertEqual(product.estimatedPrice, NSNumber(value: 55))
+            XCTAssertEqual(product.originalPrice, NSNumber(value: 60))
+            XCTAssertEqual(product.loyaltyPrice, NSNumber(value: 50))
+            XCTAssertEqual(product.note, "холодное")
+            XCTAssertEqual(product.imageURL, "https://shop.example.com/milk.png")
+            XCTAssertEqual(product.sourceURL, "https://shop.example.com/milk")
+            XCTAssertEqual(product.catalogFetchedAt, catalogDate)
+            XCTAssertEqual(product.promotionEndsAt, catalogDate)
+        }
+
+        // Completing the line still carries the stored legacy values into History.
+        let listID = try XCTUnwrap(fetchProduct(id: productID, repository: repository)?.list?.id)
+        try await repository.togglePurchased(id: productID, participantDisplayName: "Игорь")
+        try await repository.completePurchased(listID: listID)
+        try await persistence.performBackgroundTask { context in
+            let request = HistoryItemEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)
+            let item = try XCTUnwrap(context.fetch(request).first)
+            XCTAssertEqual(item.quantity, NSNumber(value: 2))
+            XCTAssertEqual(item.unit, "kg")
+            XCTAssertEqual(item.estimatedPrice, NSNumber(value: 55))
+            XCTAssertEqual(item.note, "холодное")
+            XCTAssertEqual(item.sourceURL, "https://shop.example.com/milk")
+        }
     }
 
     func test_REQ_SYNC_030_deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI() async throws {
@@ -119,14 +177,7 @@ final class CartItemsTests: XCTestCase {
         let listID = try XCTUnwrap(family.activeLists.first?.id)
         let productID = try await repository.addProduct(
             to: listID,
-            draft: ProductDraft(
-                name: "Хлеб",
-                quantity: 1,
-                unit: .piece,
-                category: .other,
-                estimatedPrice: 38,
-                note: ""
-            )
+            draft: ProductDraft(name: "Хлеб", category: .other)
         )
 
         try await repository.deleteProduct(id: productID, familySpaceID: familyID)
@@ -183,14 +234,7 @@ final class CartItemsTests: XCTestCase {
 
         let productID = try await repository.addProduct(
             to: listID,
-            draft: ProductDraft(
-                name: "Молоко",
-                quantity: 2,
-                unit: .piece,
-                category: .dairyEggs,
-                estimatedPrice: 42,
-                note: "2.5%"
-            )
+            draft: ProductDraft(name: "Молоко", category: .dairyEggs)
         )
 
         let request = ProductEntity.fetchRequest()
@@ -221,14 +265,7 @@ final class CartItemsTests: XCTestCase {
 
         _ = try await repository.addProduct(
             to: listID,
-            draft: ProductDraft(
-                name: "Яйца",
-                quantity: 10,
-                unit: .piece,
-                category: .dairyEggs,
-                estimatedPrice: 65,
-                note: ""
-            )
+            draft: ProductDraft(name: "Яйца", category: .dairyEggs)
         )
 
         await persistence.container.viewContext.perform {

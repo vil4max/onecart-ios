@@ -36,18 +36,9 @@ extension XCTestCase {
 
     func productDraft(
         name: String = "Хлеб",
-        quantity: Double = 1,
-        price: Double = 38,
-        note: String = ""
+        category: ProductCategory = .other
     ) -> ProductDraft {
-        ProductDraft(
-            name: name,
-            quantity: quantity,
-            unit: .piece,
-            category: .other,
-            estimatedPrice: price,
-            note: note
-        )
+        ProductDraft(name: name, category: category)
     }
 
     func fetchProduct(

@@ -25,7 +25,7 @@ struct SessionCartMutationTests {
     }
 
     private func draft(named name: String) -> ProductDraft {
-        ProductDraft(name: name, quantity: 1, unit: .piece, category: .other, estimatedPrice: 0, note: "")
+        ProductDraft(name: name, category: .other)
     }
 
     @Test("REQ-CART-040: checking an item records the shopper and unchecking clears it")
@@ -86,7 +86,7 @@ struct SessionCartMutationTests {
             row.id = id
             row.name = "Молоко"
             row.quantity = NSNumber(value: 1)
-            row.unit = ProductUnit.piece.rawValue
+            row.unit = "piece"
             row.category = ProductCategory.dairyEggs.rawValue
             row.estimatedPrice = NSNumber(value: 0)
             row.isPurchased = NSNumber(value: false)
@@ -249,7 +249,7 @@ struct SessionCartMutationTests {
                 product.id = stableID
                 product.name = name
                 product.quantity = NSNumber(value: 1)
-                product.unit = ProductUnit.piece.rawValue
+                product.unit = "piece"
                 product.category = ProductCategory.other.rawValue
                 product.estimatedPrice = NSNumber(value: 0)
                 product.isPurchased = NSNumber(value: false)
@@ -332,7 +332,7 @@ private actor GatedClassifier: CategoryClassifying {
 
 extension SessionCartMutationTests {
     private func draft(named name: String, category: ProductCategory) -> ProductDraft {
-        ProductDraft(name: name, quantity: 1, unit: .piece, category: category, estimatedPrice: 0, note: "")
+        ProductDraft(name: name, category: category)
     }
 
     @Test("REQ-CART-020: a rename during category refinement keeps the new name and its category")

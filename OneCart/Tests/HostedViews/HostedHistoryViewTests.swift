@@ -122,26 +122,12 @@ struct HostedHistoryViewTests {
         let fixture = try await CartFixture.make()
         let breadID = try await fixture.repository.addProduct(
             to: fixture.listID,
-            draft: ProductDraft(
-                name: "Bread",
-                quantity: 1,
-                unit: .piece,
-                category: .bakery,
-                estimatedPrice: 0,
-                note: ""
-            ),
+            draft: ProductDraft(name: "Bread", category: .bakery),
             createdByName: "Maria"
         )
         let milkID = try await fixture.repository.addProduct(
             to: fixture.listID,
-            draft: ProductDraft(
-                name: "Milk",
-                quantity: 1,
-                unit: .piece,
-                category: .dairyEggs,
-                estimatedPrice: 0,
-                note: ""
-            )
+            draft: ProductDraft(name: "Milk", category: .dairyEggs)
         )
         for id in [breadID, milkID] {
             try await fixture.repository.togglePurchased(id: id, participantDisplayName: "Alex")

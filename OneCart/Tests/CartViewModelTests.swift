@@ -123,11 +123,7 @@ struct CartViewModelTests {
         #expect(outcome == .added(newID))
         let added = try #require(harness.cart.addedProducts.first)
         #expect(added.listID == fixture.listID)
-        #expect(added.draft.name == "Bread")
-        #expect(added.draft.quantity == 1)
-        #expect(added.draft.unit == .piece)
-        #expect(added.draft.category == ProductCategory.inferred(from: "Bread"))
-        #expect(added.draft.note.isEmpty)
+        #expect(added.draft == ProductDraft(name: "Bread", category: ProductCategory.inferred(from: "Bread")))
         #expect(harness.viewModel.duplicateHighlightID == nil)
     }
 
@@ -255,8 +251,8 @@ struct CartViewModelTests {
         #expect(harness.cart.deletedProducts.compactMap(\.id) == [breadID])
     }
 
-    @Test("REQ-CART-020: renaming a line keeps its other fields and re-infers the category")
-    func renameKeepsFieldsAndInfersCategory() async throws {
+    @Test("REQ-CART-020: renaming a line sends only the trimmed name and its re-inferred category")
+    func renameSendsOnlyTheNameAndInferredCategory() async throws {
         let fixture = try await CartFixture.make()
         let breadID = try await fixture.addProduct(named: "Bread")
         let harness = try CartHarness(fixture: fixture)
@@ -266,11 +262,7 @@ struct CartViewModelTests {
 
         let update = try #require(harness.cart.updatedProducts.first)
         #expect(update.product.id == breadID)
-        #expect(update.draft.name == "Milk")
-        #expect(update.draft.quantity == bread.quantityValue)
-        #expect(update.draft.unit == bread.unitValue)
-        #expect(update.draft.note == bread.noteValue)
-        #expect(update.draft.category == ProductCategory.inferred(from: "Milk"))
+        #expect(update.draft == ProductDraft(name: "Milk", category: ProductCategory.inferred(from: "Milk")))
     }
 
     @Test("REQ-CART-020: an unchanged or blank name saves nothing")

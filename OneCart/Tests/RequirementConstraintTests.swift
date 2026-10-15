@@ -22,23 +22,18 @@ struct RequirementConstraintTests {
         let outcome = await harness.viewModel.addItem(named: "  Milk  ")
 
         #expect(outcome != .rejected)
+        // `ProductDraft` has no price field, so a draft cannot carry money; the stored line keeps
+        // the legacy price attributes unset.
         let added = try #require(harness.cart.addedProducts.first)
-        #expect(added.draft.name == "Milk")
-        #expect(added.draft.quantity == 1)
-        #expect(added.draft.unit == .piece)
-        #expect(added.draft.estimatedPrice == 0)
-        #expect(added.draft.originalPrice == nil)
-        #expect(added.draft.loyaltyPrice == nil)
-        #expect(added.draft.note.isEmpty)
+        #expect(added.draft == ProductDraft(name: "Milk", category: ProductCategory.inferred(from: "Milk")))
 
         let bread = try fixture.product(id: breadID)
-        #expect(bread.estimatedPriceValue == 0)
+        #expect(bread.estimatedPrice == nil)
+        #expect(bread.originalPrice == nil)
+        #expect(bread.loyaltyPrice == nil)
         #expect(await harness.viewModel.rename(bread, to: "Rye bread"))
         let renamed = try #require(harness.cart.updatedProducts.first)
-        #expect(renamed.draft.name == "Rye bread")
-        #expect(renamed.draft.estimatedPrice == 0)
-        #expect(renamed.draft.originalPrice == nil)
-        #expect(renamed.draft.loyaltyPrice == nil)
+        #expect(renamed.draft == ProductDraft(name: "Rye bread", category: ProductCategory.inferred(from: "Rye bread")))
     }
 
     // MARK: - REQ-HIST-050 History is never user-cleared

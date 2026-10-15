@@ -23,7 +23,8 @@ final class FamilyCartLifecycleTests: XCTestCase {
 
         let privateSpace = try XCTUnwrap(repository.fetchFamilySpace(id: privateID))
         XCTAssertEqual(privateSpace.cachedForUserID, userID)
-        XCTAssertEqual(privateSpace.serverRole, "owner")
+        // No client reads the legacy role, so claiming no longer writes it.
+        XCTAssertNil(privateSpace.serverRole)
 
         let sharedRequest = FamilySpace.fetchRequest()
         sharedRequest.predicate = NSPredicate(format: "id == %@", sharedID as NSUUID)
