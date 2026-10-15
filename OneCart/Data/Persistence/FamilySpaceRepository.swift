@@ -166,32 +166,6 @@ final class FamilySpaceRepository: Sendable {
         }
     }
 
-    func archiveFamilySpace(id: UUID) async throws {
-        try await persistence.performBackgroundTask(author: "OneCartFamilyArchive") { context in
-            let space = try Self.requireFamilySpace(id: id, in: context)
-            let now = Date()
-            for product in (space.products?.allObjects as? [ProductEntity] ?? []) where product.deletedAt == nil {
-                product.deletedAt = now
-                product.updatedAt = now
-            }
-            for list in (space.lists?.allObjects as? [ShoppingListEntity] ?? []) where list.deletedAt == nil {
-                list.deletedAt = now
-                list.updatedAt = now
-            }
-            for store in (space.stores?.allObjects as? [StoreEntity] ?? []) where store.deletedAt == nil {
-                store.deletedAt = now
-                store.updatedAt = now
-            }
-            for entry in (space.historyEntries?.allObjects as? [PurchaseHistoryEntity] ?? [])
-            where entry.deletedAt == nil {
-                entry.deletedAt = now
-                entry.updatedAt = now
-            }
-            space.deletedAt = now
-            space.updatedAt = now
-        }
-    }
-
     func discardLocalSharedFamilySpace(id: UUID) async throws {
         try await persistence.performBackgroundTask(author: "OneCartLeaveShared") { context in
             let space = try Self.requireFamilySpace(id: id, in: context)

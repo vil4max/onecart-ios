@@ -36,7 +36,7 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
-| `FamilySpaceRepository` | local CRUD / purchase sessions (+ merge / dedupe / product slices) |
+| `FamilySpaceRepository` | local CRUD / purchase sessions (+ personal restore / dedupe / product slices) |
 | `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle, private-zone account deletion |
 
 Screens never see `AppSession`. Its surface is split into role protocols in
@@ -79,7 +79,7 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
 | `OneCart/Data/Persistence/ManagedObjects.swift` | Core Data entity subclasses |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `archivePurchasedBefore` / `completePurchased` (Completed → history) |
-| `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Merge / dedupe / product mutation slices |
+| `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Personal restore (`+Merge`) / dedupe / product mutation slices |
 | `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
@@ -147,7 +147,7 @@ New household spaces and children go to the private store. After `CKShare` accep
 
 There is **no public API to force** a CloudKit import/export mirror ([TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) / [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)). The app schedules best-effort hard refresh after import events, pull-to-refresh, cart appear, and foreground. ViewContext uses `NSMergeByPropertyStoreTrumpMergePolicy` so remote store wins over stale in-memory values. User-facing failures use a system alert; transient share create retries honor `CKError.retryAfterSeconds` when present.
 
-`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. Join product merge is deferred. See [product.md](../requirements/product.md) and [privacy.md](../privacy.md).
+`CKShare` uses `publicPermission = .readWrite` (link-join). Owner **Revoke invite** sets `publicPermission = .none` (no new joins; members stay; same `FamilySpace` UUID). Owner ACL heal upgrades participant write ACL but must not reopen a revoked public door; **Share** / invite create reopens with `reopenInviteDoor`. After Accept, reload always prefers a shared `FamilySpace` and hides personal from the session list; personal stays on disk for Leave. There is no join product merge. See [product.md](../requirements/product.md) and [privacy.md](../privacy.md).
 
 Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `FamilySpace`, `Store`, `ShoppingList`, `Product`, `PurchaseHistory`, `HistoryItem`, `MemberProfile`, plus system `CKShare` on root `FamilySpace`. `MemberProfile` (V8, 1.6.0) carries each member's chosen name keyed by their CloudKit user record name, in the cart's zone, so the members list can name link-joined participants (REQ-AUTH-040); `CD_MemberProfile` must exist in the Production schema before a Release build writes it. No Core Data uniqueness constraints (CloudKit-incompatible); duplicates are soft-deleted via launch dedupe.
 
@@ -177,5 +177,5 @@ Full tree and commands: [README.md](../../README.md).
 ## Cart merge (LWW)
 
 - Within one cart: duplicate `Product.id` → soft-delete loser via launch dedupe; prefer non-deleted, else newer `updatedAt`.
-- On invite join: switch active to shared and hide personal from the session list — **no** private→shared product copy yet (deferred; `mergeFamilyContent` remains for later).
+- On invite join: switch active to shared and hide personal from the session list — **no** private→shared product copy; there is no join merge code. A new-device import copies provisional personal content by stable IDs (`restoreProvisionalPersonalContent`, REQ-SYNC-040).
 - Quantities are last-write-wins, never summed.

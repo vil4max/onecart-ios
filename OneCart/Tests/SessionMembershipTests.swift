@@ -150,7 +150,7 @@ struct SessionMembershipTests {
         let fixture = try await MembershipSessionFixture.guest()
         let sharedID = try #require(fixture.sharedID)
         #expect(fixture.session.activeFamilySpace?.id == sharedID)
-        try await fixture.repository.archiveFamilySpace(id: sharedID)
+        try await fixture.repository.discardLocalSharedFamilySpace(id: sharedID)
 
         await fixture.session.leaveCurrentFamily()
 

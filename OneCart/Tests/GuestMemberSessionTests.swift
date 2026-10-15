@@ -67,7 +67,7 @@ final class GuestMemberSessionTests: XCTestCase {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
         XCTAssertEqual(fixture.session.access, .member)
 
-        try await fixture.session.repository.archiveFamilySpace(id: fixture.sharedID)
+        try await fixture.session.repository.discardLocalSharedFamilySpace(id: fixture.sharedID)
         try await fixture.session.reactivatePersonalCartIfNeededForTesting()
 
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.privateID)
@@ -83,7 +83,7 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.sharedID)
         XCTAssertNil(fixture.session.sharedCartRemovedMessage)
 
-        try await fixture.session.repository.archiveFamilySpace(id: fixture.sharedID)
+        try await fixture.session.repository.discardLocalSharedFamilySpace(id: fixture.sharedID)
         await fixture.session.syncCart(reason: .cloudImport)
 
         XCTAssertEqual(

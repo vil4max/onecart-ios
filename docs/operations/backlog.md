@@ -44,7 +44,7 @@ Planned order (status kept here):
 | Group | Scope | Status |
 |---|---|---|
 | L | Low-severity review leftovers (listed above) plus the second review's lows: test stores deleted while open, tab view models outliving the tab screen, weakened invariant comments, `sync.invite_owner_only` key name | pending |
-| G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | pending |
+| G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | done |
 | G2 | Remove the remaining theme plumbing that does nothing in Release | pending |
 | G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | pending |
 | G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | pending |
@@ -67,16 +67,13 @@ Planned order (status kept here):
   and view model splits (`data-08`, `features-06`, `features-07`, `features-23`, `data-26`), the
   accent in the SwiftUI environment (`features-08`), shared app and widget mappings
   (`features-17`), demo hooks out of views (`features-16`).
-- Requirements: REQ-CART-120 traces to legacy-name helpers that nothing calls
-  (`features-03`); REQ-CART-010 traces to a join merge that nothing calls (`data-05`); activity
-  notifications identify authors by display name, which needs author IDs in the schema
-  (`features-20`); the theme preference does nothing in Release (`application-08`).
+- Requirements: activity notifications identify authors by display name, which needs author IDs
+  in the schema (`features-20`); the theme preference does nothing in Release
+  (`application-08`).
 - Shipped data: leftover catalog and price fields still synced to CloudKit (`data-17`); the
   share-environment guard and legacy wipe (`data-19`).
 - Tests that need the seams above: leave-purge timeout and recovery (`tests-06`), untested
   CloudKit and classifier types (`tests-08`).
-- Repository: `docs/requirements/.spec-lock.json` has no reader (`readiness-11`); the
-  unreferenced 3.5 MB `assets/store/preview/tf-welcome-siwa.mp4` (`readiness-17`).
 - Shared tooling (fix upstream, not in this repository): swift-format drops the trailing comma
   of a single-element multiline literal that SwiftLint `mandatory_comma` requires
   (`readiness-02`); a `$HOME`-relative default path in Tooling scripts (`readiness-07`); workflow

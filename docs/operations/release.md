@@ -141,7 +141,6 @@ Covered by unit tests / static path review when Xcode devices are unavailable:
 | Owner revoke invite keeps family identity | `testRevokeInviteKeepsFamilySpaceIdentity` |
 | Join adopt switches active to shared | `testEnsureHouseholdAdoptsSharedEvenWhenPrivateActive` |
 | Guest / member session (shared active) | `GuestMemberSessionTests` |
-| Join LWW merge by name | deferred: `FamilyCartMergeTests` keep API coverage; join path does not call merge |
 | Quick add/edit is name-only inline in cart | `ShoppingListView` composer / inline row edit |
 
 ## 4. TestFlight

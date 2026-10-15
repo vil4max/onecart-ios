@@ -22,7 +22,8 @@ add, widen or reinterpret a requirement. Areas are `AUTH`
 (tabs, titles, error surface), `WIDGET` (widgets and notifications) and `SIRI`
 (Siri and Shortcuts). Numbers
 rise in tens so a later statement can be inserted without renumbering; a
-retired ID is never reused.
+retired ID is never reused. Retired: `REQ-CART-120` (legacy starter-name
+migration, 2026-10-15).
 
 Each requirement is a heading with its own `Status:` line, followed by its
 statement; the statement ends at the next heading, so context prose sits before
@@ -216,7 +217,7 @@ Background preparation reads an existing open invite only; it never creates a sh
 
 Status: approved
 
-Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. **Join merge is deferred** (no private→shared product copy for now). No join alert.
+Invitee: SIWA → open share → Accept in iCloud → active cart becomes the shared family cart. Personal `FamilySpace` stays on disk but is hidden from the session list until Leave. There is no join merge: no private→shared product copy. No join alert.
 
 ### REQ-SYNC-040 — New-device import
 
@@ -239,8 +240,8 @@ Same normalized name within one cart
 Adding an existing name returns the living row and reveals it instead of
 creating a second line; concurrent adds from different devices (different
 `Product.id`) merge first-writer-wins on sync. Same `Product.id` within one
-cart: keep one row. Cross-cart join merge (private → shared LWW) is deferred
-— accept switches to the shared cart only.
+cart: keep one row. There is no cross-cart join merge (private → shared) —
+accept switches to the shared cart only.
 
 ## Technical invite path
 
@@ -438,12 +439,6 @@ Status: approved
 
 App display name / Welcome / share branding: **OneCart Family** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 
-### REQ-CART-120 — Legacy starter names
-
-Status: approved
-
-Legacy starter names (`Shopping list`, `Список покупок`, «Наша семья», …) still migrate via `FamilyCartMerge`.
-
 ## Coverage
 
 Which tests prove each requirement above. A row lists the suite and, inside it,
@@ -453,7 +448,9 @@ carry the ID in their `@Test` display name instead. `none` means no test asserts
 the requirement today; the note says what is missing rather than implying a gap
 that a rename could close.
 
-Renaming a test never changed an assertion: only the identifiers moved. Tests
+Renaming a test never changed an assertion: only the identifiers moved. One exception:
+REQ-CART-010 coverage moved to a new test on 2026-10-15, when the archived-cart test it cited
+went with the unused join merge. Tests
 outside this table keep their original names — the table covers the fragile-test
 matrix in [engineering/architecture.md](../engineering/architecture.md) and the
 core path from [core.md](../core.md), not every suite.
@@ -468,7 +465,7 @@ core path from [core.md](../core.md), not every suite.
 | REQ-AUTH-060 | `WidgetPrivacyCleanupTests` → `signOut_clearsWidgetDataAndRejectsLateWidgetAction`, `signOut_removesActivitySnapshotsAndICloudIdentity` |
 | REQ-AUTH-070 | `AccountDeletionTests` → `deleteAccount_removesActivitySnapshotsAccountKeysAndICloudIdentity`, `deleteAccount_whenCloudSucceeds_removesDiskProduct`, `deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState`, `deleteAccount_whenMember_leavesSharedBeforeCloudDelete`; `WidgetSnapshotTests` → `deleteAccount_clearsWidgetSnapshotAndPendingPurchases` |
 | REQ-AUTH-080 | `AccountDeletionTests` → `deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud`, `deleteAccount_whenCloudFailsAfterDestructiveRequestStarted_keepsMarkerWithoutMirroring`, `deleteAccount_whenCloudFails_keepsSignedInAndLocalState`, `deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct`, `detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery`, `load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores`, `repositoryCallsDuringStoreRecoveryAreRejectedOrRunOnTheRebuiltContainer`; `FragileStoreLoadTests` → `diagnosticsSnapshotCreatedBeforeExplicitHardReset`, `loadFailureDoesNotDestroyStoreFiles`, `partialLoadFailureAllowsRetryInSameProcess`; `PersistenceRoutingTests` → `storeFilePredicateKeepsDiagnosticsFolders` |
-| REQ-CART-010 | `FamilyCartLifecycleTests` → `archiveFamilySpaceHidesCartAndSoftDeletesChildren` |
+| REQ-CART-010 | `FamilyCartLifecycleTests` → `activeCartSurvivesCompleteAndArchive` |
 | REQ-CART-020 | `CartItemsTests` → `updateProductRewritesFields` |
 | REQ-CART-030 | `CartItemsTests` → `addProductVisibleAfterViewContextMerge`, `invalidNamesAreRejected`; `RequirementConstraintTests` → `@Test "item and member names typed by the family are never logged as public"`; `OneCartSmokeUITests` (UI) → `test_REQ_CART_040_addedItemMarkedBoughtUpdatesProgress` |
 | REQ-CART-040 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer`; `CartViewModelTests` → `@Test "a tap asks for the opposite of the state the row was drawn with"`; `SessionCartMutationTests` → `@Test "checking an item another shopper already checked keeps it checked by them"`; `OneCartSmokeUITests` (UI) → `test_REQ_CART_040_addedItemMarkedBoughtUpdatesProgress` |
@@ -476,10 +473,9 @@ core path from [core.md](../core.md), not every suite.
 | REQ-CART-060 | `HostedCartViewTests` → `@Test "the cart and its composer show no price, and REQ-SHELL-040: no share control"`; `RequirementConstraintTests` → `@Test "a name-only add and a rename never carry a price into the cart"` |
 | REQ-CART-070 | `HouseholdEnsureTests` → `ensureHouseholdCreatesCartWhenEmpty` |
 | REQ-CART-080 | `HouseholdEnsureTests` → `ensureHouseholdNoOpWhenActiveFamilyExists` |
-| REQ-CART-090 | `CartItemsTests` → `deduplicateProductsByNameKeepsFirstWriter`, `duplicateNameIsDetectedBeyondFiftyLiveRows`, `reAddAfterDeleteCreatesNewLine`, `renameIntoExistingNameMergesRows`, `sameNamedProductsReuseExistingCartLine`; `CartSuggestionsEngineTests` → `@Test "Excludes cart items with the same diacritic-insensitive normalization as cart dedupe"`; `CartViewModelTests` → `@Test "the duplicate highlight clears after its delay"`; `FamilyCartMergeTests` → `mergeFamilyContentLWWSameNormalizedName` |
+| REQ-CART-090 | `CartItemsTests` → `deduplicateProductsByNameKeepsFirstWriter`, `duplicateNameIsDetectedBeyondFiftyLiveRows`, `reAddAfterDeleteCreatesNewLine`, `renameIntoExistingNameMergesRows`, `sameNamedProductsReuseExistingCartLine`; `CartSuggestionsEngineTests` → `@Test "Excludes cart items with the same diacritic-insensitive normalization as cart dedupe"`; `CartViewModelTests` → `@Test "the duplicate highlight clears after its delay"` |
 | REQ-CART-100 | `CartAccessTests` → `customCartNameStopsFollowingParticipantNickname`, `personalCartNameUsesAccountDisplayName`, `renamingParticipantUpdatesPersonalCartTitleWhileAutoNamed` |
 | REQ-CART-110 | `CartAccessTests` → `renameActiveCartUpdatesFamilySpaceName`; `GuestMemberSessionTests` → `guestCannotRenameOrRevokeSharedCart` |
-| REQ-CART-120 | `FamilyCartMergeTests` → `contentSummaryAndLegacyNameMigrationRules` |
 | REQ-CART-130 | `HostedCartViewTests` → `@Test "REQ-CART-130: the name spans the row's content width at accessibility sizes, and the current layout at .large"` |
 | REQ-HIST-010 | `PurchaseSessionTests` → `historyDayGroupsByPurchasedAt` |
 | REQ-HIST-020 | `PurchaseSessionTests` → `archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday`, `archivePurchasedBeforeMovesOnlyStaleCheckedItems`, `archiveStalePurchasedIfNeededViaSession` |
@@ -506,7 +502,7 @@ core path from [core.md](../core.md), not every suite.
 | REQ-SYNC-010 | `FragileSyncOutcomeTests` → `cartContentStorePublishesAfterReload`, `syncCartAppearFailureDoesNotPresentAlert`, `syncCartPullFailureSetsFailedState`, `syncCartSuccessSetsSynchronized`, `secondAppearWithinDebounceIsSkipped`, `cancelledRefreshIsReportedAsCancelled`, `reasonsQueuedDuringASyncRunOnceWithTheHighestRank` |
 | REQ-SYNC-020 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer`; `PurchaseSessionTests` → `test_REQ_SYNC_020_archiveKeepsWhoAddedAndWhoBought`; `HostedHistoryViewTests` → `@Test "REQ-SYNC-020: an archived item names who added it next to who bought it; no name, no caption"`; `ManagedObjectModelTests` → `test_REQ_SYNC_020_storeWithoutHistoryCreatorOpensWithCurrentModel` |
 | REQ-SYNC-030 | `CartItemsTests` → `deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI`; `SharedCartJoinTests` → `refreshFromServerPicksUpToggledPurchasedState` |
-| REQ-SYNC-040 | `FamilyCartMergeTests` → `restoreKeepsStableIDsHistoryAndSourceGraphAcrossRetries`; `HouseholdEnsureTests` → `delayedPrivateImportPreservesLocalItemsAndSelectsExistingCart`, `ensureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies`, `partialImportAndPendingMutationsDeferPersonalSelection`, `provisionalAndRestoredChoicesSurviveRestartAndPersonalFallback`; `SharedCartJoinTests` → `acceptSelectsNewestSharedWithoutDeletingOtherFamilies`, `cloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer`; `SessionCartMutationTests` → `@Test "a product mutation reaches only the named family when a restored copy shares its id"` |
+| REQ-SYNC-040 | `PersonalCartContentRestoreTests` → `restoreKeepsStableIDsHistoryAndSourceGraphAcrossRetries`; `HouseholdEnsureTests` → `delayedPrivateImportPreservesLocalItemsAndSelectsExistingCart`, `ensureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies`, `partialImportAndPendingMutationsDeferPersonalSelection`, `provisionalAndRestoredChoicesSurviveRestartAndPersonalFallback`; `SharedCartJoinTests` → `acceptSelectsNewestSharedWithoutDeletingOtherFamilies`, `cloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer`; `SessionCartMutationTests` → `@Test "a product mutation reaches only the named family when a restored copy shares its id"` |
 | REQ-WIDGET-010 | `WidgetSnapshotTests` → `emptyAndAllPurchasedHelpers`, `snapshotEncodingAndDecoding`, `snapshotShowsTheListTheCartScreenShowsWhenANewerListExists`, `legacySnapshotFallsBackToEmeraldWithEmptySuite`, `legacySnapshotUsesTheStoredAccent` |
 | REQ-WIDGET-020 | `WidgetSnapshotTests` → `purchaseIntentWithMalformedIDThrowsBeforeReachingTheSession`, `widgetIntentsAreNotOfferedInShortcuts`, `categoryRefinementAfterAQueuedPurchaseDoesNotDropIt`, `pendingPurchases_afterStoreRecreation_preservesCommandsUntilIndividualAcknowledgement`, `performWidgetPurchase_savesRepositoryBeforeAcknowledging`, `start_withDurableWidgetCommand_appliesItWithoutForegroundTransition`, `widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue`, `widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt`, `widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState` |
 | REQ-WIDGET-030 | `AccountViewModelFakeTests` → `@Test "each Settings appearance asks for notification permission through the ViewModel"`, `@Test "activity notifications ask for alert and sound, not badge"`; `CartActivityDiffTests` → `firstSnapshotSeedsWithoutNotify`, `partialCompletionDoesNotNotifyAllPurchased`, `partnerAddsSingleItemNotifies`, `partnerCompletesLastItemNotifiesAllPurchased`, `productWithoutIDNeverReadsAsAddedOrRemoved`, `selfAddedItemDoesNotNotify`, `selfCompletesLastItemDoesNotNotify`, `singleUserCartDoesNotNotify`; `SharedCartJoinTests` → `firstSnapshotSeedsWithoutNotify`, `newMemberAfterBaselineNotifies` |
@@ -575,4 +571,4 @@ Scope if it is taken on:
 - Account share/members bound to the **selected** cart
 - App brand vs per-cart titles stay separate layers
 
-v1 until then: one **active** cart on screen; after Accept the shared cart is the only cart in the session list; personal stays on disk for Leave (join merge deferred).
+v1 until then: one **active** cart on screen; after Accept the shared cart is the only cart in the session list; personal stays on disk for Leave (no join merge).
