@@ -25,10 +25,10 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         )
 
         for entries in [[canonical, replica], [replica, canonical]] {
-            let groups = HistoryDayGroup.groups(from: entries)
+            let groups = HistoryDayGroup.groups(from: HistoryLine.lines(from: entries))
             XCTAssertEqual(groups.count, 1)
             XCTAssertEqual(groups.first?.items.map(\.displayName), ["Bread"])
-            XCTAssertEqual(groups.first?.items.first?.history?.id, canonicalID)
+            XCTAssertEqual(HistoryItems.unique(from: entries).map { $0.history?.id }, [canonicalID])
         }
 
         XCTAssertEqual(canonical.sortedItems.count, 1)
@@ -50,8 +50,10 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         let replica = try makeHistory(in: first, products: [(productID, "Milk")])
         let otherFamily = try makeHistory(in: second, products: [(productID, "Milk")])
 
-        let items = HistoryDayGroup.groups(from: [purchases, replica, otherFamily]).flatMap(\.items)
+        let items = HistoryItems.unique(from: [purchases, replica, otherFamily])
+        let groupedLines = HistoryDayGroup.groups(from: HistoryLine.lines(from: [purchases, replica, otherFamily]))
 
+        XCTAssertEqual(groupedLines.flatMap(\.items).count, 5)
         XCTAssertEqual(items.count, 5)
         XCTAssertEqual(items.filter { $0.familySpace?.id == firstID }.count, 4)
         XCTAssertEqual(items.filter { $0.familySpace?.id == secondID }.count, 1)

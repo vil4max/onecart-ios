@@ -155,14 +155,16 @@ struct CartSuggestionsEngineTests {
         let secondBread = makeHistory(in: firstFamily, productID: UUID(), name: "Bread", context: context)
         let otherFamilyMilk = makeHistory(in: secondFamily, productID: milkID, name: "Milk", context: context)
 
+        // The screens hand the engine History lines, which the content store has already
+        // deduplicated; this exercises that same mapping.
         let firstSuggestions = CartSuggestionsEngine.suggestions(
-            from: milkCopies + [firstBread, secondBread],
-            currentCartProducts: [],
+            from: HistoryLine.lines(from: milkCopies + [firstBread, secondBread]),
+            currentCartItems: [],
             defaults: []
         )
         let acrossFamilies = CartSuggestionsEngine.suggestions(
-            from: milkCopies + [firstBread, otherFamilyMilk],
-            currentCartProducts: [],
+            from: HistoryLine.lines(from: milkCopies + [firstBread, otherFamilyMilk]),
+            currentCartItems: [],
             defaults: []
         )
 

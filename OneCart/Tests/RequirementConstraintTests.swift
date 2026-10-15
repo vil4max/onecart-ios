@@ -16,7 +16,8 @@ struct RequirementConstraintTests {
     func addAndRenameCarryNoPrice() async throws {
         let fixture = try await CartFixture.make()
         let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
+        let breadLine = try #require(CartItem(fixture.product(id: breadID)))
+        let harness = try CartHarness(lines: [breadLine])
         harness.cart.addResult = UUID()
 
         let outcome = await harness.viewModel.addItem(named: "  Milk  ")
@@ -31,7 +32,7 @@ struct RequirementConstraintTests {
         #expect(bread.estimatedPrice == nil)
         #expect(bread.originalPrice == nil)
         #expect(bread.loyaltyPrice == nil)
-        #expect(await harness.viewModel.rename(bread, to: "Rye bread"))
+        #expect(await harness.viewModel.rename(breadLine, to: "Rye bread"))
         let renamed = try #require(harness.cart.updatedProducts.first)
         #expect(renamed.draft == ProductDraft(name: "Rye bread", category: ProductCategory.inferred(from: "Rye bread")))
     }
@@ -40,7 +41,7 @@ struct RequirementConstraintTests {
 
     @Test("REQ-HIST-050: browsing History through its ViewModel never removes an entry; paging is the only call")
     func historyViewModelHasNoClearingAction() async throws {
-        // `HistoryBrowsing` declares `history`, `historyHasMore` and `loadMoreHistory()` only, and
+        // `HistoryBrowsing` declares `historyLines`, `historyHasMore` and `loadMoreHistory()` only, and
         // `FakeHistoryBrowser` implements exactly those: a clearing requirement added to the
         // protocol would break the fake's conformance and this suite's compile.
         let fixture = try await CartFixture.make()
@@ -50,9 +51,9 @@ struct RequirementConstraintTests {
         _ = try await fixture.repository.completePurchased(listID: fixture.listID)
         await fixture.settle()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = try HistoryLine.lines(from: fixture.history)
         browser.historyHasMore = true
-        let entriesBefore = browser.history
+        let linesBefore = browser.historyLines
         let persistedBefore = try fixture.history.count
         let viewModel = HistoryViewModel(history: browser)
 
@@ -67,7 +68,7 @@ struct RequirementConstraintTests {
 
         #expect(live.items.map(\.displayName) == ["Bread", "Milk"])
         #expect(browser.loadMoreCount == 1)
-        #expect(browser.history == entriesBefore)
+        #expect(browser.historyLines == linesBefore)
         #expect(try fixture.history.count == persistedBefore)
     }
 

@@ -1,27 +1,38 @@
-import CoreData
 import Foundation
 @testable import OneCart
 import SwiftUI
 import Testing
 import UIKit
 
-/// The cart hosted over the ViewModel fakes: bootstrap states, sections, the composer, and the
-/// negative constraints that the screen carries no price and no share control.
+/// The cart hosted over the ViewModel's value fakes: bootstrap states, sections, the composer,
+/// and the negative constraints that the screen carries no price and no share control.
 @MainActor
-@Suite("HostedCartViewTests", .removesStores)
+@Suite("HostedCartViewTests")
 struct HostedCartViewTests {
     /// Currency symbols and the word "price" in the app's languages; none may appear on the cart.
     private static let priceMarkers = ["$", "€", "₽", "₴", "price", "цена", "ціна"]
 
-    private static func cartWithLines(purchased: Bool = false) async throws -> (CartFixture, CartHarness) {
-        let fixture = try await CartFixture.make()
-        _ = try await fixture.addProduct(named: "Milk", purchased: purchased)
-        _ = try await fixture.addProduct(named: "Apple", purchased: purchased)
-        _ = try await fixture.addProduct(named: "Bread", purchased: true)
-        let harness = try CartHarness(fixture: fixture)
-        harness.state.activeFamilySpace = try fixture.family
+    /// Milk and Apple (bought by Alex when `purchased`) and Bread bought by Alex, in the
+    /// session's cart order: newest to-buy first, then completed.
+    private static func cartLines(purchased: Bool = false) -> [CartItem] {
+        let buyer = purchased ? "Alex" : nil
+        let lines: [CartItem] = [
+            .line("Apple", purchased: purchased, purchasedByName: buyer),
+            .line("Milk", purchased: purchased, purchasedByName: buyer),
+            .line("Bread", purchased: true, purchasedByName: "Alex"),
+        ]
+        return lines.filter { !$0.isPurchased } + lines.filter(\.isPurchased)
+    }
+
+    private static func cartWithLines(purchased: Bool = false) throws -> CartHarness {
+        try cartHarness(lines: cartLines(purchased: purchased))
+    }
+
+    private static func cartHarness(lines: [CartItem]) throws -> CartHarness {
+        let harness = try CartHarness(lines: lines)
+        harness.state.activeFamilySpace = try FamilySpace.detached()
         harness.state.cartTitle = "Family"
-        return (fixture, harness)
+        return harness
     }
 
     @Test("REQ-CART-070: the cart bootstraps the household on appear and offers retry after a failure")
@@ -46,7 +57,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-SHELL-010: to-buy lines sit in category sections, completed lines in one flat section, and appear syncs")
     func sectionsByCategoryAndCompletedFlat() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         // A row's label combines the name with its category and completion captions.
@@ -72,7 +83,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-CART-060: the cart and its composer show no price, and REQ-SHELL-040: no share control")
     func noPriceAndNoShareOnCart() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         let add = try #require(hosted.element(identifier: "cart.add"))
@@ -95,7 +106,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-CART-030: the composer opens from the add button, adds a name-only suggestion and closes")
     func composerAddsSuggestionAndCloses() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         harness.cart.addResult = UUID()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
@@ -123,7 +134,8 @@ struct HostedCartViewTests {
 
     @Test("REQ-SHELL-010: the cart re-renders on session changes: sync indicator, new lines, title")
     func stateChangesReRender() async throws {
-        let (fixture, harness) = try await Self.cartWithLines()
+        let lines = Self.cartLines()
+        let harness = try Self.cartHarness(lines: lines)
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         let updating = String(localized: "cart.updating")
@@ -134,8 +146,8 @@ struct HostedCartViewTests {
         harness.state.isCartSyncing = false
         #expect(await hosted.pump { !hosted.containsLabel(updating) })
 
-        _ = try await fixture.addProduct(named: "Butter")
-        harness.state.productsByListID[fixture.listID] = try fixture.products
+        // A reload keeps the existing lines' IDs and adds the new line on top.
+        harness.show([.line("Butter")] + lines)
         harness.state.contentRevision += 1
         #expect(await hosted.pump { hosted.elements(identifier: "cart.product_name").count == 4 })
 
@@ -145,7 +157,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-CART-040: a fully bought cart shows the hero card and the progress header reports completion")
     func allPurchasedShowsHeroAndProgress() async throws {
-        let (_, harness) = try await Self.cartWithLines(purchased: true)
+        let harness = try Self.cartWithLines(purchased: true)
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         #expect(
@@ -158,7 +170,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-SHELL-010: progress sits at the top of the cart, above the category sections")
     func progressHeaderLeadsTheCart() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
         let expected = String(localized: "cart.progress_completed \(1) \(3)")
@@ -171,7 +183,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-WIDGET-040: the progress header offers the shopping trip, starts it, then offers to end it")
     func progressHeaderStartsTheShoppingTrip() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }
 
@@ -191,7 +203,7 @@ struct HostedCartViewTests {
         arguments: [DynamicTypeSize.large, .accessibility3]
     )
     func progressHeaderStacksAtAccessibilitySizes(size: DynamicTypeSize) async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
         defer { hosted.tearDown() }
 
@@ -210,7 +222,7 @@ struct HostedCartViewTests {
     @Test("REQ-SHELL-010: the add button grows with the text size")
     func addButtonScalesWithDynamicType() async throws {
         func addButtonFrame(at size: DynamicTypeSize) async throws -> CGRect {
-            let (_, harness) = try await Self.cartWithLines()
+            let harness = try Self.cartWithLines()
             let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
             defer { hosted.tearDown() }
             return try #require(hosted.element(identifier: "cart.add")).node.accessibilityFrame
@@ -228,12 +240,8 @@ struct HostedCartViewTests {
         arguments: [DynamicTypeSize.large, .accessibility1, .accessibility3, .accessibility5]
     )
     func productNameSpansRowContentWidth(size: DynamicTypeSize) async throws {
-        // A single-line fixture so the row's name and toggle elements are unambiguous.
-        let fixture = try await CartFixture.make()
-        _ = try await fixture.addProduct(named: "Апельсиновый сок")
-        let harness = try CartHarness(fixture: fixture)
-        harness.state.activeFamilySpace = try fixture.family
-        harness.state.cartTitle = "Family"
+        // A single line so the row's name and toggle elements are unambiguous.
+        let harness = try Self.cartHarness(lines: [.line("Апельсиновый сок")])
         let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
         defer { hosted.tearDown() }
 
@@ -285,11 +293,7 @@ struct HostedCartViewTests {
         // so VoiceOver must reach the name first; the row's identifiers appear in the hosted
         // element list in the order VoiceOver would announce them (HostedView.elements walks
         // the accessibility tree in the order `accessibilityElements` reports it).
-        let fixture = try await CartFixture.make()
-        _ = try await fixture.addProduct(named: "Апельсиновый сок")
-        let harness = try CartHarness(fixture: fixture)
-        harness.state.activeFamilySpace = try fixture.family
-        harness.state.cartTitle = "Family"
+        let harness = try Self.cartHarness(lines: [.line("Апельсиновый сок")])
         let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
         defer { hosted.tearDown() }
 
@@ -301,7 +305,7 @@ struct HostedCartViewTests {
 
     @Test("REQ-SHARE-010: a read-only cart shows the banner and hides the composer")
     func readOnlyCartHidesComposer() async throws {
-        let (_, harness) = try await Self.cartWithLines()
+        let harness = try Self.cartWithLines()
         harness.state.canEdit = false
         let hosted = HostedView(HomeView(viewModel: harness.viewModel))
         defer { hosted.tearDown() }

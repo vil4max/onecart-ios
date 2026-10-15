@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 @Observable
 final class FakeHistoryBrowser: HistoryBrowsing {
-    var history: [PurchaseHistoryEntity] = []
+    var historyLines: [HistoryLine] = []
     var historyHasMore = false
     var loadMoreCount = 0
 

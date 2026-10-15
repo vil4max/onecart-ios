@@ -58,7 +58,7 @@ struct CartCategoryThumbnail: View {
 struct CartProductRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    let product: ProductEntity
+    let product: CartItem
     let canEdit: Bool
     var showsCategoryLabel = false
     var isHighlighted = false
@@ -66,13 +66,13 @@ struct CartProductRow: View {
     let onRename: () -> Void
 
     private var isPurchased: Bool {
-        product.isPurchasedValue
+        product.isPurchased
     }
 
     /// The stored category drives section grouping (`CartViewModel.toBuySections`), so the icon
     /// reads the same value; a line filed under Other shows the Other icon.
     private var resolvedCategory: ProductCategory {
-        product.categoryValue
+        product.category
     }
 
     var body: some View {

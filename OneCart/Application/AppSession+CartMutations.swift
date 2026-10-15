@@ -11,6 +11,11 @@ extension AppSession {
     @discardableResult
     func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> UUID? {
         guard let listID = list.id else { return nil }
+        return await addProduct(toListID: listID, draft: draft)
+    }
+
+    @discardableResult
+    func addProduct(toListID listID: UUID, draft: ProductDraft) async -> UUID? {
         let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
         CartSyncLog.action.info("addProduct start")
         var addedID: UUID?
@@ -31,6 +36,14 @@ extension AppSession {
             scheduleCategoryRefinement(productID: productID, name: draft.name)
         }
         return productID
+    }
+
+    func updateProduct(id: UUID, draft: ProductDraft) async {
+        guard let product = liveProduct(id: id) else {
+            logStaleProduct(action: "updateProduct")
+            return
+        }
+        await updateProduct(product, draft: draft)
     }
 
     func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
@@ -105,6 +118,14 @@ extension AppSession {
         await setPurchased(product, isPurchased: !product.isPurchasedValue)
     }
 
+    func setPurchased(productID: UUID, isPurchased: Bool) async {
+        guard let product = liveProduct(id: productID) else {
+            logStaleProduct(action: "togglePurchased")
+            return
+        }
+        await setPurchased(product, isPurchased: isPurchased)
+    }
+
     func setPurchased(_ product: ProductEntity, isPurchased: Bool) async {
         guard let id = product.id, let familyID = product.familySpace?.id else {
             logStaleProduct(action: "togglePurchased")
@@ -157,9 +178,15 @@ extension AppSession {
     }
 
     /// A hard refresh resets the view context, so a row captured by an in-flight tap loses its
-    /// identifiers. The tap is dropped; the log keeps that visible in diagnostics.
+    /// identifiers, and a screen's ID can outlive its row. The tap is dropped; the log keeps that
+    /// visible in diagnostics.
     private func logStaleProduct(action: String) {
         CartSyncLog.action.error("\(action, privacy: .public) dropped staleProduct=true")
+    }
+
+    /// The live row behind an ID a screen holds; nil once a reload no longer has it.
+    private func liveProduct(id: UUID) -> ProductEntity? {
+        products.first { $0.id == id }
     }
 
     func products(inListID listID: UUID) -> [ProductEntity] {
@@ -184,6 +211,14 @@ extension AppSession {
                 "deduplicateCart fail error=\(error.localizedDescription, privacy: .public)"
             )
         }
+    }
+
+    func deleteProduct(id: UUID) async {
+        guard let product = liveProduct(id: id) else {
+            logStaleProduct(action: "deleteProduct")
+            return
+        }
+        await deleteProduct(product)
     }
 
     func deleteProduct(_ product: ProductEntity) async {

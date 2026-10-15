@@ -1,37 +1,28 @@
-import CoreData
 import Foundation
 @testable import OneCart
 import SwiftUI
 import Testing
 
-/// History hosted over `FakeHistoryBrowser`: day order, the overnight caption, paging and the
-/// absence of any clearing control (REQ-SHELL-020, REQ-HIST-050, REQ-HIST-030).
+/// History hosted over `FakeHistoryBrowser` value snapshots: day order, the overnight caption,
+/// paging and the absence of any clearing control (REQ-SHELL-020, REQ-HIST-050, REQ-HIST-030).
 @MainActor
-@Suite("HostedHistoryViewTests", .removesStores)
+@Suite("HostedHistoryViewTests")
 struct HostedHistoryViewTests {
     private static let calendar = Calendar(identifier: .gregorian)
 
     /// Words a clearing or deleting control would carry in any of the app's languages.
     private static let clearingWords = ["delete", "clear", "remove", "удал", "очист", "видал"]
 
-    /// Bread bought yesterday and Milk two days ago, archived through the repository.
-    private static func twoDayHistory() async throws -> (fixture: CartFixture, yesterday: Date, older: Date) {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread", purchased: true)
-        let milkID = try await fixture.addProduct(named: "Milk", purchased: true)
+    /// Bread bought by Alex yesterday and Milk two days ago.
+    private static func twoDayHistory() throws -> (lines: [HistoryLine], yesterday: Date, older: Date) {
         let startOfToday = calendar.startOfDay(for: Date())
         let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: startOfToday))
         let older = try #require(calendar.date(byAdding: .day, value: -2, to: startOfToday))
-        try await fixture.persistence.performBackgroundTask { context in
-            let request = ProductEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id IN %@", [breadID, milkID].map { $0 as NSUUID })
-            for product in try context.fetch(request) {
-                product.purchasedAt = product.id == breadID ? yesterday : older
-            }
-        }
-        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
-        await fixture.settle()
-        return (fixture, yesterday, older)
+        let lines: [HistoryLine] = [
+            .bought("Bread", at: yesterday.addingTimeInterval(3600)),
+            .bought("Milk", at: older.addingTimeInterval(3600)),
+        ]
+        return (lines, yesterday, older)
     }
 
     @Test("REQ-SHELL-020: an empty History explains itself and offers no control")
@@ -48,9 +39,9 @@ struct HostedHistoryViewTests {
 
     @Test("REQ-SHELL-020: days list newest first with the overnight caption, and nothing on the screen deletes")
     func daysNewestFirstReadOnlyWithCaption() async throws {
-        let (fixture, _, _) = try await Self.twoDayHistory()
+        let (lines, _, _) = try Self.twoDayHistory()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = lines
         let viewModel = HistoryViewModel(history: browser, calendar: Self.calendar)
         let hosted = HostedView(HistoryView(viewModel: viewModel))
         defer { hosted.tearDown() }
@@ -75,9 +66,9 @@ struct HostedHistoryViewTests {
 
     @Test("REQ-HIST-030: show more appears once the session has more and forwards the request")
     func showMoreAppearsAndForwards() async throws {
-        let (fixture, _, _) = try await Self.twoDayHistory()
+        let (lines, _, _) = try Self.twoDayHistory()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = lines
         let viewModel = HistoryViewModel(history: browser, calendar: Self.calendar)
         let hosted = HostedView(HistoryView(viewModel: viewModel))
         defer { hosted.tearDown() }
@@ -94,9 +85,9 @@ struct HostedHistoryViewTests {
 
     @Test("REQ-HIST-050: an opened day lists its items read-only with the archive footer")
     func dayDetailIsReadOnly() async throws {
-        let (fixture, yesterday, _) = try await Self.twoDayHistory()
+        let (lines, yesterday, _) = try Self.twoDayHistory()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = lines
         let viewModel = HistoryViewModel(history: browser, calendar: Self.calendar)
         let day = try #require(viewModel.dayGroups.first { Self.calendar.isDate($0.dayStart, inSameDayAs: yesterday) })
         let hosted = HostedView(NavigationStack { HistoryDayDetailView(viewModel: viewModel, group: day) })
@@ -119,31 +110,13 @@ struct HostedHistoryViewTests {
 
     @Test("REQ-SYNC-020: an archived item names who added it next to who bought it; no name, no caption")
     func dayDetailShowsWhoAdded() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.repository.addProduct(
-            to: fixture.listID,
-            draft: ProductDraft(name: "Bread", category: .bakery),
-            createdByName: "Maria"
-        )
-        let milkID = try await fixture.repository.addProduct(
-            to: fixture.listID,
-            draft: ProductDraft(name: "Milk", category: .dairyEggs)
-        )
-        for id in [breadID, milkID] {
-            try await fixture.repository.togglePurchased(id: id, participantDisplayName: "Alex")
-        }
-        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
-        // A blank name synced from another device must read as no name, not as "Added by ".
-        try await fixture.persistence.performBackgroundTask { context in
-            let request = HistoryItemEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", milkID as NSUUID)
-            for item in try context.fetch(request) {
-                item.createdByName = "   "
-            }
-        }
-        await fixture.settle()
+        let moment = Date()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = [
+            .bought("Bread", at: moment, createdByName: "Maria"),
+            // A blank name synced from another device must read as no name, not as "Added by ".
+            .bought("Milk", at: moment, createdByName: "   "),
+        ]
         let viewModel = HistoryViewModel(history: browser, calendar: Self.calendar)
         let day = try #require(viewModel.dayGroups.first)
         let hosted = HostedView(NavigationStack { HistoryDayDetailView(viewModel: viewModel, group: day) })

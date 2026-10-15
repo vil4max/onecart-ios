@@ -14,6 +14,11 @@ final class CartContentStore {
     private(set) var history: [PurchaseHistoryEntity] = []
     private(set) var historyHasMore = false
 
+    // Value snapshots for the screens, rebuilt whenever the entity collections above change.
+    private(set) var cartLists: [CartList] = []
+    private(set) var cartItemsByListID: [UUID: [CartItem]] = [:]
+    private(set) var historyLines: [HistoryLine] = []
+
     private let persistence: PersistenceController
 
     init(persistence: PersistenceController) {
@@ -24,6 +29,10 @@ final class CartContentStore {
         productsByListID[listID] ?? []
     }
 
+    func cartItems(inListID listID: UUID) -> [CartItem] {
+        cartItemsByListID[listID] ?? []
+    }
+
     func clearContent() {
         lists = []
         activeLists = []
@@ -31,6 +40,9 @@ final class CartContentStore {
         productsByListID = [:]
         history = []
         historyHasMore = false
+        cartLists = []
+        cartItemsByListID = [:]
+        historyLines = []
     }
 
     func reloadContent(familySpaceID: UUID?) throws {
@@ -65,6 +77,7 @@ final class CartContentStore {
         )
         historyHasMore = page.count > Self.historyPageSize
         history.append(contentsOf: Array(page.prefix(Self.historyPageSize)))
+        rebuildHistoryLines()
     }
 
     func rebuildDerivedCollections() {
@@ -76,6 +89,15 @@ final class CartContentStore {
             grouped[listID, default: []].append(product)
         }
         productsByListID = grouped
+
+        cartLists = activeLists.compactMap(CartList.init)
+        cartItemsByListID = grouped.mapValues { $0.compactMap(CartItem.init) }
+    }
+
+    /// Replicas are deduplicated across the whole loaded history, not per page, so the lines
+    /// are rebuilt from every loaded entry after each page.
+    private func rebuildHistoryLines() {
+        historyLines = HistoryLine.lines(from: history)
     }
 
     private func reloadHistoryPage(
@@ -90,6 +112,7 @@ final class CartContentStore {
         )
         historyHasMore = page.count > Self.historyPageSize
         history = Array(page.prefix(Self.historyPageSize))
+        rebuildHistoryLines()
     }
 
     private func fetchLists(

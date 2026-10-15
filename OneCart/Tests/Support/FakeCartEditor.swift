@@ -4,12 +4,12 @@ import Foundation
 @MainActor
 final class FakeCartEditor: CartEditing {
     struct AddedProduct: Equatable {
-        let listID: UUID?
+        let listID: UUID
         let draft: ProductDraft
     }
 
-    struct UpdatedProduct {
-        let product: ProductEntity
+    struct UpdatedProduct: Equatable {
+        let id: UUID
         let draft: ProductDraft
     }
 
@@ -17,27 +17,27 @@ final class FakeCartEditor: CartEditing {
     /// Answer for every add; `nil` rejects it, an existing line's ID reports a duplicate.
     var addResult: UUID?
     var updatedProducts: [UpdatedProduct] = []
-    var toggledProducts: [ProductEntity] = []
+    var toggledProductIDs: [UUID] = []
     var requestedPurchaseStates: [Bool] = []
-    var deletedProducts: [ProductEntity] = []
+    var deletedProductIDs: [UUID] = []
     var syncReasons: [CartSyncReason] = []
 
-    func addProduct(to list: ShoppingListEntity, draft: ProductDraft) async -> UUID? {
-        addedProducts.append(AddedProduct(listID: list.id, draft: draft))
+    func addProduct(toListID listID: UUID, draft: ProductDraft) async -> UUID? {
+        addedProducts.append(AddedProduct(listID: listID, draft: draft))
         return addResult
     }
 
-    func updateProduct(_ product: ProductEntity, draft: ProductDraft) async {
-        updatedProducts.append(UpdatedProduct(product: product, draft: draft))
+    func updateProduct(id: UUID, draft: ProductDraft) async {
+        updatedProducts.append(UpdatedProduct(id: id, draft: draft))
     }
 
-    func setPurchased(_ product: ProductEntity, isPurchased: Bool) async {
-        toggledProducts.append(product)
+    func setPurchased(productID: UUID, isPurchased: Bool) async {
+        toggledProductIDs.append(productID)
         requestedPurchaseStates.append(isPurchased)
     }
 
-    func deleteProduct(_ product: ProductEntity) async {
-        deletedProducts.append(product)
+    func deleteProduct(id: UUID) async {
+        deletedProductIDs.append(id)
     }
 
     func syncCart(reason: CartSyncReason) async {

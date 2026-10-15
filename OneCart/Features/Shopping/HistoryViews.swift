@@ -79,7 +79,7 @@ struct HistoryView: View {
 
 struct HistoryDayGroup: Identifiable, Hashable {
     let dayStart: Date
-    let items: [HistoryItemEntity]
+    let items: [HistoryLine]
 
     var id: Date {
         dayStart
@@ -90,20 +90,20 @@ struct HistoryDayGroup: Identifiable, Hashable {
     }
 
     /// The day's items in the cart's category order, so both tabs section alike.
-    var categorySections: [(category: ProductCategory, items: [HistoryItemEntity])] {
-        ProductCategory.groupedSections(from: items) { $0.categoryValue }
+    var categorySections: [(category: ProductCategory, items: [HistoryLine])] {
+        ProductCategory.groupedSections(from: items) { $0.category }
     }
 
     var namesPreview: String {
         items.map(\.displayName).joined(separator: ", ")
     }
 
+    /// `lines` are already deduplicated across replicas (`HistoryLine.lines(from:)`).
     static func groups(
-        from entries: [PurchaseHistoryEntity],
+        from lines: [HistoryLine],
         calendar: Calendar = .current
     ) -> [HistoryDayGroup] {
-        let items = HistoryItems.unique(from: entries)
-        let grouped = Dictionary(grouping: items) { item in
+        let grouped = Dictionary(grouping: lines) { item in
             calendar.startOfDay(for: item.purchaseMoment)
         }
         return

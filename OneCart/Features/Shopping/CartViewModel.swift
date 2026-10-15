@@ -136,29 +136,29 @@ final class CartViewModel {
 
     // MARK: - Content
 
-    var primaryList: ShoppingListEntity? {
-        ShoppingListEntity.primaryList(in: state.activeLists)
+    var primaryList: CartList? {
+        CartList.primary(in: state.cartLists)
     }
 
     var primaryListID: UUID? {
         primaryList?.id
     }
 
-    var products: [ProductEntity] {
+    var products: [CartItem] {
         guard let listID = primaryListID else { return [] }
-        return state.products(inListID: listID)
+        return state.cartItems(inListID: listID)
     }
 
-    var toBuyProducts: [ProductEntity] {
-        products.filter { !$0.isPurchasedValue }
+    var toBuyProducts: [CartItem] {
+        products.filter { !$0.isPurchased }
     }
 
-    var toBuySections: [(category: ProductCategory, items: [ProductEntity])] {
-        ProductCategory.groupedSections(from: toBuyProducts) { $0.categoryValue }
+    var toBuySections: [(category: ProductCategory, items: [CartItem])] {
+        ProductCategory.groupedSections(from: toBuyProducts) { $0.category }
     }
 
-    var completedProducts: [ProductEntity] {
-        products.filter(\.isPurchasedValue)
+    var completedProducts: [CartItem] {
+        products.filter(\.isPurchased)
     }
 
     var totalCount: Int {
@@ -210,8 +210,8 @@ final class CartViewModel {
 
     func suggestions(matching query: String) -> [String] {
         CartSuggestionsEngine.suggestions(
-            from: historyBrowser.history,
-            currentCartProducts: products,
+            from: historyBrowser.historyLines,
+            currentCartItems: products,
             query: query,
             defaults: CartSuggestionsEngine.defaultEssentials()
         )
@@ -221,9 +221,11 @@ final class CartViewModel {
 
     func addItem(named rawName: String) async -> AddOutcome {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canEdit, !name.isEmpty, let list = primaryList else { return .rejected }
-        let existingIDs = Set(products.compactMap(\.id))
-        guard let productID = await cart.addProduct(to: list, draft: .nameOnly(name)) else { return .rejected }
+        guard canEdit, !name.isEmpty, let listID = primaryListID else { return .rejected }
+        let existingIDs = Set(products.map(\.id))
+        guard let productID = await cart.addProduct(toListID: listID, draft: .nameOnly(name)) else {
+            return .rejected
+        }
         if existingIDs.contains(productID) {
             flashDuplicateRow(productID)
             return .duplicate(productID)
@@ -234,16 +236,16 @@ final class CartViewModel {
 
     /// Renames a line and re-infers its category; the draft carries nothing else, so every other
     /// stored field stays as it is. Returns false when nothing was saved.
-    func rename(_ product: ProductEntity, to rawName: String) async -> Bool {
+    func rename(_ product: CartItem, to rawName: String) async -> Bool {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !name.isEmpty, name != product.displayName else { return false }
-        await cart.updateProduct(product, draft: .nameOnly(name))
+        await cart.updateProduct(id: product.id, draft: .nameOnly(name))
         return true
     }
 
-    /// `shownAsPurchased` is the state the row was drawn with when tapped; the managed object
-    /// may already hold another shopper's newer state that the screen has not redrawn yet.
-    func togglePurchased(_ product: ProductEntity, shownAsPurchased: Bool) async {
+    /// `shownAsPurchased` is the state the row was drawn with when tapped; the stored line may
+    /// already hold another shopper's newer state that the screen has not redrawn yet.
+    func togglePurchased(_ product: CartItem, shownAsPurchased: Bool) async {
         guard canEdit else { return }
         let willCompleteCart = CartCelebration.willCompleteCart(
             togglingPurchasedItem: shownAsPurchased,
@@ -256,13 +258,13 @@ final class CartViewModel {
         if shownAsPurchased {
             hasCelebratedCurrentCompletion = false
         }
-        await cart.setPurchased(product, isPurchased: !shownAsPurchased)
+        await cart.setPurchased(productID: product.id, isPurchased: !shownAsPurchased)
     }
 
     /// Completed items cannot be deleted; uncheck first (REQ-CART-050).
-    func deleteProduct(_ product: ProductEntity) async {
-        guard canEdit, !product.isPurchasedValue else { return }
-        await cart.deleteProduct(product)
+    func deleteProduct(_ product: CartItem) async {
+        guard canEdit, !product.isPurchased else { return }
+        await cart.deleteProduct(id: product.id)
     }
 
     private func flashDuplicateRow(_ productID: UUID) {

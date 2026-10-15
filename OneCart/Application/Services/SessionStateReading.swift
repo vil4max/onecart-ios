@@ -6,6 +6,8 @@ protocol SessionStateReading: AnyObject {
     var isReady: Bool { get }
     var needsWelcome: Bool { get }
     var account: OneCartAccount? { get }
+    /// Still a Core Data entity: the screens only test it for presence, and moving it to a value
+    /// touches every membership path.
     var activeFamilySpace: FamilySpace? { get }
     /// True when the active cart lives in the private store, i.e. is not a shared family cart.
     var isActiveFamilySpacePrivate: Bool { get }
@@ -20,7 +22,8 @@ protocol SessionStateReading: AnyObject {
     /// Bumps after every content change so screens can react without diffing entities.
     var contentRevision: Int { get }
     var cartTitle: String { get }
-    var activeLists: [ShoppingListEntity] { get }
+    var cartLists: [CartList] { get }
     var preferences: DevicePreferences { get }
-    func products(inListID listID: UUID) -> [ProductEntity]
+    /// The list's lines in cart order: newest to-buy first, then completed (REQ-SHELL-010).
+    func cartItems(inListID listID: UUID) -> [CartItem]
 }

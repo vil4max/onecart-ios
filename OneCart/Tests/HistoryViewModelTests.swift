@@ -1,32 +1,23 @@
-import CoreData
 import Foundation
 @testable import OneCart
 import Testing
 
+/// The History ViewModel over value fakes: no Core Data store is involved.
 @MainActor
-@Suite("HistoryViewModelTests", .removesStores)
+@Suite("HistoryViewModelTests")
 struct HistoryViewModelTests {
     @Test("REQ-SHELL-020: days are newest first and an opened day resolves to its live contents")
     func daysNewestFirstWithLiveDetail() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread", purchased: true)
-        let milkID = try await fixture.addProduct(named: "Milk", purchased: true)
         let calendar = Calendar(identifier: .gregorian)
         let startOfToday = calendar.startOfDay(for: Date())
         let yesterday = try #require(calendar.date(byAdding: .day, value: -1, to: startOfToday))
         let twoDaysAgo = try #require(calendar.date(byAdding: .day, value: -2, to: startOfToday))
-        try await fixture.persistence.performBackgroundTask { context in
-            let request = ProductEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id IN %@", [breadID, milkID].map { $0 as NSUUID })
-            for product in try context.fetch(request) {
-                product.purchasedAt = product.id == breadID ? yesterday : twoDaysAgo
-            }
-        }
-        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
-        await fixture.settle()
 
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = [
+            .bought("Milk", at: twoDaysAgo.addingTimeInterval(3600)),
+            .bought("Bread", at: yesterday.addingTimeInterval(7200)),
+        ]
         let viewModel = HistoryViewModel(history: browser, calendar: calendar)
 
         let groups = viewModel.dayGroups
@@ -45,15 +36,9 @@ struct HistoryViewModelTests {
 
     @Test("REQ-SHELL-020: an opened day sections its items by category in cart order and previews the names")
     func daySectionsByCategoryAndPreviewsNames() async throws {
-        let fixture = try await CartFixture.make()
-        for name in ["Coffee", "Bread", "Apple", "Milk"] {
-            _ = try await fixture.addProduct(named: name, purchased: true)
-        }
-        _ = try await fixture.repository.completePurchased(listID: fixture.listID)
-        await fixture.settle()
-
+        let moment = Date()
         let browser = FakeHistoryBrowser()
-        browser.history = try fixture.history
+        browser.historyLines = ["Coffee", "Bread", "Apple", "Milk"].map { HistoryLine.bought($0, at: moment) }
         let viewModel = HistoryViewModel(history: browser, calendar: Calendar(identifier: .gregorian))
 
         let day = try #require(viewModel.dayGroups.first)

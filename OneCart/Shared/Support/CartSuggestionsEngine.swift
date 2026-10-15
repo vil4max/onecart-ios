@@ -122,16 +122,17 @@ enum CartSuggestionsEngine {
         return Array(ranked.prefix(limit))
     }
 
-    /// Convenience overload for Core Data entities.
+    /// Convenience overload for the screens' snapshots; History lines are already deduplicated
+    /// across replicas, so a replicated purchase counts once (REQ-HIST-040).
     static func suggestions(
-        from history: [PurchaseHistoryEntity],
-        currentCartProducts: [ProductEntity],
+        from historyLines: [HistoryLine],
+        currentCartItems: [CartItem],
         query: String = "",
         defaults: [String] = defaultEssentials(),
         limit: Int = 8
     ) -> [String] {
-        let historyNames = HistoryItems.unique(from: history).map(\.displayName)
-        let cartNames = currentCartProducts.map(\.displayName)
+        let historyNames = historyLines.map(\.displayName)
+        let cartNames = currentCartItems.map(\.displayName)
         return suggestions(
             historyItemNames: historyNames,
             currentCartItemNames: cartNames,

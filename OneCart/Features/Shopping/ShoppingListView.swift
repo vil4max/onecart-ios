@@ -3,7 +3,7 @@ import SwiftUI
 struct ShoppingListView: View {
     let viewModel: CartViewModel
 
-    @State private var renamingProduct: ProductEntity?
+    @State private var renamingProduct: CartItem?
     @State private var renameDraft = ""
     @State private var showsBusyOverlay = false
 
@@ -128,7 +128,7 @@ struct ShoppingListView: View {
             .onChange(of: viewModel.duplicateHighlightID) {
                 guard let target = viewModel.duplicateHighlightID else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
-                    proxy.scrollTo(Optional(target), anchor: .center)
+                    proxy.scrollTo(target, anchor: .center)
                 }
             }
             .alert(
@@ -202,11 +202,11 @@ struct ShoppingListView: View {
     }
 
     private func productRows(
-        _ items: [ProductEntity],
+        _ items: [CartItem],
         showsCategoryLabel: Bool
     ) -> some View {
-        ForEach(items, id: \.objectID) { product in
-            let shownAsPurchased = product.isPurchasedValue
+        ForEach(items) { product in
+            let shownAsPurchased = product.isPurchased
             CartProductRow(
                 product: product,
                 canEdit: viewModel.canEdit,
@@ -231,12 +231,12 @@ struct ShoppingListView: View {
                             Label("cart.swipe_complete", systemImage: "checkmark")
                         }
                     }
-                    .tint(product.isPurchasedValue ? .orange : OneCartPalette.primary)
+                    .tint(shownAsPurchased ? .orange : OneCartPalette.primary)
                 }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 // Completed lines cannot be deleted; uncheck first (REQ-CART-050).
-                if viewModel.canEdit, !product.isPurchasedValue {
+                if viewModel.canEdit, !shownAsPurchased {
                     Button(role: .destructive) {
                         Task { await viewModel.deleteProduct(product) }
                     } label: {
@@ -255,7 +255,7 @@ struct ShoppingListView: View {
         }
     }
 
-    private func beginRename(_ product: ProductEntity) {
+    private func beginRename(_ product: CartItem) {
         guard viewModel.canEdit else { return }
         renameDraft = product.displayName
         renamingProduct = product

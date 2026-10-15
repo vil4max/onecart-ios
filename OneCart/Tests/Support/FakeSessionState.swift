@@ -19,15 +19,15 @@ final class FakeSessionState: SessionStateReading {
     var isDeletingAccount = false
     var contentRevision = 0
     var cartTitle = "Family"
-    var activeLists: [ShoppingListEntity] = []
+    var cartLists: [CartList] = []
     let preferences: DevicePreferences
-    var productsByListID: [UUID: [ProductEntity]] = [:]
+    var itemsByListID: [UUID: [CartItem]] = [:]
 
     init(preferences: DevicePreferences) {
         self.preferences = preferences
     }
 
-    func products(inListID listID: UUID) -> [ProductEntity] {
-        productsByListID[listID] ?? []
+    func cartItems(inListID listID: UUID) -> [CartItem] {
+        itemsByListID[listID] ?? []
     }
 }

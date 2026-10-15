@@ -24,8 +24,69 @@ final class IsolatedPreferences {
     }
 }
 
-/// A loaded in-memory store with one family and its household list, for tests whose
-/// fakes need real Core Data entities.
+// MARK: - Value snapshots for the view model fakes
+
+extension CartItem {
+    /// A name-only line as the repository stores it: the category is inferred from the name.
+    static func line(
+        _ name: String,
+        purchased: Bool = false,
+        id: UUID = UUID(),
+        createdByName: String? = nil,
+        purchasedByName: String? = nil
+    ) -> CartItem {
+        CartItem(
+            id: id,
+            displayName: name,
+            category: ProductCategory.inferred(from: name),
+            isPurchased: purchased,
+            createdByName: createdByName,
+            purchasedByName: purchasedByName
+        )
+    }
+}
+
+extension CartList {
+    static func general(id: UUID = UUID(), createdAt: Date? = nil) -> CartList {
+        CartList(id: id, hasStore: false, createdAt: createdAt)
+    }
+
+    static func store(id: UUID = UUID(), createdAt: Date?) -> CartList {
+        CartList(id: id, hasStore: true, createdAt: createdAt)
+    }
+}
+
+extension HistoryLine {
+    /// An archived name-only line bought at `moment`; the category is inferred from the name.
+    static func bought(
+        _ name: String,
+        at moment: Date,
+        id: UUID = UUID(),
+        createdByName: String? = nil,
+        purchasedByName: String? = "Alex"
+    ) -> HistoryLine {
+        HistoryLine(
+            id: id,
+            displayName: name,
+            category: ProductCategory.inferred(from: name),
+            purchaseMoment: moment,
+            createdByName: createdByName,
+            purchasedByName: purchasedByName
+        )
+    }
+}
+
+extension FamilySpace {
+    /// An unsaved family outside any context. `activeFamilySpace` is still an entity, but the
+    /// cart screen only tests it for presence, so its tests need no store.
+    static func detached() throws -> FamilySpace {
+        let entity = try #require(OneCartManagedObjectModel.makeModel().entitiesByName["FamilySpace"])
+        return FamilySpace(entity: entity, insertInto: nil)
+    }
+}
+
+/// A loaded in-memory store with one family and its household list, for repository and
+/// mapping tests that need real Core Data entities.
 @MainActor
 struct CartFixture {
     let persistence: PersistenceController

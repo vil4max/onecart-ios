@@ -29,7 +29,7 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | Type | Role |
 |------|------|
 | `SessionBootstrapper` | SIWA restore / welcome retry; preserves pending account-deletion recovery |
-| `CartContentStore` | lists / products / history pages; reload after viewContext reset |
+| `CartContentStore` | lists / products / history pages; reload after viewContext reset; maps them once per reload into the screens' value snapshots |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
 | `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
 | `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator |
@@ -64,6 +64,22 @@ boundary (`RootSessionView` for Welcome, `MainTabView` for the tabs) creates the
 as `@State` from the session and passes them into the screens. Tests drive the ViewModels through
 fakes that conform to the same protocols (`OneCart/Tests/Support/Fake*.swift`); hosted-view tests
 mount the screens over those fakes.
+
+Screens and ViewModels see values, not Core Data entities. The role protocols expose immutable
+snapshots from `OneCart/Application/Services/CartValues.swift`: `CartList` and `CartItem`
+(`SessionStateReading.cartLists`, `cartItems(inListID:)`) and `HistoryLine`
+(`HistoryBrowsing.historyLines`, already deduplicated across replicas). `CartContentStore` maps
+the entities into them once per reload, page load or product refresh
+(`CartContentMapping.swift`), keeping the session's order (REQ-SHELL-010: newest to-buy first,
+then completed). Mutations go back by ID (`CartEditing.addProduct(toListID:draft:)`,
+`updateProduct(id:draft:)`, `setPurchased(productID:isPurchased:)`, `deleteProduct(id:)`); the
+session resolves the live row on its own context and drops, with a log line, a tap whose row a
+reload no longer has. `PrimaryListRule` picks the cart's list for values and entities alike. The
+exception is `SessionStateReading.activeFamilySpace`, still a `FamilySpace` entity: the screens
+only test it for presence, and moving it touches every membership path. The ViewModel fakes hold
+values, so their tests need no store; `CartFixture` stays for repository and mapping tests. Inside
+the application layer (Siri intents, widgets, the shopping trip, the coordinators) the session
+still works on entities.
 
 Time and sleeping come from `AppClock` (`OneCart/Shared/Support/AppClock.swift`): the repository,
 the sync services, the invite preparer, the Settings share watchdog and the leave recovery take it

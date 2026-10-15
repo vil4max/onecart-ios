@@ -207,7 +207,7 @@ final class PurchaseSessionTests: XCTestCase {
         }
 
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        let groups = HistoryDayGroup.groups(from: space.sortedHistory, calendar: calendar)
+        let groups = HistoryDayGroup.groups(from: HistoryLine.lines(from: space.sortedHistory), calendar: calendar)
         XCTAssertEqual(groups.count, 2)
         XCTAssertEqual(groups[0].dayStart, yesterday)
         XCTAssertEqual(groups[0].items.map(\.displayName), ["Хлеб"])

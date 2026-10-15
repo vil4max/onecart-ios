@@ -149,16 +149,10 @@ final class ShoppingListEntity: NSManagedObject {
         NSFetchRequest<ShoppingListEntity>(entityName: "ShoppingList")
     }
 
-    /// The one list the cart shows among the active lists: the general (no-store) list, else the
-    /// oldest. The cart screen, Siri, the widgets and the shopping trip all pick through this
-    /// rule, so a line checked or added on one surface is the line the others show.
+    /// The cart's list among the active lists (`PrimaryListRule`), for callers that still work
+    /// on entities: Siri, the widgets and the shopping trip.
     static func primaryList(in activeLists: [ShoppingListEntity]) -> ShoppingListEntity? {
-        if let general = activeLists.first(where: { $0.store == nil }) {
-            return general
-        }
-        return activeLists.min { lhs, rhs in
-            (lhs.createdAt ?? .distantFuture) < (rhs.createdAt ?? .distantFuture)
-        }
+        PrimaryListRule.pick(from: activeLists, hasStore: { $0.store != nil }, createdAt: \.createdAt)
     }
 
     /// Only the retired "completed" and "archived" values mean inactive. A missing, empty or

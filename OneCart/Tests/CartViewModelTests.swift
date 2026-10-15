@@ -1,8 +1,8 @@
-import CoreData
 import Foundation
 @testable import OneCart
 import Testing
 
+/// The cart ViewModel over value fakes: no Core Data store is involved.
 @MainActor
 struct CartHarness {
     let isolated: IsolatedPreferences
@@ -14,13 +14,17 @@ struct CartHarness {
     let tabs = FakeMainTabRouter()
     let trip = FakeShoppingTripController()
     let viewModel: CartViewModel
+    /// The general list the harness shows when it starts with lines.
+    let list = CartList.general()
 
-    init(fixture: CartFixture? = nil) throws {
+    /// `lines` in cart order (the session's order: newest to-buy first, then completed); `nil`
+    /// leaves the session without any list.
+    init(lines: [CartItem]? = nil) throws {
         isolated = try IsolatedPreferences()
         state = FakeSessionState(preferences: isolated.preferences)
-        if let fixture {
-            state.activeLists = try [fixture.list]
-            state.productsByListID[fixture.listID] = try fixture.products
+        if let lines {
+            state.cartLists = [list]
+            state.itemsByListID[list.id] = lines
         }
         viewModel = CartViewModel(
             state: state,
@@ -33,10 +37,15 @@ struct CartHarness {
             duplicateHighlightNanoseconds: 0
         )
     }
+
+    /// Replaces the primary list's lines, as a session reload would.
+    func show(_ lines: [CartItem]) {
+        state.itemsByListID[list.id] = lines
+    }
 }
 
 @MainActor
-@Suite("CartViewModelTests", .removesStores)
+@Suite("CartViewModelTests")
 struct CartViewModelTests {
     @Test("REQ-CART-070: household bootstrap and its retry forward to the session")
     func householdBootstrapForwards() async throws {
@@ -59,33 +68,30 @@ struct CartViewModelTests {
 
     @Test("REQ-SHELL-010: to-buy lines group by category while completed lines stay flat")
     func toBuyGroupsByCategoryAndCompletedStaysFlat() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let milkID = try await fixture.addProduct(named: "Milk")
-        let soapID = try await fixture.addProduct(named: "Soap", purchased: true)
-        let harness = try CartHarness(fixture: fixture)
+        let milk = CartItem.line("Milk")
+        let bread = CartItem.line("Bread")
+        let soap = CartItem.line("Soap", purchased: true)
+        let harness = try CartHarness(lines: [milk, bread, soap])
         let viewModel = harness.viewModel
 
-        #expect(viewModel.primaryListID == fixture.listID)
+        #expect(viewModel.primaryListID == harness.list.id)
         #expect(viewModel.totalCount == 3)
         #expect(viewModel.purchasedCount == 1)
-        #expect(Set(viewModel.toBuyProducts.compactMap(\.id)) == [breadID, milkID])
-        #expect(viewModel.completedProducts.compactMap(\.id) == [soapID])
+        #expect(viewModel.toBuyProducts.map(\.id) == [milk.id, bread.id])
+        #expect(viewModel.completedProducts.map(\.id) == [soap.id])
         #expect(!viewModel.isAllPurchased)
         #expect(!viewModel.isEmpty)
 
-        let sectionedIDs = viewModel.toBuySections.flatMap(\.items).compactMap(\.id)
-        #expect(Set(sectionedIDs) == [breadID, milkID])
+        let sectionedIDs = viewModel.toBuySections.flatMap(\.items).map(\.id)
+        #expect(Set(sectionedIDs) == [bread.id, milk.id])
         for section in viewModel.toBuySections {
-            #expect(section.items.allSatisfy { $0.categoryValue == section.category })
+            #expect(section.items.allSatisfy { $0.category == section.category })
         }
     }
 
     @Test("REQ-CART-040: the cart counts as all purchased once every line is checked")
     func allPurchasedWhenEveryLineIsChecked() async throws {
-        let fixture = try await CartFixture.make()
-        try await fixture.addProduct(named: "Bread", purchased: true)
-        let harness = try CartHarness(fixture: fixture)
+        let harness = try CartHarness(lines: [.line("Bread", purchased: true)])
 
         #expect(harness.viewModel.isAllPurchased)
         #expect(harness.viewModel.toBuySections.isEmpty)
@@ -93,16 +99,13 @@ struct CartViewModelTests {
 
     @Test("REQ-SHELL-010: the progress header follows the completed share and hides on an empty cart")
     func progressAccessoryTracksCompletedShare() async throws {
-        let fixture = try await CartFixture.make()
-        let harness = try CartHarness(fixture: fixture)
-        harness.state.activeFamilySpace = try fixture.family
+        let harness = try CartHarness(lines: [])
+        harness.state.activeFamilySpace = try FamilySpace.detached()
 
         #expect(harness.viewModel.progressFraction == 0)
         #expect(!harness.viewModel.showsProgress)
 
-        try await fixture.addProduct(named: "Bread")
-        try await fixture.addProduct(named: "Milk", purchased: true)
-        harness.state.productsByListID[fixture.listID] = try fixture.products
+        harness.show([.line("Bread"), .line("Milk", purchased: true)])
 
         #expect(harness.viewModel.showsProgress)
         #expect(harness.viewModel.progressFraction == 0.5)
@@ -113,8 +116,7 @@ struct CartViewModelTests {
 
     @Test("REQ-CART-030: adding a name-only item sends a trimmed draft to the primary list")
     func addItemSendsTrimmedDraft() async throws {
-        let fixture = try await CartFixture.make()
-        let harness = try CartHarness(fixture: fixture)
+        let harness = try CartHarness(lines: [])
         let newID = UUID()
         harness.cart.addResult = newID
 
@@ -122,15 +124,14 @@ struct CartViewModelTests {
 
         #expect(outcome == .added(newID))
         let added = try #require(harness.cart.addedProducts.first)
-        #expect(added.listID == fixture.listID)
+        #expect(added.listID == harness.list.id)
         #expect(added.draft == ProductDraft(name: "Bread", category: ProductCategory.inferred(from: "Bread")))
         #expect(harness.viewModel.duplicateHighlightID == nil)
     }
 
     @Test("REQ-CART-030: blank names, read-only carts and rejected adds change nothing")
     func addItemRejectsBlankAndReadOnly() async throws {
-        let fixture = try await CartFixture.make()
-        let harness = try CartHarness(fixture: fixture)
+        let harness = try CartHarness(lines: [])
         harness.cart.addResult = UUID()
 
         #expect(await harness.viewModel.addItem(named: "   ") == .rejected)
@@ -146,23 +147,21 @@ struct CartViewModelTests {
 
     @Test("REQ-CART-090: adding a name already on the cart highlights the existing line")
     func addItemReportsDuplicate() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
-        harness.cart.addResult = breadID
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread])
+        harness.cart.addResult = bread.id
 
         let outcome = await harness.viewModel.addItem(named: "bread")
 
-        #expect(outcome == .duplicate(breadID))
-        #expect(harness.viewModel.duplicateHighlightID == breadID)
+        #expect(outcome == .duplicate(bread.id))
+        #expect(harness.viewModel.duplicateHighlightID == bread.id)
     }
 
     @Test("REQ-CART-090: the duplicate highlight clears after its delay")
     func duplicateHighlightClears() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
-        harness.cart.addResult = breadID
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread])
+        harness.cart.addResult = bread.id
 
         _ = await harness.viewModel.addItem(named: "bread")
         for _ in 0..<1000 where harness.viewModel.duplicateHighlightID != nil {
@@ -174,17 +173,14 @@ struct CartViewModelTests {
 
     @Test("REQ-CART-040: checking the last to-buy item celebrates once until something is unchecked")
     func celebrationFiresOncePerCompletion() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let soapID = try await fixture.addProduct(named: "Soap", purchased: true)
-        let harness = try CartHarness(fixture: fixture)
-        let bread = try fixture.product(id: breadID)
-        let soap = try fixture.product(id: soapID)
+        let bread = CartItem.line("Bread")
+        let soap = CartItem.line("Soap", purchased: true)
+        let harness = try CartHarness(lines: [bread, soap])
 
         await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 1)
 
-        // The fake keeps the entity unchanged, so this is the same "last item" toggle again.
+        // The fake keeps the lines unchanged, so this is the same "last item" toggle again.
         await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 1)
 
@@ -192,85 +188,75 @@ struct CartViewModelTests {
         await harness.viewModel.togglePurchased(soap, shownAsPurchased: true)
         await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 2)
-        #expect(harness.cart.toggledProducts.count == 4)
+        #expect(harness.cart.toggledProductIDs == [bread.id, bread.id, soap.id, bread.id])
         #expect(harness.cart.requestedPurchaseStates == [true, true, false, true])
     }
 
     @Test("REQ-CART-040: a tap asks for the opposite of the state the row was drawn with")
     func toggleRequestsTheOppositeOfTheShownState() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        try await fixture.addProduct(named: "Milk")
-        let harness = try CartHarness(fixture: fixture)
-        let bread = try fixture.product(id: breadID)
-        // Another shopper's check reached the object before the row was redrawn.
-        bread.isPurchased = NSNumber(value: true)
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread, .line("Milk")])
+        // Another shopper's check reached the session before the row was redrawn.
+        harness.show([.line("Bread", purchased: true, id: bread.id), .line("Milk")])
 
         await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
 
         #expect(harness.cart.requestedPurchaseStates == [true])
+        #expect(harness.cart.toggledProductIDs == [bread.id])
     }
 
     @Test("REQ-CART-040: checking an item while others remain does not celebrate")
     func noCelebrationWhileOthersRemain() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        try await fixture.addProduct(named: "Milk")
-        let harness = try CartHarness(fixture: fixture)
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread, .line("Milk")])
 
-        try await harness.viewModel.togglePurchased(fixture.product(id: breadID), shownAsPurchased: false)
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
 
         #expect(harness.viewModel.confettiTrigger == 0)
-        #expect(harness.cart.toggledProducts.compactMap(\.id) == [breadID])
+        #expect(harness.cart.toggledProductIDs == [bread.id])
     }
 
     @Test("REQ-CART-040: a read-only cart ignores toggles")
     func readOnlyCartIgnoresToggles() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread])
         harness.state.canEdit = false
 
-        try await harness.viewModel.togglePurchased(fixture.product(id: breadID), shownAsPurchased: false)
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
 
-        #expect(harness.cart.toggledProducts.isEmpty)
+        #expect(harness.cart.toggledProductIDs.isEmpty)
         #expect(harness.viewModel.confettiTrigger == 0)
     }
 
     @Test("REQ-CART-050: completed items are never deleted; to-buy items are")
     func deleteSkipsCompletedItems() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let soapID = try await fixture.addProduct(named: "Soap", purchased: true)
-        let harness = try CartHarness(fixture: fixture)
+        let bread = CartItem.line("Bread")
+        let soap = CartItem.line("Soap", purchased: true)
+        let harness = try CartHarness(lines: [bread, soap])
 
-        try await harness.viewModel.deleteProduct(fixture.product(id: soapID))
-        #expect(harness.cart.deletedProducts.isEmpty)
+        await harness.viewModel.deleteProduct(soap)
+        #expect(harness.cart.deletedProductIDs.isEmpty)
 
-        try await harness.viewModel.deleteProduct(fixture.product(id: breadID))
-        #expect(harness.cart.deletedProducts.compactMap(\.id) == [breadID])
+        await harness.viewModel.deleteProduct(bread)
+        #expect(harness.cart.deletedProductIDs == [bread.id])
     }
 
     @Test("REQ-CART-020: renaming a line sends only the trimmed name and its re-inferred category")
     func renameSendsOnlyTheNameAndInferredCategory() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
-        let bread = try fixture.product(id: breadID)
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread])
 
         #expect(await harness.viewModel.rename(bread, to: "  Milk "))
 
         let update = try #require(harness.cart.updatedProducts.first)
-        #expect(update.product.id == breadID)
+        #expect(update.id == bread.id)
         #expect(update.draft == ProductDraft(name: "Milk", category: ProductCategory.inferred(from: "Milk")))
     }
 
     @Test("REQ-CART-020: an unchanged or blank name saves nothing")
     func renameIgnoresUnchangedAndBlankNames() async throws {
-        let fixture = try await CartFixture.make()
-        let breadID = try await fixture.addProduct(named: "Bread")
-        let harness = try CartHarness(fixture: fixture)
-        let bread = try fixture.product(id: breadID)
+        let bread = CartItem.line("Bread")
+        let harness = try CartHarness(lines: [bread])
 
         #expect(await !harness.viewModel.rename(bread, to: "Bread"))
         #expect(await !harness.viewModel.rename(bread, to: "   "))
@@ -311,27 +297,18 @@ struct CartViewModelTests {
 
     @Test("REQ-CART-010: the primary list is the general one, else the oldest active list")
     func primaryListPrefersGeneralThenOldest() async throws {
-        let fixture = try await CartFixture.make()
         let harness = try CartHarness()
-        let context = fixture.persistence.container.viewContext
-        let store = StoreEntity(context: context)
-        let storeList = ShoppingListEntity(context: context)
-        storeList.id = UUID()
-        storeList.store = store
-        storeList.createdAt = Date(timeIntervalSince1970: 1000)
-        let laterStoreList = ShoppingListEntity(context: context)
-        laterStoreList.id = UUID()
-        laterStoreList.store = store
-        laterStoreList.createdAt = Date(timeIntervalSince1970: 2000)
-        let general = try fixture.list
+        let storeList = CartList.store(createdAt: Date(timeIntervalSince1970: 1000))
+        let laterStoreList = CartList.store(createdAt: Date(timeIntervalSince1970: 2000))
+        let general = CartList.general(createdAt: Date(timeIntervalSince1970: 3000))
 
-        harness.state.activeLists = [laterStoreList, storeList, general]
+        harness.state.cartLists = [laterStoreList, storeList, general]
         #expect(harness.viewModel.primaryListID == general.id)
 
-        harness.state.activeLists = [laterStoreList, storeList]
+        harness.state.cartLists = [laterStoreList, storeList]
         #expect(harness.viewModel.primaryListID == storeList.id)
 
-        harness.state.activeLists = []
+        harness.state.cartLists = []
         #expect(harness.viewModel.primaryListID == nil)
         #expect(harness.viewModel.products.isEmpty)
     }
@@ -340,9 +317,7 @@ struct CartViewModelTests {
     func suggestionsExcludeCartLines() async throws {
         // The essentials follow the device language, so the cart line is taken from that list.
         let onCart = try #require(CartSuggestionsEngine.defaultEssentials().first)
-        let fixture = try await CartFixture.make()
-        try await fixture.addProduct(named: onCart)
-        let harness = try CartHarness(fixture: fixture)
+        let harness = try CartHarness(lines: [.line(onCart)])
 
         let suggestions = harness.viewModel.suggestions(matching: "")
 

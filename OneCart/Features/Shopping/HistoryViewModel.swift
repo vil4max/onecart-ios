@@ -14,11 +14,11 @@ final class HistoryViewModel {
 
     /// Grouping dedupes and sorts the whole history; callers read it once per body pass.
     var dayGroups: [HistoryDayGroup] {
-        HistoryDayGroup.groups(from: history.history, calendar: calendar)
+        HistoryDayGroup.groups(from: history.historyLines, calendar: calendar)
     }
 
     var isEmpty: Bool {
-        history.history.isEmpty
+        history.historyLines.isEmpty
     }
 
     var hasMore: Bool {

@@ -14,7 +14,7 @@ struct HistoryDayDetailView: View {
         List {
             ForEach(Array(sections.enumerated()), id: \.element.category) { offset, section in
                 Section {
-                    ForEach(section.items, id: \.objectID) { item in
+                    ForEach(section.items) { item in
                         HistoryProductRow(item: item)
                     }
                 } header: {
@@ -36,11 +36,11 @@ struct HistoryDayDetailView: View {
 /// One archived line: category tile, name, who added it and who bought it; the same shape as
 /// `CartProductRow` without its controls (REQ-SYNC-020).
 struct HistoryProductRow: View {
-    let item: HistoryItemEntity
+    let item: HistoryLine
 
     var body: some View {
         HStack(spacing: 12) {
-            CartCategoryThumbnail(category: item.categoryValue, isDimmed: false)
+            CartCategoryThumbnail(category: item.category, isDimmed: false)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName)
