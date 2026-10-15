@@ -1,25 +1,57 @@
 import CoreData
 import Foundation
 
-extension FamilySpaceRepository {
+/// Cart line mutations by stable ID: add, rename, category refinement, purchase state and delete.
+protocol CartItemsRepository: Sendable {
     /// Adds a new cart line item. Idempotent by stable id (CloudKit redelivery)
     /// and by normalized name within the same list: if «Молоко» is already
     /// on the cart, adding «молоко» returns the existing row instead of
     /// creating a second line. Quantities are never summed — there is simply
     /// one shared row per name.
     @discardableResult
+    func addProduct(to listID: UUID, id: UUID, draft: ProductDraft, createdByName: String?) async throws -> UUID
+    func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws
+    func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws
+    func setPurchasedState(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?
+    ) async throws
+    func setPurchased(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?,
+        purchasedAt: Date
+    ) async throws
+    func deleteProduct(id: UUID, familySpaceID: UUID) async throws
+}
+
+final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedRepository, Sendable {
+    let persistence: PersistenceController
+    let permissionAuthorizer: PermissionAuthorizing
+    let clock: AppClock
+
+    init(persistence: PersistenceController, permissionAuthorizer: PermissionAuthorizing, clock: AppClock) {
+        self.persistence = persistence
+        self.permissionAuthorizer = permissionAuthorizer
+        self.clock = clock
+    }
+
+    @discardableResult
     func addProduct(
         to listID: UUID,
-        id: UUID = UUID(),
+        id: UUID,
         draft: ProductDraft,
-        createdByName: String? = nil
+        createdByName: String?
     ) async throws -> UUID {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
         let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
 
         return try await persistence.performBackgroundTask { context in
-            guard let list = try Self.fetchList(id: listID, in: context) else {
+            guard let list = try RepositoryFetch.list(id: listID, in: context) else {
                 throw RepositoryError.listNotFound
             }
             try self.requireUpdatePermission(for: list)
@@ -29,7 +61,7 @@ extension FamilySpaceRepository {
 
             // Redelivery is idempotent only for the exact stable id, never by name; the name
             // check below is the duplicate-row product rule, not redelivery idempotency.
-            if let existing = try Self.fetchProduct(
+            if let existing = try RepositoryFetch.product(
                 id: id,
                 familySpaceID: space.id,
                 in: context
@@ -74,7 +106,8 @@ extension FamilySpaceRepository {
         let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
 
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
@@ -111,7 +144,8 @@ extension FamilySpaceRepository {
     /// lands after a tap must not make that tap look older than the row, so it stays untouched.
     func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
@@ -133,7 +167,8 @@ extension FamilySpaceRepository {
         participantDisplayName: String?
     ) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
@@ -159,7 +194,8 @@ extension FamilySpaceRepository {
         purchasedAt: Date
     ) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
                 let tombstones = ProductEntity.fetchRequest()
                 tombstones.predicate = NSPredicate(
                     format: "id == %@ AND familySpace.id == %@ AND deletedAt != nil",
@@ -189,7 +225,8 @@ extension FamilySpaceRepository {
 
     func deleteProduct(id: UUID, familySpaceID: UUID) async throws {
         try await persistence.performBackgroundTask { context in
-            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
                 throw RepositoryError.productNotFound
             }
             try self.requireDeletePermission(for: product)
@@ -199,95 +236,6 @@ extension FamilySpaceRepository {
             product.updatedAt = now
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
-        }
-    }
-
-    @discardableResult
-    func completePurchased(listID: UUID) async throws -> UUID? {
-        try await archivePurchased(listID: listID, purchasedBefore: nil)
-    }
-
-    @discardableResult
-    func archivePurchasedBefore(listID: UUID, cutoff: Date) async throws -> UUID? {
-        try await archivePurchased(listID: listID, purchasedBefore: cutoff)
-    }
-
-    @discardableResult
-    private func archivePurchased(listID: UUID, purchasedBefore cutoff: Date?) async throws -> UUID? {
-        try await persistence.performBackgroundTask { context in
-            guard let list = try Self.fetchList(id: listID, in: context) else {
-                throw RepositoryError.listNotFound
-            }
-            try self.requireUpdatePermission(for: list)
-            guard let space = list.familySpace else {
-                throw RepositoryError.familySpaceNotFound
-            }
-
-            let purchased = try Self.fetchPurchasedProducts(listID: listID, in: context).filter { product in
-                guard let cutoff else { return true }
-                let purchasedAt = product.purchasedAt ?? product.updatedAt ?? .distantPast
-                return purchasedAt < cutoff
-            }
-            guard !purchased.isEmpty else { return nil }
-
-            let now = self.clock.now()
-            let existingItems = try Self.existingHistoryItems(
-                productIDs: purchased.compactMap(\.id),
-                familySpace: space,
-                in: context
-            )
-            var archivedIDs = Set(existingItems.compactMap(\.id))
-            let unarchived = purchased.filter { product in
-                guard let id = product.id else { return true }
-                return archivedIDs.insert(id).inserted
-            }
-            for product in purchased {
-                product.deletedAt = now
-                product.updatedAt = now
-            }
-            list.updatedAt = now
-            space.updatedAt = now
-
-            guard !unarchived.isEmpty else {
-                // A late product import must not recreate an already archived purchase.
-                return existingItems.first?.history?.id
-            }
-
-            let historyID = UUID()
-            let history = PurchaseHistoryEntity(context: context)
-            try self.persistence.assign(history, toSameStoreAs: list, in: context)
-            history.id = historyID
-            history.date = now
-            history.createdAt = now
-            history.updatedAt = now
-            history.familySpace = space
-            history.store = list.store
-
-            // The leftover per-line attributes are copied as stored, so a line an older build
-            // wrote keeps its values in History; nothing here computes new ones.
-            for product in unarchived {
-                let item = HistoryItemEntity(context: context)
-                try self.persistence.assign(item, toSameStoreAs: list, in: context)
-                item.id = product.id ?? UUID()
-                item.name = product.name
-                item.quantity = product.quantity
-                item.unit = product.unit
-                item.category = product.category
-                item.estimatedPrice = product.estimatedPrice
-                item.originalPrice = product.originalPrice
-                item.imageURL = product.imageURL
-                item.sourceURL = product.sourceURL
-                item.note = product.note
-                item.purchasedAt = product.purchasedAt ?? now
-                item.purchasedByName = product.purchasedByName
-                item.createdByName = product.createdByName
-                item.createdAt = product.createdAt
-                item.updatedAt = now
-                item.familySpace = space
-                item.history = history
-            }
-
-            return historyID
         }
     }
 
@@ -318,47 +266,7 @@ extension FamilySpaceRepository {
         }
     }
 
-    private static func fetchPurchasedProducts(
-        listID: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> [ProductEntity] {
-        let request = ProductEntity.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "list.id == %@", listID as NSUUID),
-            NSPredicate(format: "isPurchased == YES"),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "createdAt", ascending: false)
-        ]
-        request.relationshipKeyPathsForPrefetching = ["list", "store"]
-        return try context.fetch(request)
-    }
-
-    private static func existingHistoryItems(
-        productIDs: [UUID],
-        familySpace: FamilySpace,
-        in context: NSManagedObjectContext
-    ) throws -> [HistoryItemEntity] {
-        guard !productIDs.isEmpty else { return [] }
-        let request = HistoryItemEntity.fetchRequest()
-        var predicates = [
-            NSPredicate(format: "id IN %@", productIDs.map { $0 as NSUUID }),
-            NSPredicate(format: "history.id != nil"),
-        ]
-        if let familyID = familySpace.id {
-            predicates.append(NSPredicate(format: "familySpace.id == %@", familyID as NSUUID))
-        } else {
-            predicates.append(NSPredicate(format: "familySpace == %@", familySpace))
-        }
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        if let store = familySpace.objectID.persistentStore {
-            request.affectedStores = [store]
-        }
-        return try context.fetch(request)
-    }
-
-    static func apply(draft: ProductDraft, to product: ProductEntity) {
+    private static func apply(draft: ProductDraft, to product: ProductEntity) {
         product.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         product.category = draft.category.rawValue
     }

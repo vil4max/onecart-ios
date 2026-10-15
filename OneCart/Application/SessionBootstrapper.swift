@@ -29,19 +29,22 @@ protocol SessionBootstrapHost: AnyObject {
 @MainActor
 final class SessionBootstrapper {
     private let persistence: PersistenceController
-    private let repository: FamilySpaceRepository
+    private let families: any FamilyRepository
+    private let deduplicator: any CartDeduplicator
     private let cloudSharing: any FamilyCloudSharing
     private let appleSignIn: AppleSignInAuthenticating
     private weak var host: SessionBootstrapHost?
 
     init(
         persistence: PersistenceController,
-        repository: FamilySpaceRepository,
+        families: any FamilyRepository,
+        deduplicator: any CartDeduplicator,
         cloudSharing: any FamilyCloudSharing,
         appleSignIn: AppleSignInAuthenticating
     ) {
         self.persistence = persistence
-        self.repository = repository
+        self.families = families
+        self.deduplicator = deduplicator
         self.cloudSharing = cloudSharing
         self.appleSignIn = appleSignIn
     }
@@ -141,8 +144,8 @@ final class SessionBootstrapper {
         }
         do {
             host.notifyBootstrapObjectWillChange()
-            try await repository.deduplicateStableIDs()
-            _ = try await repository.deduplicateProductsByName()
+            try await deduplicator.deduplicateStableIDs()
+            _ = try await deduplicator.deduplicateProductsByName()
             host.preferences.reloadFromDefaults()
 
             if let appleName = appleCredential.providedDisplayName {
@@ -182,7 +185,7 @@ final class SessionBootstrapper {
                 bannerURL: restoredAccount.bannerURL
             )
             host.applyBootstrapAccount(account)
-            try await repository.claimUnassignedFamilySpaces(for: restoredAccount.id)
+            try await families.claimUnassignedFamilySpaces(for: restoredAccount.id)
             try host.reloadAfterBootstrap()
             if persistence.accountDeletionRecoveryRequired {
                 host.applyBootstrapSyncState(.failed)

@@ -248,7 +248,8 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
         )
         let coordinator = HouseholdCartCoordinator(
             persistence: fixture.persistence,
-            repository: denied,
+            families: denied.families,
+            personalCartRestorer: denied.personalCartRestorer,
             defaults: fixture.defaults
         )
         coordinator.bind(host: fixture.session)

@@ -7,16 +7,13 @@ import OSLog
 final class FamilyShareOrchestrator {
     private let persistence: PersistenceController
     private let cloudSharing: any FamilyCloudSharing
-    private let repository: FamilySpaceRepository
 
     init(
         persistence: PersistenceController,
-        cloudSharing: any FamilyCloudSharing,
-        repository: FamilySpaceRepository
+        cloudSharing: any FamilyCloudSharing
     ) {
         self.persistence = persistence
         self.cloudSharing = cloudSharing
-        self.repository = repository
     }
 
     func ensureOwnerReadWriteACL(for family: FamilySpace, isOwner: Bool) async {

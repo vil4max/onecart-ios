@@ -1,18 +1,39 @@
 import CoreData
 import Foundation
 
-extension FamilySpaceRepository {
+/// Each member's chosen name in the cart's zone, keyed by their CloudKit user record name.
+protocol MemberProfileStore: Sendable {
     /// Writes this member's name into the cart so other members can show it (REQ-AUTH-040).
-    /// Idempotent: nothing is saved when the newest row already carries the name. Older rows
-    /// of the same member become tombstones. A member without a name gets no new row, and an
-    /// existing row loses its name so the others fall back to the numbered label.
     /// - Returns: whether anything was written.
     @discardableResult
     func upsertMemberProfile(
         familySpaceID: UUID,
         userRecordName: String,
         displayName: String?,
-        now: Date? = nil
+        now: Date?
+    ) async throws -> Bool
+}
+
+final class CoreDataMemberProfileStore: MemberProfileStore, PermissionGuardedRepository, Sendable {
+    let persistence: PersistenceController
+    let permissionAuthorizer: PermissionAuthorizing
+    let clock: AppClock
+
+    init(persistence: PersistenceController, permissionAuthorizer: PermissionAuthorizing, clock: AppClock) {
+        self.persistence = persistence
+        self.permissionAuthorizer = permissionAuthorizer
+        self.clock = clock
+    }
+
+    /// Idempotent: nothing is saved when the newest row already carries the name. Older rows
+    /// of the same member become tombstones. A member without a name gets no new row, and an
+    /// existing row loses its name so the others fall back to the numbered label.
+    @discardableResult
+    func upsertMemberProfile(
+        familySpaceID: UUID,
+        userRecordName: String,
+        displayName: String?,
+        now: Date?
     ) async throws -> Bool {
         let recordName = userRecordName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !recordName.isEmpty else { return false }
@@ -20,7 +41,7 @@ extension FamilySpaceRepository {
         let now = now ?? clock.now()
 
         return try await persistence.performBackgroundTask(author: "OneCartMemberProfile") { context in
-            let space = try Self.requireFamilySpace(id: familySpaceID, in: context)
+            let space = try RepositoryFetch.requireFamilySpace(id: familySpaceID, in: context)
             let request = MemberProfileEntity.fetchRequest()
             request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "familySpace == %@", space),

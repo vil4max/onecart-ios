@@ -36,7 +36,7 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
-| `FamilySpaceRepository` | local CRUD / purchase sessions (+ personal restore / dedupe / product slices) |
+| Repositories (`FamilyRepository`, `CartItemsRepository`, `PurchaseArchiver`, `CartDeduplicator`, `PersonalCartRestorer`, `MemberProfileStore`) | local Core Data reads and writes, one responsibility each, injected as protocols |
 | `FamilyCloudSharing` (`CloudKitBackendService` + `FamilyInviteLinkBuilder`) | iCloud account, members, share lifecycle, user identity, private-zone account deletion |
 
 iCloud reaches the session only through `FamilyCloudSharing`
@@ -57,6 +57,26 @@ accept into. `mirrorsToCloudKit` (configured to mirror: not ephemeral and CloudK
 the cloud-import wait before a refresh and the CloudKit environment reconcile and stamp around
 store loading; it reads the configuration, so it stays true while an interrupted account deletion
 is recovered with CloudKit off.
+
+Local data reaches the session and the coordinators through six repository protocols in
+`OneCart/Data/Persistence/`, each declared in one file with its Core Data implementation:
+`FamilyRepository` (`CoreDataFamilyRepository`: family reads on the view context, create, account
+claim, rename, local discard of a left shared cart), `CartItemsRepository` (add, rename, category
+refinement, purchase state, widget purchase replay, delete), `PurchaseArchiver` (Completed →
+History), `CartDeduplicator` (stable-ID and same-name dedupe), `PersonalCartRestorer`
+(`restoreProvisionalPersonalContent`) and `MemberProfileStore`. The implementations share
+`RepositoryFetch` (live-row lookups by ID; a product lookup sorts in cart order, so a mutation by
+ID changes the row the cart shows when a replica left two with that ID) and the
+`PermissionGuardedRepository` write check over `PermissionAuthorizing`. `AppSession` holds five of them as
+`any …` (`repository` is the `FamilyRepository`, which the membership paths use; only the
+household coordinator takes `PersonalCartRestorer`);
+`SessionBootstrapper` takes `FamilyRepository` and `CartDeduplicator`, `HouseholdCartCoordinator`
+takes `FamilyRepository` and `PersonalCartRestorer`. `FamilySpaceRepository` remains as a
+transitional facade: the live composition builds the six implementations through it, and tests and
+seeding helpers keep its forwarding API; production code does not call the forwards. Coordinators
+still read `persistence.container` for view-context work no repository owns: the sync reset
+(`CartSyncService`), `processPendingChanges` after a mutation, the save before an invite
+(`FamilyShareOrchestrator`), and the CloudKit observers.
 
 Screens never see `AppSession`. Its surface is split into role protocols in
 `OneCart/Application/Services/` (`SessionStateReading`, `CartEditing`, `HistoryBrowsing`,
@@ -89,9 +109,9 @@ values, so their tests need no store; `CartFixture` stays for repository and map
 the application layer (Siri intents, widgets, the shopping trip, the coordinators) the session
 still works on entities.
 
-Time and sleeping come from `AppClock` (`OneCart/Shared/Support/AppClock.swift`): the repository,
+Time and sleeping come from `AppClock` (`OneCart/Shared/Support/AppClock.swift`): the repositories,
 the sync services, the invite preparer, the Settings share watchdog and the leave recovery take it
-through their initializer (default `.live`, which sleeps on the suspending clock like the timers
+through their initializer (the session passes its clock; defaults are `.live`, which sleeps on the suspending clock like the timers
 it replaced), and the launch ride reads it from the `appClock` environment value. Tests pass a
 `TestClock` (`OneCart/Tests/Support/TestClock.swift`) and move time with `advance(by:)` instead of
 waiting it out. Not on the clock yet: view-only animation timing, display dates, the CloudKit
@@ -126,11 +146,12 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile + account-deletion store state machine |
 | `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
 | `OneCart/Data/Persistence/ManagedObjects.swift` | Core Data entity subclasses |
-| `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `archivePurchasedBefore` / `completePurchased` (Completed → history) |
-| `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Personal restore (`+Merge`) / dedupe / product mutation slices |
+| `OneCart/Data/Persistence/FamilyRepository.swift`, `CartItemsRepository.swift`, `PurchaseArchiver.swift`, `CartDeduplicator.swift`, `PersonalCartRestorer.swift`, `MemberProfileStore.swift` | Repository protocols with their Core Data implementations; `PurchaseArchiver` has `archivePurchasedBefore` / `completePurchased` (Completed → history) |
+| `OneCart/Data/Persistence/RepositoryFetch.swift`, `PermissionAuthorizing.swift`, `RepositoryError.swift`, `ProductDraft.swift`, `SoftDeletable.swift` | Shared lookups, write permission guard, errors, the add/rename draft, tombstone markers |
+| `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Transitional facade: builds the repositories; forwarding API for tests |
 | `OneCart/Data/CloudKit/` | Split: `FamilyCloudSharing` seam, models, errors, share ACL/branding, `CloudKitDeadline`, permissions (`RecordPermissionChecking`), backend, invite builder |
 | `OneCart/Application/Demo/InMemoryFamilySharing.swift` | DEBUG-only iCloud stand-in for unit tests and the welcome demo |
-| `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
+| `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple, behind `AppleSignInAuthenticating`; that protocol, the credential, state, error, store protocol, Keychain store and presentation anchor each in their own file beside it |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
 | `OneCart/Features/Shopping/ShoppingListView.swift` | Active list composition + inline add/edit; To Buy / Completed |

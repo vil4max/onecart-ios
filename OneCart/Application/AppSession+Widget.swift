@@ -168,7 +168,7 @@ extension AppSession {
         }
         pendingCartMutationCount += 1
         defer { finishCartMutation() }
-        try await repository.setPurchased(
+        try await cartItems.setPurchased(
             id: request.productID,
             familySpaceID: request.familyID,
             isPurchased: request.isPurchased,

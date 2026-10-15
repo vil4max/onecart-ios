@@ -1,7 +1,26 @@
 import CoreData
 import Foundation
 
-extension FamilySpaceRepository {
+/// Launch and sync dedupe of replica rows: one living row per stable ID, and per normalized
+/// name within one list.
+protocol CartDeduplicator: Sendable {
+    func deduplicateStableIDs() async throws
+    /// - Returns: number of rows tombstoned.
+    @discardableResult
+    func deduplicateProductsByName() async throws -> Int
+}
+
+final class CoreDataCartDeduplicator: CartDeduplicator, Sendable {
+    let persistence: PersistenceController
+    let permissionAuthorizer: PermissionAuthorizing
+    let clock: AppClock
+
+    init(persistence: PersistenceController, permissionAuthorizer: PermissionAuthorizing, clock: AppClock) {
+        self.persistence = persistence
+        self.permissionAuthorizer = permissionAuthorizer
+        self.clock = clock
+    }
+
     func deduplicateStableIDs() async throws {
         try await persistence.performBackgroundTask(author: "OneCartDeduplication") { context in
             try self.deduplicate(
@@ -54,7 +73,6 @@ extension FamilySpaceRepository {
     /// stable IDs — CloudKit then delivers both records. First writer wins and
     /// inherits a loser's purchase state; losers become soft-delete tombstones so
     /// the merge propagates. Groups the participant may not update are skipped.
-    /// - Returns: number of rows tombstoned.
     @discardableResult
     func deduplicateProductsByName() async throws -> Int {
         try await persistence.performBackgroundTask(author: "OneCartNameDedup") { context in
@@ -121,7 +139,7 @@ extension FamilySpaceRepository {
         return "\(storeIdentifier)|\(listKey)|\(normalized)"
     }
 
-    func deduplicate<T: NSManagedObject>(
+    private func deduplicate<T: NSManagedObject>(
         request: NSFetchRequest<T>,
         familySpaceID: (T) -> UUID?,
         stableID: (T) -> UUID?,
@@ -167,7 +185,7 @@ extension FamilySpaceRepository {
         }
     }
 
-    static func preferredDuplicate<T: NSManagedObject>(
+    private static func preferredDuplicate<T: NSManagedObject>(
         existing: T,
         candidate: T,
         updatedAt: (T) -> Date?,

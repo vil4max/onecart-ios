@@ -62,8 +62,7 @@ struct FamilyShareOrchestratorTests {
     ) -> FamilyShareOrchestrator {
         FamilyShareOrchestrator(
             persistence: fixture.persistence,
-            cloudSharing: cloudSharing,
-            repository: fixture.repository
+            cloudSharing: cloudSharing
         )
     }
 

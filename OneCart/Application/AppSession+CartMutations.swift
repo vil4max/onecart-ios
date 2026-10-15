@@ -20,8 +20,9 @@ extension AppSession {
         CartSyncLog.action.info("addProduct start")
         var addedID: UUID?
         let succeeded = await performMutation(action: "addProduct") {
-            addedID = try await self.repository.addProduct(
+            addedID = try await self.cartItems.addProduct(
                 to: listID,
+                id: UUID(),
                 draft: draft,
                 createdByName: Self.participantName(
                     preferences: self.preferences,
@@ -53,7 +54,7 @@ extension AppSession {
         }
         CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
         await performMutation(action: "updateProduct") {
-            try await self.repository.updateProduct(id: id, familySpaceID: familyID, draft: draft)
+            try await self.cartItems.updateProduct(id: id, familySpaceID: familyID, draft: draft)
         }
         scheduleCategoryRefinement(productID: id, name: draft.name)
     }
@@ -95,7 +96,7 @@ extension AppSession {
         guard product.categoryValue != classified else { return }
 
         do {
-            try await repository.updateProductCategory(id: productID, familySpaceID: familyID, category: classified)
+            try await cartItems.updateProductCategory(id: productID, familySpaceID: familyID, category: classified)
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
@@ -141,7 +142,7 @@ extension AppSession {
         defer { finishCartMutation() }
         do {
             CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
-            try await repository.setPurchasedState(
+            try await cartItems.setPurchasedState(
                 id: id,
                 familySpaceID: familyID,
                 isPurchased: isPurchased,
@@ -198,7 +199,7 @@ extension AppSession {
     func deduplicateCartIfNeeded() async {
         guard canEdit else { return }
         do {
-            let merged = try await repository.deduplicateProductsByName()
+            let merged = try await cartDeduplicator.deduplicateProductsByName()
             guard merged > 0 else { return }
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
@@ -233,7 +234,7 @@ extension AppSession {
         CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
         cancelCategoryRefinement(productID: id)
         await performMutation(action: "deleteProduct") {
-            try await self.repository.deleteProduct(id: id, familySpaceID: familyID)
+            try await self.cartItems.deleteProduct(id: id, familySpaceID: familyID)
         }
     }
 
@@ -241,7 +242,7 @@ extension AppSession {
         guard let id = list.id else { return }
         CartSyncLog.action.info("completePurchase start list=\(id.uuidString, privacy: .public)")
         await performMutation(action: "completePurchase") {
-            _ = try await self.repository.completePurchased(listID: id)
+            _ = try await self.purchaseArchiver.completePurchased(listID: id)
         }
     }
 
@@ -257,7 +258,7 @@ extension AppSession {
         for list in activeLists {
             guard let id = list.id else { continue }
             do {
-                if try await repository.archivePurchasedBefore(listID: id, cutoff: cutoff) != nil {
+                if try await purchaseArchiver.archivePurchasedBefore(listID: id, cutoff: cutoff) != nil {
                     didArchive = true
                     CartSyncLog.action.info(
                         "archiveStalePurchased list=\(id.uuidString, privacy: .public)"

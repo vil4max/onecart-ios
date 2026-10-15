@@ -30,7 +30,8 @@ protocol HouseholdCartHost: AnyObject {
 @MainActor
 final class HouseholdCartCoordinator {
     private let persistence: PersistenceController
-    private let repository: FamilySpaceRepository
+    private let families: any FamilyRepository
+    private let personalCartRestorer: any PersonalCartRestorer
     private let defaults: UserDefaults
     private weak var host: (any HouseholdCartHost)?
     private var isRunningEnsure = false
@@ -39,11 +40,13 @@ final class HouseholdCartCoordinator {
 
     init(
         persistence: PersistenceController,
-        repository: FamilySpaceRepository,
+        families: any FamilyRepository,
+        personalCartRestorer: any PersonalCartRestorer,
         defaults: UserDefaults
     ) {
         self.persistence = persistence
-        self.repository = repository
+        self.families = families
+        self.personalCartRestorer = personalCartRestorer
         self.defaults = defaults
     }
 
@@ -179,7 +182,7 @@ final class HouseholdCartCoordinator {
                 .flatMap(UUID.init(uuidString:))
         else { return }
 
-        let spaces = try repository.fetchFamilySpaces(for: account.id)
+        let spaces = try families.fetchFamilySpaces(for: account.id)
         guard !spaces.contains(where: { persistence.scope(for: $0) == .shared }),
             let source = spaces.first(where: { $0.id == sourceID }),
             persistence.scope(for: source) == .private,
@@ -200,7 +203,7 @@ final class HouseholdCartCoordinator {
 
         host.isReconcilingPersonalCart = true
         defer { host.isReconcilingPersonalCart = false }
-        let restored = try await repository.restoreProvisionalPersonalContent(
+        let restored = try await personalCartRestorer.restoreProvisionalPersonalContent(
             from: sourceID,
             into: destinationID,
             accountID: account.id
@@ -224,9 +227,10 @@ final class HouseholdCartCoordinator {
         // Persist provenance before the first save so a restart can still adopt a late import.
         defaults.set(familyID.uuidString, forKey: key)
         do {
-            return try await repository.createFamilySpace(
+            return try await families.createFamilySpace(
                 id: familyID,
                 name: host.householdDisplayName(for: account),
+                createdAt: nil,
                 cachedForUserID: account.id,
                 isHouseholdDefault: true
             )

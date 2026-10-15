@@ -111,7 +111,12 @@ final class AppSession {
         return String(localized: "cart.personal_title \(trimmed)")
     }
 
-    let repository: FamilySpaceRepository
+    /// Family spaces: reads, rename, claim, and the local discard of a left shared cart.
+    let repository: any FamilyRepository
+    let cartItems: any CartItemsRepository
+    let purchaseArchiver: any PurchaseArchiver
+    let cartDeduplicator: any CartDeduplicator
+    let memberProfiles: any MemberProfileStore
     let cloudSharing: any FamilyCloudSharing
     let shareOrchestrator: FamilyShareOrchestrator
     let appleSignIn: AppleSignInAuthenticating
@@ -170,7 +175,7 @@ final class AppSession {
             backend: shoppingTripBackend ?? LiveShoppingTripActivityBackend()
         )
 
-        let repository = FamilySpaceRepository(
+        let repositories = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: CloudKitPermissionAuthorizer(
                 persistence: persistence,
@@ -179,7 +184,11 @@ final class AppSession {
             clock: clock
         )
         let cloudSharing = cloudSharing ?? CloudKitBackendService(persistence: persistence)
-        self.repository = repository
+        repository = repositories.families
+        cartItems = repositories.cartItems
+        purchaseArchiver = repositories.purchaseArchiver
+        cartDeduplicator = repositories.deduplicator
+        memberProfiles = repositories.memberProfiles
         self.cloudSharing = cloudSharing
         self.cloudUserIdentity = cloudUserIdentity ?? cloudSharing
         memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: defaults)
@@ -189,20 +198,21 @@ final class AppSession {
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(
             persistence: persistence,
-            repository: repository,
+            families: repositories.families,
+            deduplicator: repositories.deduplicator,
             cloudSharing: cloudSharing,
             appleSignIn: appleSignIn
         )
         cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
-            cloudSharing: cloudSharing,
-            repository: repository
+            cloudSharing: cloudSharing
         )
         invitePreparer = InviteLinkPreparer(clock: clock)
         household = HouseholdCartCoordinator(
             persistence: persistence,
-            repository: repository,
+            families: repositories.families,
+            personalCartRestorer: repositories.personalCartRestorer,
             defaults: defaults
         )
         bootstrapper.bind(host: self)

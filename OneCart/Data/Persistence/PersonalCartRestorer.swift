@@ -1,7 +1,27 @@
 import CoreData
 import Foundation
 
-extension FamilySpaceRepository {
+/// Copies a provisional personal cart into an older personal cart of the same account that
+/// arrived late from iCloud, by stable IDs (REQ-SYNC-040).
+protocol PersonalCartRestorer: Sendable {
+    /// - Returns: whether the destination now holds the source's content; false when the
+    ///   source graph is still incomplete or the destination has no list yet.
+    func restoreProvisionalPersonalContent(
+        from sourceID: UUID,
+        into destinationID: UUID,
+        accountID: UUID
+    ) async throws -> Bool
+}
+
+final class CoreDataPersonalCartRestorer: PersonalCartRestorer, PermissionGuardedRepository, Sendable {
+    let persistence: PersistenceController
+    let permissionAuthorizer: PermissionAuthorizing
+
+    init(persistence: PersistenceController, permissionAuthorizer: PermissionAuthorizing) {
+        self.persistence = persistence
+        self.permissionAuthorizer = permissionAuthorizer
+    }
+
     func restoreProvisionalPersonalContent(
         from sourceID: UUID,
         into destinationID: UUID,
@@ -9,8 +29,8 @@ extension FamilySpaceRepository {
     ) async throws -> Bool {
         guard sourceID != destinationID else { return true }
         return try await persistence.performBackgroundTask(author: "OneCartPersonalRestore") { context in
-            let source = try Self.requireFamilySpace(id: sourceID, in: context)
-            let destination = try Self.requireFamilySpace(id: destinationID, in: context)
+            let source = try RepositoryFetch.requireFamilySpace(id: sourceID, in: context)
+            let destination = try RepositoryFetch.requireFamilySpace(id: destinationID, in: context)
             guard self.persistence.scope(for: source) == .private,
                 self.persistence.scope(for: destination) == .private
             else { throw RepositoryError.crossShareRelationship }

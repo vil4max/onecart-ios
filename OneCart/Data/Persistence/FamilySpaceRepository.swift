@@ -1,54 +1,19 @@
 import CoreData
 import Foundation
 
-protocol PermissionAuthorizing: AnyObject, Sendable {
-    func canUpdate(_ objectID: NSManagedObjectID) -> Bool
-    func canDelete(_ objectID: NSManagedObjectID) -> Bool
-}
-
-enum RepositoryError: LocalizedError, Equatable {
-    case familySpaceNotFound
-    case listNotFound
-    case productNotFound
-    case storeNotFound
-    case permissionDenied
-    case crossShareRelationship
-    case invalidName
-
-    var errorDescription: String? {
-        switch self {
-        case .familySpaceNotFound:
-            String(localized: "sync.error.family_not_found")
-        case .listNotFound:
-            String(localized: "sync.error.list_not_found")
-        case .productNotFound:
-            String(localized: "sync.error.product_not_found")
-        case .storeNotFound:
-            String(localized: "sync.error.store_not_found")
-        case .permissionDenied:
-            String(localized: "sync.error.permission_denied")
-        case .crossShareRelationship:
-            String(localized: "sync.error.cross_share")
-        case .invalidName:
-            String(localized: "sync.error.invalid_name")
-        }
-    }
-}
-
-/// What an add or a rename writes to a cart line (REQ-CART-020, REQ-CART-060): the name and the
-/// category it is grouped under. The legacy quantity, unit, price, note, URL and catalog
-/// attributes stay in the model for CloudKit and older clients, but the app no longer writes
-/// them, so values an older build stored are left as they are.
-struct ProductDraft: Equatable {
-    var name: String
-    var category: ProductCategory
-}
-
+/// Builds the focused Core Data repositories over one store, permission check and clock.
+/// `AppSession` takes them from here and hands each collaborator only the protocol it needs.
+///
+/// Transitional: the forwarding methods below keep the earlier single-entry API for tests and
+/// seeding helpers; production code calls the protocols, not these forwards.
 final class FamilySpaceRepository: Sendable {
     let persistence: PersistenceController
-    let permissionAuthorizer: PermissionAuthorizing
-    /// Stamps every write, so archive cutoffs and last-writer-wins tie-breaks follow one clock.
-    let clock: AppClock
+    let families: CoreDataFamilyRepository
+    let cartItems: CoreDataCartItemsRepository
+    let purchaseArchiver: CoreDataPurchaseArchiver
+    let deduplicator: CoreDataCartDeduplicator
+    let personalCartRestorer: CoreDataPersonalCartRestorer
+    let memberProfiles: CoreDataMemberProfileStore
 
     init(
         persistence: PersistenceController,
@@ -56,41 +21,47 @@ final class FamilySpaceRepository: Sendable {
         clock: AppClock = .live
     ) {
         self.persistence = persistence
-        self.permissionAuthorizer = permissionAuthorizer
-        self.clock = clock
+        families = CoreDataFamilyRepository(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer,
+            clock: clock
+        )
+        cartItems = CoreDataCartItemsRepository(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer,
+            clock: clock
+        )
+        purchaseArchiver = CoreDataPurchaseArchiver(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer,
+            clock: clock
+        )
+        deduplicator = CoreDataCartDeduplicator(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer,
+            clock: clock
+        )
+        personalCartRestorer = CoreDataPersonalCartRestorer(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer
+        )
+        memberProfiles = CoreDataMemberProfileStore(
+            persistence: persistence,
+            permissionAuthorizer: permissionAuthorizer,
+            clock: clock
+        )
     }
 
-    /// Reads the view context, so the objects it returns belong to the main actor.
+    // MARK: - Families
+
     @MainActor
     func fetchFamilySpaces(for userID: UUID? = nil) throws -> [FamilySpace] {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSPredicate(format: "deletedAt == nil")
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "updatedAt", ascending: false),
-            NSSortDescriptor(key: "createdAt", ascending: false),
-        ]
-        let spaces = try persistence.container.viewContext.fetch(request)
-        guard let userID else { return spaces }
-        // Private carts are scoped to the SIWA-derived account. Shared-store carts
-        // belong to the device iCloud share participant and stay visible.
-        return spaces.filter { space in
-            if persistence.scope(for: space) == .shared {
-                return true
-            }
-            return space.cachedForUserID == userID
-        }
+        try families.fetchFamilySpaces(for: userID)
     }
 
-    /// Reads the view context, so the object it returns belongs to the main actor.
     @MainActor
     func fetchFamilySpace(id: UUID) throws -> FamilySpace? {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return try persistence.container.viewContext.fetch(request).first
+        try families.fetchFamilySpace(id: id)
     }
 
     func createFamilySpace(
@@ -100,107 +71,137 @@ final class FamilySpaceRepository: Sendable {
         cachedForUserID: UUID? = nil,
         isHouseholdDefault: Bool = false
     ) async throws -> UUID {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
-        let createdAt = createdAt ?? clock.now()
-
-        return try await persistence.performBackgroundTask { context in
-            if let existing = try Self.fetchFamilySpace(id: id, in: context) {
-                return existing.id ?? id
-            }
-
-            let space = FamilySpace(context: context)
-            try self.persistence.assign(space, to: .private, in: context)
-            space.id = id
-            space.name = normalizedName
-            space.createdAt = createdAt
-            space.updatedAt = createdAt
-            space.cachedForUserID = cachedForUserID
-            space.isHouseholdDefault = NSNumber(value: isHouseholdDefault)
-
-            let list = ShoppingListEntity(context: context)
-            try self.persistence.assign(list, toSameStoreAs: space, in: context)
-            list.id = UUID()
-            list.title = String(localized: "common.default_list")
-            // v1.2.1 shows only lists whose status is "active"; every new list keeps writing it.
-            list.status = ShoppingListStatus.active.rawValue
-            list.createdAt = createdAt
-            list.updatedAt = createdAt
-            list.familySpace = space
-
-            return id
-        }
+        try await families.createFamilySpace(
+            id: id,
+            name: name,
+            createdAt: createdAt,
+            cachedForUserID: cachedForUserID,
+            isHouseholdDefault: isHouseholdDefault
+        )
     }
 
     func claimUnassignedFamilySpaces(for userID: UUID) async throws {
-        try await persistence.performBackgroundTask(author: "OneCartAccountClaim") { context in
-            let request = FamilySpace.fetchRequest()
-            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "cachedForUserID == nil"),
-                NSPredicate(format: "deletedAt == nil"),
-            ])
-            let spaces = try context.fetch(request)
-            for space in spaces {
-                // Never stamp owner cache metadata onto shared-store records.
-                guard self.persistence.scope(for: space) != .shared else { continue }
-                space.cachedForUserID = userID
-            }
-        }
+        try await families.claimUnassignedFamilySpaces(for: userID)
     }
 
     func renameFamilySpace(id: UUID, name: String) async throws {
-        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
-
-        try await persistence.performBackgroundTask { context in
-            let space = try Self.requireFamilySpace(id: id, in: context)
-            try self.requireUpdatePermission(for: space)
-            space.name = normalizedName
-            space.updatedAt = self.clock.now()
-        }
+        try await families.renameFamilySpace(id: id, name: name)
     }
 
     func discardLocalSharedFamilySpace(id: UUID) async throws {
-        try await persistence.performBackgroundTask(author: "OneCartLeaveShared") { context in
-            let space = try Self.requireFamilySpace(id: id, in: context)
-            guard self.persistence.scope(for: space) == .shared else { return }
-            context.delete(space)
-        }
+        try await families.discardLocalSharedFamilySpace(id: id)
     }
 
-    func requireUpdatePermission(for object: NSManagedObject) throws {
-        guard permissionAuthorizer.canUpdate(object.objectID) else {
-            throw RepositoryError.permissionDenied
-        }
+    // MARK: - Cart items
+
+    @discardableResult
+    func addProduct(
+        to listID: UUID,
+        id: UUID = UUID(),
+        draft: ProductDraft,
+        createdByName: String? = nil
+    ) async throws -> UUID {
+        try await cartItems.addProduct(to: listID, id: id, draft: draft, createdByName: createdByName)
     }
 
-    func requireDeletePermission(for object: NSManagedObject) throws {
-        guard permissionAuthorizer.canDelete(object.objectID) else {
-            throw RepositoryError.permissionDenied
-        }
+    func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws {
+        try await cartItems.updateProduct(id: id, familySpaceID: familySpaceID, draft: draft)
     }
 
-    static func fetchFamilySpace(
+    func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws {
+        try await cartItems.updateProductCategory(id: id, familySpaceID: familySpaceID, category: category)
+    }
+
+    func setPurchasedState(
         id: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> FamilySpace? {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return try context.fetch(request).first
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?
+    ) async throws {
+        try await cartItems.setPurchasedState(
+            id: id,
+            familySpaceID: familySpaceID,
+            isPurchased: isPurchased,
+            participantDisplayName: participantDisplayName
+        )
     }
 
-    static func requireFamilySpace(
+    func setPurchased(
         id: UUID,
-        in context: NSManagedObjectContext
-    ) throws -> FamilySpace {
-        guard let space = try fetchFamilySpace(id: id, in: context) else {
-            throw RepositoryError.familySpaceNotFound
-        }
-        return space
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?,
+        purchasedAt: Date
+    ) async throws {
+        try await cartItems.setPurchased(
+            id: id,
+            familySpaceID: familySpaceID,
+            isPurchased: isPurchased,
+            participantDisplayName: participantDisplayName,
+            purchasedAt: purchasedAt
+        )
+    }
+
+    func deleteProduct(id: UUID, familySpaceID: UUID) async throws {
+        try await cartItems.deleteProduct(id: id, familySpaceID: familySpaceID)
+    }
+
+    // MARK: - History, dedupe, restore, member profiles
+
+    @discardableResult
+    func completePurchased(listID: UUID) async throws -> UUID? {
+        try await purchaseArchiver.completePurchased(listID: listID)
+    }
+
+    @discardableResult
+    func archivePurchasedBefore(listID: UUID, cutoff: Date) async throws -> UUID? {
+        try await purchaseArchiver.archivePurchasedBefore(listID: listID, cutoff: cutoff)
+    }
+
+    func deduplicateStableIDs() async throws {
+        try await deduplicator.deduplicateStableIDs()
+    }
+
+    @discardableResult
+    func deduplicateProductsByName() async throws -> Int {
+        try await deduplicator.deduplicateProductsByName()
+    }
+
+    func restoreProvisionalPersonalContent(
+        from sourceID: UUID,
+        into destinationID: UUID,
+        accountID: UUID
+    ) async throws -> Bool {
+        try await personalCartRestorer.restoreProvisionalPersonalContent(
+            from: sourceID,
+            into: destinationID,
+            accountID: accountID
+        )
+    }
+
+    @discardableResult
+    func upsertMemberProfile(
+        familySpaceID: UUID,
+        userRecordName: String,
+        displayName: String?,
+        now: Date? = nil
+    ) async throws -> Bool {
+        try await memberProfiles.upsertMemberProfile(
+            familySpaceID: familySpaceID,
+            userRecordName: userRecordName,
+            displayName: displayName,
+            now: now
+        )
+    }
+
+    // MARK: - Lookups on a caller's context
+
+    static func fetchFamilySpace(id: UUID, in context: NSManagedObjectContext) throws -> FamilySpace? {
+        try RepositoryFetch.familySpace(id: id, in: context)
+    }
+
+    static func requireFamilySpace(id: UUID, in context: NSManagedObjectContext) throws -> FamilySpace {
+        try RepositoryFetch.requireFamilySpace(id: id, in: context)
     }
 
     static func fetchList(
@@ -208,19 +209,7 @@ final class FamilySpaceRepository: Sendable {
         familySpaceID: UUID? = nil,
         in context: NSManagedObjectContext
     ) throws -> ShoppingListEntity? {
-        let request = ShoppingListEntity.fetchRequest()
-        var predicates = [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ]
-        if let familySpaceID {
-            predicates.append(
-                NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID)
-            )
-        }
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        request.fetchLimit = 1
-        return try context.fetch(request).first
+        try RepositoryFetch.list(id: id, familySpaceID: familySpaceID, in: context)
     }
 
     static func fetchProduct(
@@ -228,32 +217,6 @@ final class FamilySpaceRepository: Sendable {
         familySpaceID: UUID? = nil,
         in context: NSManagedObjectContext
     ) throws -> ProductEntity? {
-        let request = ProductEntity.fetchRequest()
-        var predicates = [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ]
-        if let familySpaceID {
-            predicates.append(
-                NSPredicate(format: "familySpace.id == %@", familySpaceID as NSUUID)
-            )
-        }
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        request.fetchLimit = 1
-        return try context.fetch(request).first
+        try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
     }
 }
-
-protocol SoftDeletable: AnyObject {
-    var deletedAt: Date? { get set }
-}
-
-protocol Timestamped: AnyObject {
-    var updatedAt: Date? { get set }
-}
-
-extension FamilySpace: SoftDeletable, Timestamped {}
-extension StoreEntity: SoftDeletable, Timestamped {}
-extension ShoppingListEntity: SoftDeletable, Timestamped {}
-extension ProductEntity: SoftDeletable, Timestamped {}
-extension PurchaseHistoryEntity: SoftDeletable, Timestamped {}

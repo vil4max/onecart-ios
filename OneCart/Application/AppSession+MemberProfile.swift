@@ -41,10 +41,11 @@ extension AppSession {
         knownUserRecordName = (recordName, generation)
         let name = Self.participantName(preferences: preferences, account: account)
         do {
-            let written = try await repository.upsertMemberProfile(
+            let written = try await memberProfiles.upsertMemberProfile(
                 familySpaceID: familyID,
                 userRecordName: recordName,
-                displayName: name
+                displayName: name,
+                now: nil
             )
             if written {
                 CartSyncLog.action.info("memberProfile published")

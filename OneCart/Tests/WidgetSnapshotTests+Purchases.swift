@@ -12,7 +12,7 @@ extension WidgetSnapshotTests {
 
         try await fixture.session.performWidgetPurchase(request)
 
-        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.purchasedAt, request.createdAt)
         XCTAssertEqual(product.purchasedByName, "Local nickname")
@@ -27,18 +27,18 @@ extension WidgetSnapshotTests {
         let fixture = try await makeWidgetSession()
         let request = fixture.request()
         try fixture.store.enqueuePurchase(request)
-        try await fixture.session.repository.setPurchased(
+        try await fixture.repository.setPurchased(
             id: request.productID, familySpaceID: request.familyID, isPurchased: true,
             participantDisplayName: "Alex", purchasedAt: request.createdAt
         )
         // Simulate a saved command whose acknowledgement was interrupted, followed by an app edit.
-        try await fixture.session.repository.togglePurchased(
+        try await fixture.repository.togglePurchased(
             id: request.productID, familySpaceID: request.familyID, participantDisplayName: "Alex"
         )
 
         try await fixture.session.performWidgetPurchase(request)
 
-        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertFalse(product.isPurchasedValue)
         XCTAssertNil(product.purchasedAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -101,13 +101,13 @@ extension WidgetSnapshotTests {
         let request = fixture.request(createdAt: Date())
         try fixture.store.enqueuePurchase(request)
         // The classifier finishes after the widget tap was queued.
-        try await fixture.session.repository.updateProductCategory(
+        try await fixture.repository.updateProductCategory(
             id: fixture.productID, familySpaceID: fixture.familyID, category: .dairyEggs
         )
 
         try await fixture.session.performWidgetPurchase(request)
 
-        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.categoryValue, .dairyEggs)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -117,13 +117,13 @@ extension WidgetSnapshotTests {
         let fixture = try await makeWidgetSession()
         let request = fixture.request(createdAt: Date())
         try fixture.store.enqueuePurchase(request)
-        try await fixture.session.repository.updateProduct(
+        try await fixture.repository.updateProduct(
             id: fixture.productID, familySpaceID: fixture.familyID, draft: productDraft(name: "Oat milk")
         )
 
         try await fixture.session.performWidgetPurchase(request)
 
-        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.displayName, "Oat milk")
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -151,10 +151,10 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(
             try XCTUnwrap(
                 fetchProduct(
-                    id: fixture.productID, repository: fixture.session.repository
+                    id: fixture.productID, repository: fixture.repository
                 )
             ).isPurchasedValue)
-        try await fixture.session.repository.addProduct(
+        try await fixture.repository.addProduct(
             to: fixture.listID, id: missingID, draft: productDraft(name: "Late import")
         )
         try await fixture.session.persistence.performBackgroundTask { context in
@@ -167,7 +167,7 @@ extension WidgetSnapshotTests {
 
         await fixture.session.drainWidgetPendingToggles()
 
-        let imported = try XCTUnwrap(fetchProduct(id: missingID, repository: fixture.session.repository))
+        let imported = try XCTUnwrap(fetchProduct(id: missingID, repository: fixture.repository))
         XCTAssertFalse(imported.isPurchasedValue)
         XCTAssertEqual(imported.updatedAt, second.createdAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -176,11 +176,11 @@ extension WidgetSnapshotTests {
     func test_REQ_WIDGET_020_widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt() async throws {
         let fixture = try await makeWidgetSession()
         let request = fixture.request()
-        try await fixture.session.repository.deleteProduct(id: fixture.productID, familySpaceID: fixture.familyID)
+        try await fixture.repository.deleteProduct(id: fixture.productID, familySpaceID: fixture.familyID)
 
         try await fixture.session.performWidgetPurchase(request)
 
-        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
@@ -205,7 +205,7 @@ extension WidgetSnapshotTests {
         XCTAssertFalse(
             try XCTUnwrap(
                 fetchProduct(
-                    id: fixture.productID, repository: fixture.session.repository
+                    id: fixture.productID, repository: fixture.repository
                 )
             ).isPurchasedValue)
     }
@@ -229,7 +229,7 @@ extension WidgetSnapshotTests {
         XCTAssertEqual(fixture.session.account?.id, fixture.accountID)
         let product = try XCTUnwrap(
             fetchProduct(
-                id: fixture.productID, repository: fixture.session.repository
+                id: fixture.productID, repository: fixture.repository
             ))
         XCTAssertTrue(product.isPurchasedValue)
         XCTAssertEqual(product.purchasedAt, purchasedAt)
@@ -245,7 +245,7 @@ extension WidgetSnapshotTests {
         async let secondResult: Void = fixture.session.performWidgetPurchase(second)
         _ = try await (firstResult, secondResult)
 
-        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertFalse(product.isPurchasedValue)
         XCTAssertEqual(product.updatedAt, second.createdAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
@@ -308,7 +308,7 @@ extension XCTestCase {
             session.needsWelcome = false
         }
         return WidgetSessionFixture(
-            session: session, store: store, accountID: account.id,
+            session: session, repository: repository, store: store, accountID: account.id,
             familyID: familyID, listID: listID, productID: productID
         )
     }
@@ -317,6 +317,8 @@ extension XCTestCase {
 @MainActor
 struct WidgetSessionFixture {
     let session: AppSession
+    /// Seeds and inspects the session's store; the session itself holds only the protocols.
+    let repository: FamilySpaceRepository
     let store: WidgetSnapshotStore
     let accountID: UUID
     let familyID: UUID
