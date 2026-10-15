@@ -34,9 +34,10 @@ Low-severity leftovers from the review of groups 2–4, not yet fixed:
 - The share watchdog task is not cancelled on success and keeps the view model alive for 48 s
   (no behavior effect).
 
-## Waiting on the maintainer
+## Approved by the maintainer (2026-10-15), not started
 
-Confirmed by the audit, not started: each changes architecture, a requirement or shipped data.
+The maintainer approved every item below ("все owner-решения"). Each changes architecture, a
+requirement or shipped data, so each lands as its own reviewed group with `just verify` green.
 
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root
   without default singletons (`application-06`, `architecture-04`), view models without Core
