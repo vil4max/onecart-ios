@@ -39,6 +39,26 @@ Low-severity leftovers from the review of groups 2–4, not yet fixed:
 The maintainer approved every item below ("все owner-решения"). Each changes architecture, a
 requirement or shipped data, so each lands as its own reviewed group with `just verify` green.
 
+Planned order (status kept here):
+
+| Group | Scope | Status |
+|---|---|---|
+| L | Low-severity review leftovers (listed above) plus the second review's lows: test stores deleted while open, tab view models outliving the tab screen, weakened invariant comments, `sync.invite_owner_only` key name | pending |
+| G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | pending |
+| G2 | Remove the remaining theme plumbing that does nothing in Release | pending |
+| G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | pending |
+| G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | pending |
+| G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | pending |
+| G6 | One share-mutation path; leave-purge timeout and recovery tests | pending |
+| G7 | Composition root without default singletons; intents through dependencies | pending |
+| G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
+| G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | pending |
+| G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | pending |
+| G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | pending |
+| G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |
+| G13 | Split the repository behind protocols | pending |
+| G14 | Author identity in activity notifications (schema V9, additive). The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
+
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root
   without default singletons (`application-06`, `architecture-04`), view models without Core
   Data entities (`architecture-07`), one wiring pattern (`architecture-08`), a CloudKit protocol
