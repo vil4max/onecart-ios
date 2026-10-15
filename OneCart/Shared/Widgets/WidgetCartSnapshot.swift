@@ -89,6 +89,11 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         totalCount > 0 && purchasedCount >= totalCount
     }
 
+    /// Stable IDs for the gallery sample, so previews and placeholders do not churn identity.
+    private static func sampleItemID(_ index: UInt8) -> UUID {
+        UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, index))
+    }
+
     public static let placeholder = WidgetCartSnapshot(
         cartTitle: String(localized: "widget.sample.cart_title"),
         totalCount: 7,
@@ -99,28 +104,28 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
         activePartnerName: nil,
         items: [
             WidgetItemSnapshot(
-                id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                id: sampleItemID(1),
                 name: String(localized: "widget.sample.milk"),
                 isPurchased: true,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
-                id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                id: sampleItemID(2),
                 name: String(localized: "widget.sample.bread"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.bakery.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
-                id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+                id: sampleItemID(3),
                 name: String(localized: "widget.sample.eggs"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,
                 subtitle: nil
             ),
             WidgetItemSnapshot(
-                id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
+                id: sampleItemID(4),
                 name: String(localized: "widget.sample.cheese"),
                 isPurchased: false,
                 categoryRaw: ProductCategory.dairyEggs.rawValue,

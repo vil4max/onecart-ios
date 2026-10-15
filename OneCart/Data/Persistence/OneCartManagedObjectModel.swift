@@ -22,13 +22,15 @@ enum OneCartManagedObjectModel {
         let memberProfile = entity("MemberProfile", MemberProfileEntity.self)
 
         let relationships = makeRelationships(
-            familySpace: familySpace,
-            store: store,
-            list: list,
-            product: product,
-            history: history,
-            historyItem: historyItem,
-            memberProfile: memberProfile
+            Entities(
+                familySpace: familySpace,
+                store: store,
+                list: list,
+                product: product,
+                history: history,
+                historyItem: historyItem,
+                memberProfile: memberProfile
+            )
         )
 
         familySpace.properties = makeFamilySpaceProperties(relationships)
@@ -59,15 +61,19 @@ enum OneCartManagedObjectModel {
         let familyMemberProfiles, memberProfileFamily: NSRelationshipDescription
     }
 
-    private static func makeRelationships(
-        familySpace: NSEntityDescription,
-        store: NSEntityDescription,
-        list: NSEntityDescription,
-        product: NSEntityDescription,
-        history: NSEntityDescription,
-        historyItem: NSEntityDescription,
-        memberProfile: NSEntityDescription
-    ) -> Relationships {
+    private struct Entities {
+        let familySpace, store, list, product, history, historyItem, memberProfile: NSEntityDescription
+    }
+
+    private static func makeRelationships(_ entities: Entities) -> Relationships {
+        let familySpace = entities.familySpace
+        let store = entities.store
+        let list = entities.list
+        let product = entities.product
+        let history = entities.history
+        let historyItem = entities.historyItem
+        let memberProfile = entities.memberProfile
+
         let familyStores = toMany("stores", destination: store, deleteRule: .cascadeDeleteRule)
         let storeFamily = toOne("familySpace", destination: familySpace)
         connect(familyStores, storeFamily)

@@ -19,7 +19,7 @@ final class FamilySpace: NSManagedObject {
     @NSManaged var historyItems: NSSet?
     @NSManaged var memberProfiles: NSSet?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<FamilySpace> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<FamilySpace> {
         NSFetchRequest<FamilySpace>(entityName: "FamilySpace")
     }
 
@@ -110,7 +110,7 @@ final class StoreEntity: NSManagedObject {
     @NSManaged var products: NSSet?
     @NSManaged var historyEntries: NSSet?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<StoreEntity> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<StoreEntity> {
         NSFetchRequest<StoreEntity>(entityName: "Store")
     }
 
@@ -139,9 +139,7 @@ final class StoreEntity: NSManagedObject {
     }
 }
 
-extension StoreEntity: Identifiable {
-    typealias ID = UUID?
-}
+extension StoreEntity: Identifiable {}
 
 enum ShoppingListStatus: String, CaseIterable {
     case active
@@ -161,7 +159,7 @@ final class ShoppingListEntity: NSManagedObject {
     @NSManaged var store: StoreEntity?
     @NSManaged var products: NSSet?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<ShoppingListEntity> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<ShoppingListEntity> {
         NSFetchRequest<ShoppingListEntity>(entityName: "ShoppingList")
     }
 
@@ -242,7 +240,7 @@ final class ProductEntity: NSManagedObject {
     @NSManaged var list: ShoppingListEntity?
     @NSManaged var store: StoreEntity?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<ProductEntity> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<ProductEntity> {
         NSFetchRequest<ProductEntity>(entityName: "Product")
     }
 
@@ -299,9 +297,7 @@ final class ProductEntity: NSManagedObject {
     }
 }
 
-extension ProductEntity: Identifiable {
-    typealias ID = UUID?
-}
+extension ProductEntity: Identifiable {}
 
 @objc(PurchaseHistoryEntity)
 final class PurchaseHistoryEntity: NSManagedObject {
@@ -316,7 +312,7 @@ final class PurchaseHistoryEntity: NSManagedObject {
     @NSManaged var store: StoreEntity?
     @NSManaged var items: NSSet?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<PurchaseHistoryEntity> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<PurchaseHistoryEntity> {
         NSFetchRequest<PurchaseHistoryEntity>(entityName: "PurchaseHistory")
     }
 
@@ -348,143 +344,5 @@ final class PurchaseHistoryEntity: NSManagedObject {
         let values = (items?.allObjects as? [HistoryItemEntity] ?? [])
             .filter { !$0.isDeletedValue }
         return values.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
-    }
-}
-
-@objc(HistoryItemEntity)
-final class HistoryItemEntity: NSManagedObject {
-    @NSManaged var id: UUID?
-    @NSManaged var name: String?
-    @NSManaged var quantity: NSNumber?
-    @NSManaged var unit: String?
-    @NSManaged var category: String?
-    @NSManaged var estimatedPrice: NSNumber?
-    @NSManaged var originalPrice: NSNumber?
-    @NSManaged var imageURL: String?
-    @NSManaged var sourceURL: String?
-    @NSManaged var note: String?
-    @NSManaged var purchasedAt: Date?
-    @NSManaged var purchasedByName: String?
-    @NSManaged var createdByName: String?
-    @NSManaged var storeName: String?
-    @NSManaged var createdAt: Date?
-    @NSManaged var updatedAt: Date?
-    @NSManaged var deletedAt: Date?
-    @NSManaged var familySpace: FamilySpace?
-    @NSManaged var history: PurchaseHistoryEntity?
-
-    @nonobjc class func fetchRequest() -> NSFetchRequest<HistoryItemEntity> {
-        NSFetchRequest<HistoryItemEntity>(entityName: "HistoryItem")
-    }
-
-    var stableID: UUID {
-        id ?? UUID()
-    }
-
-    var displayName: String {
-        name?.nilIfBlank ?? String(localized: "common.default_product")
-    }
-
-    var quantityValue: Double {
-        max(quantity?.doubleValue ?? 1, 0)
-    }
-
-    var unitValue: ProductUnit {
-        ProductUnit(rawValue: unit ?? "") ?? .piece
-    }
-
-    var categoryValue: ProductCategory {
-        ProductCategory.resolved(storedRawValue: category)
-    }
-
-    var purchaseMoment: Date {
-        purchasedAt ?? createdAt ?? history?.purchaseDate ?? .distantPast
-    }
-
-    var estimatedPriceValue: Double {
-        max(estimatedPrice?.doubleValue ?? 0, 0)
-    }
-
-    var imageURLValue: URL? {
-        imageURL.flatMap(URL.init(string:))
-    }
-
-    var sourceURLValue: URL? {
-        sourceURL.flatMap(URL.init(string:))
-    }
-
-    var createdDate: Date {
-        createdAt ?? .distantPast
-    }
-
-    var updatedDate: Date {
-        updatedAt ?? createdDate
-    }
-
-    var isDeletedValue: Bool {
-        deletedAt != nil
-    }
-}
-
-enum HistoryItems {
-    private struct Identity: Hashable {
-        let familyID: UUID
-        let productID: UUID
-    }
-
-    /// Peers can archive the same product before receiving each other's tombstones.
-    /// Keep transport records intact and count each family/product only once.
-    static func unique(from entries: [PurchaseHistoryEntity]) -> [HistoryItemEntity] {
-        var items: [HistoryItemEntity] = []
-        var indices: [Identity: Int] = [:]
-
-        for entry in entries where !entry.isDeletedValue {
-            for item in entry.sortedItems {
-                guard let familyID = item.familySpace?.id ?? entry.familySpace?.id,
-                    let productID = item.id
-                else {
-                    items.append(item)
-                    continue
-                }
-                let identity = Identity(familyID: familyID, productID: productID)
-                if let index = indices[identity] {
-                    if orderingKey(for: item).lexicographicallyPrecedes(orderingKey(for: items[index])) {
-                        items[index] = item
-                    }
-                } else {
-                    indices[identity] = items.count
-                    items.append(item)
-                }
-            }
-        }
-        return items
-    }
-
-    private static func orderingKey(for item: HistoryItemEntity) -> [String] {
-        [
-            item.history?.id?.uuidString ?? "~",
-            item.purchasedAt.map { String($0.timeIntervalSinceReferenceDate) } ?? "",
-            item.name ?? "",
-            item.quantity?.stringValue ?? "",
-            item.unit ?? "",
-            item.category ?? "",
-            item.estimatedPrice?.stringValue ?? "",
-            item.originalPrice?.stringValue ?? "",
-            item.imageURL ?? "",
-            item.sourceURL ?? "",
-            item.note ?? "",
-            item.purchasedByName ?? "",
-            item.storeName ?? "",
-            item.createdAt.map { String($0.timeIntervalSinceReferenceDate) } ?? "",
-            item.updatedAt.map { String($0.timeIntervalSinceReferenceDate) } ?? "",
-            item.createdByName ?? "",
-        ]
-    }
-}
-
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }

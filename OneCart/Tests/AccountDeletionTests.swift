@@ -621,13 +621,11 @@ final class AccountDeletionTests: XCTestCase {
         )
         XCTAssertTrue(CloudKitBackendService.isIdempotentAccountDeletionFailure(zoneGone))
 
+        let shareLeaveMessage = "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
         let shareLeaveText = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.unknownItem.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
-            ]
+            userInfo: [NSLocalizedDescriptionKey: shareLeaveMessage]
         )
         // unknownItem alone is treated as already-deleted zone for account purge.
         XCTAssertTrue(CloudKitBackendService.isIdempotentAccountDeletionFailure(shareLeaveText))
@@ -699,15 +697,14 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_validateAccountDeletionResults_whenPartialFailureContainsAnotherError_throws() {
         let zoneID = CKRecordZone(zoneName: "partial").zoneID
+        let partialErrors = [
+            "gone": NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue),
+            "denied": NSError(domain: CKError.errorDomain, code: CKError.Code.permissionFailure.rawValue),
+        ]
         let failure = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.partialFailure.rawValue,
-            userInfo: [
-                CKPartialErrorsByItemIDKey: [
-                    "gone": NSError(domain: CKError.errorDomain, code: CKError.Code.zoneNotFound.rawValue),
-                    "denied": NSError(domain: CKError.errorDomain, code: CKError.Code.permissionFailure.rawValue),
-                ]
-            ]
+            userInfo: [CKPartialErrorsByItemIDKey: partialErrors]
         )
 
         XCTAssertThrowsError(

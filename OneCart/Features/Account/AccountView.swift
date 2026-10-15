@@ -2,8 +2,7 @@ import SwiftUI
 
 struct AccountView: View {
     /// The app's own page in the system Settings: language, notifications and permissions.
-    /// `openSettingsURLString` is a system constant that always parses as a URL.
-    private static let appSettingsURL = URL(string: UIApplication.openSettingsURLString)!
+    private static let appSettingsURL = URL(string: UIApplication.openSettingsURLString)
 
     @Environment(\.openURL) private var openURL
     @Bindable var viewModel: AccountViewModel
@@ -238,7 +237,7 @@ struct AccountView: View {
             }
 
             Button {
-                openURL(Self.appSettingsURL)
+                if let url = Self.appSettingsURL { openURL(url) }
             } label: {
                 HStack {
                     Label("settings.app_settings_row", systemImage: "gear")

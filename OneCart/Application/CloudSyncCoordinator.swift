@@ -217,18 +217,22 @@ final class CloudSyncCoordinator {
                     continue
                 }
                 guard let host, let account = host.account else { return }
-                host.softRefreshCartProducts()
-                do {
-                    try await host.offerSharedCartJoinIfNeeded(for: account)
-                } catch {
-                    // Keep importing CloudKit changes even if adopt/merge races.
-                    host.applySyncState(.failed)
-                    host.applyLastSyncError(host.userFacingMessage(for: error))
-                }
-                await host.drainWidgetPendingToggles()
-                await syncCart(reason: .cloudImport)
+                await runCloudImportPass(host: host, account: account)
             }
         }
+    }
+
+    private func runCloudImportPass(host: any CloudSyncHost, account: OneCartAccount) async {
+        host.softRefreshCartProducts()
+        do {
+            try await host.offerSharedCartJoinIfNeeded(for: account)
+        } catch {
+            // Keep importing CloudKit changes even if adopt/merge races.
+            host.applySyncState(.failed)
+            host.applyLastSyncError(host.userFacingMessage(for: error))
+        }
+        await host.drainWidgetPendingToggles()
+        await syncCart(reason: .cloudImport)
     }
 
     private nonisolated static func productPurchasedStateChanged(in notification: Notification) -> Bool {

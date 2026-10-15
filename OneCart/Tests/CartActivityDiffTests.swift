@@ -272,15 +272,14 @@ final class CartActivityDiffTests: XCTestCase {
             CartItemSnapshot(id: id, name: "Хлеб", isPurchased: false, createdByName: myName),
             CartItemSnapshot(id: id, name: "Хлеб", isPurchased: false, createdByName: myName),
         ]
-        let updated = [
-            CartItemSnapshot(
-                id: id,
-                name: "Хлеб",
-                isPurchased: true,
-                createdByName: myName,
-                purchasedByName: partnerName
-            )
-        ]
+        let purchased = CartItemSnapshot(
+            id: id,
+            name: "Хлеб",
+            isPurchased: true,
+            createdByName: myName,
+            purchasedByName: partnerName
+        )
+        let updated = [purchased]
 
         let diff = CartActivityDiff.evaluate(
             previous: baseline,

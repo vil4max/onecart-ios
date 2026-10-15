@@ -103,13 +103,11 @@ final class FragileStoreLoadTests: XCTestCase {
     }
 
     func test_REQ_AUTH_010_wrappedLoadFailureWithNonEnglishDescriptionIsStoreLoadFailure() {
+        let germanDescription = "Das zum Anlegen des Speichers verwendete Modell passt nicht zum aktuellen Modell."
         let underlying = NSError(
             domain: NSCocoaErrorDomain,
             code: NSPersistentStoreIncompatibleVersionHashError,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Das zum Anlegen des Speichers verwendete Modell passt nicht zum aktuellen Modell."
-            ]
+            userInfo: [NSLocalizedDescriptionKey: germanDescription]
         )
         XCTAssertTrue(
             PersistenceController.isUserFacingCoreDataFailure(

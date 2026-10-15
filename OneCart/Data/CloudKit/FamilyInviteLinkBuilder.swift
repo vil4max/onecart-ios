@@ -280,7 +280,11 @@ enum FamilyInviteLinkBuilder {
             url: url
         )
     }
+}
 
+// MARK: - Invite door and share persistence
+
+extension FamilyInviteLinkBuilder {
     /// Revoke only closes the link door (`publicPermission = .none`). It is not a
     /// guest ban. Share must reopen and persist `.readWrite` before handing out URL.
     private static func ensureInviteDoorOpen(

@@ -101,13 +101,11 @@ final class GuestMemberSessionTests: XCTestCase {
         )
         XCTAssertTrue(CloudKitUserFacingError.isBenignShareLeaveFailure(zoneGone))
 
+        let unavailableMessage = "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
         let unavailable = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.unknownItem.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Item Unavailable. The owner stopped sharing, or your account doesn't have permission."
-            ]
+            userInfo: [NSLocalizedDescriptionKey: unavailableMessage]
         )
         XCTAssertTrue(CloudKitUserFacingError.isBenignShareLeaveFailure(unavailable))
         XCTAssertTrue(CloudKitUserFacingError.isBenignShareAcceptFailure(unavailable))

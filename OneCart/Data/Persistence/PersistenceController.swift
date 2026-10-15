@@ -308,7 +308,11 @@ final class PersistenceController: @unchecked Sendable {
         loadWaiters.removeAll()
         waiters.forEach { $0.resume(returning: result) }
     }
+}
 
+// MARK: - Load recovery and store identity
+
+extension PersistenceController {
     /// A store that loaded next to one that failed stays attached to the coordinator, and the next
     /// `loadPersistentStores` then fails it with Cocoa 134081 ("can't add the same store twice").
     /// Detaching keeps a retry in the same process possible. `remove(_:)` only closes the store;

@@ -63,19 +63,7 @@ extension FamilySpaceRepository {
             let products = try context.fetch(request)
             var groups: [String: [ProductEntity]] = [:]
             for product in products {
-                guard let rawName = product.name else { continue }
-                let normalized = FamilyCartMerge.normalizedProductName(rawName)
-                guard !normalized.isEmpty else { continue }
-                guard let storeIdentifier = product.objectID.persistentStore?.identifier else { continue }
-                let listKey: String
-                if let listID = product.list?.id {
-                    listKey = "list:\(listID.uuidString)"
-                } else if let familyID = product.familySpace?.id {
-                    listKey = "family:\(familyID.uuidString)"
-                } else {
-                    continue
-                }
-                let key = "\(storeIdentifier)|\(listKey)|\(normalized)"
+                guard let key = Self.nameDedupKey(for: product) else { continue }
                 groups[key, default: []].append(product)
             }
             var merged = 0
@@ -113,6 +101,24 @@ extension FamilySpaceRepository {
             }
             return merged
         }
+    }
+
+    /// Rows collide only inside one store and one list (or one family when the list is gone).
+    private static func nameDedupKey(for product: ProductEntity) -> String? {
+        guard let rawName = product.name else { return nil }
+        let normalized = FamilyCartMerge.normalizedProductName(rawName)
+        guard !normalized.isEmpty,
+            let storeIdentifier = product.objectID.persistentStore?.identifier
+        else { return nil }
+        let listKey: String
+        if let listID = product.list?.id {
+            listKey = "list:\(listID.uuidString)"
+        } else if let familyID = product.familySpace?.id {
+            listKey = "family:\(familyID.uuidString)"
+        } else {
+            return nil
+        }
+        return "\(storeIdentifier)|\(listKey)|\(normalized)"
     }
 
     static func deduplicate<T: NSManagedObject>(

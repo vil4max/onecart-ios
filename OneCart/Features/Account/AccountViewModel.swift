@@ -144,17 +144,16 @@ final class AccountViewModel {
             return state.familyMembers
         }
         guard let account = state.account, let family = state.activeFamilySpace else { return [] }
-        return [
-            FamilyMember(
-                id: account.id,
-                displayName: account.displayName,
-                access: state.access ?? .owner,
-                joinedAt: family.createdAt ?? Date(),
-                isCurrentUser: true,
-                avatarURL: account.avatarURL,
-                bannerURL: account.bannerURL
-            )
-        ]
+        let currentUser = FamilyMember(
+            id: account.id,
+            displayName: account.displayName,
+            access: state.access ?? .owner,
+            joinedAt: family.createdAt ?? Date(),
+            isCurrentUser: true,
+            avatarURL: account.avatarURL,
+            bannerURL: account.bannerURL
+        )
+        return [currentUser]
     }
 
     var canOwnerManageMembers: Bool {

@@ -1,16 +1,16 @@
-import CloudKit
 import CoreData
 @testable import OneCart
 import XCTest
 
 @MainActor
-final class SharedCartJoinTests: XCTestCase {
+final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
     func test_REQ_SHARE_090_emptyPrivateAutoAdoptsShared() async throws {
-        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+        let fixture = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
             sharedProduct: "Test 1"
         )
+        let (session, privateID, sharedID) = (fixture.session, fixture.privateID, fixture.sharedID)
 
         try await session.offerSharedCartJoinIfNeededForTesting()
 
@@ -24,12 +24,13 @@ final class SharedCartJoinTests: XCTestCase {
     }
 
     func test_REQ_SHARE_090_privateContentIsNotMergedIntoSharedOnAdopt() async throws {
-        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+        let fixture = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
             privateProduct: "Мой хлеб",
             sharedProduct: "Test 1"
         )
+        let (session, privateID, sharedID) = (fixture.session, fixture.privateID, fixture.sharedID)
 
         try await session.offerSharedCartJoinIfNeededForTesting()
 
@@ -43,11 +44,12 @@ final class SharedCartJoinTests: XCTestCase {
     }
 
     func test_REQ_SHARE_090_ensureHouseholdAdoptsSharedEvenWhenPrivateActive() async throws {
-        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+        let fixture = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
             sharedProduct: "Test 1"
         )
+        let (session, privateID, sharedID) = (fixture.session, fixture.privateID, fixture.sharedID)
         XCTAssertEqual(session.activeFamilySpace?.id, sharedID)
         XCTAssertEqual(session.familySpaces.map(\.id), [sharedID])
 
@@ -62,11 +64,12 @@ final class SharedCartJoinTests: XCTestCase {
     }
 
     func test_REQ_SHARE_090_reloadPrefersSharedOverStoredPrivate() async throws {
-        let (session, _, _, sharedID) = try await makeJoinFixture(
+        let fixture = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
             sharedProduct: "Test 1"
         )
+        let (session, sharedID) = (fixture.session, fixture.sharedID)
 
         try session.reload(preferredFamilySpaceID: sharedID)
 
@@ -132,13 +135,14 @@ final class SharedCartJoinTests: XCTestCase {
     }
 
     func test_REQ_SHARE_090_adoptSelectsSharedWithoutMergingPrivateContent() async throws {
-        let (session, _, privateID, sharedID) = try await makeJoinFixture(
+        let fixture = try await makeJoinFixture(
             privateName: "Моя",
             sharedName: "Семейная",
             privateProduct: "Мой хлеб",
             sharedProduct: nil,
             includeSharedList: false
         )
+        let (session, privateID, sharedID) = (fixture.session, fixture.privateID, fixture.sharedID)
 
         try await session.offerSharedCartJoinIfNeededForTesting()
 
@@ -270,7 +274,7 @@ final class SharedCartJoinTests: XCTestCase {
         privateProduct: String? = nil,
         sharedProduct: String? = nil,
         includeSharedList: Bool = true
-    ) async throws -> (AppSession, OneCartAccount, UUID, UUID) {
+    ) async throws -> JoinFixture {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
         try await persistence.load()
         let defaults = try makeDefaults()
@@ -309,7 +313,7 @@ final class SharedCartJoinTests: XCTestCase {
         )
         try session.bootstrapTestingSession(account: account)
         persistence.container.viewContext.processPendingChanges()
-        return (session, account, privateID, sharedID)
+        return JoinFixture(session: session, account: account, privateID: privateID, sharedID: sharedID)
     }
 
     private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
@@ -331,253 +335,9 @@ final class SharedCartJoinTests: XCTestCase {
     }
 }
 
-@MainActor
-final class SharedCartSelectionTests: XCTestCase {
-    func test_REQ_SYNC_040_cloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        try await persistence.load()
-        let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Саша")
-        let chosenID = try await seedSharedCart(
-            persistence: persistence,
-            name: "Выбранная",
-            productName: "Chosen",
-            updatedAt: Date().addingTimeInterval(-3600)
-        )
-        let otherID = try await seedSharedCart(
-            persistence: persistence,
-            name: "Другая",
-            productName: "Other",
-            updatedAt: Date()
-        )
-        let session = try makeTestSession(
-            persistence: persistence,
-            defaults: defaults
-        )
-        try session.bootstrapTestingSession(account: account)
-        try await session.offerSharedCartJoinIfNeededForTesting()
-        let chosen = try XCTUnwrap(session.familySpaces.first { $0.id == chosenID })
-        session.setActiveFamilySpace(chosen)
-        XCTAssertEqual(session.activeFamilySpace?.id, chosenID)
-
-        // Every cloud import runs the same join offer; the other cart stays the most recently edited.
-        try await session.offerSharedCartJoinIfNeededForTesting()
-        try await session.offerSharedCartJoinIfNeededForTesting()
-
-        XCTAssertEqual(session.activeFamilySpace?.id, chosenID)
-        XCTAssertEqual(
-            defaults.string(forKey: activeFamilyKey(accountID: account.id)),
-            chosenID.uuidString
-        )
-        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Chosen"])
-        XCTAssertEqual(Set(session.familySpaces.compactMap(\.id)), [chosenID, otherID])
-    }
-
-    func test_REQ_SHARE_090_newlyJoinedSharedCartBecomesActiveOverCurrentSharedCart() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        try await persistence.load()
-        let defaults = try makeDefaults()
-        let account = OneCartAccount(id: UUID(), displayName: "Саша")
-        let currentID = try await seedSharedCart(
-            persistence: persistence,
-            name: "Текущая",
-            productName: "Current",
-            updatedAt: Date()
-        )
-        let session = try makeTestSession(
-            persistence: persistence,
-            defaults: defaults
-        )
-        try session.bootstrapTestingSession(account: account)
-        try await session.offerSharedCartJoinIfNeededForTesting()
-        XCTAssertEqual(session.activeFamilySpace?.id, currentID)
-
-        // Older updatedAt proves selection follows the join, not the sort order.
-        let joinedID = try await seedSharedCart(
-            persistence: persistence,
-            name: "Новая",
-            productName: "Joined",
-            updatedAt: Date().addingTimeInterval(-3600)
-        )
-        try await session.offerSharedCartJoinIfNeededForTesting()
-
-        XCTAssertEqual(session.activeFamilySpace?.id, joinedID)
-        XCTAssertEqual(Set(session.products.map(\.displayName)), ["Joined"])
-    }
-}
-
-@MainActor
-private extension XCTestCase {
-    func seedSharedCart(
-        persistence: PersistenceController,
-        name: String,
-        productName: String?,
-        includeList: Bool = true,
-        updatedAt: Date = Date()
-    ) async throws -> UUID {
-        let sharedID = UUID()
-        let listID = UUID()
-        try await persistence.performBackgroundTask { context in
-            let space = FamilySpace(context: context)
-            try persistence.assign(space, to: .shared, in: context)
-            space.id = sharedID
-            space.name = name
-            space.createdAt = updatedAt
-            space.updatedAt = updatedAt
-            space.isHouseholdDefault = NSNumber(value: true)
-
-            guard includeList else { return }
-
-            let list = ShoppingListEntity(context: context)
-            try persistence.assign(list, toSameStoreAs: space, in: context)
-            list.id = listID
-            list.title = String(localized: "common.default_list")
-            list.status = ShoppingListStatus.active.rawValue
-            list.createdAt = updatedAt
-            list.updatedAt = updatedAt
-            list.familySpace = space
-
-            if let productName {
-                let product = ProductEntity(context: context)
-                try persistence.assign(product, toSameStoreAs: space, in: context)
-                product.id = UUID()
-                product.name = productName
-                product.quantity = NSNumber(value: 1)
-                product.unit = ProductUnit.piece.rawValue
-                product.category = ProductCategory.other.rawValue
-                product.estimatedPrice = NSNumber(value: 0)
-                product.isPurchased = NSNumber(value: false)
-                product.createdAt = updatedAt
-                product.updatedAt = updatedAt
-                product.familySpace = space
-                product.list = list
-            }
-        }
-        persistence.container.viewContext.processPendingChanges()
-        return sharedID
-    }
-
-    func activeFamilyKey(accountID: UUID) -> String {
-        "onecart.active-family-space-id.\(accountID.uuidString)"
-    }
-}
-
-@MainActor
-final class ShareLinkJoinACLTests: XCTestCase {
-    func test_REQ_SHARE_080_backgroundInvitePreparation_keepsRevokedShareClosed() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .none
-        XCTAssertThrowsError(try FamilyInviteLinkBuilder.linkForOpenShare(share, displayName: "Family")) { error in
-            guard case OneCartCloudKitError.inviteDoorClosed = error else {
-                return XCTFail("Expected the revoked invite to remain unavailable")
-            }
-        }
-        XCTAssertEqual(share.publicPermission, .none)
-    }
-
-    func test_REQ_SHARE_060_applyReadWriteACLPreservesRevokedPublicPermission() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .none
-        XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-        XCTAssertEqual(share.publicPermission, .none)
-    }
-
-    func test_REQ_SHARE_070_applyReadWriteACLReopensDoorWhenRequested() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .none
-        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true))
-        XCTAssertEqual(share.publicPermission, .readWrite)
-    }
-
-    func test_REQ_SHARE_060_revokeIsDoorCloseNotGuestBan() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .readWrite
-        share.publicPermission = .none
-        XCTAssertEqual(share.publicPermission, .none)
-        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: true))
-        XCTAssertEqual(share.publicPermission, .readWrite)
-    }
-
-    func testApplyReadWriteACLUpgradesUnknownOrReadOnlyPublicPermission() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .readOnly
-        XCTAssertTrue(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-        XCTAssertEqual(share.publicPermission, .readWrite)
-    }
-
-    func testApplyReadWriteACLIsIdempotent() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .readWrite
-        XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-    }
-
-    /// The participant upgrade loop is not reachable from a unit test: `CKShare.Participant`
-    /// has no public initializer, and `oneTimeURLParticipant()` raises without the
-    /// `com.apple.developer.icloud-extended-share-access` entitlement. This covers only the
-    /// owner-only share, which must report no change and leave the owner alone.
-    func testApplyReadWriteACLLeavesOwnerOnlyOpenShareUnchanged() {
-        let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
-        share.publicPermission = .readWrite
-        XCTAssertEqual(share.participants.map(\.role), [.owner])
-        let ownerPermission = share.owner.permission
-
-        XCTAssertFalse(OneCartShareLinkJoin.applyReadWriteACL(to: share))
-        XCTAssertEqual(share.publicPermission, .readWrite)
-        XCTAssertEqual(share.participants.map(\.role), [.owner])
-        XCTAssertEqual(share.owner.permission, ownerPermission)
-    }
-}
-
-@MainActor
-final class MemberJoinDiffTests: XCTestCase {
-    func test_REQ_WIDGET_030_firstSnapshotSeedsWithoutNotify() {
-        let member = FamilyMember(
-            id: UUID(),
-            displayName: "Sam",
-            access: .member,
-            joinedAt: Date(),
-            isCurrentUser: false,
-            avatarURL: nil,
-            bannerURL: nil
-        )
-        let diff = MemberJoinDiff.evaluate(
-            previousIDs: [],
-            storedIDs: [],
-            current: [member]
-        )
-        XCTAssertFalse(diff.shouldNotify)
-        XCTAssertTrue(diff.newcomerIDs.isEmpty)
-        XCTAssertEqual(diff.nextStoredIDs, [member.id])
-    }
-
-    func test_REQ_WIDGET_030_newMemberAfterBaselineNotifies() {
-        let existingID = UUID()
-        let newID = UUID()
-        let existing = FamilyMember(
-            id: existingID,
-            displayName: "Alex",
-            access: .owner,
-            joinedAt: Date(),
-            isCurrentUser: true,
-            avatarURL: nil,
-            bannerURL: nil
-        )
-        let joined = FamilyMember(
-            id: newID,
-            displayName: "Sam",
-            access: .member,
-            joinedAt: Date(),
-            isCurrentUser: false,
-            avatarURL: nil,
-            bannerURL: nil
-        )
-        let diff = MemberJoinDiff.evaluate(
-            previousIDs: [existingID],
-            storedIDs: [existingID],
-            current: [existing, joined]
-        )
-        XCTAssertTrue(diff.shouldNotify)
-        XCTAssertEqual(diff.newcomerIDs, [newID])
-        XCTAssertEqual(diff.nextStoredIDs, [existingID, newID])
-    }
+private struct JoinFixture {
+    let session: AppSession
+    let account: OneCartAccount
+    let privateID: UUID
+    let sharedID: UUID
 }

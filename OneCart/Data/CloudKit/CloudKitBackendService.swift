@@ -108,7 +108,8 @@ final class CloudKitBackendService: Sendable {
                 throw OneCartCloudKitError.shareTimedOut
             }
             do {
-                let link = try await group.next()!
+                // Both tasks either return or throw, so an empty group cannot happen here.
+                guard let link = try await group.next() else { throw OneCartCloudKitError.shareTimedOut }
                 group.cancelAll()
                 return link
             } catch {
@@ -124,17 +125,16 @@ final class CloudKitBackendService: Sendable {
         currentUserRecordName: String? = nil
     ) throws -> [FamilyMember] {
         guard let share = try share(for: family) else {
-            return [
-                FamilyMember(
-                    id: account.id,
-                    displayName: account.displayName,
-                    access: access(for: family),
-                    joinedAt: family.createdDate,
-                    isCurrentUser: true,
-                    avatarURL: nil,
-                    bannerURL: nil
-                )
-            ]
+            let currentUser = FamilyMember(
+                id: account.id,
+                displayName: account.displayName,
+                access: access(for: family),
+                joinedAt: family.createdDate,
+                isCurrentUser: true,
+                avatarURL: nil,
+                bannerURL: nil
+            )
+            return [currentUser]
         }
 
         let currentRecordName = share.currentUserParticipant?
@@ -280,7 +280,11 @@ final class CloudKitBackendService: Sendable {
             }
         }
     }
+}
 
+// MARK: - Invite door
+
+extension CloudKitBackendService {
     @discardableResult
     func ensureReadWriteACL(objectID: NSManagedObjectID) async throws -> Bool {
         guard let share = try share(forObjectID: objectID) else { return false }
@@ -350,48 +354,6 @@ final class CloudKitBackendService: Sendable {
         try persistence.container.fetchShares(matching: [objectID])[objectID]
     }
 
-    private func persist(
-        _ share: CKShare,
-        in store: NSPersistentStore,
-        timeoutNanoseconds: UInt64 = 22_000_000_000
-    ) async throws -> CKShare {
-        let persistence = persistence
-        // The store reference is only handed back to the container; it is never mutated here.
-        nonisolated(unsafe) let store = store
-        return try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
-            try await Self.persistWithoutTimeout(share, in: store, persistence: persistence)
-        }
-    }
-
-    private static func persistWithoutTimeout(
-        _ share: CKShare,
-        in store: NSPersistentStore,
-        persistence: PersistenceController
-    ) async throws -> CKShare {
-        try await withCheckedThrowingContinuation { continuation in
-            persistence.container.persistUpdatedShare(share, in: store) { savedShare, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let savedShare {
-                    continuation.resume(returning: savedShare)
-                } else {
-                    continuation.resume(throwing: OneCartCloudKitError.shareURLUnavailable)
-                }
-            }
-        }
-    }
-
-    func accountStatus() async throws -> CKAccountStatus {
-        try await withCheckedThrowingContinuation { continuation in
-            cloudContainer.accountStatus { status, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: status)
-                }
-            }
-        }
-    }
 }
 
 private final class LeavePurgeSettleGate: @unchecked Sendable {
@@ -404,12 +366,5 @@ private final class LeavePurgeSettleGate: @unchecked Sendable {
         guard !settled else { return false }
         settled = true
         return true
-    }
-}
-
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }

@@ -32,6 +32,33 @@ enum CartSuggestionsEngine {
         return defaultEnglishSuggestions
     }
 
+    /// History names by frequency descending, then alphabetically; one entry per
+    /// case-insensitive name, keeping the casing of its first occurrence.
+    private static func rankedHistoryNames(_ historyItemNames: [String]) -> [String] {
+        var frequencyMap: [String: Int] = [:]
+        var displayMap: [String: String] = [:]
+
+        for rawName in historyItemNames {
+            let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            let key = name.lowercased()
+            frequencyMap[key, default: 0] += 1
+            if displayMap[key] == nil {
+                displayMap[key] = name
+            }
+        }
+
+        let sortedKeys = frequencyMap.keys.sorted { key1, key2 in
+            let count1 = frequencyMap[key1] ?? 0
+            let count2 = frequencyMap[key2] ?? 0
+            if count1 != count2 {
+                return count1 > count2
+            }
+            return key1 < key2
+        }
+        return sortedKeys.compactMap { displayMap[$0] }
+    }
+
     /// Pure suggestion extraction and ranking.
     ///
     /// - Parameters:
@@ -58,40 +85,9 @@ enum CartSuggestionsEngine {
 
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
-        // 1. Tally history frequencies by lowercased key while preserving display casing
-        var frequencyMap: [String: Int] = [:]
-        var displayMap: [String: String] = [:]
-
-        for rawName in historyItemNames {
-            let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { continue }
-            let key = name.lowercased()
-            frequencyMap[key, default: 0] += 1
-            if displayMap[key] == nil {
-                displayMap[key] = name
-            }
-        }
-
-        // 2. Sort history keys by frequency descending, then alphabetically
-        let sortedHistoryKeys = frequencyMap.keys.sorted { key1, key2 in
-            let count1 = frequencyMap[key1] ?? 0
-            let count2 = frequencyMap[key2] ?? 0
-            if count1 != count2 {
-                return count1 > count2
-            }
-            return key1 < key2
-        }
-
-        // 3. Build candidate list: sorted history items first, followed by defaults
-        var candidates: [String] = []
-        var seenKeys = Set<String>()
-
-        for key in sortedHistoryKeys {
-            if let displayName = displayMap[key] {
-                candidates.append(displayName)
-                seenKeys.insert(key)
-            }
-        }
+        // Sorted history items first, followed by defaults.
+        var candidates = rankedHistoryNames(historyItemNames)
+        var seenKeys = Set(candidates.map { $0.lowercased() })
 
         for def in defaults {
             let name = def.trimmingCharacters(in: .whitespacesAndNewlines)

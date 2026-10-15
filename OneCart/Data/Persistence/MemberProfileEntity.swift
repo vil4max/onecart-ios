@@ -14,7 +14,7 @@ final class MemberProfileEntity: NSManagedObject {
     @NSManaged var deletedAt: Date?
     @NSManaged var familySpace: FamilySpace?
 
-    @nonobjc class func fetchRequest() -> NSFetchRequest<MemberProfileEntity> {
+    @nonobjc static func fetchRequest() -> NSFetchRequest<MemberProfileEntity> {
         NSFetchRequest<MemberProfileEntity>(entityName: "MemberProfile")
     }
 

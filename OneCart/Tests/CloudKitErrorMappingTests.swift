@@ -5,38 +5,6 @@ import XCTest
 
 @MainActor
 final class CloudKitErrorMappingTests: XCTestCase {
-    func testCloudKitProductReloadPolicyOnlyOnSuccessfulImport() {
-        XCTAssertTrue(
-            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                type: .import,
-                ended: true,
-                error: nil
-            )
-        )
-        XCTAssertFalse(
-            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                type: .export,
-                ended: true,
-                error: nil
-            )
-        )
-        XCTAssertFalse(
-            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                type: .import,
-                ended: false,
-                error: nil
-            )
-        )
-        let error = NSError(domain: CKError.errorDomain, code: CKError.Code.networkFailure.rawValue)
-        XCTAssertFalse(
-            CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                type: .import,
-                ended: true,
-                error: error
-            )
-        )
-    }
-
     func test_REQ_SHARE_020_cloudKitFamilyInviteShareMessageContainsShareURL() throws {
         let shareURL = try XCTUnwrap(
             URL(string: "https://www.icloud.com/share/onecart-family")
@@ -100,10 +68,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         let nested = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.invalidArguments.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Cannot create new type CD_ShoppingList in production schema"
-            ]
+            userInfo: [NSLocalizedDescriptionKey: "Cannot create new type CD_ShoppingList in production schema"]
         )
         let mirroring = NSError(
             domain: NSCocoaErrorDomain,
@@ -123,13 +88,11 @@ final class CloudKitErrorMappingTests: XCTestCase {
     }
 
     func testCloudKitUserFacingErrorMapsProductionSchemaFieldModify() {
+        let schemaMessage = "Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema"
         let nested = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.invalidArguments.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Cannot create or modify field 'CD_deletedAt' in record 'CD_Product' in production schema"
-            ]
+            userInfo: [NSLocalizedDescriptionKey: schemaMessage]
         )
         let partial = NSError(
             domain: CKError.errorDomain,
@@ -266,13 +229,12 @@ final class CloudKitErrorMappingTests: XCTestCase {
     }
 
     func testMirroringAbortWithCreatedByNameIsSchemaNotLocalDatabase() {
+        let schemaMessage =
+            "Cannot create or modify field 'CD_createdByName' in record 'CD_Product' in production schema"
         let nested = NSError(
             domain: CKError.errorDomain,
             code: CKError.Code.invalidArguments.rawValue,
-            userInfo: [
-                NSLocalizedDescriptionKey:
-                    "Cannot create or modify field 'CD_createdByName' in record 'CD_Product' in production schema"
-            ]
+            userInfo: [NSLocalizedDescriptionKey: schemaMessage]
         )
         let partial = NSError(
             domain: CKError.errorDomain,

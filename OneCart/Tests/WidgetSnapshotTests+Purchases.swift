@@ -1,0 +1,252 @@
+import AuthenticationServices
+import CoreData
+@testable import OneCart
+import XCTest
+
+@MainActor
+extension WidgetSnapshotTests {
+    func test_REQ_WIDGET_020_performWidgetPurchase_savesRepositoryBeforeAcknowledging() async throws {
+        let fixture = try await makeWidgetSession()
+        fixture.session.preferences.participantDisplayName = "Local nickname"
+        let request = fixture.request()
+
+        try await fixture.session.performWidgetPurchase(request)
+
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertTrue(product.isPurchasedValue)
+        XCTAssertEqual(product.purchasedAt, request.createdAt)
+        XCTAssertEqual(product.purchasedByName, "Local nickname")
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+        XCTAssertEqual(fixture.store.loadSnapshot()?.accountID, fixture.accountID)
+        XCTAssertEqual(fixture.store.loadSnapshot()?.familyID, fixture.familyID)
+        XCTAssertEqual(fixture.store.loadSnapshot()?.purchasedCount, 1)
+        XCTAssertEqual(fixture.session.pendingCartMutationCount, 0)
+    }
+
+    func test_REQ_WIDGET_020_widgetRetry_afterNewerAppMutation_doesNotRestoreOldPurchasedState() async throws {
+        let fixture = try await makeWidgetSession()
+        let request = fixture.request()
+        try fixture.store.enqueuePurchase(request)
+        try await fixture.session.repository.setPurchased(
+            id: request.productID, familySpaceID: request.familyID, isPurchased: true,
+            participantDisplayName: "Alex", purchasedAt: request.createdAt
+        )
+        // Simulate a saved command whose acknowledgement was interrupted, followed by an app edit.
+        try await fixture.session.repository.togglePurchased(
+            id: request.productID, familySpaceID: request.familyID, participantDisplayName: "Alex"
+        )
+
+        try await fixture.session.performWidgetPurchase(request)
+
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertFalse(product.isPurchasedValue)
+        XCTAssertNil(product.purchasedAt)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
+    func test_missingProduct_retainsOrderedCommandsWithoutBlockingAnotherProduct() async throws {
+        let fixture = try await makeWidgetSession()
+        let missingID = UUID()
+        let familyID = fixture.familyID
+        let first = fixture.request(productID: missingID)
+        let second = fixture.request(
+            productID: missingID, isPurchased: false, createdAt: first.createdAt.addingTimeInterval(1)
+        )
+        do {
+            try await fixture.session.performWidgetPurchase(first)
+            XCTFail("A product that has not arrived must remain pending")
+        } catch {
+            XCTAssertEqual(try fixture.store.pendingPurchases(), [first])
+        }
+        try fixture.store.enqueuePurchase(second)
+
+        try await fixture.session.performWidgetPurchase(fixture.request())
+
+        XCTAssertEqual(try fixture.store.pendingPurchases(), [first, second])
+        XCTAssertTrue(
+            try XCTUnwrap(
+                fetchProduct(
+                    id: fixture.productID, repository: fixture.session.repository
+                )
+            ).isPurchasedValue)
+        try await fixture.session.repository.addProduct(
+            to: fixture.listID, id: missingID, draft: productDraft(name: "Late import")
+        )
+        try await fixture.session.persistence.performBackgroundTask { context in
+            let imported = try XCTUnwrap(
+                FamilySpaceRepository.fetchProduct(
+                    id: missingID, familySpaceID: familyID, in: context
+                ))
+            imported.updatedAt = first.createdAt.addingTimeInterval(-1)
+        }
+
+        await fixture.session.drainWidgetPendingToggles()
+
+        let imported = try XCTUnwrap(fetchProduct(id: missingID, repository: fixture.session.repository))
+        XCTAssertFalse(imported.isPurchasedValue)
+        XCTAssertEqual(imported.updatedAt, second.createdAt)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
+    func test_REQ_WIDGET_020_widgetPurchase_forTombstonedProduct_isAcknowledgedWithoutRestoringIt() async throws {
+        let fixture = try await makeWidgetSession()
+        let request = fixture.request()
+        try await fixture.session.repository.deleteProduct(id: fixture.productID, familySpaceID: fixture.familyID)
+
+        try await fixture.session.performWidgetPurchase(request)
+
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
+    func test_REQ_WIDGET_020_widgetPurchase_forDifferentAccountOrFamily_isRejectedBeforeEnqueue() async throws {
+        let fixture = try await makeWidgetSession()
+        let requests = [
+            WidgetPurchaseRequest(
+                accountID: UUID(), familyID: fixture.familyID, productID: fixture.productID, isPurchased: true
+            ),
+            WidgetPurchaseRequest(
+                accountID: fixture.accountID, familyID: UUID(), productID: fixture.productID, isPurchased: true
+            ),
+        ]
+        for request in requests {
+            do {
+                try await fixture.session.performWidgetPurchase(request)
+                XCTFail("A widget action must match the active account and family")
+            } catch {
+                XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+            }
+        }
+        XCTAssertFalse(
+            try XCTUnwrap(
+                fetchProduct(
+                    id: fixture.productID, repository: fixture.session.repository
+                )
+            ).isPurchasedValue)
+    }
+
+    func test_REQ_WIDGET_020_start_withDurableWidgetCommand_appliesItWithoutForegroundTransition() async throws {
+        let fixture = try await makeWidgetSession(started: false)
+        let purchasedAt = Date().addingTimeInterval(-86400)
+        let request = fixture.request(createdAt: purchasedAt)
+        try await fixture.session.persistence.performBackgroundTask { context in
+            let product = try XCTUnwrap(
+                FamilySpaceRepository.fetchProduct(
+                    id: request.productID, familySpaceID: request.familyID, in: context
+                ))
+            product.updatedAt = purchasedAt.addingTimeInterval(-1)
+        }
+        try fixture.store.enqueuePurchase(request)
+        XCTAssertNil(fixture.session.account)
+
+        await fixture.session.start()
+
+        XCTAssertEqual(fixture.session.account?.id, fixture.accountID)
+        let product = try XCTUnwrap(
+            fetchProduct(
+                id: fixture.productID, repository: fixture.session.repository
+            ))
+        XCTAssertTrue(product.isPurchasedValue)
+        XCTAssertEqual(product.purchasedAt, purchasedAt)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
+    func test_concurrentWidgetRequests_completeWithLatestDesiredState() async throws {
+        let fixture = try await makeWidgetSession()
+        let first = fixture.request()
+        let second = fixture.request(isPurchased: false, createdAt: first.createdAt.addingTimeInterval(1))
+
+        async let firstResult: Void = fixture.session.performWidgetPurchase(first)
+        async let secondResult: Void = fixture.session.performWidgetPurchase(second)
+        _ = try await (firstResult, secondResult)
+
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertFalse(product.isPurchasedValue)
+        XCTAssertEqual(product.updatedAt, second.createdAt)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+        XCTAssertEqual(fixture.session.pendingCartMutationCount, 0)
+    }
+}
+
+// Shared with WidgetPrivacyCleanupTests, hence internal.
+@MainActor
+extension XCTestCase {
+    func makeWidgetSession(
+        started: Bool = true,
+        shoppingTripBackend: FakeShoppingTripBackend = FakeShoppingTripBackend()
+    ) async throws -> WidgetSessionFixture {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let defaults = try makeDefaults()
+        let store = try makeWidgetStore().store
+        let account = OneCartAccount(id: OneCartStableID.uuid(for: "onecart.in-memory-user"), displayName: "Alex")
+        let familyID = try await repository.createFamilySpace(
+            name: "Personal", cachedForUserID: account.id, isHouseholdDefault: true
+        )
+        let listID = try XCTUnwrap(repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
+        let productID = try await repository.addProduct(to: listID, draft: productDraft())
+        let session = try makeTestSession(
+            persistence: persistence, defaults: defaults, appleSignIn: WidgetAppleSignIn(), widgetStore: store,
+            shoppingTripBackend: shoppingTripBackend
+        )
+        if started {
+            try session.bootstrapTestingSession(account: account)
+            session.started = true
+            session.needsWelcome = false
+        }
+        return WidgetSessionFixture(
+            session: session, store: store, accountID: account.id,
+            familyID: familyID, listID: listID, productID: productID
+        )
+    }
+}
+
+@MainActor
+struct WidgetSessionFixture {
+    let session: AppSession
+    let store: WidgetSnapshotStore
+    let accountID: UUID
+    let familyID: UUID
+    let listID: UUID
+    let productID: UUID
+
+    func request(
+        productID: UUID? = nil,
+        isPurchased: Bool = true,
+        createdAt: Date = Date()
+    ) -> WidgetPurchaseRequest {
+        WidgetPurchaseRequest(
+            accountID: accountID, familyID: familyID, productID: productID ?? self.productID,
+            isPurchased: isPurchased, createdAt: createdAt
+        )
+    }
+}
+
+private final class WidgetAppleSignIn: AppleSignInAuthenticating, @unchecked Sendable {
+    private var credential: AppleSignInCredential? = AppleSignInCredential(
+        userID: "widget-user", email: nil, givenName: "Alex", familyName: nil
+    )
+
+    func storedCredential() -> AppleSignInCredential? {
+        credential
+    }
+
+    func save(_ credential: AppleSignInCredential) {
+        self.credential = credential
+    }
+
+    func clearCredential() {
+        credential = nil
+    }
+
+    func credentialState(for _: String) async -> AppleSignInCredentialState {
+        .authorized
+    }
+
+    func signIn() async throws -> AppleSignInCredential {
+        try XCTUnwrap(credential)
+    }
+
+    func makeCredential(from _: ASAuthorization) throws -> AppleSignInCredential {
+        try XCTUnwrap(credential)
+    }
+}

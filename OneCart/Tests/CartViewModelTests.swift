@@ -260,17 +260,16 @@ struct CartViewModelTests {
     func chromeActionsForward() async throws {
         let harness = try CartHarness()
         harness.alerts.sharedCartRemovedMessage = "The shared cart is gone"
-        harness.state.familyMembers = [
-            FamilyMember(
-                id: UUID(),
-                displayName: "Alex",
-                access: .owner,
-                joinedAt: Date(),
-                isCurrentUser: true,
-                avatarURL: nil,
-                bannerURL: nil
-            )
-        ]
+        let owner = FamilyMember(
+            id: UUID(),
+            displayName: "Alex",
+            access: .owner,
+            joinedAt: Date(),
+            isCurrentUser: true,
+            avatarURL: nil,
+            bannerURL: nil
+        )
+        harness.state.familyMembers = [owner]
 
         #expect(harness.viewModel.sharedCartRemovedMessage == "The shared cart is gone")
         #expect(harness.viewModel.familyMembersCount == 1)

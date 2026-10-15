@@ -236,10 +236,3 @@ extension AppSession {
         return CloudKitUserFacingError.message(for: error)
     }
 }
-
-private extension String {
-    var nilIfBlank: String? {
-        let value = trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
-    }
-}

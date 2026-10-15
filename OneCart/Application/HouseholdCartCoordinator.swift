@@ -84,40 +84,7 @@ final class HouseholdCartCoordinator {
         }
 
         do {
-            await host.acceptPendingCloudKitShares()
-            guard !Task.isCancelled else { return }
-            try host.reloadHousehold(preferredFamilySpaceID: nil)
-            try await offerSharedCartJoinIfNeeded(for: account)
-            guard !Task.isCancelled else { return }
-
-            if host.activeFamilySpace != nil {
-                try await adoptSharedFamilyCartIfNeeded(for: account)
-                await host.refreshFamilyMetadata(showErrors: false)
-                host.scheduleInviteLinkPreparation()
-                CartSyncLog.action.info(
-                    "ensureHousehold done family=\(host.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
-                )
-                return
-            }
-
-            if host.familySpaces.isEmpty {
-                CartSyncLog.action.info("ensureHousehold create empty")
-                _ = try await createProvisionalPersonalCart(for: account)
-                guard !Task.isCancelled else { return }
-                try host.reloadHousehold(preferredFamilySpaceID: nil)
-            }
-
-            if host.activeFamilySpace == nil {
-                host.applyHouseholdCartBootstrapFailed(true)
-                CartSyncLog.action.error("ensureHousehold fail noActiveFamily")
-                return
-            }
-
-            await host.refreshFamilyMetadata(showErrors: false)
-            host.scheduleInviteLinkPreparation()
-            CartSyncLog.action.info(
-                "ensureHousehold done family=\(host.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
-            )
+            try await runEnsure(host: host, account: account)
         } catch {
             guard !Task.isCancelled else { return }
             host.applyHouseholdCartBootstrapFailed(true)
@@ -126,6 +93,43 @@ final class HouseholdCartCoordinator {
             )
             host.presentHouseholdError(error)
         }
+    }
+
+    private func runEnsure(host: any HouseholdCartHost, account: OneCartAccount) async throws {
+        await host.acceptPendingCloudKitShares()
+        guard !Task.isCancelled else { return }
+        try host.reloadHousehold(preferredFamilySpaceID: nil)
+        try await offerSharedCartJoinIfNeeded(for: account)
+        guard !Task.isCancelled else { return }
+
+        if host.activeFamilySpace != nil {
+            try await adoptSharedFamilyCartIfNeeded(for: account)
+            await finishEnsure(host: host)
+            return
+        }
+
+        if host.familySpaces.isEmpty {
+            CartSyncLog.action.info("ensureHousehold create empty")
+            _ = try await createProvisionalPersonalCart(for: account)
+            guard !Task.isCancelled else { return }
+            try host.reloadHousehold(preferredFamilySpaceID: nil)
+        }
+
+        if host.activeFamilySpace == nil {
+            host.applyHouseholdCartBootstrapFailed(true)
+            CartSyncLog.action.error("ensureHousehold fail noActiveFamily")
+            return
+        }
+
+        await finishEnsure(host: host)
+    }
+
+    private func finishEnsure(host: any HouseholdCartHost) async {
+        await host.refreshFamilyMetadata(showErrors: false)
+        host.scheduleInviteLinkPreparation()
+        CartSyncLog.action.info(
+            "ensureHousehold done family=\(host.activeFamilySpace?.id?.uuidString ?? "-", privacy: .public)"
+        )
     }
 
     /// A caller that needs the cart (Siri) must see the result of the running setup, not an

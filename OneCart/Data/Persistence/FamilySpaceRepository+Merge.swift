@@ -32,25 +32,13 @@ extension FamilySpaceRepository {
             var restoredObjects: [NSManagedObjectID: NSManagedObject] = [:]
             var changedObjects: [(source: NSManagedObject, destination: NSManagedObject)] = []
             for batch in batches {
-                var destinations = Dictionary(grouping: batch.destination) { $0.value(forKey: "id") as? UUID }
-                for object in batch.source {
-                    guard let id = object.value(forKey: "id") as? UUID else { continue }
-                    let existing = destinations[id]?.sorted(by: Self.preferRestoreObject).first
-                    let copy: NSManagedObject
-                    if let existing {
-                        copy = existing
-                    } else {
-                        copy = NSEntityDescription.insertNewObject(forEntityName: batch.entityName, into: context)
-                        try self.persistence.assign(copy, toSameStoreAs: destination, in: context)
-                        destinations[id] = [copy]
-                    }
-                    restoredObjects[object.objectID] = copy
-                    guard existing == nil || Self.shouldRestoreAttributes(from: object, onto: copy) else { continue }
-                    for key in object.entity.attributesByName.keys {
-                        copy.setValue(object.value(forKey: key), forKey: key)
-                    }
-                    changedObjects.append((object, copy))
-                }
+                try self.copyRestoreBatch(
+                    batch,
+                    into: destination,
+                    context: context,
+                    restoredObjects: &restoredObjects,
+                    changedObjects: &changedObjects
+                )
             }
             for (object, copy) in changedObjects {
                 copy.setValue(destination, forKey: "familySpace")
@@ -70,6 +58,35 @@ extension FamilySpaceRepository {
         let entityName: String
         let source: [NSManagedObject]
         let destination: [NSManagedObject]
+    }
+
+    /// Reuses a destination row with the same id, or inserts a copy in the destination's store.
+    private func copyRestoreBatch(
+        _ batch: PersonalRestoreBatch,
+        into destination: FamilySpace,
+        context: NSManagedObjectContext,
+        restoredObjects: inout [NSManagedObjectID: NSManagedObject],
+        changedObjects: inout [(source: NSManagedObject, destination: NSManagedObject)]
+    ) throws {
+        var destinations = Dictionary(grouping: batch.destination) { $0.value(forKey: "id") as? UUID }
+        for object in batch.source {
+            guard let id = object.value(forKey: "id") as? UUID else { continue }
+            let existing = destinations[id]?.sorted(by: Self.preferRestoreObject).first
+            let copy: NSManagedObject
+            if let existing {
+                copy = existing
+            } else {
+                copy = NSEntityDescription.insertNewObject(forEntityName: batch.entityName, into: context)
+                try persistence.assign(copy, toSameStoreAs: destination, in: context)
+                destinations[id] = [copy]
+            }
+            restoredObjects[object.objectID] = copy
+            guard existing == nil || Self.shouldRestoreAttributes(from: object, onto: copy) else { continue }
+            for key in object.entity.attributesByName.keys {
+                copy.setValue(object.value(forKey: key), forKey: key)
+            }
+            changedObjects.append((object, copy))
+        }
     }
 
     private static func restoreObjects(
@@ -153,10 +170,7 @@ extension FamilySpaceRepository {
             )
             try Self.mergeProducts(
                 from: source,
-                into: destination,
-                targetList: targetList,
-                storeMap: storeMap,
-                now: now,
+                into: ProductMergeTarget(family: destination, list: targetList, storeMap: storeMap, now: now),
                 context: context,
                 persistence: self.persistence
             )
@@ -206,15 +220,23 @@ extension FamilySpaceRepository {
         return storeMap
     }
 
+    private struct ProductMergeTarget {
+        let family: FamilySpace
+        let list: ShoppingListEntity
+        let storeMap: [UUID: StoreEntity]
+        let now: Date
+    }
+
     private static func mergeProducts(
         from source: FamilySpace,
-        into destination: FamilySpace,
-        targetList: ShoppingListEntity,
-        storeMap: [UUID: StoreEntity],
-        now: Date,
+        into target: ProductMergeTarget,
         context: NSManagedObjectContext,
         persistence: PersistenceController
     ) throws {
+        let destination = target.family
+        let targetList = target.list
+        let storeMap = target.storeMap
+        let now = target.now
         var destinationByName: [String: ProductEntity] = [:]
         for product in destination.sortedProducts {
             let key = FamilyCartMerge.normalizedProductName(product.displayName)
