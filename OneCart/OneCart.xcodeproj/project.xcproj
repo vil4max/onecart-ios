@@ -367,6 +367,8 @@
             { "path": "FakeMemberNamePrompter.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "FakeShoppingTrip.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
             { "path": "CartIntentTestDoubles.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "AllowAllPermissionAuthorizer.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+            { "path": "AppSession+Testing.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
           ],
         },
       ],

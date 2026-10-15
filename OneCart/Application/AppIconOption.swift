@@ -51,15 +51,6 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         }
     }
 
-    public var previewSymbol: String {
-        switch self {
-        case .classic: "cart.fill"
-        case .midnight: "moon.stars.fill"
-        case .ocean: "water.waves"
-        case .sunset: "sun.max.fill"
-        }
-    }
-
     /// The app's accent follows the chosen icon; Midnight's amber check reads as Sunset.
     public var accent: AppAccentColor {
         switch self {
@@ -69,32 +60,10 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         case .sunset: .sunset
         }
     }
-
-    public var accentColor: Color {
-        switch self {
-        case .classic:
-            Color(red: 52 / 255, green: 120 / 255, blue: 91 / 255)
-        case .midnight:
-            Color(red: 30 / 255, green: 30 / 255, blue: 32 / 255)
-        case .ocean:
-            Color(red: 34 / 255, green: 110 / 255, blue: 205 / 255)
-        case .sunset:
-            Color(red: 220 / 255, green: 100 / 255, blue: 35 / 255)
-        }
-    }
 }
 
 @MainActor
 public enum AppIconManager {
-    public static var current: AppIconOption {
-        guard UIApplication.shared.supportsAlternateIcons,
-            let name = UIApplication.shared.alternateIconName
-        else {
-            return .classic
-        }
-        return AppIconOption.allCases.first { $0.iconName == name } ?? .classic
-    }
-
     @discardableResult
     public static func setAlternateIcon(to option: AppIconOption) async -> Bool {
         guard UIApplication.shared.supportsAlternateIcons else { return false }

@@ -13,10 +13,7 @@ extension AppSession {
         let beforeIDs = Set(products(inListID: listID).compactMap(\.id))
         CartSyncLog.action.info("addProduct start")
         var addedID: UUID?
-        let succeeded = await performMutation(
-            action: "addProduct",
-            successMessage: String(localized: "alert.product_added")
-        ) {
+        let succeeded = await performMutation(action: "addProduct") {
             addedID = try await self.repository.addProduct(
                 to: listID,
                 draft: draft,
@@ -41,7 +38,7 @@ extension AppSession {
             return
         }
         CartSyncLog.action.info("updateProduct start id=\(id.uuidString, privacy: .public)")
-        await performMutation(action: "updateProduct", successMessage: String(localized: "alert.product_updated")) {
+        await performMutation(action: "updateProduct") {
             try await self.repository.updateProduct(id: id, familySpaceID: familyID, draft: draft)
         }
         scheduleCategoryRefinement(productID: id, name: draft.name)
@@ -185,7 +182,7 @@ extension AppSession {
         }
         CartSyncLog.action.info("deleteProduct start id=\(id.uuidString, privacy: .public)")
         cancelCategoryRefinement(productID: id)
-        await performMutation(action: "deleteProduct", successMessage: String(localized: "alert.product_deleted")) {
+        await performMutation(action: "deleteProduct") {
             try await self.repository.deleteProduct(id: id, familySpaceID: familyID)
         }
     }
@@ -193,10 +190,7 @@ extension AppSession {
     func completePurchasedItems(_ list: ShoppingListEntity) async {
         guard let id = list.id else { return }
         CartSyncLog.action.info("completePurchase start list=\(id.uuidString, privacy: .public)")
-        await performMutation(
-            action: "completePurchase",
-            successMessage: String(localized: "alert.purchase_completed")
-        ) {
+        await performMutation(action: "completePurchase") {
             _ = try await self.repository.completePurchased(listID: id)
         }
     }
@@ -252,10 +246,8 @@ extension AppSession {
     @discardableResult
     private func performMutation(
         action: String,
-        successMessage: String?,
         operation: @escaping () async throws -> Void
     ) async -> Bool {
-        _ = successMessage
         guard canEdit else {
             CartSyncLog.action.error("\(action, privacy: .public) denied canEdit=false")
             presentAlert(RepositoryError.permissionDenied.localizedDescription)

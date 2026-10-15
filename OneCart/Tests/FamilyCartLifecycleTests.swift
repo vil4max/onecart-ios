@@ -64,24 +64,4 @@ final class FamilyCartLifecycleTests: XCTestCase {
             "Новое имя"
         )
     }
-
-    func testAssociateAndRemoveCachedFamilySpace() async throws {
-        let (_, repository) = try await makeInMemoryRepository()
-        let userID = UUID()
-        let familyID = try await repository.createFamilySpace(name: "Кэш")
-
-        try await repository.associateFamilySpace(
-            id: familyID,
-            with: userID,
-            role: FamilyAccess.owner.rawValue,
-            needsRemoteCreation: true
-        )
-        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        XCTAssertEqual(space.cachedForUserID, userID)
-        XCTAssertEqual(space.serverRole, FamilyAccess.owner.rawValue)
-        XCTAssertEqual(space.needsRemoteCreation?.boolValue, true)
-
-        try await repository.removeCachedFamilySpace(id: familyID, for: userID)
-        XCTAssertNil(try repository.fetchFamilySpace(id: familyID))
-    }
 }

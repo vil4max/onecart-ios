@@ -2,17 +2,6 @@ import CoreData
 import Foundation
 
 extension AppSession {
-    func setActiveFamilySpace(_ space: FamilySpace) {
-        guard let id = space.id, let account else { return }
-        defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))
-        do {
-            try reload(preferredFamilySpaceID: id)
-            Task { await refreshFamilyMetadata(showErrors: false) }
-        } catch {
-            show(error)
-        }
-    }
-
     /// `endingShoppingTrip` is false when nobody signed out: a failed startup or a reload before
     /// the account is restored keeps the trip for the next start to adopt (REQ-WIDGET-060).
     func clearAccountData(endingShoppingTrip: Bool = true) {
@@ -66,17 +55,13 @@ extension AppSession {
         } else {
             lastActiveFamilyWasShared = false
         }
-        if let selectedID = selected?.id {
+        if let selected, let selectedID = selected.id {
             defaults.set(
                 selectedID.uuidString,
                 forKey: activeFamilyKey(accountID: account.id)
             )
             try cartContent.reloadContent(familySpaceID: selectedID)
-            if let selected {
-                access = backend.access(for: selected)
-            } else {
-                access = nil
-            }
+            access = backend.access(for: selected)
             if previousID != selectedID {
                 familyMembers = []
             }

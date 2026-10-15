@@ -77,10 +77,7 @@ final class InviteLinkPreparer {
     ) async {
         guard isOnline else { return }
         guard let family, let familyID = family.id else { return }
-        if let preparedInviteLink,
-            preparedInviteFamilyID == familyID,
-            preparedInviteLink.expiresAt > Date().addingTimeInterval(30)
-        {
+        if preparedInviteLink != nil, preparedInviteFamilyID == familyID {
             return
         }
 

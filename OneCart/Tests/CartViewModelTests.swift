@@ -315,14 +315,15 @@ struct CartViewModelTests {
 
     @Test("REQ-CART-090: suggestions never repeat a name already on the cart")
     func suggestionsExcludeCartLines() async throws {
+        // The essentials follow the device language, so the cart line is taken from that list.
+        let onCart = try #require(CartSuggestionsEngine.defaultEssentials().first)
         let fixture = try await CartFixture.make()
-        try await fixture.addProduct(named: "Молоко")
+        try await fixture.addProduct(named: onCart)
         let harness = try CartHarness(fixture: fixture)
-        harness.isolated.preferences.language = .russian
 
         let suggestions = harness.viewModel.suggestions(matching: "")
 
         #expect(!suggestions.isEmpty)
-        #expect(!suggestions.contains { $0.localizedCaseInsensitiveCompare("Молоко") == .orderedSame })
+        #expect(!suggestions.contains { $0.localizedCaseInsensitiveCompare(onCart) == .orderedSame })
     }
 }

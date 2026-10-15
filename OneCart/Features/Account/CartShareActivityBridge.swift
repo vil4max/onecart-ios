@@ -1,7 +1,6 @@
 import LinkPresentation
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 struct CartSharePayload: Identifiable {
     let id = UUID()

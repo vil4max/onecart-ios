@@ -70,14 +70,7 @@ extension PersistenceController {
         )
     }
 
-    static func shouldWipeLocalStoresForCloudKitEnvironment(
-        previous: String?,
-        current: String,
-        storeFilesExist: Bool,
-        isDebugProcess: Bool
-    ) -> Bool {
-        _ = storeFilesExist
-        _ = isDebugProcess
+    static func shouldWipeLocalStoresForCloudKitEnvironment(previous: String?, current: String) -> Bool {
         guard let previous else { return false }
         return previous != current
     }
@@ -87,22 +80,9 @@ extension PersistenceController {
 
         let current = CloudKitShareEnvironment.process.rawValue
         let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
+        guard Self.shouldWipeLocalStoresForCloudKitEnvironment(previous: previous, current: current) else { return }
+
         let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
-        #if DEBUG
-            let isDebugProcess = true
-        #else
-            let isDebugProcess = false
-        #endif
-
-        guard
-            Self.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: previous,
-                current: current,
-                storeFilesExist: storeFilesExist,
-                isDebugProcess: isDebugProcess
-            )
-        else { return }
-
         logger.error(
             // swiftlint:disable:next line_length
             "CloudKit env mismatch wipe previous=\(previous ?? "nil", privacy: .public) current=\(current, privacy: .public) storeFilesExist=\(storeFilesExist)"

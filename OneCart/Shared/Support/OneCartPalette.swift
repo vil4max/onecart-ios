@@ -47,27 +47,7 @@ public enum OneCartPalette {
         )
     }
 
-    /// Pressed state of a filled surface.
-    public static var primaryStrong: Color {
-        primaryStrong()
-    }
-
-    public static func primaryStrong(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
-        let active = accent ?? currentAccent
-        if let scheme {
-            let rgb = scheme == .dark ? active.primaryStrongRGB.dark : active.primaryStrongRGB.light
-            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
-        }
-        if let accent {
-            return adaptive(light: accent.primaryStrongRGB.light, dark: accent.primaryStrongRGB.dark)
-        }
-        return adaptiveDynamic(
-            light: { $0.primaryStrongRGB.light },
-            dark: { $0.primaryStrongRGB.dark }
-        )
-    }
-
-    /// Text and glyphs drawn on `background`, `surface` or `primarySoft`.
+    /// Text and glyphs drawn on `background` or `primarySoft`.
     public static var primaryAccent: Color {
         primaryAccent()
     }
@@ -108,7 +88,6 @@ public enum OneCartPalette {
     }
 
     public static let background = Color(.systemGroupedBackground)
-    public static let surface = Color(.secondarySystemGroupedBackground)
     public static let danger = adaptive(light: (185, 74, 72), dark: (232, 117, 111))
 
     public static func widgetBackground(for scheme: ColorScheme) -> Color {

@@ -150,35 +150,14 @@ final class FragileStoreLoadTests: XCTestCase {
     func testShouldWipeLocalStoresWhenCloudKitEnvironmentChanges() {
         XCTAssertFalse(
             PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: "production",
-                current: "production",
-                storeFilesExist: true,
-                isDebugProcess: true
-            )
+                previous: "production", current: "production")
         )
         XCTAssertTrue(
             PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: "development",
-                current: "production",
-                storeFilesExist: true,
-                isDebugProcess: true
-            )
+                previous: "development", current: "production")
         )
         XCTAssertFalse(
-            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: nil,
-                current: "production",
-                storeFilesExist: true,
-                isDebugProcess: true
-            )
-        )
-        XCTAssertFalse(
-            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(
-                previous: nil,
-                current: "production",
-                storeFilesExist: true,
-                isDebugProcess: false
-            )
+            PersistenceController.shouldWipeLocalStoresForCloudKitEnvironment(previous: nil, current: "production")
         )
     }
 

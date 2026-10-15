@@ -12,30 +12,6 @@ public enum AppAccentColor: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 
-    public var localizedTitleKey: LocalizedStringKey {
-        switch self {
-        case .emerald: "accent.emerald"
-        case .ocean: "accent.ocean"
-        case .sunset: "accent.sunset"
-        case .berry: "accent.berry"
-        case .coral: "accent.coral"
-        }
-    }
-
-    public var title: String {
-        switch self {
-        case .emerald: String(localized: "accent.emerald")
-        case .ocean: String(localized: "accent.ocean")
-        case .sunset: String(localized: "accent.sunset")
-        case .berry: String(localized: "accent.berry")
-        case .coral: String(localized: "accent.coral")
-        }
-    }
-
-    public var swatchColor: Color {
-        Color(red: primaryRGB.light.0 / 255, green: primaryRGB.light.1 / 255, blue: primaryRGB.light.2 / 255)
-    }
-
     public var primaryRGB: (light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) {
         switch self {
         case .emerald:
@@ -48,21 +24,6 @@ public enum AppAccentColor: String, CaseIterable, Identifiable, Sendable {
             ((140, 65, 170), (165, 90, 195))
         case .coral:
             ((225, 75, 85), (245, 95, 105))
-        }
-    }
-
-    public var primaryStrongRGB: (light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) {
-        switch self {
-        case .emerald:
-            ((40, 95, 71), (46, 110, 83))
-        case .ocean:
-            ((25, 85, 165), (40, 105, 190))
-        case .sunset:
-            ((175, 75, 25), (195, 90, 35))
-        case .berry:
-            ((110, 48, 135), (130, 68, 155))
-        case .coral:
-            ((180, 55, 65), (200, 70, 80))
         }
     }
 

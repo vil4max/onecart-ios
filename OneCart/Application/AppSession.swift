@@ -67,10 +67,6 @@ final class AppSession {
         cartContent.products
     }
 
-    var productsByListID: [UUID: [ProductEntity]] {
-        cartContent.productsByListID
-    }
-
     var history: [PurchaseHistoryEntity] {
         cartContent.history
     }

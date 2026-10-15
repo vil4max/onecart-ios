@@ -25,7 +25,6 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
         XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart Family"))
         XCTAssertEqual(invite.shareTitle, "OneCart Family")
-        XCTAssertEqual(invite.expiresAt, .distantFuture)
         XCTAssertFalse(OneCartShareBranding.thumbnailImageData.isEmpty)
     }
 

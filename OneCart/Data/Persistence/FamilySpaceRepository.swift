@@ -6,16 +6,6 @@ protocol PermissionAuthorizing: AnyObject, Sendable {
     func canDelete(_ objectID: NSManagedObjectID) -> Bool
 }
 
-final class AllowAllPermissionAuthorizer: PermissionAuthorizing {
-    func canUpdate(_: NSManagedObjectID) -> Bool {
-        true
-    }
-
-    func canDelete(_: NSManagedObjectID) -> Bool {
-        true
-    }
-}
-
 enum RepositoryError: LocalizedError, Equatable {
     case familySpaceNotFound
     case listNotFound
@@ -160,33 +150,6 @@ final class FamilySpaceRepository: Sendable {
                 space.cachedForUserID = userID
                 space.serverRole = "owner"
                 space.needsRemoteCreation = false
-            }
-        }
-    }
-
-    func associateFamilySpace(
-        id: UUID,
-        with userID: UUID,
-        role: String,
-        needsRemoteCreation: Bool
-    ) async throws {
-        try await persistence.performBackgroundTask(author: "OneCartFamilyAssociation") { context in
-            let space = try Self.requireFamilySpace(id: id, in: context)
-            space.cachedForUserID = userID
-            space.serverRole = role
-            space.needsRemoteCreation = NSNumber(value: needsRemoteCreation)
-        }
-    }
-
-    func removeCachedFamilySpace(id: UUID, for userID: UUID) async throws {
-        try await persistence.performBackgroundTask(author: "OneCartCacheCleanup") { context in
-            let request = FamilySpace.fetchRequest()
-            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "id == %@", id as NSUUID),
-                NSPredicate(format: "cachedForUserID == %@", userID as NSUUID),
-            ])
-            for space in try context.fetch(request) {
-                context.delete(space)
             }
         }
     }

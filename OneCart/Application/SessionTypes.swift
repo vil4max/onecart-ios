@@ -81,53 +81,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-enum AppLanguage: String, CaseIterable, Identifiable {
-    case system
-    case english = "en"
-    case ukrainian = "uk"
-    case russian = "ru"
-
-    var id: String {
-        rawValue
-    }
-
-    var localizedTitleKey: LocalizedStringKey {
-        switch self {
-        case .system: "language.system"
-        case .english: "language.english"
-        case .ukrainian: "language.ukrainian"
-        case .russian: "language.russian"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .system: String(localized: "language.system")
-        case .english: String(localized: "language.english")
-        case .ukrainian: String(localized: "language.ukrainian")
-        case .russian: String(localized: "language.russian")
-        }
-    }
-
-    var languageCode: String? {
-        switch self {
-        case .system: nil
-        case .english: "en"
-        case .ukrainian: "uk"
-        case .russian: "ru"
-        }
-    }
-
-    var locale: Locale? {
-        switch self {
-        case .system: nil
-        case .english: Locale(identifier: "en")
-        case .ukrainian: Locale(identifier: "uk")
-        case .russian: Locale(identifier: "ru")
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class DevicePreferences {
@@ -142,19 +95,6 @@ final class DevicePreferences {
             defaults.synchronize()
             OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
             onThemeChanged?(theme)
-            onChanged?()
-        }
-    }
-
-    var language: AppLanguage {
-        didSet {
-            defaults.set(language.rawValue, forKey: Keys.language)
-            if let code = language.languageCode {
-                defaults.set([code], forKey: "AppleLanguages")
-            } else {
-                defaults.removeObject(forKey: "AppleLanguages")
-            }
-            defaults.synchronize()
             onChanged?()
         }
     }
@@ -195,15 +135,11 @@ final class DevicePreferences {
         }
     }
 
-    var effectiveLocale: Locale {
-        language.locale ?? .autoupdatingCurrent
-    }
-
     private let defaults: UserDefaults
 
     /// Theme and language follow the device (appearance, per-app language in iOS Settings) and
     /// the accent follows the app icon; values stored by older versions are dropped at launch.
-    /// `didSet` does not run in `init`, so `AppleLanguages` keeps the system's per-app choice.
+    /// The app never writes `AppleLanguages`, so the system's per-app choice stays in place.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         theme = .system
@@ -211,7 +147,6 @@ final class DevicePreferences {
         if defaults == .standard {
             OneCartAppGroup.defaults?.set(AppTheme.system.rawValue, forKey: Keys.theme)
         }
-        language = .system
         defaults.removeObject(forKey: Keys.language)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         let initialIcon = AppIconOption(rawValue: storedIcon) ?? .classic
@@ -232,7 +167,6 @@ final class DevicePreferences {
             theme = .system
         }
         defaults.removeObject(forKey: Keys.theme)
-        // Assigning `language` would rewrite `AppleLanguages`; it is always `.system` now.
         defaults.removeObject(forKey: Keys.language)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         appIcon = AppIconOption(rawValue: storedIcon) ?? .classic

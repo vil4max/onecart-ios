@@ -50,31 +50,13 @@ final class DevicePreferencesTests: XCTestCase {
         defaults.set("uk", forKey: "onecart.language")
         defaults.set(["uk"], forKey: "AppleLanguages")
         let preferences = DevicePreferences(defaults: defaults)
-        XCTAssertEqual(preferences.language, .system)
         XCTAssertNil(defaults.string(forKey: "onecart.language"))
         XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
 
         defaults.set("ru", forKey: "onecart.language")
         preferences.reloadFromDefaults()
-        XCTAssertEqual(preferences.language, .system)
+        XCTAssertNil(defaults.string(forKey: "onecart.language"))
         XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
-    }
-
-    func testAppLanguagePropertiesAndLocales() {
-        XCTAssertEqual(AppLanguage.system.id, "system")
-        XCTAssertEqual(AppLanguage.english.id, "en")
-        XCTAssertEqual(AppLanguage.ukrainian.id, "uk")
-        XCTAssertEqual(AppLanguage.russian.id, "ru")
-
-        XCTAssertNil(AppLanguage.system.locale)
-        XCTAssertEqual(AppLanguage.english.locale?.identifier, "en")
-        XCTAssertEqual(AppLanguage.ukrainian.locale?.identifier, "uk")
-        XCTAssertEqual(AppLanguage.russian.locale?.identifier, "ru")
-
-        XCTAssertFalse(AppLanguage.system.title.isEmpty)
-        XCTAssertFalse(AppLanguage.english.title.isEmpty)
-        XCTAssertFalse(AppLanguage.ukrainian.title.isEmpty)
-        XCTAssertFalse(AppLanguage.russian.title.isEmpty)
     }
 
     func testAppThemePropertiesAndColorScheme() {
@@ -189,7 +171,6 @@ final class DevicePreferencesTests: XCTestCase {
         }
         let tables: [(name: String, value: (AppAccentColor) -> Palette)] = [
             ("primary", { $0.primaryRGB }),
-            ("primaryStrong", { $0.primaryStrongRGB }),
             ("primaryAccent", { $0.primaryAccentRGB }),
             ("primarySoft", { $0.primarySoftRGB }),
         ]
@@ -198,12 +179,6 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertEqual(Set(accents.map(\.id)).count, accents.count)
         for accent in accents {
             XCTAssertFalse(accent.id.isEmpty)
-            XCTAssertFalse(accent.title.isEmpty)
-            let primary = accent.primaryRGB.light
-            XCTAssertEqual(
-                accent.swatchColor,
-                Color(red: primary.0 / 255, green: primary.1 / 255, blue: primary.2 / 255)
-            )
         }
         for table in tables {
             for accent in accents {
@@ -246,7 +221,6 @@ final class DevicePreferencesTests: XCTestCase {
         for option in AppIconOption.allCases {
             XCTAssertFalse(option.id.isEmpty)
             XCTAssertFalse(option.title.isEmpty)
-            XCTAssertFalse(option.previewSymbol.isEmpty)
             XCTAssertFalse(option.previewImageName.isEmpty)
         }
         XCTAssertNil(AppIconOption.classic.iconName)

@@ -116,7 +116,6 @@ private struct RootSessionView: View {
             WelcomeView(viewModel: welcomeViewModel)
         case .main:
             MainTabView(session: session)
-                .id(state.preferences.language)
         }
     }
 }

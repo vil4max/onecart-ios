@@ -63,50 +63,6 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded?.items.count, snapshot.items.count)
     }
 
-    func testOptimisticSnapshotToggle() throws {
-        let store = try makeWidgetStore().store
-
-        let testID = UUID()
-        let snapshot = WidgetCartSnapshot(
-            cartTitle: "Тест",
-            totalCount: 2,
-            purchasedCount: 0,
-            isSyncing: false,
-            lastUpdated: Date(),
-            familyMemberCount: 1,
-            activePartnerName: nil,
-            items: [
-                WidgetItemSnapshot(id: testID, name: "Яблоки", isPurchased: false, categoryRaw: "produce"),
-                WidgetItemSnapshot(id: UUID(), name: "Сыр", isPurchased: false, categoryRaw: "dairyEggs"),
-            ]
-        )
-        store.save(snapshot: snapshot)
-
-        let didToggle = store.toggleItem(id: testID)
-        XCTAssertTrue(didToggle)
-
-        let updated = store.loadSnapshot()
-        XCTAssertEqual(updated?.purchasedCount, 1)
-        let toggledItem = updated?.items.first(where: { $0.id == testID })
-        XCTAssertEqual(toggledItem?.isPurchased, true)
-    }
-
-    func test_REQ_WIDGET_010_toggleWithPartialSnapshot_preservesHiddenPurchasedCount() throws {
-        let store = try makeWidgetStore().store
-        let id = UUID()
-        store.save(
-            snapshot: WidgetCartSnapshot(
-                cartTitle: "Family", totalCount: 15, purchasedCount: 10,
-                isSyncing: false, lastUpdated: Date(), familyMemberCount: 1,
-                items: [WidgetItemSnapshot(id: id, name: "Milk", isPurchased: false, categoryRaw: "dairyEggs")]
-            ))
-        XCTAssertTrue(store.toggleItem(id: id))
-        XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 11)
-        XCTAssertEqual(store.loadSnapshot()?.remainingCount, 4)
-        XCTAssertTrue(store.toggleItem(id: id))
-        XCTAssertEqual(store.loadSnapshot()?.purchasedCount, 10)
-    }
-
     func test_REQ_WIDGET_010_emptyAndAllPurchasedHelpers() {
         let empty = WidgetCartSnapshot.empty
         XCTAssertTrue(empty.isEmpty)

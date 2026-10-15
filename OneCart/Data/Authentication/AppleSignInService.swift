@@ -36,15 +36,12 @@ enum AppleSignInCredentialState: Equatable {
 
 enum AppleSignInError: LocalizedError {
     case missingIdentityToken
-    case cancelled
     case failed
 
     var errorDescription: String? {
         switch self {
         case .missingIdentityToken:
             String(localized: "auth.apple_missing_credentials")
-        case .cancelled:
-            String(localized: "auth.apple_cancelled")
         case .failed:
             String(localized: "auth.apple_failed")
         }

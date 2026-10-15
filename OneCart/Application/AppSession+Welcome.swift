@@ -174,16 +174,6 @@ extension AppSession {
         userAlert = nil
     }
 
-    func bootstrapTestingSession(account: OneCartAccount) throws {
-        self.account = account
-        try reload()
-    }
-
-    func offerSharedCartJoinIfNeededForTesting() async throws {
-        guard let account else { return }
-        try await offerSharedCartJoinIfNeeded(for: account)
-    }
-
     func finishFamilyCartSetup(for account: OneCartAccount) async throws {
         try await household.finishFamilyCartSetup(for: account)
     }

@@ -221,9 +221,7 @@ final class CartViewModel {
             from: historyBrowser.history,
             currentCartProducts: products,
             query: query,
-            defaults: CartSuggestionsEngine.defaultEssentials(
-                languageCode: state.preferences.language.languageCode
-            )
+            defaults: CartSuggestionsEngine.defaultEssentials()
         )
     }
 

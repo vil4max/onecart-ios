@@ -23,13 +23,6 @@ enum FamilyAccess: String, Equatable {
     case owner
     case member
 
-    var title: String {
-        switch self {
-        case .owner: String(localized: "cart.owner_role")
-        case .member: String(localized: "cart.member_role")
-        }
-    }
-
     var canEdit: Bool {
         true
     }
@@ -48,24 +41,6 @@ enum OneCartSyncState: Equatable {
     case syncing
     case offline
     case failed
-
-    var title: String {
-        switch self {
-        case .synchronized: String(localized: "sync.synchronized")
-        case .syncing: String(localized: "sync.syncing")
-        case .offline: String(localized: "sync.offline")
-        case .failed: String(localized: "sync.failed")
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .synchronized: "checkmark.circle.fill"
-        case .syncing: "arrow.triangle.2.circlepath"
-        case .offline: "wifi.slash"
-        case .failed: "exclamationmark.circle.fill"
-        }
-    }
 }
 
 struct FamilyMember: Identifiable, Equatable {
@@ -82,10 +57,6 @@ struct FamilyInviteLink: Identifiable, Equatable {
     let id: UUID
     let familyName: String
     let url: URL
-
-    var expiresAt: Date {
-        .distantFuture
-    }
 
     var shareMessage: String {
         String(format: String(localized: "share.message"), familyName, url.absoluteString)
