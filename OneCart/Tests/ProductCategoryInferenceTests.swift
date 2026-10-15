@@ -66,6 +66,17 @@ final class ProductCategoryInferenceTests: XCTestCase {
         XCTAssertEqual(ProductCategory.inferred(from: "арбуз"), .produce)
         XCTAssertEqual(ProductCategory.inferred(from: "кавун"), .produce)
         XCTAssertEqual(ProductCategory.inferred(from: "гарбуз"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "дыню"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "диню"), .produce)
+    }
+
+    func test_REQ_SHELL_010_spreadsAndSyrupsAreNotDairy() {
+        XCTAssertEqual(ProductCategory.inferred(from: "Peanut butter"), .grocery)
+        XCTAssertEqual(ProductCategory.inferred(from: "арахисовая паста"), .grocery)
+        XCTAssertEqual(ProductCategory.inferred(from: "сироп"), .grocery)
+        XCTAssertEqual(ProductCategory.inferred(from: "Maple syrup"), .grocery)
+        XCTAssertEqual(ProductCategory.inferred(from: "сир"), .dairyEggs)
+        XCTAssertEqual(ProductCategory.inferred(from: "Butter"), .dairyEggs)
     }
 
     func test_REQ_SHELL_010_shortStemsMatchOnlyTheirWholeWord() {

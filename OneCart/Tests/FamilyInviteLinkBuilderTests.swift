@@ -53,6 +53,8 @@ struct FamilyInviteLinkBuilderTests {
             userInfo: [CKPartialErrorsByItemIDKey: ["family-root": CKError(.zoneBusy)]]
         )
         #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(busyLeaves))
+        // The per-attempt create deadline throws stillSyncing; a slow first export earns a retry.
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(OneCartCloudKitError.stillSyncing))
     }
 
     @Test("REQ-SHARE-060: a revoked share yields no link and stays closed")

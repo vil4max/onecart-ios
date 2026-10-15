@@ -108,7 +108,26 @@ final class GuestMemberSessionTests: XCTestCase {
                 fixture.session.persistence.scope(for: $0) == .private
             })
         XCTAssertNil(fixture.session.userAlert)
+        XCTAssertNil(fixture.session.sharedCartRemovedMessage)
         XCTAssertEqual(Set(fixture.session.products.map(\.displayName)), ["Private bread"])
+    }
+
+    func test_REQ_SHARE_050_cloudImportDuringLeaveDoesNotReportTheCartAsRemoved() async throws {
+        let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
+        let session = fixture.session
+
+        async let leave: Void = session.leaveCurrentFamily()
+        async let imports: Void = {
+            for _ in 0..<5 {
+                await session.syncCart(reason: .cloudImport)
+                await Task.yield()
+            }
+        }()
+        _ = await (leave, imports)
+        await session.syncCart(reason: .cloudImport)
+
+        XCTAssertEqual(session.activeFamilySpace?.id, fixture.privateID)
+        XCTAssertNil(session.sharedCartRemovedMessage)
     }
 
     func testBenignShareLeaveFailures() {

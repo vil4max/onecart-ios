@@ -13,6 +13,7 @@ protocol HouseholdCartHost: AnyObject {
     var isReconcilingPersonalCart: Bool { get set }
     var isEnsuringHouseholdCart: Bool { get }
     var lastActiveFamilyWasShared: Bool { get set }
+    var isLeavingSharedCart: Bool { get }
     var sharedCartRemovedMessage: String? { get set }
 
     func applyEnsuringHouseholdCart(_ value: Bool)
@@ -281,7 +282,8 @@ final class HouseholdCartCoordinator {
     func handleInviteeSharedCartGoneIfNeeded() async {
         guard let host, let account = host.account else { return }
         let hasShared = host.familySpaces.contains { persistence.scope(for: $0) == .shared }
-        guard !hasShared, host.lastActiveFamilyWasShared else { return }
+        // A leave the user chose purges the shared zone itself; that is not a removal to report.
+        guard !host.isLeavingSharedCart, !hasShared, host.lastActiveFamilyWasShared else { return }
 
         do {
             try await reactivatePersonalCartIfNeeded(for: account)

@@ -142,7 +142,12 @@ enum ProductCategory: String, CaseIterable, Identifiable {
     }
 
     private static let inferenceRules: [CategoryRule] = [
-        // Produce whose names contain another rule's keyword ("water", "butter"); checked first.
+        // Names that contain another rule's keyword ("butter", "сир" in "сироп"); checked first.
+        CategoryRule(
+            keywords: ["peanut butter", "арахисов", "сироп", "syrup"],
+            prefixes: [],
+            category: .grocery
+        ),
         CategoryRule(
             keywords: ["eggplant", "watermelon", "watercress", "butternut"],
             prefixes: [],
@@ -257,7 +262,7 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         CategoryRule(
             keywords: [
                 "яблок", "банан", "овощ", "фрукт", "помидор", "огірок", "томат", "зелен",
-                "ягод", "огурец", "капуст", "морков", "баклажан", "арбуз", "кавун", "дыня", "дыни", "диня", "дині",
+                "ягод", "огурец", "капуст", "морков", "баклажан", "арбуз", "кавун", "дын", "диня", "дині", "диню",
                 "тыкв", "гарбуз", "кабач", "apple", "banana", "tomato", "fruit",
                 "vegetable", "salad", "cucumber", "lemon", "potato", "onion", "carrot",
                 "berry", "greens", "lettuce", "melon", "squash", "pumpkin", "zucchini",

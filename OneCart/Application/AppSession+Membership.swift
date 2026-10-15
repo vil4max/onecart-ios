@@ -142,7 +142,13 @@ extension AppSession {
             "leaveFamily start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
         beginBusyOperation()
-        defer { endBusyOperation() }
+        // The purge triggers cloud reloads while the leave is in flight; they must not read the
+        // vanishing shared cart as one the owner removed.
+        isLeavingSharedCart = true
+        defer {
+            isLeavingSharedCart = false
+            endBusyOperation()
+        }
         do {
             let discardLeftovers = try await backend.leaveFamily(objectID: family.objectID)
             if discardLeftovers, let familyID {
@@ -162,6 +168,7 @@ extension AppSession {
                 "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
             )
             show(error)
+            lastActiveFamilyWasShared = persistence.scope(for: family) == .shared
             if case OneCartCloudKitError.leaveTimedOut = error {
                 lastActiveFamilyWasShared = true
                 leaveRecoveryTask?.cancel()

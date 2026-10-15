@@ -38,7 +38,6 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
             }
             try await removeAccountStoresFromCoordinator()
         } catch {
-            finishAccountStoreDeletion()
             try? await restoreLocalStoresAfterFailedCloudAccountDeletion()
             throw error
         }
@@ -54,12 +53,13 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
     }
 
     func restoreLocalStoresAfterFailedCloudAccountDeletion() async throws {
+        // Repository calls stay rejected until the rebuilt container has its stores, and every
+        // exit, a throwing one included, lifts the rejection.
+        defer { finishAccountStoreDeletion() }
         guard try readAccountDeletionPhase() != .cloudDeleted else {
             throw AccountDeletionStoreError.cleanupRequired
         }
         try await removeAccountStoresFromCoordinator()
-        // Repository calls stay rejected until the rebuilt container has its stores.
-        defer { finishAccountStoreDeletion() }
         rebuildContainerAfterAccountDeletion(cloudKitEnabled: cloudKitEnabled && !accountDeletionRecoveryRequired)
         try await load(duringAccountDeletion: true)
     }

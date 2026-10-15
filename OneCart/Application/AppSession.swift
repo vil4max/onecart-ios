@@ -133,6 +133,7 @@ final class AppSession {
     var started = false
     var didPresentProductionSchemaAlert = false
     var lastActiveFamilyWasShared = false
+    var isLeavingSharedCart = false
 
     init(
         persistence: PersistenceController? = nil,

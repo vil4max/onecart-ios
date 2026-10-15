@@ -176,8 +176,10 @@ enum FamilyInviteLinkBuilder {
         .networkUnavailable, .networkFailure,
     ]
 
-    /// Decides by CloudKit code only; localized descriptions differ per device language.
+    /// Decides by CloudKit code only; localized descriptions differ per device language. A
+    /// per-attempt deadline is retried too: a first export of a new cart is often that slow.
     static func isRetryableShareFailure(_ error: Error) -> Bool {
+        if case OneCartCloudKitError.stillSyncing = error { return true }
         guard let ckError = error as? CKError else { return false }
         if ckError.code == .partialFailure {
             let leaves = (ckError.partialErrorsByItemID ?? [:]).values.compactMap { $0 as? CKError }

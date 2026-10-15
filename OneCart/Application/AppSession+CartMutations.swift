@@ -284,7 +284,7 @@ extension AppSession {
             return true
         } catch {
             CartSyncLog.action.error(
-                "\(action) fail error=\(error.localizedDescription, privacy: .public)"
+                "\(action, privacy: .public) fail error=\(error.localizedDescription, privacy: .public)"
             )
             guard !CartIntentContext.isActive else { return false }
             if error as? RepositoryError == .permissionDenied,
