@@ -93,6 +93,7 @@ final class MembershipSessionFixture {
             shoppingTripBackend: FakeShoppingTripBackend()
         )
         session.isReady = true
+        StoreCleanupRegistry.register(session: session)
         return session
     }
 

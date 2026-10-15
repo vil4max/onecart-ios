@@ -51,8 +51,12 @@ No production path branches on the store kind: unit tests and the DEBUG welcome 
 ephemeral store (one fixed account, scope-based access, no `CKShare`, a preview invite link, leave
 and revoke without a server). The test session builders (`makeTestSession`,
 `MembershipSessionFixture`) also pass `AllowAllRecordPermissions` and start the session ready.
-`PersistenceController.isEphemeral` (temporary store files) only shapes store setup and
-maintenance; `mirrorsToCloudKit` gates the wait for a cloud import before a hard refresh.
+`PersistenceController.isEphemeral` (temporary store files) shapes store setup and maintenance
+and skips `acceptShareInvitations`, since an ephemeral store has no shared CloudKit store to
+accept into. `mirrorsToCloudKit` (configured to mirror: not ephemeral and CloudKit enabled) gates
+the cloud-import wait before a refresh and the CloudKit environment reconcile and stamp around
+store loading; it reads the configuration, so it stays true while an interrupted account deletion
+is recovered with CloudKit off.
 
 Screens never see `AppSession`. Its surface is split into role protocols in
 `OneCart/Application/Services/` (`SessionStateReading`, `CartEditing`, `HistoryBrowsing`,
@@ -74,8 +78,12 @@ the entities into them once per reload, page load or product refresh
 then completed). Mutations go back by ID (`CartEditing.addProduct(toListID:draft:)`,
 `updateProduct(id:draft:)`, `setPurchased(productID:isPurchased:)`, `deleteProduct(id:)`); the
 session resolves the live row on its own context and drops, with a log line, a tap whose row a
-reload no longer has. `PrimaryListRule` picks the cart's list for values and entities alike. The
-exception is `SessionStateReading.activeFamilySpace`, still a `FamilySpace` entity: the screens
+reload no longer has. `PrimaryListRule` picks the cart's list for values and entities alike.
+While mapping, `CartContentStore` drops, from the entities as well as the values, a product
+without an ID and a repeated product ID within one list (the first in cart order stays), and
+shows no cart list when the primary list has no ID, so the cart, Siri, the widgets and the trip
+count and pick the same lines. A `HistoryLine` is keyed by family and product ID, the identity
+History deduplicates by (REQ-HIST-040). The exception is `SessionStateReading.activeFamilySpace`, still a `FamilySpace` entity: the screens
 only test it for presence, and moving it touches every membership path. The ViewModel fakes hold
 values, so their tests need no store; `CartFixture` stays for repository and mapping tests. Inside
 the application layer (Siri intents, widgets, the shopping trip, the coordinators) the session

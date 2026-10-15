@@ -7,11 +7,12 @@ import Foundation
 /// DEBUG demo inject `InMemoryFamilySharing`, so no production path forks on the store kind.
 ///
 /// Async share mutations take the object ID: a view-context `FamilySpace` must not leave the main
-/// actor. The synchronous members read the view context and run on the main actor.
+/// actor. The synchronous members read a view-context `FamilySpace`, so they are main-actor
+/// requirements.
 protocol FamilyCloudSharing: CloudUserIdentifying, AccountCloudDataDeleting {
     func restoredAccount(appleUserID: String, displayName: String?) async throws -> OneCartAccount
-    func access(for family: FamilySpace) -> FamilyAccess
-    func familyMembers(
+    @MainActor func access(for family: FamilySpace) -> FamilyAccess
+    @MainActor func familyMembers(
         for family: FamilySpace,
         account: OneCartAccount,
         currentUserRecordName: String?

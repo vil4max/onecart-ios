@@ -61,7 +61,7 @@ extension HistoryLine {
     static func bought(
         _ name: String,
         at moment: Date,
-        id: UUID = UUID(),
+        id: HistoryLine.Identity = .purchase(familyID: UUID(), productID: UUID()),
         createdByName: String? = nil,
         purchasedByName: String? = "Alex"
     ) -> HistoryLine {

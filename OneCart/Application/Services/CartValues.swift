@@ -29,7 +29,17 @@ struct CartList: Identifiable, Hashable, Sendable {
 
 /// One archived purchase as History shows it, already deduplicated across peer replicas.
 struct HistoryLine: Identifiable, Hashable, Sendable {
-    let id: UUID
+    /// The row identity. A product ID alone is not unique: a restored copy of a cart keeps its
+    /// products' IDs (REQ-SYNC-040), so History counts and keys a purchase per family and product
+    /// (REQ-HIST-040).
+    enum Identity: Hashable, Sendable {
+        case purchase(familyID: UUID, productID: UUID)
+        /// An item without a family or product ID: nothing addresses it, and its record's URI
+        /// keeps the row identity stable across rebuilds.
+        case record(URL)
+    }
+
+    let id: Identity
     let displayName: String
     let category: ProductCategory
     /// The moment the line counts as bought; History groups lines by its day.

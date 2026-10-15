@@ -125,7 +125,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         )
     }
 
-    func testCloudKitBackendAccessAndInMemoryRestoredAccount() async throws {
+    func testCloudKitBackendAccessFollowsTheStoreScope() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let backend = CloudKitBackendService(persistence: persistence)
         let privateID = try await repository.createFamilySpace(name: "Моя")
@@ -145,13 +145,6 @@ final class CloudKitErrorMappingTests: XCTestCase {
         persistence.container.viewContext.processPendingChanges()
         let sharedSpace = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
         XCTAssertEqual(backend.access(for: sharedSpace), .member)
-
-        let account = try await InMemoryFamilySharing(persistence: persistence).restoredAccount(
-            appleUserID: "apple-user",
-            displayName: "  "
-        )
-        XCTAssertEqual(account.id, OneCartStableID.uuid(for: "onecart.in-memory-user"))
-        XCTAssertEqual(account.displayName, String(localized: "common.default_user"))
     }
 
     func test_REQ_SHELL_050_cloudKitUserFacingErrorMapsAuthAndPermission() {

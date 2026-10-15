@@ -5,11 +5,12 @@ import Testing
 
 /// The contract of the iCloud stand-in the session suites and the DEBUG welcome demo run on. It
 /// pins what the production backend used to answer on an ephemeral store, so moving that
-/// behavior out of `CloudKitBackendService` changed nothing the session sees.
+/// behavior out of `CloudKitBackendService` changed nothing the session sees. The names carry
+/// no requirement ID: these tests prove the test double, not product behavior.
 @Suite("InMemoryFamilySharing", .removesStores)
 @MainActor
 struct InMemoryFamilySharingTests {
-    @Test("REQ-SHARE-020: the invite link is an iCloud preview link that carries the cart name")
+    @Test("the invite link is an iCloud preview link that carries the cart name")
     func inviteLinkIsAnICloudPreview() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -25,7 +26,7 @@ struct InMemoryFamilySharingTests {
         #expect(link.shareMessage.contains(link.url.absoluteString))
     }
 
-    @Test("REQ-AUTH-040: the account is one fixed user with a non-blank display name")
+    @Test("the account is one fixed user with a non-blank display name")
     func restoredAccountKeepsDisplayName() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -39,7 +40,7 @@ struct InMemoryFamilySharingTests {
         #expect(blank.displayName == String(localized: "common.default_user"))
     }
 
-    @Test("REQ-SHARE-060: revoking succeeds without a server")
+    @Test("revoking succeeds without a server")
     func revokeIsANoOp() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -49,7 +50,7 @@ struct InMemoryFamilySharingTests {
         #expect(try fixture.family.deletedAt == nil)
     }
 
-    @Test("REQ-SHARE-050: leaving asks the caller to discard local leftovers")
+    @Test("leaving asks the caller to discard local leftovers")
     func leaveDiscardsLeftovers() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -59,7 +60,7 @@ struct InMemoryFamilySharingTests {
         #expect(discardLeftovers)
     }
 
-    @Test("REQ-SHARE-040: a cart has no CKShare, so removing a member reports it as not shared")
+    @Test("a cart has no CKShare, so removing a member reports it as not shared")
     func removeMemberReportsFamilyNotShared() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -79,7 +80,7 @@ struct InMemoryFamilySharingTests {
         #expect(try await cloudSharing.ensureReadWriteACL(objectID: fixture.family.objectID) == false)
     }
 
-    @Test("REQ-SHARE-010: the current user is the only member, with access from the store scope")
+    @Test("the current user is the only member, with access from the store scope")
     func membersAreTheCurrentUserOnly() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)
@@ -97,7 +98,7 @@ struct InMemoryFamilySharingTests {
         #expect(owner.joinedAt == family.createdDate)
     }
 
-    @Test("REQ-AUTH-040: there is no iCloud user to name, and forgetting the identity moves its generation")
+    @Test("there is no iCloud user to name, and forgetting the identity moves its generation")
     func identityIsUnknownAndResettable() async throws {
         let fixture = try await CartFixture.make()
         let cloudSharing = InMemoryFamilySharing(persistence: fixture.persistence)

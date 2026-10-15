@@ -45,12 +45,12 @@ Planned order (status kept here):
 | G2 | Remove the remaining theme plumbing that does nothing in Release | done |
 | G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | done |
 | G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | done (exceptions listed in architecture.md) |
-| G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | pending |
+| G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | done |
 | G6 | One share-mutation path; leave-purge timeout and recovery tests | pending |
 | G7 | Composition root without default singletons; intents through dependencies | pending |
 | G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
 | G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | done (`OneCartPalette` stays shared presentation) |
-| G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | pending |
+| G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | done |
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | pending |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |
 | G13 | Split the repository behind protocols | pending |

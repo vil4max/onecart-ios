@@ -11,8 +11,8 @@ import Testing
 struct SessionCartMutationTests {
     /// Seeds through the repository: `AppSession.addProduct` also starts a background category
     /// refinement that rewrites the row from a snapshot of its draft, which would race the
-    /// mutation under test.
-    private func addProduct(
+    /// mutation under test. Internal so the suite's extension files can seed with it.
+    func addProduct(
         named name: String,
         to fixture: MembershipSessionFixture
     ) async throws -> ProductEntity {
@@ -24,7 +24,7 @@ struct SessionCartMutationTests {
         return try #require(fixture.session.products.first { $0.id == id })
     }
 
-    private func draft(named name: String) -> ProductDraft {
+    func draft(named name: String) -> ProductDraft {
         ProductDraft(name: name, category: .other)
     }
 
@@ -115,7 +115,11 @@ struct SessionCartMutationTests {
         #expect(copy.1 == "Кефир")
         #expect(copy.2)
     }
+}
 
+// MARK: - Mutations on a held row
+
+extension SessionCartMutationTests {
     @Test("REQ-CART-050: a Completed item survives delete; a to-buy item is removed")
     func deleteSkipsCompletedItems() async throws {
         let fixture = try await MembershipSessionFixture.owner()

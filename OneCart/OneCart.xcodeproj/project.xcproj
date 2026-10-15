@@ -357,6 +357,7 @@
         { "path": "CartViewModelTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "HistoryViewModelTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartContentMappingTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "SessionCartMutationTests+ByID.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "WelcomeViewModelTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "FamilyInviteLinkBuilderTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CloudKitBackendServiceTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },

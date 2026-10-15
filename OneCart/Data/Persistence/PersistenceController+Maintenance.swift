@@ -106,8 +106,12 @@ extension PersistenceController {
         previous == CloudKitShareEnvironment.development.rawValue
     }
 
-    /// True when the stores mirror to CloudKit, so a refresh has an import worth waiting for.
-    /// `isEphemeral` stores (tests, the DEBUG welcome demo) never mirror; cloud behavior is injected.
+    /// True when this controller is configured to mirror to CloudKit: it gates the cloud-import
+    /// wait before a refresh and the CloudKit environment reconcile and stamp. It reads the
+    /// configuration, not the live container: while an interrupted account deletion is recovered
+    /// (`pendingCloud`), the stores load with CloudKit off and this still answers true.
+    /// `isEphemeral` stores (tests, the DEBUG welcome demo) are never configured to mirror; cloud
+    /// behavior is injected.
     var mirrorsToCloudKit: Bool {
         !isEphemeral && cloudKitEnabled
     }

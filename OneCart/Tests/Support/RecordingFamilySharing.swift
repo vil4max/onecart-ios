@@ -4,7 +4,8 @@ import Foundation
 import Synchronization
 
 /// `InMemoryFamilySharing` that also records what the share orchestrator asked of it. With
-/// `holdsInviteLink`, invite creation waits until it is cancelled, so a test can cancel the caller.
+/// `holdsInviteLink`, invite creation waits until it is cancelled or three seconds pass, so a test
+/// can cancel the caller.
 final class RecordingFamilySharing: FamilyCloudSharing {
     struct Record {
         var aclHealCount = 0
@@ -70,7 +71,9 @@ final class RecordingFamilySharing: FamilyCloudSharing {
         }
         if holdsInviteLink {
             do {
-                try await Task.sleep(nanoseconds: 60_000_000_000)
+                // Long enough for the test to cancel the caller, short enough that a cancellation
+                // that stops reaching this call fails the test in seconds instead of hanging it.
+                try await Task.sleep(nanoseconds: 3_000_000_000)
             } catch {
                 state.withLock { $0.inviteLinkCancelled = true }
                 throw error

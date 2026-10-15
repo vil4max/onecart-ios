@@ -54,6 +54,12 @@ final class PurchaseHistoryReplicaTests: XCTestCase {
         let groupedLines = HistoryDayGroup.groups(from: HistoryLine.lines(from: [purchases, replica, otherFamily]))
 
         XCTAssertEqual(groupedLines.flatMap(\.items).count, 5)
+        // The two families' Milk share a product ID; History keys its rows per family and
+        // product, and the items without an ID by record, so every row identity is distinct.
+        let lineIDs = HistoryLine.lines(from: [purchases, replica, otherFamily]).map(\.id)
+        XCTAssertEqual(Set(lineIDs).count, 5)
+        XCTAssertTrue(lineIDs.contains(.purchase(familyID: firstID, productID: productID)))
+        XCTAssertTrue(lineIDs.contains(.purchase(familyID: secondID, productID: productID)))
         XCTAssertEqual(items.count, 5)
         XCTAssertEqual(items.filter { $0.familySpace?.id == firstID }.count, 4)
         XCTAssertEqual(items.filter { $0.familySpace?.id == secondID }.count, 1)

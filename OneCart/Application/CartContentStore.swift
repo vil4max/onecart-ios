@@ -83,14 +83,24 @@ final class CartContentStore {
     func rebuildDerivedCollections() {
         activeLists = lists.filter { !$0.isDeletedValue && $0.isActive }
 
+        // A row without a stable ID cannot be addressed by a mutation, and a second row with an ID
+        // already in its list repeats a row identity (REQ-CART-090 keeps one row per Product.id;
+        // the first in cart order wins). Both are dropped here, from the entities too, so the cart,
+        // the widgets, the shopping trip and Siri count the same lines.
         var grouped: [UUID: [ProductEntity]] = [:]
+        var seenIDsByListID: [UUID: Set<UUID>] = [:]
         for product in products where !product.isDeletedValue {
-            guard let listID = product.list?.id else { continue }
+            guard let listID = product.list?.id, let productID = product.id,
+                seenIDsByListID[listID, default: []].insert(productID).inserted
+            else { continue }
             grouped[listID, default: []].append(product)
         }
         productsByListID = grouped
 
-        cartLists = activeLists.compactMap(CartList.init)
+        // Siri, the widgets and the trip pick the primary list among the entities. When that list
+        // has no stable ID the cart shows no list either, rather than its values picking another.
+        let primaryIsAddressable = ShoppingListEntity.primaryList(in: activeLists).map { $0.id != nil } ?? true
+        cartLists = primaryIsAddressable ? activeLists.compactMap(CartList.init) : []
         cartItemsByListID = grouped.mapValues { $0.compactMap(CartItem.init) }
     }
 
