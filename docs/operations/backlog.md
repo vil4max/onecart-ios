@@ -16,23 +16,13 @@ with `just verify` green and one commit. Finding IDs (`oc-<scope>-NN`) refer to 
 | 2. Privacy and accounts | Product names in public logs (`application-01`); cart activity snapshots survive Delete Account and Sign out (`application-03`); unused Apple ID email and dead `signIn()` path (`data-06`, `data-07`); cached iCloud record name never reset (`data-20`); Keychain save ignores status (`data-21`); DEBUG demo writes real defaults (`application-21`); action names redacted in logs (`application-17`) | done (`f0a41e3`) |
 | 3. Correctness | Shared-cart-removed notice never shown (`application-02`); widget and Live Activity use another primary-list rule (`application-04`); toggle flips stored state, not the state seen (`data-02`); category refinement drops queued widget taps (`data-03`); share creation retries non-transient errors (`data-04`); invite timeout budget (`data-13`); store references read outside the lock (`data-01`); schema alert can show twice (`application-12`); leave-recovery loop ignores cancellation (`application-13`); random `stableID` (`data-22`); English-text error classification (`data-24`); optional family scope on mutations (`data-23`); icon versus section category (`features-13`); cancelled share raises an alert (`features-14`); keyword categories (`features-12`) | done (`b8ddebc`, review repairs `52b5129`) |
 | 4. Dead code | Test-only and unreachable members (`application-10`, `application-11`, `features-04`, `features-15`, `data-16`, `data-18`, `tests-16`) | done (`7f89ba9`) |
-| 5. Tests and test host | Test host boots live services (`tests-01`, `tests-02`); App Group writes from tests (`tests-09`); notification permission from a view (`tests-10`, `features-19`); missing tests (`application-09`, `features-10`, `features-11`, `features-24`, `data-15`); fixtures and temp stores (`tests-11`, `tests-13`, `tests-17`, `tests-18`) | pending |
-| 6. Accessibility | Add button ignores Dynamic Type, circular widget label (`features-22`); toggle animation ignores Reduce Motion (`architecture-15`) | pending |
-| 7. Docs and hygiene | Stale architecture and ADR facts (`readiness-16`, `architecture-18`); `.gitignore` and private-data allowlist leftovers (`readiness-12`, `readiness-13`); duplicated helpers and keys (`application-14`, `data-25`); naming (`application-15`); `AppDelegate` lock and push result (`application-20`); comment policy (`application-16`, `data-27`, `features-21`, `tests-19`) | docs part done (`7d6412e`); code part pending |
+| 5. Tests and test host | Test host boots live services (`tests-01`, `tests-02`); App Group writes from tests (`tests-09`); notification permission from a view (`tests-10`, `features-19`); missing tests (`application-09`, `features-10`, `features-11`, `features-24`, `data-15`); fixtures and temp stores (`tests-11`, `tests-13`, `tests-17`, `tests-18`) | done (`e2eed5c`) |
+| 6. Accessibility | Add button ignores Dynamic Type, circular widget label (`features-22`); toggle animation ignores Reduce Motion (`architecture-15`) | done (`8a9cff5`) |
+| 7. Docs and hygiene | Stale architecture and ADR facts (`readiness-16`, `architecture-18`); `.gitignore` and private-data allowlist leftovers (`readiness-12`, `readiness-13`); duplicated helpers and keys (`application-14`, `data-25`); naming (`application-15`); `AppDelegate` lock and push result (`application-20`); comment policy (`application-16`, `data-27`, `features-21`, `tests-19`) | done (`7d6412e`, `5ebb494`) |
 
-Low-severity leftovers from the review of groups 2–4, not yet fixed:
-
-- A rename still bumps the product's `updatedAt`, so a widget check queued before a rename is
-  dropped (the category path was fixed; `FamilySpaceRepository+Products.swift`).
-- With refinement no longer bumping `updatedAt`, restoring a provisional cart can keep the
-  pre-refinement category (cosmetic).
-- Sign-out, deletion and an iCloud account change reset the backend's cached record name but
-  not the session's `currentUserRecordName`; an in-flight lookup can write the old name back.
-- Pre-load preparation in `PersistenceController.load()` still runs outside the single-flight
-  load; two overlapping first loads could swap the container under each other (the session
-  already single-flights startup).
-- The share watchdog task is not cancelled on success and keeps the view model alive for 48 s
-  (no behavior effect).
+Known gap until G14: renames and category refinements keep `Product.updatedAt` (a queued widget
+purchase compares it), so a retried personal-cart restore can miss a rename made on the
+provisional cart. Retries happen only when selecting the restored cart failed.
 
 ## Approved by the maintainer (2026-10-15), not started
 
@@ -43,7 +33,7 @@ Planned order (status kept here):
 
 | Group | Scope | Status |
 |---|---|---|
-| L | Low-severity review leftovers (listed above) plus the second review's lows: test stores deleted while open, tab view models outliving the tab screen, weakened invariant comments, `sync.invite_owner_only` key name | pending |
+| L | Low-severity review leftovers: rename keeps `updatedAt`, session record name reset, single-flight load preparation, share watchdog, plus the second review's lows: test stores deleted while open, tab view models outliving the tab screen, weakened invariant comments, `sync.invite_owner_only` key name | done |
 | G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | done |
 | G2 | Remove the remaining theme plumbing that does nothing in Release | pending |
 | G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | pending |
@@ -57,7 +47,7 @@ Planned order (status kept here):
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | pending |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |
 | G13 | Split the repository behind protocols | pending |
-| G14 | Author identity in activity notifications (schema V9, additive). The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
+| G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
 
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root
   without default singletons (`application-06`, `architecture-04`), view models without Core

@@ -49,13 +49,15 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         session.account = OneCartAccount(id: UUID(), displayName: "Alex")
         let snapshotKey = "onecart.cart-activity-snapshot.\(UUID().uuidString)"
         defaults.set(Data("[{\"name\":\"Milk\"}]".utf8), forKey: snapshotKey)
-        session.backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+        _ = session.backend.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
+        session.knownUserRecordName = ("_previousUser", session.cloudUserIdentity.identityGeneration)
 
         session.signOut()
 
         XCTAssertNil(session.account)
         XCTAssertNil(defaults.object(forKey: snapshotKey), "item and member names must not survive sign-out")
-        XCTAssertNil(session.backend.cachedUserRecordName.withLock { $0 })
+        XCTAssertNil(session.backend.userRecordNameCache.withLock { $0.recordName })
+        XCTAssertNil(session.knownUserRecordName)
     }
 
     func test_REQ_WIDGET_050_purchaseFromTheTripReachesItAndFinishesIt() async throws {

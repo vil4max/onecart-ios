@@ -191,7 +191,7 @@ enum InviteLinkError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .noCart:
-            String(localized: "sync.invite_owner_only")
+            String(localized: "sync.invite_no_cart")
         case .offline:
             String(localized: "sync.invite_need_network")
         }

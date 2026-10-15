@@ -7,7 +7,7 @@ import Testing
 /// History hosted over `FakeHistoryBrowser`: day order, the overnight caption, paging and the
 /// absence of any clearing control (REQ-SHELL-020, REQ-HIST-050, REQ-HIST-030).
 @MainActor
-@Suite("HostedHistoryViewTests")
+@Suite("HostedHistoryViewTests", .removesStores)
 struct HostedHistoryViewTests {
     private static let calendar = Calendar(identifier: .gregorian)
 

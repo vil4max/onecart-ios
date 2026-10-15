@@ -33,6 +33,7 @@ final class MembershipSessionFixture {
             .appendingPathComponent(suiteName, isDirectory: true)
 
         persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        StoreCleanupRegistry.register(persistence)
         if loadStore {
             try await persistence.load()
         }
@@ -50,10 +51,11 @@ final class MembershipSessionFixture {
         )
     }
 
+    /// The store is not removed here: the session is still alive while this runs, so the
+    /// suite's `.removesStores` scope removes it after the test returns.
     deinit {
         UserDefaults.standard.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: widgetDirectory)
-        removeStoreFiles(of: persistence)
     }
 
     /// A second session over the same stores and defaults, as after an app relaunch.

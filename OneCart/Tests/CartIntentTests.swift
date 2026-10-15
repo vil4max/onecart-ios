@@ -220,8 +220,8 @@ final class CartIntentTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartSiriStart-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         let persistence = PersistenceController(inMemory: false, storeDirectoryURL: directory, cloudKitEnabled: false)
+        addTeardownBlock { removeStoreFiles(of: persistence) }
         let session = try makeTestSession(
             persistence: persistence,
             appleSignIn: appleSignIn ?? InMemoryAppleSignIn(credential: credential),
@@ -329,6 +329,8 @@ final class CartIntentTests: XCTestCase {
 
     /// The intents reach `OneCartAppComposition.session`; in the unit-test host it must never
     /// be built, so no test runs against the production stores, ActivityKit or the App Group.
+    /// The builder traps in the unit-test host, so a test that reaches it fails the whole run
+    /// before or after this one; this test only pins the host detection and the flag.
     func test_REQ_SIRI_040_unitTestHostNeverBuildsTheCompositionSession() {
         XCTAssertTrue(TestHost.isRunningUnitTests)
         #if DEBUG

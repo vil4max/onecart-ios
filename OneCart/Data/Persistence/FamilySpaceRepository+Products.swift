@@ -27,7 +27,8 @@ extension FamilySpaceRepository {
                 throw RepositoryError.familySpaceNotFound
             }
 
-            // Redelivery of the same stable id returns that row.
+            // Redelivery is idempotent only for the exact stable id, never by name; the name
+            // check below is the duplicate-row product rule, not redelivery idempotency.
             if let existing = try Self.fetchProduct(
                 id: id,
                 familySpaceID: space.id,
@@ -91,13 +92,14 @@ extension FamilySpaceRepository {
                 try self.requireDeletePermission(for: product)
                 product.deletedAt = now
                 product.updatedAt = now
-                collision.updatedAt = now
                 product.list?.updatedAt = now
                 product.familySpace?.updatedAt = now
                 return
             }
+            // Like a category refinement, an edit keeps `updatedAt`, the purchase version
+            // `setPurchased` compares queued widget commands against: renaming after a tap
+            // must not make that tap look older than the row.
             Self.apply(draft: draft, to: product)
-            product.updatedAt = now
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
         }

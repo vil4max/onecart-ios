@@ -119,7 +119,14 @@ final class AppSession {
     let defaults: UserDefaults
     let cloudUserIdentity: any CloudUserIdentifying
     /// This user's CloudKit record name once iCloud reported it; keys the shared member profile.
-    var currentUserRecordName: String?
+    /// Read under an identity generation, so an iCloud account change hides it without an observer.
+    var knownUserRecordName: (name: String, generation: UInt64)?
+    var currentUserRecordName: String? {
+        guard let knownUserRecordName,
+            knownUserRecordName.generation == cloudUserIdentity.identityGeneration
+        else { return nil }
+        return knownUserRecordName.name
+    }
     /// Mirrors `MemberNamePromptStorage` so the root view observes the "Not now" choice.
     var memberNamePromptDeclined = false
     /// The latest queued member-profile publish; tests await it.

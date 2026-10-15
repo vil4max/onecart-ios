@@ -7,7 +7,7 @@ import Testing
 /// gates, the alerts they raise and the state they leave behind. A cart in these stores has
 /// no `CKShare`, so the CloudKit kick itself is out of reach; the tests assert what the
 /// session does around it.
-@Suite("AppSession membership")
+@Suite("AppSession membership", .removesStores)
 @MainActor
 struct SessionMembershipTests {
 

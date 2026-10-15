@@ -3,7 +3,7 @@ import Foundation
 @testable import OneCart
 import Testing
 
-@Suite("CartSuggestionsEngineTests")
+@Suite("CartSuggestionsEngineTests", .removesStores)
 struct CartSuggestionsEngineTests {
     @Test("Ranks suggestions by purchase frequency descending")
     func ranksByFrequency() {
@@ -140,7 +140,7 @@ struct CartSuggestionsEngineTests {
     @Test("REQ-HIST-040: Counts replicated purchases once per family when ranking suggestions")
     func replicatedPurchasesDoNotInflateFrequency() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        defer { removeStoreFiles(of: persistence) }
+        StoreCleanupRegistry.register(persistence)
         try await persistence.load()
         let context = persistence.container.viewContext
         let firstFamily = FamilySpace(context: context)

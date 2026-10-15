@@ -104,7 +104,7 @@ struct AccountHarness {
 }
 
 @MainActor
-@Suite("AccountViewModelFakeTests")
+@Suite("AccountViewModelFakeTests", .removesStores)
 struct AccountViewModelFakeTests {
     @Test("REQ-SHARE-110: sharing hands the session's invite link to the share sheet")
     func shareHandsOutInviteLink() async throws {
@@ -126,6 +126,25 @@ struct AccountViewModelFakeTests {
         #expect(!harness.viewModel.isSharing)
     }
 
+    @Test("REQ-SHARE-030: a finished share releases the screen model instead of waiting out the timeout")
+    func finishedShareReleasesViewModel() async throws {
+        weak var released: AccountViewModel?
+        do {
+            let harness = try AccountHarness()
+            harness.membership.inviteLinkResult = try .success(
+                FamilyInviteLink(id: UUID(), familyName: "Family", url: #require(URL(string: "https://example.com/i")))
+            )
+            harness.viewModel.shareCart()
+            await harness.awaitShareCompletion()
+            #expect(!harness.viewModel.isSharing)
+            released = harness.viewModel
+        }
+        for _ in 0..<500 where released != nil {
+            try await Task.sleep(nanoseconds: 2_000_000)
+        }
+        #expect(released == nil)
+    }
+
     @Test("REQ-SHELL-050: a failed share shows the session's user-facing message as an alert")
     func failedShareShowsUserFacingAlert() async throws {
         let harness = try AccountHarness()
@@ -145,7 +164,7 @@ struct AccountViewModelFakeTests {
         #expect(!fixture.viewModel.canShareCart)
 
         let store = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        defer { removeStoreFiles(of: store) }
+        StoreCleanupRegistry.register(store)
         fixture.state.activeFamilySpace = FamilySpace(context: store.container.viewContext)
         fixture.state.access = .member
         #expect(fixture.viewModel.canShareCart)

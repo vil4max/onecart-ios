@@ -32,6 +32,9 @@ enum OneCartAppComposition {
     #endif
 
     static let session: AppSession = {
+        // Tests build their own sessions over isolated stores. Trapping here fails the whole
+        // run whichever test reaches the production session, independent of test order.
+        precondition(!TestHost.isRunningUnitTests, "The unit-test host must never build the app session")
         #if DEBUG
             didBuildSession = true
             if DemoUIMode.isEnabled {

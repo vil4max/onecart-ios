@@ -2,6 +2,8 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
+// Keep in step with the cart screen: CartCategoryThumbnail, ProductPurchaseToggle, CartProgressHeader.
+
 func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
     item.isPurchased
         ? Text("widget.toggle_unmark_a11y \(item.name)")

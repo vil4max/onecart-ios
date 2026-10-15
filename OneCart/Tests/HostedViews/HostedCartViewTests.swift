@@ -8,7 +8,7 @@ import UIKit
 /// The cart hosted over the ViewModel fakes: bootstrap states, sections, the composer, and the
 /// negative constraints that the screen carries no price and no share control.
 @MainActor
-@Suite("HostedCartViewTests")
+@Suite("HostedCartViewTests", .removesStores)
 struct HostedCartViewTests {
     /// Currency symbols and the word "price" in the app's languages; none may appear on the cart.
     private static let priceMarkers = ["$", "€", "₽", "₴", "price", "цена", "ціна"]

@@ -15,6 +15,15 @@ extension AppSession {
         return task
     }
 
+    /// Sign-out and account deletion: the next user must never be named after this one.
+    func forgetCurrentUserRecordName() {
+        backend.resetCachedUserRecordName()
+        if cloudUserIdentity !== backend {
+            cloudUserIdentity.resetCachedUserRecordName()
+        }
+        knownUserRecordName = nil
+    }
+
     /// Shares this user's chosen name with the members of the active cart (REQ-AUTH-040).
     /// Runs on bootstrap, cart activation, share acceptance and every name change; the
     /// repository makes repeats free, so callers need not track what was published.
@@ -24,8 +33,12 @@ extension AppSession {
             persistence.isLoaded,
             !persistence.accountDeletionRecoveryRequired
         else { return }
+        let accountID = account.id
+        let generation = cloudUserIdentity.identityGeneration
         guard let recordName = await cloudUserIdentity.currentUserRecordName() else { return }
-        currentUserRecordName = recordName
+        // A sign-out, account deletion or iCloud switch during the lookup makes the name stale.
+        guard self.account?.id == accountID, cloudUserIdentity.identityGeneration == generation else { return }
+        knownUserRecordName = (recordName, generation)
         let name = Self.participantName(preferences: preferences, account: account)
         do {
             let written = try await repository.upsertMemberProfile(

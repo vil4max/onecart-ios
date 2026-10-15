@@ -6,7 +6,7 @@ import Testing
 
 /// The one-time "What should your family call you?" prompt when Apple gives no name (REQ-AUTH-040).
 @MainActor
-@Suite("MemberNamePromptTests")
+@Suite("MemberNamePromptTests", .removesStores)
 struct MemberNamePromptTests {
 
     // MARK: - ViewModel

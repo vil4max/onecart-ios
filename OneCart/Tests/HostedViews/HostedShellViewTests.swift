@@ -7,7 +7,7 @@ import UIKit
 /// The shell hosted over a real `AppSession` on isolated stores: the three tabs and the root
 /// switch between the launch ride, Welcome and the tabs (REQ-SHELL-010, REQ-AUTH-010).
 @MainActor
-@Suite("HostedShellViewTests")
+@Suite("HostedShellViewTests", .removesStores)
 struct HostedShellViewTests {
     private static var tabTitles: [String] {
         ["cart.tab", "history.tab", "account.tab"].map { String(localized: String.LocalizationValue($0)) }

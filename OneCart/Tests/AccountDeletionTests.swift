@@ -73,7 +73,8 @@ final class AccountDeletionTests: XCTestCase {
         defaults.set(Data("[{\"name\":\"Milk\"}]".utf8), forKey: snapshotKey)
         defaults.set(UUID().uuidString, forKey: provisionalKey)
         defaults.set(UUID().uuidString, forKey: restoredKey)
-        session.backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+        _ = session.backend.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
+        session.knownUserRecordName = ("_previousUser", session.cloudUserIdentity.identityGeneration)
 
         await session.deleteAccount()
 
@@ -81,7 +82,8 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: snapshotKey), "item and member names must not survive deletion")
         XCTAssertNil(defaults.object(forKey: provisionalKey))
         XCTAssertNil(defaults.object(forKey: restoredKey))
-        XCTAssertNil(session.backend.cachedUserRecordName.withLock { $0 })
+        XCTAssertNil(session.backend.userRecordNameCache.withLock { $0.recordName })
+        XCTAssertNil(session.knownUserRecordName)
     }
 
     func test_REQ_AUTH_080_deleteAccount_whenCloudFails_keepsSignedInAndLocalState() async throws {
@@ -326,7 +328,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_080_deleteAccount_whenCloudFails_preservesUnsyncedDiskProduct() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
 
         await fixture.session.deleteAccount()
@@ -350,7 +351,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_deleteAccount_whenCloudFailsBeforeDestructiveRequest_leavesNoMarkerAndKeepsMirroring() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
         fixture.cloud.failurePoint = .beforeDestructiveRequest
 
@@ -362,10 +362,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertFalse(fixture.persistence.accountDeletionRecoveryRequired)
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.persistence.accountDeletionMarkerURL.path))
 
-        let relaunched = PersistenceController(
-            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
-            cloudKitEnabled: true
-        )
+        let relaunched = makeRelaunchedPersistence(of: fixture, cloudKitEnabled: true)
         XCTAssertFalse(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
         XCTAssertTrue(
             relaunched.container.persistentStoreDescriptions.allSatisfy {
@@ -377,7 +374,6 @@ final class AccountDeletionTests: XCTestCase {
         async throws
     {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
         fixture.cloud.failurePoint = .afterDestructiveRequestStarted
 
@@ -387,10 +383,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .pendingCloud)
 
-        let relaunched = PersistenceController(
-            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
-            cloudKitEnabled: true
-        )
+        let relaunched = makeRelaunchedPersistence(of: fixture, cloudKitEnabled: true)
         XCTAssertTrue(try relaunched.prepareAccountDeletionRecoveryBeforeLoad())
         XCTAssertTrue(
             relaunched.container.persistentStoreDescriptions.allSatisfy {
@@ -400,7 +393,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_deleteAccount_whenRetryFailsBeforeDestructiveRequest_keepsEarlierPendingMarker() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         fixture.cloud.errorToThrow = TestAccountDeletionError.simulated
         fixture.cloud.failurePoint = .afterDestructiveRequestStarted
         await fixture.session.deleteAccount()
@@ -418,7 +410,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_070_deleteAccount_whenCloudSucceeds_removesDiskProduct() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
 
         await fixture.session.deleteAccount()
 
@@ -431,7 +422,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_080_detachAccountStores_preservesFilesAndRejectsLoadUntilRecovery() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         let privateURL = fixture.persistence.storeDirectoryURL.appendingPathComponent("OneCart-private.sqlite")
 
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
@@ -452,7 +442,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_080_repositoryCallsDuringStoreRecoveryAreRejectedOrRunOnTheRebuiltContainer() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         let persistence = fixture.persistence
         try await persistence.detachLocalStoresForCloudAccountDeletion()
         let detachedContainer = persistence.container
@@ -486,7 +475,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_080_deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
         try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
         XCTAssertThrowsError(
@@ -505,7 +493,6 @@ final class AccountDeletionTests: XCTestCase {
 
     func test_REQ_AUTH_080_load_whenCleanupPreviouslyFailed_finishesDeletionBeforeOpeningStores() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
         try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
 
@@ -514,10 +501,7 @@ final class AccountDeletionTests: XCTestCase {
                 throw TestAccountDeletionError.simulated
             })
         XCTAssertEqual(try fixture.persistence.readAccountDeletionPhase(), .cloudDeleted)
-        let relaunched = PersistenceController(
-            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
-            cloudKitEnabled: false
-        )
+        let relaunched = makeRelaunchedPersistence(of: fixture, cloudKitEnabled: false)
         try await relaunched.load()
         let repository = FamilySpaceRepository(
             persistence: relaunched,
@@ -528,16 +512,33 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: relaunched.accountDeletionMarkerURL.path))
     }
 
+    func test_REQ_AUTH_080_overlappingFirstLoadsFinishDeletionOnceAndBothSucceed() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
+        try fixture.persistence.writeAccountDeletionPhase(.cloudDeleted)
+        let relaunched = makeRelaunchedPersistence(of: fixture, cloudKitEnabled: false)
+
+        // The pre-load cleanup runs inside the single flight: a second caller waits for it
+        // instead of destroying the files the first one is about to open.
+        async let first: Void = relaunched.load()
+        async let second: Void = relaunched.load()
+        _ = try await (first, second)
+
+        XCTAssertTrue(relaunched.isLoaded)
+        let repository = FamilySpaceRepository(
+            persistence: relaunched,
+            permissionAuthorizer: AllowAllPermissionAuthorizer()
+        )
+        XCTAssertNil(fetchProduct(id: fixture.productID, repository: repository))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: relaunched.accountDeletionMarkerURL.path))
+    }
+
     func test_start_afterInterruptedDeletion_restoresLocalCartAndLeavesDeletionRetryAvailable() async throws {
         let fixture = try await makeDiskDeletionFixture()
-        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
         try await fixture.persistence.detachLocalStoresForCloudAccountDeletion()
         // The process died while the zone deletion request was in flight.
         try fixture.persistence.writeAccountDeletionPhase(.pendingCloud)
-        let relaunched = PersistenceController(
-            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
-            cloudKitEnabled: true
-        )
+        let relaunched = makeRelaunchedPersistence(of: fixture, cloudKitEnabled: true)
         let defaults = try makeDefaults()
         let cloud = RecordingAccountCloudDeleter()
         let session = try makeTestSession(
@@ -576,6 +577,7 @@ final class AccountDeletionTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartAccountDeletion-\(UUID().uuidString)", isDirectory: true)
         let persistence = PersistenceController(storeDirectoryURL: directory, cloudKitEnabled: false)
+        addTeardownBlock { removeStoreFiles(of: persistence) }
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -614,6 +616,20 @@ final class AccountDeletionTests: XCTestCase {
             familyID: familyID,
             productID: productID
         )
+    }
+
+    /// A second controller over the fixture's store files, as after an app relaunch; teardown
+    /// closes its stores before the shared folder is removed.
+    private func makeRelaunchedPersistence(
+        of fixture: DiskDeletionFixture,
+        cloudKitEnabled: Bool
+    ) -> PersistenceController {
+        let relaunched = PersistenceController(
+            storeDirectoryURL: fixture.persistence.storeDirectoryURL,
+            cloudKitEnabled: cloudKitEnabled
+        )
+        addTeardownBlock { removeStoreFiles(of: relaunched) }
+        return relaunched
     }
 
     func test_deleteAccountZones_marksDestructiveRequestBeforeSendingIt() async throws {

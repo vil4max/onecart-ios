@@ -4,7 +4,7 @@ import Testing
 
 /// The shopping-trip Live Activity: what it shows, when it starts, follows and ends.
 @MainActor
-@Suite("ShoppingTripActivityTests")
+@Suite("ShoppingTripActivityTests", .removesStores)
 struct ShoppingTripActivityTests {
     private nonisolated static let accountID = UUID()
     private nonisolated static let familyID = UUID()

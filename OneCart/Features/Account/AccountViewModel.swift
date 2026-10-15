@@ -27,6 +27,7 @@ final class AccountViewModel {
     private let shareTimeoutNanoseconds: UInt64
     private let requestNotificationAuthorization: @MainActor () -> Void
     private var shareGeneration = 0
+    @ObservationIgnored private var shareWatchdog: Task<Void, Never>?
 
     init(
         state: any SessionStateReading,
@@ -306,7 +307,7 @@ final class AccountViewModel {
                 }
             }
         }
-        Task { @MainActor in
+        shareWatchdog = Task { @MainActor in
             try? await Task.sleep(nanoseconds: shareTimeoutNanoseconds)
             guard generation == shareGeneration else { return }
             work.cancel()
@@ -323,5 +324,8 @@ final class AccountViewModel {
         guard generation == shareGeneration else { return }
         shareGeneration += 1
         isSharing = false
+        // A sleeping watchdog would keep this model alive for the whole timeout.
+        shareWatchdog?.cancel()
+        shareWatchdog = nil
     }
 }

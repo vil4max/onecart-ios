@@ -5,7 +5,7 @@ import Testing
 
 /// The builder's CloudKit round trips (share creation, persistence, mirroring) need a live
 /// container; these tests cover the decisions it makes before and around them.
-@Suite("FamilyInviteLinkBuilder")
+@Suite("FamilyInviteLinkBuilder", .removesStores)
 @MainActor
 struct FamilyInviteLinkBuilderTests {
     private func makeShare(publicPermission: CKShare.ParticipantPermission) -> CKShare {

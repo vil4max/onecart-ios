@@ -180,6 +180,12 @@ extension FamilySpaceRepository {
         }
         let existingDate = updatedAt(existing) ?? .distantPast
         let candidateDate = updatedAt(candidate) ?? .distantPast
-        return candidateDate > existingDate ? candidate : existing
+        if candidateDate != existingDate {
+            return candidateDate > existingDate ? candidate : existing
+        }
+        // Edits keep updatedAt, so ties are common; fetch order must not pick the survivor.
+        let existingKey = existing.objectID.uriRepresentation().absoluteString
+        let candidateKey = candidate.objectID.uriRepresentation().absoluteString
+        return candidateKey < existingKey ? candidate : existing
     }
 }

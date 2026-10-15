@@ -92,7 +92,7 @@ enum FamilyInviteLinkBuilder {
         }
 
         // `share()` itself often finishes the first CloudKit export, so a CloudKit record ID
-        // must not be required beforehand.
+        // must not be required beforehand: waiting for it left the Invite spinner hanging.
         let created = try await createShareWithRetry(
             persistence: persistence,
             objectID: objectID

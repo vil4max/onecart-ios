@@ -136,6 +136,8 @@ extension FamilySpaceRepository {
         if source.value(forKey: "deletedAt") != nil {
             return true
         }
+        // Renames and refinements keep updatedAt, so a retry can miss one made on the provisional
+        // cart; a tie still keeps the destination, whose row another device may have edited.
         let sourceUpdated = source.value(forKey: "updatedAt") as? Date ?? .distantPast
         let destinationUpdated = destination.value(forKey: "updatedAt") as? Date ?? .distantPast
         return sourceUpdated > destinationUpdated

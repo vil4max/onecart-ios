@@ -88,7 +88,7 @@ extension AppSession {
             HouseholdCartCoordinator.clearPersonalCartKeys(accountID: deletedAccountID, defaults: defaults)
         }
         CartActivityNotifier.clearSnapshots(defaults: defaults)
-        backend.resetCachedUserRecordName()
+        forgetCurrentUserRecordName()
         preferences.participantDisplayName = ""
         appleSignIn.clearCredential()
         clearAccountData()

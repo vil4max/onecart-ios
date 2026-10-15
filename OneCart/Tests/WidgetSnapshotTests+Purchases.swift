@@ -116,6 +116,22 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
+    func test_REQ_WIDGET_020_renameAfterAQueuedPurchaseDoesNotDropIt() async throws {
+        let fixture = try await makeWidgetSession()
+        let request = fixture.request(createdAt: Date())
+        try fixture.store.enqueuePurchase(request)
+        try await fixture.session.repository.updateProduct(
+            id: fixture.productID, familySpaceID: fixture.familyID, draft: productDraft(name: "Oat milk")
+        )
+
+        try await fixture.session.performWidgetPurchase(request)
+
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertTrue(product.isPurchasedValue)
+        XCTAssertEqual(product.displayName, "Oat milk")
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
     func test_missingProduct_retainsOrderedCommandsWithoutBlockingAnotherProduct() async throws {
         let fixture = try await makeWidgetSession()
         let missingID = UUID()

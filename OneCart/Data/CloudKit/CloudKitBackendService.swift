@@ -7,7 +7,7 @@ final class CloudKitBackendService: Sendable {
     let persistence: PersistenceController
     private let injectedCloudContainer: CKContainer?
     private let cachedCloudContainer = Mutex<CKContainer?>(nil)
-    let cachedUserRecordName = Mutex<String?>(nil)
+    let userRecordNameCache = Mutex(UserRecordNameCache())
     /// Written once in `init` and read only in `deinit`, so no two threads touch it at once.
     nonisolated(unsafe) private var accountChangeObserver: (any NSObjectProtocol)?
 
@@ -57,7 +57,7 @@ final class CloudKitBackendService: Sendable {
     }
 
     func resetCachedUserRecordName() {
-        cachedUserRecordName.withLock { $0 = nil }
+        userRecordNameCache.withLock { $0.reset() }
     }
 
     func restoredAccount(

@@ -107,8 +107,10 @@ private struct RootSessionView: View {
         .sheet(isPresented: isNamePromptPresented) {
             MemberNamePromptView(viewModel: namePromptViewModel)
         }
-        // Each signed-in account starts with fresh tab screens, as when the tabs first mount.
-        .onChange(of: state.account?.id) {
+        // Every entry into the tabs starts with fresh tab screens, as when they first mount, so
+        // transient screen state never survives a round-trip through Welcome.
+        .onChange(of: phase) { _, newPhase in
+            guard newPhase == .main else { return }
             tabViewModels = MainTabViewModels(session: session)
         }
     }

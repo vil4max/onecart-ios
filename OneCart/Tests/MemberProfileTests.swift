@@ -7,7 +7,7 @@ import Testing
 
 /// The shared member profile that carries each member's chosen name to the others (REQ-AUTH-040).
 @MainActor
-@Suite("MemberProfileTests")
+@Suite("MemberProfileTests", .removesStores)
 struct MemberProfileTests {
     private struct Row: Sendable, Equatable {
         let recordName: String?
@@ -188,14 +188,73 @@ struct MemberProfileTests {
     @Test("REQ-AUTH-040: an iCloud account change forgets the cached record name")
     func accountChangeForgetsCachedRecordName() {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        defer { removeStoreFiles(of: persistence) }
+        StoreCleanupRegistry.register(persistence)
         let backend = CloudKitBackendService(persistence: persistence)
-        backend.cachedUserRecordName.withLock { $0 = "_previousUser" }
+        _ = backend.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
+        let generation = backend.identityGeneration
 
         NotificationCenter.default.post(name: .CKAccountChanged, object: nil)
 
         // A profile published after the switch must look up the new user, not reuse the old name.
-        #expect(backend.cachedUserRecordName.withLock { $0 } == nil)
+        #expect(backend.userRecordNameCache.withLock { $0.recordName } == nil)
+        #expect(backend.identityGeneration != generation)
+    }
+
+    @Test("REQ-AUTH-040: a lookup that finishes after the identity was forgotten never caches its name")
+    func lookupAfterResetDoesNotCache() {
+        var cache = UserRecordNameCache()
+        let lookupGeneration = cache.generation
+
+        cache.reset()
+
+        let storedStale = cache.store("_previousUser", readUnder: lookupGeneration)
+        #expect(!storedStale)
+        #expect(cache.recordName == nil)
+        let storedCurrent = cache.store("_newUser", readUnder: cache.generation)
+        #expect(storedCurrent)
+        #expect(cache.recordName == "_newUser")
+    }
+
+    @Test("REQ-AUTH-040: sign-out forgets the session's record name")
+    func signOutForgetsSessionRecordName() async throws {
+        let identity = FakeCloudUserIdentity(recordName: "_alex")
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex", cloudUserIdentity: identity)
+        await fixture.session.updateParticipantDisplayName("Мама")
+        #expect(fixture.session.currentUserRecordName == "_alex")
+
+        fixture.session.signOut()
+
+        #expect(fixture.session.currentUserRecordName == nil)
+        #expect(fixture.session.knownUserRecordName == nil)
+    }
+
+    @Test("REQ-AUTH-040: a sign-out during the identity lookup leaves no record name and no profile")
+    func signOutDuringLookupWritesNothingBack() async throws {
+        let identity = FakeCloudUserIdentity(recordName: "_alex")
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex", cloudUserIdentity: identity)
+        let session = fixture.session
+        identity.duringLookup { await MainActor.run { session.signOut() } }
+
+        await session.schedulePublishMemberProfile().value
+
+        #expect(session.currentUserRecordName == nil)
+        #expect(session.knownUserRecordName == nil)
+        #expect(try await rows(in: fixture).isEmpty)
+    }
+
+    @Test("REQ-AUTH-040: an iCloud account change during the lookup hides the old record name")
+    func accountChangeDuringLookupWritesNothingBack() async throws {
+        let identity = FakeCloudUserIdentity(recordName: "_alex")
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex", cloudUserIdentity: identity)
+        await fixture.session.updateParticipantDisplayName("Мама")
+        #expect(fixture.session.currentUserRecordName == "_alex")
+        let before = try await rows(in: fixture)
+        identity.duringLookup { identity.resetCachedUserRecordName() }
+
+        await fixture.session.updateParticipantDisplayName("Папа")
+
+        #expect(fixture.session.currentUserRecordName == nil)
+        #expect(try await rows(in: fixture) == before)
     }
 
     @Test("REQ-AUTH-040: a store written by the previous model opens with the member profile entity")

@@ -36,7 +36,7 @@ struct CartHarness {
 }
 
 @MainActor
-@Suite("CartViewModelTests")
+@Suite("CartViewModelTests", .removesStores)
 struct CartViewModelTests {
     @Test("REQ-CART-070: household bootstrap and its retry forward to the session")
     func householdBootstrapForwards() async throws {

@@ -41,7 +41,7 @@ struct HostedAccountHarness {
 /// Settings hosted over fakes: the one-screen layout per role (REQ-SHELL-030), share as a
 /// secondary action that lives only here (REQ-SHELL-040, REQ-SHARE-110) and the branding footer.
 @MainActor
-@Suite("HostedAccountViewTests")
+@Suite("HostedAccountViewTests", .removesStores)
 struct HostedAccountViewTests {
     @Test(
         "REQ-SHELL-030: the owner's Settings is one screen: cart, sharing, Apple account, appearance, deletion, about"

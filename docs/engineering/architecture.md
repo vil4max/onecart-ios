@@ -157,7 +157,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 - `HistoryItems.unique` selects one logical item per `(family ID, item ID)` for history and suggestions. Archive retries reuse existing logical purchases. This does not physically delete duplicate CloudKit history records.
 - Account deletion unloads stores without deleting SQLite, checks every requested zone result, then marks confirmed cloud deletion before local cleanup. `account-deletion-state.json` survives interrupted cleanup. Pending cloud deletion loads original stores without mirroring; confirmed deletion finishes cleanup before reopening. Credentials clear only after cleanup succeeds.
 - `CloudKitDeadline` resolves the caller once on result, timeout, or cancellation without waiting for a cancellation-insensitive SDK callback. A late cloud write remains possible; timeout is not proof of server-side cancellation.
-- Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer product edit are ignored; confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
+- Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer purchase change of the product are ignored (a rename or category refinement does not count); confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
 - Both the app and widget extension bundle their own `PrivacyInfo.xcprivacy`. App Group defaults access is declared in each relevant target.
 
 ## Folder layout
@@ -176,6 +176,6 @@ Full tree and commands: [README.md](../../README.md).
 
 ## Cart merge (LWW)
 
-- Within one cart: duplicate `Product.id` → soft-delete loser via launch dedupe; prefer non-deleted, else newer `updatedAt`.
+- Within one cart: duplicate `Product.id` → soft-delete loser via launch dedupe; prefer non-deleted, else newer `updatedAt`, else a stable order. `Product.updatedAt` moves on purchase-state changes and deletes, not on renames or category refinements, because a queued widget purchase compares it.
 - On invite join: switch active to shared and hide personal from the session list — **no** private→shared product copy; there is no join merge code. A new-device import copies provisional personal content by stable IDs (`restoreProvisionalPersonalContent`, REQ-SYNC-040).
 - Quantities are last-write-wins, never summed.

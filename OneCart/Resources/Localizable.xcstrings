@@ -4357,7 +4357,7 @@
         }
       }
     },
-    "sync.invite_owner_only": {
+    "sync.invite_no_cart": {
       "extractionState": "manual",
       "localizations": {
         "en": {

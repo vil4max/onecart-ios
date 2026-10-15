@@ -7,7 +7,7 @@ import Testing
 /// at the layer where it lives (ViewModel API, protocol surface, bundle metadata); the hosted
 /// suites under `HostedViews/` prove the same constraints on the rendered screens.
 @MainActor
-@Suite("RequirementConstraintTests")
+@Suite("RequirementConstraintTests", .removesStores)
 struct RequirementConstraintTests {
 
     // MARK: - REQ-CART-060 name-only items

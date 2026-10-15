@@ -32,11 +32,11 @@ struct CartFixture {
     let repository: FamilySpaceRepository
     let familyID: UUID
     let listID: UUID
-    private let cleanup: StoreFileCleanup
 
+    /// The store is removed by the suite's `.removesStores` scope after the test returns.
     static func make() async throws -> CartFixture {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
-        let cleanup = StoreFileCleanup(persistence)
+        StoreCleanupRegistry.register(persistence)
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -48,8 +48,7 @@ struct CartFixture {
             persistence: persistence,
             repository: repository,
             familyID: familyID,
-            listID: listID,
-            cleanup: cleanup
+            listID: listID
         )
     }
 

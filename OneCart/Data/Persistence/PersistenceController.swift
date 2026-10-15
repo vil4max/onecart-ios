@@ -126,14 +126,7 @@ final class PersistenceController: @unchecked Sendable {
         }
 
         do {
-            let recoveringDeletion = try prepareAccountDeletionRecoveryBeforeLoad()
-            if !recoveringDeletion {
-                try reconcileCloudKitEnvironmentBeforeLoad()
-            }
             try await loadPersistentStoresOnce(duringAccountDeletion: duringAccountDeletion)
-            if !recoveringDeletion {
-                stampCloudKitEnvironmentAfterSuccessfulLoad()
-            }
         } catch {
             logger.error(
                 "Persistent store load failed; preserving store files: \(error.localizedDescription, privacy: .public)"
@@ -276,6 +269,19 @@ final class PersistenceController: @unchecked Sendable {
             loading = true
             loadLock.unlock()
 
+            // The pre-load preparation may destroy store files or rebuild the container, so it
+            // runs only in the single flight's leader; no lock is held while it works.
+            let recoveringDeletion: Bool
+            do {
+                recoveringDeletion = try self.prepareAccountDeletionRecoveryBeforeLoad()
+                if !recoveringDeletion {
+                    try self.reconcileCloudKitEnvironmentBeforeLoad()
+                }
+            } catch {
+                finishLoading(firstError: error, stampsEnvironment: false)
+                return
+            }
+
             var callbackCount = 0
             var firstError: Error?
             let expectedCount = self.container.persistentStoreDescriptions.count
@@ -303,14 +309,14 @@ final class PersistenceController: @unchecked Sendable {
                 }
 
                 guard isFinished else { return }
-                finishLoading(firstError: firstError)
+                finishLoading(firstError: firstError, stampsEnvironment: !recoveringDeletion)
             }
         }
 
         try result.get()
     }
 
-    private func finishLoading(firstError: Error?) {
+    private func finishLoading(firstError: Error?, stampsEnvironment: Bool) {
         loadLock.lock()
         defer { loadLock.unlock() }
 
@@ -322,6 +328,9 @@ final class PersistenceController: @unchecked Sendable {
                 try identifyStores()
                 configureContexts()
                 loaded = true
+                if stampsEnvironment {
+                    stampCloudKitEnvironmentAfterSuccessfulLoad()
+                }
                 result = .success(())
             } catch {
                 result = .failure(error)

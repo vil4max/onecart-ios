@@ -6,7 +6,7 @@ import Testing
 /// Cart mutations driven through the session (`AppSession+CartMutations`): the repository
 /// paths are covered elsewhere; these assert the session's gates, the state it refreshes
 /// and the alerts it raises.
-@Suite("AppSession cart mutations")
+@Suite("AppSession cart mutations", .removesStores)
 @MainActor
 struct SessionCartMutationTests {
     /// Seeds through the repository: `AppSession.addProduct` also starts a background category

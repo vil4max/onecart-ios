@@ -5,7 +5,7 @@ import Testing
 
 /// Decisions the backend makes before or instead of a CloudKit call. Everything that needs
 /// a `CKContainer` (account status, share persistence, zone purge) stays out of unit tests.
-@Suite("CloudKitBackendService")
+@Suite("CloudKitBackendService", .removesStores)
 @MainActor
 struct CloudKitBackendServiceTests {
     @Test("REQ-SHARE-020: an in-memory store hands out an iCloud preview link without CloudKit")

@@ -4,7 +4,7 @@ import Foundation
 import Testing
 
 @MainActor
-@Suite("HistoryViewModelTests")
+@Suite("HistoryViewModelTests", .removesStores)
 struct HistoryViewModelTests {
     @Test("REQ-SHELL-020: days are newest first and an opened day resolves to its live contents")
     func daysNewestFirstWithLiveDetail() async throws {
