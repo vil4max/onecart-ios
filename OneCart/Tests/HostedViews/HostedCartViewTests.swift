@@ -206,6 +206,22 @@ struct HostedCartViewTests {
         }
     }
 
+    @Test("REQ-SHELL-010: the add button grows with the text size")
+    func addButtonScalesWithDynamicType() async throws {
+        func addButtonFrame(at size: DynamicTypeSize) async throws -> CGRect {
+            let (_, harness) = try await Self.cartWithLines()
+            let hosted = HostedView(HomeView(viewModel: harness.viewModel).environment(\.dynamicTypeSize, size))
+            defer { hosted.tearDown() }
+            return try #require(hosted.element(identifier: "cart.add")).node.accessibilityFrame
+        }
+
+        let regular = try await addButtonFrame(at: .large)
+        let accessible = try await addButtonFrame(at: .accessibility3)
+
+        #expect(regular.width >= 44, "regular \(regular)")
+        #expect(accessible.width > regular.width, "regular \(regular), accessible \(accessible)")
+    }
+
     @Test(
         "REQ-CART-130: the name spans the row's content width at accessibility sizes, and the current layout at .large",
         arguments: [DynamicTypeSize.large, .accessibility1, .accessibility3, .accessibility5]

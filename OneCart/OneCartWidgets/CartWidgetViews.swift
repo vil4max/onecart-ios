@@ -62,6 +62,8 @@ struct CircularLockScreenWidgetView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
+        .accessibilityLabel(Text("trip.progress_a11y"))
+        .accessibilityValue(Text("cart.progress_completed \(snapshot.purchasedCount) \(snapshot.totalCount)"))
     }
 }
 

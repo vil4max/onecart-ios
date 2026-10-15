@@ -8,6 +8,8 @@ struct CartAddComposer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The circular button grows with the glyph's text style instead of clipping it.
+    @ScaledMetric(relativeTo: .title2) private var addButtonSize: CGFloat = 44
     @Namespace private var glassNamespace
     @State private var isComposing = false
     @State private var draftName = ""
@@ -83,7 +85,7 @@ struct CartAddComposer: View {
         } label: {
             Image(systemName: "plus")
                 .font(.title2.weight(.semibold))
-                .frame(width: 44, height: 44)
+                .frame(width: addButtonSize, height: addButtonSize)
         }
         .buttonStyle(.glassProminent)
         .buttonBorderShape(.circle)

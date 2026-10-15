@@ -2,6 +2,7 @@ import CoreData
 import Foundation
 import OSLog
 import SwiftUI
+import UIKit
 
 extension AppSession {
     /// Adds a product. Returns the living row ID — a new row, or the existing
@@ -130,7 +131,9 @@ extension AppSession {
             await persistence.container.viewContext.perform {
                 self.persistence.container.viewContext.processPendingChanges()
             }
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            let toggleAnimation: Animation? =
+                UIAccessibility.isReduceMotionEnabled ? nil : .spring(response: 0.38, dampingFraction: 0.82)
+            withAnimation(toggleAnimation) {
                 do {
                     try refreshProducts()
                     cartSync.bumpRevisionAfterLocalChange()
