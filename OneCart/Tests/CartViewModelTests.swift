@@ -170,18 +170,34 @@ struct CartViewModelTests {
         let bread = try fixture.product(id: breadID)
         let soap = try fixture.product(id: soapID)
 
-        await harness.viewModel.togglePurchased(bread)
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 1)
 
         // The fake keeps the entity unchanged, so this is the same "last item" toggle again.
-        await harness.viewModel.togglePurchased(bread)
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 1)
 
         // Unchecking a completed line re-arms the celebration.
-        await harness.viewModel.togglePurchased(soap)
-        await harness.viewModel.togglePurchased(bread)
+        await harness.viewModel.togglePurchased(soap, shownAsPurchased: true)
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
         #expect(harness.viewModel.confettiTrigger == 2)
         #expect(harness.cart.toggledProducts.count == 4)
+        #expect(harness.cart.requestedPurchaseStates == [true, true, false, true])
+    }
+
+    @Test("REQ-CART-040: a tap asks for the opposite of the state the row was drawn with")
+    func toggleRequestsTheOppositeOfTheShownState() async throws {
+        let fixture = try await CartFixture.make()
+        let breadID = try await fixture.addProduct(named: "Bread")
+        try await fixture.addProduct(named: "Milk")
+        let harness = try CartHarness(fixture: fixture)
+        let bread = try fixture.product(id: breadID)
+        // Another shopper's check reached the object before the row was redrawn.
+        bread.isPurchased = NSNumber(value: true)
+
+        await harness.viewModel.togglePurchased(bread, shownAsPurchased: false)
+
+        #expect(harness.cart.requestedPurchaseStates == [true])
     }
 
     @Test("REQ-CART-040: checking an item while others remain does not celebrate")
@@ -191,7 +207,7 @@ struct CartViewModelTests {
         try await fixture.addProduct(named: "Milk")
         let harness = try CartHarness(fixture: fixture)
 
-        try await harness.viewModel.togglePurchased(fixture.product(id: breadID))
+        try await harness.viewModel.togglePurchased(fixture.product(id: breadID), shownAsPurchased: false)
 
         #expect(harness.viewModel.confettiTrigger == 0)
         #expect(harness.cart.toggledProducts.compactMap(\.id) == [breadID])
@@ -204,7 +220,7 @@ struct CartViewModelTests {
         let harness = try CartHarness(fixture: fixture)
         harness.state.canEdit = false
 
-        try await harness.viewModel.togglePurchased(fixture.product(id: breadID))
+        try await harness.viewModel.togglePurchased(fixture.product(id: breadID), shownAsPurchased: false)
 
         #expect(harness.cart.toggledProducts.isEmpty)
         #expect(harness.viewModel.confettiTrigger == 0)

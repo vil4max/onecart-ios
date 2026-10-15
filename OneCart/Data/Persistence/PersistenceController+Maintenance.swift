@@ -4,6 +4,37 @@ import Foundation
 import OSLog
 
 extension PersistenceController {
+    /// Cocoa codes that mean the on-disk store cannot be opened with the current model.
+    /// Save, merge, and validation codes are excluded on purpose: they must never arm the store wipe.
+    private static let storeLoadFailureCodes: Set<Int> = [
+        NSPersistentStoreInvalidTypeError,
+        NSPersistentStoreIncompatibleSchemaError,
+        NSPersistentStoreOpenError,
+        NSPersistentStoreIncompatibleVersionHashError,
+        NSMigrationError,
+        NSMigrationMissingSourceModelError,
+        NSMigrationMissingMappingModelError,
+        NSInferredMappingModelError,
+        NSFileReadCorruptFileError,
+        NSFileReadUnknownError,
+    ]
+
+    /// Decides by error domain and code only; localized descriptions differ per device language.
+    static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
+        if case let PersistenceError.loadFailed(underlying) = error {
+            return isUserFacingCoreDataFailure(underlying)
+        }
+        if error is CKError {
+            return false
+        }
+        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
+            return false
+        }
+        let nsError = error as NSError
+        guard nsError.domain == NSCocoaErrorDomain else { return false }
+        return storeLoadFailureCodes.contains(nsError.code)
+    }
+
     func copyStoreFilesForDiagnostics() throws -> URL {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
@@ -62,12 +93,13 @@ extension PersistenceController {
 
         Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
 
-        container = Self.makeContainer()
-        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
+        let rebuilt = Self.makeContainer()
+        rebuilt.persistentStoreDescriptions = Self.makeStoreDescriptions(
             directory: storeDirectoryURL,
             inMemory: false,
             cloudKitEnabled: cloudKitEnabled
         )
+        container = rebuilt
     }
 
     static func shouldWipeLocalStoresForCloudKitEnvironment(previous: String?, current: String) -> Bool {

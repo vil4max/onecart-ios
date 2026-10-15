@@ -450,6 +450,40 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
     }
 
+    func test_REQ_AUTH_080_repositoryCallsDuringStoreRecoveryAreRejectedOrRunOnTheRebuiltContainer() async throws {
+        let fixture = try await makeDiskDeletionFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }
+        let persistence = fixture.persistence
+        try await persistence.detachLocalStoresForCloudAccountDeletion()
+        let detachedContainer = persistence.container
+
+        let probe = Task.detached { () -> [String] in
+            var unexpected: [String] = []
+            for _ in 0..<200 {
+                do {
+                    let storeCount = try await persistence.performBackgroundTask { context in
+                        context.persistentStoreCoordinator?.persistentStores.count ?? 0
+                    }
+                    if storeCount == 0 {
+                        unexpected.append("ran on a container without stores")
+                    }
+                } catch PersistenceController.AccountDeletionStoreError.deletionInProgress {
+                    continue
+                } catch {
+                    unexpected.append("\(error)")
+                }
+                await Task.yield()
+            }
+            return unexpected
+        }
+        try await persistence.restoreLocalStoresAfterFailedCloudAccountDeletion()
+        let unexpected = await probe.value
+
+        XCTAssertEqual(unexpected, [])
+        XCTAssertFalse(persistence.container === detachedContainer)
+        XCTAssertNotNil(fetchProduct(id: fixture.productID, repository: fixture.repository))
+    }
+
     func test_REQ_AUTH_080_deleteAccount_afterConfirmedCloudDeletion_retriesLocalCleanupWithoutCloud() async throws {
         let fixture = try await makeDiskDeletionFixture()
         defer { try? FileManager.default.removeItem(at: fixture.persistence.storeDirectoryURL) }

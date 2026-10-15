@@ -40,7 +40,7 @@ final class CartItemsTests: XCTestCase {
         let (familyID, _, productID) = try await seedCart(repository: repository)
 
         try await repository.togglePurchased(id: productID, participantDisplayName: "Анна")
-        try await repository.deleteProduct(id: productID)
+        try await repository.deleteProduct(id: productID, familySpaceID: familyID)
         await persistence.container.viewContext.perform {
             persistence.container.viewContext.processPendingChanges()
         }
@@ -94,13 +94,14 @@ final class CartItemsTests: XCTestCase {
 
     func test_REQ_CART_020_updateProductRewritesFields() async throws {
         let (_, repository) = try await makeInMemoryRepository()
-        let (_, _, productID) = try await seedCart(
+        let (familyID, _, productID) = try await seedCart(
             repository: repository,
             draft: productDraft(name: "Молоко", quantity: 1, price: 40)
         )
 
         try await repository.updateProduct(
             id: productID,
+            familySpaceID: familyID,
             draft: productDraft(name: "Молоко 2.5%", quantity: 2, price: 55, note: "холодное")
         )
 
@@ -128,7 +129,7 @@ final class CartItemsTests: XCTestCase {
             )
         )
 
-        try await repository.deleteProduct(id: productID)
+        try await repository.deleteProduct(id: productID, familySpaceID: familyID)
 
         let request = ProductEntity.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", productID as NSUUID)

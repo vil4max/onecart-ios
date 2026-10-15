@@ -67,7 +67,7 @@ extension FamilySpaceRepository {
         }
     }
 
-    func updateProduct(id: UUID, familySpaceID: UUID? = nil, draft: ProductDraft) async throws {
+    func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
         let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
@@ -104,8 +104,10 @@ extension FamilySpaceRepository {
     }
 
     /// Writes only the category, so a background classification never touches the name or
-    /// any other field a concurrent edit may have changed.
-    func updateProductCategory(id: UUID, familySpaceID: UUID? = nil, category: ProductCategory) async throws {
+    /// any other field a concurrent edit may have changed. The row's `updatedAt` is the purchase
+    /// version `setPurchased` compares queued widget commands against; a classification that
+    /// lands after a tap must not make that tap look older than the row, so it stays untouched.
+    func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws {
         try await persistence.performBackgroundTask { context in
             guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
                 throw RepositoryError.productNotFound
@@ -114,15 +116,18 @@ extension FamilySpaceRepository {
             guard product.categoryValue != category else { return }
             let now = Date()
             product.category = category.rawValue
-            product.updatedAt = now
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
         }
     }
 
-    func togglePurchased(
+    /// Applies the state the user asked for instead of flipping the stored one: when another
+    /// shopper's change already reached the store, checking an item they checked keeps their
+    /// check (and their name) rather than undoing it.
+    func setPurchasedState(
         id: UUID,
-        familySpaceID: UUID? = nil,
+        familySpaceID: UUID,
+        isPurchased: Bool,
         participantDisplayName: String?
     ) async throws {
         try await persistence.performBackgroundTask { context in
@@ -130,12 +135,12 @@ extension FamilySpaceRepository {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
+            guard product.isPurchasedValue != isPurchased else { return }
             let now = Date()
-            let nextValue = !product.isPurchasedValue
-            product.isPurchased = NSNumber(value: nextValue)
-            product.purchasedAt = nextValue ? now : nil
+            product.isPurchased = NSNumber(value: isPurchased)
+            product.purchasedAt = isPurchased ? now : nil
             product.purchasedByName =
-                nextValue
+                isPurchased
                 ? participantDisplayName?.trimmedNilIfEmpty
                 : nil
             product.updatedAt = now
@@ -180,7 +185,7 @@ extension FamilySpaceRepository {
         }
     }
 
-    func deleteProduct(id: UUID, familySpaceID: UUID? = nil) async throws {
+    func deleteProduct(id: UUID, familySpaceID: UUID) async throws {
         try await persistence.performBackgroundTask { context in
             guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context) else {
                 throw RepositoryError.productNotFound

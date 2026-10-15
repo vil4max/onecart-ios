@@ -15,8 +15,14 @@ final class FakeMembershipManager: MembershipManaging {
     var userFacingMessage = "Something went wrong"
     var describedErrors: [any Error] = []
 
+    /// Replaces `inviteLinkResult` when set, for a request that has to be in flight.
+    var inviteLinkOperation: (@MainActor () async throws -> FamilyInviteLink)?
+
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
         createInviteLinkCount += 1
+        if let inviteLinkOperation {
+            return try await inviteLinkOperation()
+        }
         return try inviteLinkResult.get()
     }
 

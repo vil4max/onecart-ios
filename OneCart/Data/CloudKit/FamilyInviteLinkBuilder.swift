@@ -3,6 +3,21 @@ import CoreData
 import Foundation
 import OSLog
 
+/// Time limits of one invite-link request (REQ-SHARE-030).
+enum FamilyInviteShareBudget {
+    static let mirrorWaitSeconds: TimeInterval = 8
+    static let createAttempts = 3
+    static let createTimeoutNanoseconds: UInt64 = 12_000_000_000
+    /// Backoff before retry N is N times this, unless CloudKit asks for `retryAfterSeconds`.
+    static let createBackoffStepNanoseconds: UInt64 = 800_000_000
+    static let persistTimeoutNanoseconds: UInt64 = 22_000_000_000
+    /// What the user waits at most for a link. It is deliberately below the builder's worst
+    /// case for a new share: mirror wait 8 s + 3 create attempts of 12 s + backoff 0.8 s and
+    /// 1.6 s + door persist 22 s + URL persist 22 s, about 90 s, more when CloudKit asks for
+    /// `retryAfterSeconds`. The deadline ends the wait; the CloudKit operation may still finish.
+    static let inviteCeilingNanoseconds: UInt64 = 45_000_000_000
+}
+
 enum FamilyInviteLinkBuilder {
     static func existingInviteLink(
         persistence: PersistenceController,
@@ -54,7 +69,7 @@ enum FamilyInviteLinkBuilder {
         await waitUntilMirroredIfPossible(
             persistence: persistence,
             objectID: objectID,
-            timeoutSeconds: 8
+            timeoutSeconds: FamilyInviteShareBudget.mirrorWaitSeconds
         )
 
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
@@ -127,7 +142,7 @@ enum FamilyInviteLinkBuilder {
     private static func createShareWithRetry(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,
-        attempts: Int = 3
+        attempts: Int = FamilyInviteShareBudget.createAttempts
     ) async throws -> CKShare {
         var lastError: Error = OneCartCloudKitError.stillSyncing
         for attempt in 0..<attempts {
@@ -138,7 +153,7 @@ enum FamilyInviteLinkBuilder {
                     if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
                         UInt64(seconds * 1_000_000_000)
                     } else {
-                        UInt64(800_000_000 * attempt)
+                        FamilyInviteShareBudget.createBackoffStepNanoseconds * UInt64(attempt)
                     }
                 try await Task.sleep(nanoseconds: delayNanoseconds)
             }
@@ -154,28 +169,24 @@ enum FamilyInviteLinkBuilder {
         throw mapShareFailure(lastError)
     }
 
-    private static func isRetryableShareFailure(_ error: Error) -> Bool {
-        if error is OneCartCloudKitError {
-            return false
+    /// Codes a few seconds of backoff can cure. Sign-in, quota and permission failures are not
+    /// here: retrying cannot help, and they keep their own message instead of "still syncing".
+    private static let transientShareFailureCodes: Set<CKError.Code> = [
+        .zoneBusy, .serviceUnavailable, .requestRateLimited, .serverResponseLost,
+        .networkUnavailable, .networkFailure,
+    ]
+
+    /// Decides by CloudKit code only; localized descriptions differ per device language.
+    static func isRetryableShareFailure(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        if ckError.code == .partialFailure {
+            let leaves = (ckError.partialErrorsByItemID ?? [:]).values.compactMap { $0 as? CKError }
+            return !leaves.isEmpty && leaves.allSatisfy { transientShareFailureCodes.contains($0.code) }
         }
-        if let ckError = error as? CKError {
-            switch ckError.code {
-            case .zoneBusy, .serviceUnavailable, .requestRateLimited, .serverResponseLost,
-                .networkUnavailable, .networkFailure, .notAuthenticated,
-                .accountTemporarilyUnavailable, .partialFailure:
-                return true
-            default:
-                break
-            }
-        }
-        let text = (error as NSError).localizedDescription.lowercased()
-        return text.contains("try again")
-            || text.contains("not available")
-            || text.contains("sync")
-            || text.contains("busy")
+        return transientShareFailureCodes.contains(ckError.code)
     }
 
-    private static func mapShareFailure(_ error: Error) -> Error {
+    static func mapShareFailure(_ error: Error) -> Error {
         if error is OneCartCloudKitError {
             return error
         }
@@ -208,7 +219,7 @@ enum FamilyInviteLinkBuilder {
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
         try await CloudKitDeadline.run(
-            timeoutNanoseconds: 12_000_000_000,
+            timeoutNanoseconds: FamilyInviteShareBudget.createTimeoutNanoseconds,
             timeoutError: OneCartCloudKitError.stillSyncing
         ) {
             try await createShareUnscoped(persistence: persistence, objectID: objectID)
@@ -336,7 +347,7 @@ extension FamilyInviteLinkBuilder {
     private static func persistShareRequired(
         _ share: CKShare,
         persistence: PersistenceController,
-        timeoutNanoseconds: UInt64 = 22_000_000_000
+        timeoutNanoseconds: UInt64 = FamilyInviteShareBudget.persistTimeoutNanoseconds
     ) async throws -> CKShare {
         guard CloudKitShareEnvironment.canMutateInProcess(share) else {
             throw OneCartCloudKitError.shareEnvironmentMismatch

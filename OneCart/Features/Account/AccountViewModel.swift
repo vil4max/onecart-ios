@@ -282,6 +282,9 @@ final class AccountViewModel {
                 CartSyncLog.action.error(
                     "shareCart UI fail error=\(error.localizedDescription, privacy: .public)"
                 )
+                // A request the watchdog already timed out can still fail late with another
+                // error; the timeout alert, or a newer share, stays in charge.
+                guard generation == shareGeneration, !Task.isCancelled else { return }
                 CartHaptics.error()
                 if CloudKitUserFacingError.isProductionSchemaFailure(error) {
                     shareAlert = .error(CloudKitUserFacingError.productionSchemaMissing)

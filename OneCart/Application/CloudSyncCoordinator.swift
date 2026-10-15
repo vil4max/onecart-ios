@@ -38,7 +38,6 @@ final class CloudSyncCoordinator {
     private var pendingReloadDelay: UInt64?
     /// Delay the reload loop is currently sleeping on; nil while it is syncing.
     private var sleepingReloadDelay: UInt64?
-    private var didPresentProductionSchemaAlert = false
 
     init(persistence: PersistenceController, cartSync: CartSyncService) {
         self.persistence = persistence
@@ -154,7 +153,7 @@ final class CloudSyncCoordinator {
                     let message = host.userFacingMessage(for: error)
                     host.applyLastSyncError(message)
                     if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                        self.presentProductionSchemaAlertIfNeeded(message)
+                        host.presentProductionSchemaAlertIfNeeded(message)
                     }
                 } else {
                     host.applySyncState(host.isOnline ? .synchronized : .offline)
@@ -279,11 +278,5 @@ final class CloudSyncCoordinator {
             }
         }
         connectivity.start()
-    }
-
-    func presentProductionSchemaAlertIfNeeded(_ message: String) {
-        guard !didPresentProductionSchemaAlert else { return }
-        didPresentProductionSchemaAlert = true
-        host?.presentSyncAlert(message)
     }
 }

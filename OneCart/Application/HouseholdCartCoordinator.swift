@@ -281,7 +281,7 @@ final class HouseholdCartCoordinator {
     func handleInviteeSharedCartGoneIfNeeded() async {
         guard let host, let account = host.account else { return }
         let hasShared = host.familySpaces.contains { persistence.scope(for: $0) == .shared }
-        guard !hasShared, host.lastActiveFamilyWasShared || host.access?.isParticipant == true else { return }
+        guard !hasShared, host.lastActiveFamilyWasShared else { return }
 
         do {
             try await reactivatePersonalCartIfNeeded(for: account)

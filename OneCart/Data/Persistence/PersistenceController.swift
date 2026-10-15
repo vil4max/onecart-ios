@@ -27,16 +27,36 @@ enum PersistenceError: LocalizedError {
     }
 }
 
+/// `@unchecked Sendable`: every mutable field is guarded by a lock. `storeLock` guards the
+/// container and the store references, which background contexts read while account deletion
+/// or a hard reset swaps them; `loadLock` guards the load and deletion flags and the waiters.
+/// `storeLock` is never held while taking `loadLock`, and finishLoading takes it inside `loadLock`.
 final class PersistenceController: @unchecked Sendable {
     static let shared = PersistenceController()
 
     static let cloudKitContainerIdentifier = "iCloud.com.vil555tim.onecart"
 
-    var container: NSPersistentCloudKitContainer
-    let inMemory: Bool
+    private let storeLock = NSLock()
+    private var lockedContainer: NSPersistentCloudKitContainer
+    private var lockedPrivateStore: NSPersistentStore?
+    private var lockedSharedStore: NSPersistentStore?
 
-    var privateStore: NSPersistentStore?
-    var sharedStore: NSPersistentStore?
+    var container: NSPersistentCloudKitContainer {
+        get { storeLock.withLock { lockedContainer } }
+        set { storeLock.withLock { lockedContainer = newValue } }
+    }
+
+    var privateStore: NSPersistentStore? {
+        get { storeLock.withLock { lockedPrivateStore } }
+        set { storeLock.withLock { lockedPrivateStore = newValue } }
+    }
+
+    var sharedStore: NSPersistentStore? {
+        get { storeLock.withLock { lockedSharedStore } }
+        set { storeLock.withLock { lockedSharedStore = newValue } }
+    }
+
+    let inMemory: Bool
 
     var isLoaded: Bool {
         loadLock.lock()
@@ -81,8 +101,8 @@ final class PersistenceController: @unchecked Sendable {
             )
         }
 
-        container = Self.makeContainer()
-        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
+        lockedContainer = Self.makeContainer()
+        lockedContainer.persistentStoreDescriptions = Self.makeStoreDescriptions(
             directory: self.storeDirectoryURL,
             inMemory: inMemory,
             cloudKitEnabled: cloudKitEnabled
@@ -92,7 +112,15 @@ final class PersistenceController: @unchecked Sendable {
     static let cloudKitLocalEnvironmentKey = "onecart.cloudkit-local-environment"
 
     func load() async throws {
-        try checkAccountDeletionAllowsStoreAccess()
+        try await load(duringAccountDeletion: false)
+    }
+
+    /// Account deletion reattaches stores with its flag still set, so repository calls stay
+    /// rejected until the rebuilt container has its stores instead of running on an empty one.
+    func load(duringAccountDeletion: Bool) async throws {
+        if !duringAccountDeletion {
+            try checkAccountDeletionAllowsStoreAccess()
+        }
         if isLoaded {
             return
         }
@@ -102,7 +130,7 @@ final class PersistenceController: @unchecked Sendable {
             if !recoveringDeletion {
                 try reconcileCloudKitEnvironmentBeforeLoad()
             }
-            try await loadPersistentStoresOnce()
+            try await loadPersistentStoresOnce(duringAccountDeletion: duringAccountDeletion)
             if !recoveringDeletion {
                 stampCloudKitEnvironmentAfterSuccessfulLoad()
             }
@@ -226,10 +254,10 @@ final class PersistenceController: @unchecked Sendable {
         }
     }
 
-    private func loadPersistentStoresOnce() async throws {
+    private func loadPersistentStoresOnce(duringAccountDeletion: Bool) async throws {
         let result: Result<Void, Error> = await withCheckedContinuation { continuation in
             loadLock.lock()
-            if accountDeletionInProgress {
+            if accountDeletionInProgress, !duringAccountDeletion {
                 loadLock.unlock()
                 continuation.resume(returning: .failure(AccountDeletionStoreError.deletionInProgress))
                 return
@@ -331,37 +359,6 @@ extension PersistenceController {
         }
         privateStore = nil
         sharedStore = nil
-    }
-
-    /// Cocoa codes that mean the on-disk store cannot be opened with the current model.
-    /// Save, merge, and validation codes are excluded on purpose: they must never arm the store wipe.
-    private static let storeLoadFailureCodes: Set<Int> = [
-        NSPersistentStoreInvalidTypeError,
-        NSPersistentStoreIncompatibleSchemaError,
-        NSPersistentStoreOpenError,
-        NSPersistentStoreIncompatibleVersionHashError,
-        NSMigrationError,
-        NSMigrationMissingSourceModelError,
-        NSMigrationMissingMappingModelError,
-        NSInferredMappingModelError,
-        NSFileReadCorruptFileError,
-        NSFileReadUnknownError,
-    ]
-
-    /// Decides by error domain and code only; localized descriptions differ per device language.
-    static func isUserFacingCoreDataFailure(_ error: Error) -> Bool {
-        if case let PersistenceError.loadFailed(underlying) = error {
-            return isUserFacingCoreDataFailure(underlying)
-        }
-        if error is CKError {
-            return false
-        }
-        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-            return false
-        }
-        let nsError = error as NSError
-        guard nsError.domain == NSCocoaErrorDomain else { return false }
-        return storeLoadFailureCodes.contains(nsError.code)
     }
 
     private func identifyStores() throws {

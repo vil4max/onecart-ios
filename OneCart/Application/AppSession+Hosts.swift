@@ -41,15 +41,7 @@ extension AppSession: CloudSyncHost {
 
     func softRefreshCartProducts() {
         do {
-            let previous = products.map { product in
-                CartItemSnapshot(
-                    id: product.stableID,
-                    name: product.displayName,
-                    isPurchased: product.isPurchasedValue,
-                    createdByName: product.createdByName,
-                    purchasedByName: product.purchasedByName
-                )
-            }
+            let previous = Self.activitySnapshots(of: products)
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
             let purchasedCount = products.filter(\.isPurchasedValue).count
@@ -57,15 +49,7 @@ extension AppSession: CloudSyncHost {
             CartSyncLog.cart.info(
                 "softRefresh purchased=\(purchasedCount)/\(totalCount)"
             )
-            let current = products.map { product in
-                CartItemSnapshot(
-                    id: product.stableID,
-                    name: product.displayName,
-                    isPurchased: product.isPurchasedValue,
-                    createdByName: product.createdByName,
-                    purchasedByName: product.purchasedByName
-                )
-            }
+            let current = Self.activitySnapshots(of: products)
             if let cartID = activeFamilySpace?.id {
                 let currentUserName = Self.participantName(preferences: preferences, account: account) ?? ""
                 let isShared = familyMembers.count > 1
@@ -87,6 +71,22 @@ extension AppSession: CloudSyncHost {
 
     func applyConnectivityOnline(_ isOnline: Bool) {
         online = isOnline
+    }
+
+    /// Rows without an id are skipped: no identity survives between two snapshots for them, so
+    /// they would read as removed and re-added on every refresh and notify the family.
+    static func activitySnapshots(of products: [ProductEntity]) -> [CartItemSnapshot] {
+        products.compactMap { product in
+            product.id.map { id in
+                CartItemSnapshot(
+                    id: id,
+                    name: product.displayName,
+                    isPurchased: product.isPurchasedValue,
+                    createdByName: product.createdByName,
+                    purchasedByName: product.purchasedByName
+                )
+            }
+        }
     }
 }
 

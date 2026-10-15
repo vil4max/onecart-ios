@@ -106,37 +106,24 @@ final class CloudKitBackendService: Sendable {
         displayName: String
     ) async throws -> FamilyInviteLink {
         if persistence.inMemory {
-            return FamilyInviteLink(
-                id: UUID(),
-                familyName: displayName,
-                url: URL(string: "https://www.icloud.com/share/onecart-preview")!
-            )
+            guard let previewURL = URL(string: "https://www.icloud.com/share/onecart-preview") else {
+                throw OneCartCloudKitError.shareURLUnavailable
+            }
+            return FamilyInviteLink(id: UUID(), familyName: displayName, url: previewURL)
         }
 
         let persistence = persistence
-        // Ceiling must cover mirror wait (~8s) + share create (~12s) + door persist (~22s).
-        // Nested persistShareRequired also uses 22s; outer must not cancel a mandatory reopen.
-        return try await withThrowingTaskGroup(of: FamilyInviteLink.self) { group in
-            group.addTask {
-                try await FamilyInviteLinkBuilder.makeInviteLink(
-                    persistence: persistence,
-                    objectID: objectID,
-                    displayName: displayName
-                )
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: 45_000_000_000)
-                throw OneCartCloudKitError.shareTimedOut
-            }
-            do {
-                // Both tasks either return or throw, so an empty group cannot happen here.
-                guard let link = try await group.next() else { throw OneCartCloudKitError.shareTimedOut }
-                group.cancelAll()
-                return link
-            } catch {
-                group.cancelAll()
-                throw error
-            }
+        // CloudKitDeadline releases the caller even when an SDK callback ignores cancellation;
+        // the ceiling and why it is below the builder's worst case: FamilyInviteShareBudget.
+        return try await CloudKitDeadline.run(
+            timeoutNanoseconds: FamilyInviteShareBudget.inviteCeilingNanoseconds,
+            timeoutError: OneCartCloudKitError.shareTimedOut
+        ) {
+            try await FamilyInviteLinkBuilder.makeInviteLink(
+                persistence: persistence,
+                objectID: objectID,
+                displayName: displayName
+            )
         }
     }
 

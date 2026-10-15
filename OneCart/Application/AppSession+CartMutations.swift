@@ -49,6 +49,11 @@ extension AppSession {
         categoryRefinementTasks[productID]?.cancel()
         categoryRefinementTasks[productID] = Task {
             await self.refineProductCategory(productID: productID, name: name)
+            // A superseded refinement was cancelled before its successor took the slot, so an
+            // uncancelled one still owns it.
+            if !Task.isCancelled {
+                self.categoryRefinementTasks.removeValue(forKey: productID)
+            }
         }
     }
 
@@ -93,7 +98,12 @@ extension AppSession {
         }
     }
 
+    /// Flips the row as the caller holds it; for callers without a rendered row state.
     func togglePurchased(_ product: ProductEntity) async {
+        await setPurchased(product, isPurchased: !product.isPurchasedValue)
+    }
+
+    func setPurchased(_ product: ProductEntity, isPurchased: Bool) async {
         guard let id = product.id, let familyID = product.familySpace?.id else {
             logStaleProduct(action: "togglePurchased")
             return
@@ -108,9 +118,10 @@ extension AppSession {
         defer { finishCartMutation() }
         do {
             CartSyncLog.cart.info("togglePurchased start id=\(id.uuidString, privacy: .public)")
-            try await repository.togglePurchased(
+            try await repository.setPurchasedState(
                 id: id,
                 familySpaceID: familyID,
+                isPurchased: isPurchased,
                 participantDisplayName: Self.participantName(
                     preferences: preferences,
                     account: account
@@ -277,9 +288,7 @@ extension AppSession {
             )
             guard !CartIntentContext.isActive else { return false }
             if error as? RepositoryError == .permissionDenied,
-                let lastSyncError,
-                lastSyncError.localizedCaseInsensitiveContains("production schema")
-                    || lastSyncError == CloudKitUserFacingError.productionSchemaMissing
+                lastSyncError == CloudKitUserFacingError.productionSchemaMissing
             {
                 presentProductionSchemaAlertIfNeeded(CloudKitUserFacingError.productionSchemaMissing)
                 return false
@@ -293,7 +302,13 @@ extension AppSession {
         pendingCartMutationCount -= 1
         guard pendingCartMutationCount == 0, let account else { return }
         Task { @MainActor in
-            try? await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
+            do {
+                try await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
+            } catch {
+                CartSyncLog.cart.error(
+                    "reconcileProvisionalPersonalCart fail error=\(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
     }
 }

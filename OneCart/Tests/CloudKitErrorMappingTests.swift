@@ -331,3 +331,40 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertTrue(CloudKitShareEnvironment.canMutateInProcess(share))
     }
 }
+
+extension CloudKitErrorMappingTests {
+    func test_REQ_SHELL_050_networkAndSignInClassificationDoesNotDependOnTheLocalizedDescription() {
+        let offlineText = NSError(
+            domain: "com.example.custom",
+            code: 7,
+            userInfo: [NSLocalizedDescriptionKey: "The device is offline; the request timed out"]
+        )
+        XCTAssertFalse(CloudKitUserFacingError.isNetworkError(offlineText))
+
+        let posixTimeout = NSError(domain: NSPOSIXErrorDomain, code: Int(ETIMEDOUT))
+        XCTAssertTrue(CloudKitUserFacingError.isNetworkError(posixTimeout))
+
+        let signedOut = NSError(
+            domain: NSCocoaErrorDomain,
+            code: 134_400,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Не удалось выполнить операцию",
+                NSUnderlyingErrorKey: NSError(
+                    domain: CKError.errorDomain,
+                    code: CKError.Code.notAuthenticated.rawValue
+                ),
+            ]
+        )
+        XCTAssertEqual(
+            CloudKitUserFacingError.message(for: signedOut),
+            String(localized: "sync.sign_in_apple_account")
+        )
+
+        let notSignedInText = NSError(
+            domain: "com.example.custom",
+            code: 8,
+            userInfo: [NSLocalizedDescriptionKey: "User is not signed in"]
+        )
+        XCTAssertEqual(CloudKitUserFacingError.message(for: notSignedInText), "User is not signed in")
+    }
+}

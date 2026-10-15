@@ -6,6 +6,32 @@ final class CartActivityDiffTests: XCTestCase {
     private let myName = "Alex"
     private let partnerName = "Maria"
 
+    @MainActor
+    func test_REQ_WIDGET_030_productWithoutIDNeverReadsAsAddedOrRemoved() async throws {
+        let (persistence, _) = try await makeInMemoryRepository()
+        let context = persistence.container.viewContext
+        let anonymous = ProductEntity(context: context)
+        anonymous.name = "Хлеб"
+        let identified = ProductEntity(context: context)
+        identified.id = UUID()
+        identified.name = "Молоко"
+
+        let previous = AppSession.activitySnapshots(of: [anonymous, identified])
+        let current = AppSession.activitySnapshots(of: [anonymous, identified])
+        let diff = CartActivityDiff.evaluate(
+            previous: previous,
+            stored: previous,
+            current: current,
+            currentUserName: myName,
+            isSharedCart: true
+        )
+
+        XCTAssertEqual(previous.map(\.id), [identified.id])
+        XCTAssertEqual(previous, current)
+        XCTAssertFalse(diff.shouldNotify)
+        context.rollback()
+    }
+
     func test_REQ_WIDGET_030_firstSnapshotSeedsWithoutNotify() {
         let item1 = CartItemSnapshot(
             id: UUID(),

@@ -44,6 +44,78 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
+    func test_REQ_WIDGET_010_snapshotShowsTheListTheCartScreenShowsWhenANewerListExists() async throws {
+        let fixture = try await makeWidgetSession()
+        let persistence = fixture.session.persistence
+        let familyID = fixture.familyID
+        try await persistence.performBackgroundTask { context in
+            let request = FamilySpace.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", familyID as NSUUID)
+            guard let space = try context.fetch(request).first else { throw RepositoryError.familySpaceNotFound }
+            let store = StoreEntity(context: context)
+            try persistence.assign(store, toSameStoreAs: space, in: context)
+            store.id = UUID()
+            store.name = "Corner shop"
+            store.familySpace = space
+
+            // A legacy store-bound list, updated after the general list, sorts first among active lists.
+            let list = ShoppingListEntity(context: context)
+            try persistence.assign(list, toSameStoreAs: space, in: context)
+            list.id = UUID()
+            list.title = "Corner shop"
+            list.status = ShoppingListStatus.active.rawValue
+            list.createdAt = Date()
+            list.updatedAt = Date().addingTimeInterval(60)
+            list.familySpace = space
+            list.store = store
+
+            let product = ProductEntity(context: context)
+            try persistence.assign(product, toSameStoreAs: space, in: context)
+            product.id = UUID()
+            product.name = "Store bread"
+            product.quantity = NSNumber(value: 1)
+            product.unit = ProductUnit.piece.rawValue
+            product.category = ProductCategory.bakery.rawValue
+            product.estimatedPrice = NSNumber(value: 0)
+            product.isPurchased = NSNumber(value: false)
+            product.createdAt = Date()
+            product.updatedAt = Date()
+            product.familySpace = space
+            product.list = list
+            product.store = store
+        }
+        persistence.container.viewContext.processPendingChanges()
+        try fixture.session.reload()
+        XCTAssertEqual(fixture.session.activeLists.count, 2)
+        XCTAssertNotNil(fixture.session.activeLists.first?.store)
+
+        let snapshot = fixture.session.makeWidgetSnapshot(
+            theme: fixture.session.preferences.theme,
+            accent: fixture.session.preferences.accentColor
+        )
+
+        XCTAssertEqual(ShoppingListEntity.primaryList(in: fixture.session.activeLists)?.id, fixture.listID)
+        XCTAssertEqual(snapshot.items.map(\.id), [fixture.productID])
+        XCTAssertEqual(snapshot.totalCount, 1)
+    }
+
+    func test_REQ_WIDGET_020_categoryRefinementAfterAQueuedPurchaseDoesNotDropIt() async throws {
+        let fixture = try await makeWidgetSession()
+        let request = fixture.request(createdAt: Date())
+        try fixture.store.enqueuePurchase(request)
+        // The classifier finishes after the widget tap was queued.
+        try await fixture.session.repository.updateProductCategory(
+            id: fixture.productID, familySpaceID: fixture.familyID, category: .dairyEggs
+        )
+
+        try await fixture.session.performWidgetPurchase(request)
+
+        let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.session.repository))
+        XCTAssertTrue(product.isPurchasedValue)
+        XCTAssertEqual(product.categoryValue, .dairyEggs)
+        XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
+    }
+
     func test_missingProduct_retainsOrderedCommandsWithoutBlockingAnotherProduct() async throws {
         let fixture = try await makeWidgetSession()
         let missingID = UUID()

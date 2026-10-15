@@ -37,14 +37,16 @@ final class CartAccessTests: XCTestCase {
             permissionAuthorizer: DenyAllPermissionAuthorizer()
         )
         do {
-            try await denyRepository.togglePurchased(id: productID, participantDisplayName: "Sam")
+            try await denyRepository.setPurchasedState(
+                id: productID, familySpaceID: familyID, isPurchased: true, participantDisplayName: "Sam"
+            )
             XCTFail("expected permission denied")
         } catch let error as RepositoryError {
             XCTAssertEqual(error, .permissionDenied)
         }
 
         do {
-            try await denyRepository.deleteProduct(id: productID)
+            try await denyRepository.deleteProduct(id: productID, familySpaceID: familyID)
             XCTFail("expected permission denied on delete")
         } catch let error as RepositoryError {
             XCTAssertEqual(error, .permissionDenied)

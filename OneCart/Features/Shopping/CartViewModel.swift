@@ -133,19 +133,8 @@ final class CartViewModel {
 
     // MARK: - Content
 
-    /// Stable household cart list: prefer the general (no-store) list, else the oldest active.
     var primaryList: ShoppingListEntity? {
-        Self.primaryList(in: state.activeLists)
-    }
-
-    /// Shared with Siri, so an item said aloud lands on the list the cart screen shows.
-    static func primaryList(in lists: [ShoppingListEntity]) -> ShoppingListEntity? {
-        if let general = lists.first(where: { $0.store == nil }) {
-            return general
-        }
-        return lists.min { lhs, rhs in
-            (lhs.createdAt ?? .distantFuture) < (rhs.createdAt ?? .distantFuture)
-        }
+        ShoppingListEntity.primaryList(in: state.activeLists)
     }
 
     var primaryListID: UUID? {
@@ -262,20 +251,22 @@ final class CartViewModel {
         return true
     }
 
-    func togglePurchased(_ product: ProductEntity) async {
+    /// `shownAsPurchased` is the state the row was drawn with when tapped; the managed object
+    /// may already hold another shopper's newer state that the screen has not redrawn yet.
+    func togglePurchased(_ product: ProductEntity, shownAsPurchased: Bool) async {
         guard canEdit else { return }
         let willCompleteCart = CartCelebration.willCompleteCart(
-            togglingPurchasedItem: product.isPurchasedValue,
+            togglingPurchasedItem: shownAsPurchased,
             toBuyCount: toBuyProducts.count
         )
         if willCompleteCart, !hasCelebratedCurrentCompletion {
             hasCelebratedCurrentCompletion = true
             confettiTrigger += 1
         }
-        if product.isPurchasedValue {
+        if shownAsPurchased {
             hasCelebratedCurrentCompletion = false
         }
-        await cart.togglePurchased(product)
+        await cart.setPurchased(product, isPurchased: !shownAsPurchased)
     }
 
     /// Completed items cannot be deleted; uncheck first (REQ-CART-050).

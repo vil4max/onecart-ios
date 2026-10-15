@@ -23,10 +23,6 @@ final class FamilySpace: NSManagedObject {
         NSFetchRequest<FamilySpace>(entityName: "FamilySpace")
     }
 
-    var stableID: UUID {
-        id ?? UUID()
-    }
-
     var displayName: String {
         name?.nilIfBlank ?? String(localized: "common.default_group")
     }
@@ -114,10 +110,6 @@ final class StoreEntity: NSManagedObject {
         NSFetchRequest<StoreEntity>(entityName: "Store")
     }
 
-    var stableID: UUID {
-        id ?? UUID()
-    }
-
     var displayName: String {
         name?.nilIfBlank ?? String(localized: "common.default_store")
     }
@@ -163,8 +155,16 @@ final class ShoppingListEntity: NSManagedObject {
         NSFetchRequest<ShoppingListEntity>(entityName: "ShoppingList")
     }
 
-    var stableID: UUID {
-        id ?? UUID()
+    /// The one list the cart shows among the active lists: the general (no-store) list, else the
+    /// oldest. The cart screen, Siri, the widgets and the shopping trip all pick through this
+    /// rule, so a line checked or added on one surface is the line the others show.
+    static func primaryList(in activeLists: [ShoppingListEntity]) -> ShoppingListEntity? {
+        if let general = activeLists.first(where: { $0.store == nil }) {
+            return general
+        }
+        return activeLists.min { lhs, rhs in
+            (lhs.createdAt ?? .distantFuture) < (rhs.createdAt ?? .distantFuture)
+        }
     }
 
     var displayTitle: String {
@@ -244,10 +244,6 @@ final class ProductEntity: NSManagedObject {
         NSFetchRequest<ProductEntity>(entityName: "Product")
     }
 
-    var stableID: UUID {
-        id ?? UUID()
-    }
-
     var displayName: String {
         name?.nilIfBlank ?? String(localized: "common.default_product")
     }
@@ -314,10 +310,6 @@ final class PurchaseHistoryEntity: NSManagedObject {
 
     @nonobjc static func fetchRequest() -> NSFetchRequest<PurchaseHistoryEntity> {
         NSFetchRequest<PurchaseHistoryEntity>(entityName: "PurchaseHistory")
-    }
-
-    var stableID: UUID {
-        id ?? UUID()
     }
 
     var totalValue: Double {

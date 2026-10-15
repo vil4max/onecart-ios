@@ -49,9 +49,8 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
         // Keep the marker until every old store is gone, including across a failed cleanup or relaunch.
         try writeAccountDeletionPhase(.cloudDeleted)
         try destroyDetachedAccountStores()
-        finishAccountStoreDeletion()
         rebuildContainerAfterAccountDeletion(cloudKitEnabled: cloudKitEnabled)
-        try await load()
+        try await load(duringAccountDeletion: true)
     }
 
     func restoreLocalStoresAfterFailedCloudAccountDeletion() async throws {
@@ -59,9 +58,10 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
             throw AccountDeletionStoreError.cleanupRequired
         }
         try await removeAccountStoresFromCoordinator()
-        finishAccountStoreDeletion()
+        // Repository calls stay rejected until the rebuilt container has its stores.
+        defer { finishAccountStoreDeletion() }
         rebuildContainerAfterAccountDeletion(cloudKitEnabled: cloudKitEnabled && !accountDeletionRecoveryRequired)
-        try await load()
+        try await load(duringAccountDeletion: true)
     }
 
     /// Any outcome from here on may have deleted zones, so reloads stay local-only until deletion completes.
@@ -181,11 +181,12 @@ extension PersistenceController: AccountLocalStorePreparing, AccountDeletionRequ
     }
 
     private func rebuildContainerAfterAccountDeletion(cloudKitEnabled: Bool) {
-        container = Self.makeContainer()
-        container.persistentStoreDescriptions = Self.makeStoreDescriptions(
+        let rebuilt = Self.makeContainer()
+        rebuilt.persistentStoreDescriptions = Self.makeStoreDescriptions(
             directory: storeDirectoryURL,
             inMemory: inMemory,
             cloudKitEnabled: cloudKitEnabled
         )
+        container = rebuilt
     }
 }

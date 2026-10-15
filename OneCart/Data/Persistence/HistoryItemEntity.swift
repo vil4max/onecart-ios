@@ -27,10 +27,6 @@ final class HistoryItemEntity: NSManagedObject {
         NSFetchRequest<HistoryItemEntity>(entityName: "HistoryItem")
     }
 
-    var stableID: UUID {
-        id ?? UUID()
-    }
-
     var displayName: String {
         name?.nilIfBlank ?? String(localized: "common.default_product")
     }

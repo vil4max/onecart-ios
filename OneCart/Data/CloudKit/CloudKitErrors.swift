@@ -106,12 +106,11 @@ enum CloudKitUserFacingError {
         if raw.isEmpty || looksLikeOpaqueCloudKitCode(raw) {
             return genericSyncFailure
         }
-        if raw.lowercased().contains("not authenticated") || raw.lowercased().contains("not signed in") {
-            return String(localized: "sync.sign_in_apple_account")
-        }
         return raw
     }
 
+    /// Matches CloudKit's server text, which is English on every device: no error code tells a
+    /// missing Production schema apart from other invalid-argument failures.
     private static func productionSchemaMessage(in error: Error) -> String? {
         let text = diagnosticText(for: error)
         if text.contains("production schema")
@@ -158,10 +157,19 @@ enum CloudKitUserFacingError {
         return parts.joined(separator: "\n").lowercased()
     }
 
+    /// POSIX codes a lost or unreachable network surfaces as when no URL or CloudKit code wraps it.
+    private static let networkPOSIXCodes: Set<Int> = [
+        Int(ETIMEDOUT), Int(ENETDOWN), Int(ENETUNREACH), Int(ENOTCONN), Int(ECONNREFUSED), Int(EHOSTUNREACH),
+    ]
+
+    /// Decides by error domain and code only; localized descriptions differ per device language.
     static func isNetworkError(_ error: Error) -> Bool {
         for candidate in flattened(error) {
             let nsError = candidate as NSError
             if nsError.domain == NSURLErrorDomain {
+                return true
+            }
+            if nsError.domain == NSPOSIXErrorDomain, networkPOSIXCodes.contains(nsError.code) {
                 return true
             }
             if let ckError = candidate as? CKError {
@@ -172,15 +180,6 @@ enum CloudKitUserFacingError {
                 default:
                     break
                 }
-            }
-            let text = candidate.localizedDescription.lowercased()
-            if text.contains("network connection")
-                || text.contains("internet connection")
-                || text.contains("timed out")
-                || text.contains("could not connect")
-                || text.contains("offline")
-            {
-                return true
             }
         }
         return false

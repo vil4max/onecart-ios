@@ -59,7 +59,7 @@ extension CartItemsTests {
             to: listID,
             draft: productDraft(name: "Молоко")
         )
-        try await repository.deleteProduct(id: firstID)
+        try await repository.deleteProduct(id: firstID, familySpaceID: familyID)
         let secondID = try await repository.addProduct(
             to: listID,
             draft: productDraft(name: "молоко")
@@ -86,6 +86,7 @@ extension CartItemsTests {
         )
         try await repository.updateProduct(
             id: kefirID,
+            familySpaceID: familyID,
             draft: productDraft(name: " молоко ")
         )
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))

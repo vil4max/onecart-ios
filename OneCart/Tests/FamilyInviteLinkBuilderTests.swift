@@ -19,6 +19,42 @@ struct FamilyInviteLinkBuilderTests {
         return share
     }
 
+    @Test("REQ-SHARE-030: share creation retries only transient CloudKit failures")
+    func shareCreationRetriesOnlyTransientFailures() {
+        let signedOut = CKError(.notAuthenticated)
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(signedOut) == false)
+        let mappedSignedOut = FamilyInviteLinkBuilder.mapShareFailure(signedOut)
+        #expect((mappedSignedOut as? CKError)?.code == .notAuthenticated)
+        #expect(
+            CloudKitUserFacingError.message(for: mappedSignedOut) == String(localized: "sync.sign_in_apple_account"))
+
+        let quota = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [CKPartialErrorsByItemIDKey: ["family-root": CKError(.quotaExceeded)]]
+        )
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(quota) == false)
+        #expect(
+            CloudKitUserFacingError.message(for: FamilyInviteLinkBuilder.mapShareFailure(quota))
+                == String(localized: "sync.quota_exceeded")
+        )
+
+        let english = NSError(
+            domain: "SomeDomain",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Sync is busy, try again"]
+        )
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(english) == false)
+
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(CKError(.zoneBusy)))
+        let busyLeaves = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.partialFailure.rawValue,
+            userInfo: [CKPartialErrorsByItemIDKey: ["family-root": CKError(.zoneBusy)]]
+        )
+        #expect(FamilyInviteLinkBuilder.isRetryableShareFailure(busyLeaves))
+    }
+
     @Test("REQ-SHARE-060: a revoked share yields no link and stays closed")
     func revokedShareYieldsNoLink() async {
         let share = makeShare(publicPermission: .none)

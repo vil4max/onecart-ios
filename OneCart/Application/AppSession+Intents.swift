@@ -239,7 +239,7 @@ extension AppSession {
         // The timer and the work can finish in the same turn; nothing may change the cart or
         // start a trip after the time Siri was promised an answer by.
         guard !deadline.hasPassed else { throw CartIntentError.unavailable }
-        guard let list = CartViewModel.primaryList(in: activeLists) else { throw CartIntentError.failed }
+        guard let list = ShoppingListEntity.primaryList(in: activeLists) else { throw CartIntentError.failed }
         return list
     }
 }

@@ -164,7 +164,8 @@ extension AppSession {
             show(error)
             if case OneCartCloudKitError.leaveTimedOut = error {
                 lastActiveFamilyWasShared = true
-                Task { await recoverAfterLeaveTimeout() }
+                leaveRecoveryTask?.cancel()
+                leaveRecoveryTask = Task { await recoverAfterLeaveTimeout() }
             }
         }
     }
@@ -191,7 +192,11 @@ extension AppSession {
         await withTaskGroup(of: Bool.self) { group in
             group.addTask {
                 for _ in 0..<8 {
-                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    do {
+                        try await Task.sleep(nanoseconds: 1_500_000_000)
+                    } catch {
+                        return false
+                    }
                     if await self.attemptLeaveRecoveryPass() {
                         return true
                     }

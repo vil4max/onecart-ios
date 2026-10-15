@@ -206,13 +206,14 @@ struct ShoppingListView: View {
         showsCategoryLabel: Bool
     ) -> some View {
         ForEach(items, id: \.objectID) { product in
+            let shownAsPurchased = product.isPurchasedValue
             CartProductRow(
                 product: product,
                 canEdit: viewModel.canEdit,
                 showsCategoryLabel: showsCategoryLabel,
                 isHighlighted: product.id == viewModel.duplicateHighlightID,
                 onToggle: {
-                    Task { await viewModel.togglePurchased(product) }
+                    Task { await viewModel.togglePurchased(product, shownAsPurchased: shownAsPurchased) }
                 },
                 onRename: {
                     beginRename(product)
@@ -222,9 +223,9 @@ struct ShoppingListView: View {
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 if viewModel.canEdit {
                     Button {
-                        Task { await viewModel.togglePurchased(product) }
+                        Task { await viewModel.togglePurchased(product, shownAsPurchased: shownAsPurchased) }
                     } label: {
-                        if product.isPurchasedValue {
+                        if shownAsPurchased {
                             Label("cart.swipe_to_buy", systemImage: "arrow.uturn.backward")
                         } else {
                             Label("cart.swipe_complete", systemImage: "checkmark")

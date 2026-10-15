@@ -127,6 +127,8 @@ final class AppSession {
     /// In-flight category refinements by product ID; a rename cancels the refinement of the
     /// old name so it can never write over the new one.
     var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]
+    /// Retries the fallback to the personal cart after a leave timed out; sign-out cancels it.
+    var leaveRecoveryTask: Task<Void, Never>?
     var online = true
     var started = false
     var didPresentProductionSchemaAlert = false

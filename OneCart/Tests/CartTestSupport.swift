@@ -155,3 +155,28 @@ final class DenyAllPermissionAuthorizer: PermissionAuthorizing {
         false
     }
 }
+
+extension FamilySpaceRepository {
+    /// Flips the stored state. Production code always sends the state the user asked for
+    /// (`setPurchasedState`); tests without a rendered row check items this way.
+    func togglePurchased(id: UUID, familySpaceID: UUID? = nil, participantDisplayName: String?) async throws {
+        let current = try await persistence.performBackgroundTask { context -> PurchaseStateProbe? in
+            guard let product = try Self.fetchProduct(id: id, familySpaceID: familySpaceID, in: context),
+                let familyID = product.familySpace?.id
+            else { return nil }
+            return PurchaseStateProbe(familyID: familyID, isPurchased: product.isPurchasedValue)
+        }
+        guard let current else { throw RepositoryError.productNotFound }
+        try await setPurchasedState(
+            id: id,
+            familySpaceID: current.familyID,
+            isPurchased: !current.isPurchased,
+            participantDisplayName: participantDisplayName
+        )
+    }
+}
+
+private struct PurchaseStateProbe: Sendable {
+    let familyID: UUID
+    let isPurchased: Bool
+}

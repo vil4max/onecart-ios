@@ -18,6 +18,7 @@ final class FakeCartEditor: CartEditing {
     var addResult: UUID?
     var updatedProducts: [UpdatedProduct] = []
     var toggledProducts: [ProductEntity] = []
+    var requestedPurchaseStates: [Bool] = []
     var deletedProducts: [ProductEntity] = []
     var syncReasons: [CartSyncReason] = []
 
@@ -30,8 +31,9 @@ final class FakeCartEditor: CartEditing {
         updatedProducts.append(UpdatedProduct(product: product, draft: draft))
     }
 
-    func togglePurchased(_ product: ProductEntity) async {
+    func setPurchased(_ product: ProductEntity, isPurchased: Bool) async {
         toggledProducts.append(product)
+        requestedPurchaseStates.append(isPurchased)
     }
 
     func deleteProduct(_ product: ProductEntity) async {

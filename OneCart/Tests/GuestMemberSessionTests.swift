@@ -78,6 +78,23 @@ final class GuestMemberSessionTests: XCTestCase {
             })
     }
 
+    func test_REQ_SHARE_050_guestWhoseSharedCartDisappearsSeesRemovedMessageOnPersonalCart() async throws {
+        let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
+        XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.sharedID)
+        XCTAssertNil(fixture.session.sharedCartRemovedMessage)
+
+        try await fixture.session.repository.archiveFamilySpace(id: fixture.sharedID)
+        await fixture.session.syncCart(reason: .cloudImport)
+
+        XCTAssertEqual(
+            fixture.session.sharedCartRemovedMessage,
+            String(localized: "cart.shared_removed_message")
+        )
+        XCTAssertEqual(fixture.session.activeFamilySpace?.id, fixture.privateID)
+        XCTAssertEqual(fixture.session.access, .owner)
+        XCTAssertFalse(fixture.session.lastActiveFamilyWasShared)
+    }
+
     func test_REQ_SHARE_050_guestLeaveCartReturnsToPersonal() async throws {
         let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk")
         XCTAssertEqual(fixture.session.access, .member)

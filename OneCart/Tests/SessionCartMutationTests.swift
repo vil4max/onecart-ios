@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 @testable import OneCart
 import Testing
@@ -43,6 +44,76 @@ struct SessionCartMutationTests {
         #expect(unchecked.isPurchasedValue == false)
         #expect(unchecked.purchasedByName == nil)
         #expect(fixture.session.userAlert == nil)
+    }
+
+    @Test("REQ-CART-040: checking an item another shopper already checked keeps it checked by them")
+    func checkingAnAlreadyCheckedItemKeepsTheOtherShoppersCheck() async throws {
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex")
+        let product = try await addProduct(named: "Молоко", to: fixture)
+        let id = try #require(product.id)
+        let familyID = try #require(product.familySpace?.id)
+        try await fixture.repository.setPurchasedState(
+            id: id, familySpaceID: familyID, isPurchased: true, participantDisplayName: "Bob"
+        )
+
+        // The row still showed the item as to-buy when Alex tapped it.
+        await fixture.session.setPurchased(product, isPurchased: true)
+
+        let refreshed = try #require(fixture.session.products.first { $0.id == id })
+        #expect(refreshed.isPurchasedValue)
+        #expect(refreshed.purchasedByName == "Bob")
+        #expect(fixture.session.userAlert == nil)
+    }
+
+    @Test("REQ-SYNC-040: a product mutation reaches only the named family when a restored copy shares its id")
+    func productMutationTargetsOnlyTheNamedFamily() async throws {
+        let fixture = try await MembershipSessionFixture.owner(displayName: "Alex")
+        let product = try await addProduct(named: "Молоко", to: fixture)
+        let id = try #require(product.id)
+        let sourceID = try #require(product.familySpace?.id)
+        let copyID = try await fixture.repository.createFamilySpace(
+            name: "Restored", cachedForUserID: fixture.account.id, isHouseholdDefault: false
+        )
+        let persistence = fixture.persistence
+        try await persistence.performBackgroundTask { context in
+            let request = FamilySpace.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", copyID as NSUUID)
+            guard let copy = try context.fetch(request).first,
+                let list = copy.activeLists.first
+            else { throw RepositoryError.familySpaceNotFound }
+            let row = ProductEntity(context: context)
+            try persistence.assign(row, toSameStoreAs: copy, in: context)
+            row.id = id
+            row.name = "Молоко"
+            row.quantity = NSNumber(value: 1)
+            row.unit = ProductUnit.piece.rawValue
+            row.category = ProductCategory.dairyEggs.rawValue
+            row.estimatedPrice = NSNumber(value: 0)
+            row.isPurchased = NSNumber(value: false)
+            row.createdAt = Date()
+            row.updatedAt = Date()
+            row.familySpace = copy
+            row.list = list
+        }
+
+        try await fixture.repository.setPurchasedState(
+            id: id, familySpaceID: copyID, isPurchased: true, participantDisplayName: "Alex"
+        )
+        try await fixture.repository.updateProduct(id: id, familySpaceID: copyID, draft: draft(named: "Кефир"))
+
+        let rows = try await persistence.performBackgroundTask { context in
+            let request = ProductEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+            return try context.fetch(request).map { row in
+                (row.familySpace?.id, row.displayName, row.isPurchasedValue)
+            }
+        }
+        let source = try #require(rows.first { $0.0 == sourceID })
+        let copy = try #require(rows.first { $0.0 == copyID })
+        #expect(source.1 == "Молоко")
+        #expect(source.2 == false)
+        #expect(copy.1 == "Кефир")
+        #expect(copy.2)
     }
 
     @Test("REQ-CART-050: a Completed item survives delete; a to-buy item is removed")
@@ -108,6 +179,26 @@ struct SessionCartMutationTests {
         #expect(fixture.session.alertMessage == RepositoryError.permissionDenied.localizedDescription)
         #expect(fixture.session.products.count == 1)
         #expect(fixture.session.isBusy == false)
+    }
+
+    @Test("REQ-SHELL-050: the production-schema alert shows once per session across the sync and mutation paths")
+    func productionSchemaAlertShowsOncePerSession() async throws {
+        let fixture = try await MembershipSessionFixture.owner()
+        let message = CloudKitUserFacingError.productionSchemaMissing
+        // CloudSyncCoordinator reports a failed CloudKit event through this host method.
+        fixture.session.presentProductionSchemaAlertIfNeeded(message)
+        #expect(fixture.session.alertMessage == message)
+        fixture.session.dismissAlert()
+
+        let schemaError = NSError(
+            domain: CKError.errorDomain,
+            code: CKError.Code.invalidArguments.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: "Cannot create new type CD_Product in production schema"]
+        )
+        fixture.session.show(schemaError)
+        fixture.session.presentProductionSchemaAlertIfNeeded(message)
+
+        #expect(fixture.session.alertMessage == nil)
     }
 
     @Test("Completing the checked items archives them into History and keeps the rest")

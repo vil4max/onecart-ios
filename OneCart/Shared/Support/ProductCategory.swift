@@ -113,10 +113,14 @@ enum ProductCategory: String, CaseIterable, Identifiable {
     private struct CategoryRule {
         let keywords: [String]
         let prefixes: [String]
+        /// Words that match only as a whole word, for stems that start too many unrelated
+        /// words ("bun" in "bunch" and "bundle", "egg" in "eggplant").
+        var wholeWords: [String] = []
         let category: ProductCategory
 
         func matches(_ value: String, tokens: [Substring]) -> Bool {
             keywords.contains { Self.keyword($0, matches: value, tokens: tokens) }
+                || wholeWords.contains { word in tokens.contains { $0 == word } }
                 || prefixes.contains { value.hasPrefix($0) }
         }
 
@@ -138,6 +142,12 @@ enum ProductCategory: String, CaseIterable, Identifiable {
     }
 
     private static let inferenceRules: [CategoryRule] = [
+        // Produce whose names contain another rule's keyword ("water", "butter"); checked first.
+        CategoryRule(
+            keywords: ["eggplant", "watermelon", "watercress", "butternut"],
+            prefixes: [],
+            category: .produce
+        ),
         CategoryRule(
             keywords: ["детск", "дитяч", "пюре", "смесь", "суміш", "baby", "infant", "formula"],
             prefixes: [],
@@ -163,9 +173,10 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         CategoryRule(
             keywords: [
                 "хлеб", "хліб", "батон", "булк", "лаваш", "выпеч", "круассан", "бублик",
-                "багет", "bread", "bakery", "bagel", "bun", "pastry", "croissant", "lavash",
+                "багет", "bread", "bakery", "bagel", "pastry", "croissant", "lavash",
             ],
             prefixes: [],
+            wholeWords: ["bun", "buns"],
             category: .bakery
         ),
         CategoryRule(
@@ -210,9 +221,10 @@ enum ProductCategory: String, CaseIterable, Identifiable {
             keywords: [
                 "молоко", "йогурт", "сыр", "сир", "кефир", "кефір", "ряженк", "сметан",
                 "творог", "яйц", "масло сливоч", "milk", "yogurt", "yoghurt", "cheese",
-                "butter", "kefir", "cottage", "sour cream", "egg",
+                "butter", "kefir", "cottage", "sour cream",
             ],
             prefixes: [],
+            wholeWords: ["egg", "eggs"],
             category: .dairyEggs
         ),
         CategoryRule(
@@ -245,9 +257,10 @@ enum ProductCategory: String, CaseIterable, Identifiable {
         CategoryRule(
             keywords: [
                 "яблок", "банан", "овощ", "фрукт", "помидор", "огірок", "томат", "зелен",
-                "ягод", "огурец", "капуст", "морков", "apple", "banana", "tomato", "fruit",
+                "ягод", "огурец", "капуст", "морков", "баклажан", "арбуз", "кавун", "дыня", "дыни", "диня", "дині",
+                "тыкв", "гарбуз", "кабач", "apple", "banana", "tomato", "fruit",
                 "vegetable", "salad", "cucumber", "lemon", "potato", "onion", "carrot",
-                "berry", "greens", "lettuce",
+                "berry", "greens", "lettuce", "melon", "squash", "pumpkin", "zucchini",
             ],
             prefixes: [],
             category: .produce

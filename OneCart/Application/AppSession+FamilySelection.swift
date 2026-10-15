@@ -7,11 +7,14 @@ extension AppSession {
     func clearAccountData(endingShoppingTrip: Bool = true) {
         clearPreparedInviteLink()
         cancelAllCategoryRefinements()
+        leaveRecoveryTask?.cancel()
+        leaveRecoveryTask = nil
         familySpaces = []
         activeFamilySpace = nil
         cartContent.clearContent()
         familyMembers = []
         access = nil
+        lastActiveFamilyWasShared = false
         householdCartBootstrapFailed = false
         isEnsuringHouseholdCart = false
         // Sign out and account deletion end the trip (REQ-WIDGET-060). Queued even without an
@@ -50,10 +53,11 @@ extension AppSession {
             }
 
         activeFamilySpace = selected
-        if let selected {
-            lastActiveFamilyWasShared = persistence.scope(for: selected) == .shared
-        } else {
-            lastActiveFamilyWasShared = false
+        // Only the shared-gone handler, a deliberate leave and sign-out clear the flag: a reload
+        // that falls back to the private cart because the shared one vanished must keep it, or
+        // the handler that runs after this reload could never tell the guest what happened.
+        if let selected, persistence.scope(for: selected) == .shared {
+            lastActiveFamilyWasShared = true
         }
         if let selected, let selectedID = selected.id {
             defaults.set(

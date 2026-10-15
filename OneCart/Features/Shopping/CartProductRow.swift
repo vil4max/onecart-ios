@@ -69,15 +69,10 @@ struct CartProductRow: View {
         product.isPurchasedValue
     }
 
+    /// The stored category drives section grouping (`CartViewModel.toBuySections`), so the icon
+    /// reads the same value; a line filed under Other shows the Other icon.
     private var resolvedCategory: ProductCategory {
-        // The stored category drives section grouping, so the icon must agree with it;
-        // keyword inference only fills a missing category.
-        let stored = product.categoryValue
-        if stored != .other {
-            return stored
-        }
-        let inferred = ProductCategory.inferred(from: product.displayName)
-        return inferred != .other ? inferred : stored
+        product.categoryValue
     }
 
     var body: some View {

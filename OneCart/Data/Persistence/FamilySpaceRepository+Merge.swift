@@ -18,7 +18,8 @@ extension FamilySpaceRepository {
                 throw RepositoryError.permissionDenied
             }
             try self.requireUpdatePermission(for: destination)
-            guard let targetList = destination.activeLists.first, targetList.id != nil else { return false }
+            guard let targetList = ShoppingListEntity.primaryList(in: destination.activeLists), targetList.id != nil
+            else { return false }
 
             let batches = try ["Store", "Product", "PurchaseHistory", "HistoryItem"].map { entityName in
                 try PersonalRestoreBatch(
@@ -154,7 +155,7 @@ extension FamilySpaceRepository {
             try self.requireUpdatePermission(for: destination)
 
             let targetList =
-                destination.activeLists.first
+                ShoppingListEntity.primaryList(in: destination.activeLists)
                 ?? destination.sortedLists.first
             guard let targetList, targetList.id != nil else {
                 throw RepositoryError.listNotFound

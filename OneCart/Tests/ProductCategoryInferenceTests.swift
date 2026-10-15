@@ -45,13 +45,36 @@ final class ProductCategoryInferenceTests: XCTestCase {
         XCTAssertEqual(ProductCategory.inferred(from: "Shampoo"), .household)
         XCTAssertEqual(ProductCategory.inferred(from: "Toilet paper"), .other)
         XCTAssertEqual(ProductCategory.inferred(from: "Foil"), .other)
-        // "oat" inside "goat", "egg" inside "veggie", "bun" inside "bundle".
+        // "oat" inside "goat", "egg" inside "veggie".
         XCTAssertEqual(ProductCategory.inferred(from: "Goat cheese"), .dairyEggs)
         XCTAssertEqual(ProductCategory.inferred(from: "Veggie mix"), .other)
         // "сок" inside "носок"/"кусок", "рис" inside "барбарис".
         XCTAssertEqual(ProductCategory.inferred(from: "носок"), .other)
         XCTAssertEqual(ProductCategory.inferred(from: "кусок сыра"), .dairyEggs)
         XCTAssertEqual(ProductCategory.inferred(from: "барбарис"), .other)
+    }
+
+    func test_REQ_SHELL_010_produceNamesContainingOtherKeywordsFileUnderProduce() {
+        // "egg" starts "eggplant", "water" and "butter" sit inside, "bun" starts "bunch".
+        XCTAssertEqual(ProductCategory.inferred(from: "Eggplant"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "Watermelon"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "Watercress"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "Butternut squash"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "Bunch of bananas"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "Melon"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "баклажан"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "арбуз"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "кавун"), .produce)
+        XCTAssertEqual(ProductCategory.inferred(from: "гарбуз"), .produce)
+    }
+
+    func test_REQ_SHELL_010_shortStemsMatchOnlyTheirWholeWord() {
+        XCTAssertEqual(ProductCategory.inferred(from: "Bundle"), .other)
+        XCTAssertEqual(ProductCategory.inferred(from: "Burger buns"), .bakery)
+        XCTAssertEqual(ProductCategory.inferred(from: "Bun"), .bakery)
+        XCTAssertEqual(ProductCategory.inferred(from: "Egg"), .dairyEggs)
+        XCTAssertEqual(ProductCategory.inferred(from: "Water"), .coldDrinks)
+        XCTAssertEqual(ProductCategory.inferred(from: "Butter"), .dairyEggs)
     }
 
     func testShortKeywordsStillMatchWholeWordsAndInflections() {
