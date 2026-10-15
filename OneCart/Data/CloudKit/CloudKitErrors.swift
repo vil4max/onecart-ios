@@ -256,7 +256,7 @@ enum CloudKitUserFacingError {
     private static func message(forCocoaError error: Error) -> String? {
         let nsError = error as NSError
         guard nsError.domain == NSCocoaErrorDomain else { return nil }
-        // 133021 = NSManagedObjectConstraintMergeError (unique constraint vs CloudKit import).
+        // A unique constraint colliding with a CloudKit import is a sync problem, not a user error.
         if nsError.code == NSManagedObjectConstraintMergeError {
             return genericSyncFailure
         }

@@ -12,7 +12,7 @@ import Synchronization
 final class MetricKitLogger: Sendable {
     private let manager = MetricManager()
     private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.vil555tim.onecart",
+        subsystem: Bundle.main.bundleIdentifier ?? OneCartLog.subsystem,
         category: "metrics"
     )
     /// The two report readers; their sequences never finish, so they live until `deinit`.

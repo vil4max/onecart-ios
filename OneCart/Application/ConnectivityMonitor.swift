@@ -9,7 +9,7 @@ final class ConnectivityMonitor: Sendable {
     }
 
     private let state = Mutex(State())
-    private let queue = DispatchQueue(label: "com.vil55tim.onecart.connectivity")
+    private let queue = DispatchQueue(label: "com.vil555tim.onecart.connectivity")
 
     /// Called on the monitor queue.
     var onChange: (@Sendable (Bool) -> Void)? {

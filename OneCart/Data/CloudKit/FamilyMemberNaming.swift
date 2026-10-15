@@ -35,8 +35,8 @@ enum FamilyMemberNaming {
                 if isCurrent {
                     account.displayName
                 } else {
-                    profileNames[participant.recordName]?.nonBlankMemberName
-                        ?? participant.identityName?.nonBlankMemberName
+                    profileNames[participant.recordName]?.nilIfBlank
+                        ?? participant.identityName?.nilIfBlank
                         ?? String(localized: "members.numbered_fallback \(index + 1)")
                 }
             return FamilyMember(
@@ -55,12 +55,5 @@ enum FamilyMemberNaming {
             }
             return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
         }
-    }
-}
-
-private extension String {
-    var nonBlankMemberName: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }

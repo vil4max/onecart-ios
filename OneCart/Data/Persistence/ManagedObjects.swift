@@ -70,14 +70,7 @@ final class FamilySpace: NSManagedObject {
     }
 
     var sortedProducts: [ProductEntity] {
-        let values = (products?.allObjects as? [ProductEntity] ?? [])
-            .filter { !$0.isDeletedValue }
-        return values.sorted {
-            if $0.isPurchasedValue != $1.isPurchasedValue {
-                return !$0.isPurchasedValue && $1.isPurchasedValue
-            }
-            return $0.createdDate > $1.createdDate
-        }
+        ProductEntity.liveInCartOrder(products)
     }
 
     var sortedHistory: [PurchaseHistoryEntity] {
@@ -188,6 +181,13 @@ final class ShoppingListEntity: NSManagedObject {
     }
 
     var sortedProducts: [ProductEntity] {
+        ProductEntity.liveInCartOrder(products)
+    }
+}
+
+extension ProductEntity {
+    /// Live lines only, newest to-buy first, then the completed ones (REQ-SHELL-010).
+    static func liveInCartOrder(_ products: NSSet?) -> [ProductEntity] {
         let values = (products?.allObjects as? [ProductEntity] ?? [])
             .filter { !$0.isDeletedValue }
         return values.sorted {

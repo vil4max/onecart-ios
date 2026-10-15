@@ -18,6 +18,10 @@ extension AppSession {
         shoppingTrip.sync(with: snapshot)
     }
 
+    /// REQ-WIDGET-010: the snapshot carries up to six needed and two completed lines.
+    static let widgetNeededLimit = 6
+    static let widgetCompletedLimit = 2
+
     /// The active cart as the widgets and the shopping trip draw it; without an account or
     /// cart it is the empty snapshot, whose missing IDs end a running trip.
     func makeWidgetSnapshot(theme activeTheme: AppTheme, accent activeAccent: AppAccentColor) -> WidgetCartSnapshot {
@@ -25,7 +29,7 @@ extension AppSession {
             let list = ShoppingListEntity.primaryList(in: activeLists)
         else {
             return WidgetCartSnapshot(
-                cartTitle: "OneCart Family",
+                cartTitle: Self.defaultFamilyName,
                 totalCount: 0,
                 purchasedCount: 0,
                 isSyncing: false,
@@ -44,8 +48,8 @@ extension AppSession {
         let totalCount = allProducts.count
         let purchasedCount = purchased.count
 
-        // Display up to 6 unpurchased items, followed by up to 2 purchased items
-        let displayProducts: [ProductEntity] = Array(unpurchased.prefix(6)) + Array(purchased.prefix(2))
+        let displayProducts: [ProductEntity] =
+            Array(unpurchased.prefix(Self.widgetNeededLimit)) + Array(purchased.prefix(Self.widgetCompletedLimit))
 
         let itemSnapshots = displayProducts.compactMap { product -> WidgetItemSnapshot? in
             guard let id = product.id else { return nil }

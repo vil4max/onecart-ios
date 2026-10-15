@@ -84,6 +84,8 @@ final class SessionBootstrapper {
                 await prepare(appleCredential: credential)
                 return
             case .revoked, .notFound:
+                // Simulator builds keep the stored sign-in across launches (demo and UI checks)
+                // even when the credential check reports it gone; a device signs out.
                 #if targetEnvironment(simulator)
                     host.applyWelcomeConnecting()
                     await prepare(appleCredential: credential)

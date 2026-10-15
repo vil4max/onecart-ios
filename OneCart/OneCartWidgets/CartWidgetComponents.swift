@@ -2,11 +2,6 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-// The Home Screen families share the cart screen's vocabulary: the category tile of
-// `CartCategoryThumbnail`, the check control of `ProductPurchaseToggle` and the progress
-// line of `CartProgressHeader`. Colors come from the snapshot's accent and scheme so a
-// theme override in the snapshot still wins over the system appearance.
-
 func toggleAccessibilityLabel(for item: WidgetItemSnapshot) -> Text {
     item.isPurchased
         ? Text("widget.toggle_unmark_a11y \(item.name)")
@@ -89,7 +84,8 @@ struct WidgetPurchaseToggle: View {
 }
 
 /// One cart line as the app draws it: category tile, name struck through once completed,
-/// and the check control at the trailing edge.
+/// and the check control at the trailing edge. Colors come from the snapshot's accent and
+/// scheme, so a theme override in the snapshot wins over the system appearance.
 struct WidgetItemRow: View {
     let item: WidgetItemSnapshot
     let snapshot: WidgetCartSnapshot

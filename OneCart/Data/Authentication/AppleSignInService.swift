@@ -13,7 +13,7 @@ struct AppleSignInCredential: Codable, Equatable {
 
     var providedDisplayName: String? {
         let parts = [givenName, familyName]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }
+            .compactMap { $0?.nilIfBlank }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " ")
     }
@@ -66,7 +66,7 @@ protocol AppleSignInAuthenticating: AnyObject, Sendable {
 }
 
 final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
-    private static let logger = Logger(subsystem: "com.vil555tim.onecart", category: "AppleSignIn")
+    private static let logger = Logger(subsystem: OneCartLog.subsystem, category: "AppleSignIn")
 
     private let service: String
     private let account: String
@@ -101,7 +101,6 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
         if status == errSecSuccess, let data = item as? Data,
             let credential = try? JSONDecoder().decode(AppleSignInCredential.self, from: data)
         {
-            // Keep only the stable identifier in the App Group backup (no PII).
             updateBackup(userID: credential.userID)
             return credential
         }
@@ -127,7 +126,6 @@ final class KeychainAppleSignInCredentialStore: AppleSignInCredentialStoring {
     /// name only on the first sign-in, so a failed write must not delete the stored one first.
     func save(_ credential: AppleSignInCredential) {
         guard let data = try? JSONEncoder().encode(credential) else { return }
-        // Backup stores only the stable userID; the name lives in the Keychain.
         updateBackup(userID: credential.userID)
         saveKeychain(data: data)
     }
@@ -279,11 +277,5 @@ enum AppleSignInPresentationAnchor {
             return UIWindow(windowScene: scene)
         }
         preconditionFailure("No UIWindowScene for Sign in with Apple presentation")
-    }
-}
-
-private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
     }
 }

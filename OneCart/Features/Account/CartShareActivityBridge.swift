@@ -10,12 +10,11 @@ struct CartSharePayload: Identifiable {
 extension View {
     /// Presents the invite share sheet from the view that opened it. A wide scene (an unfolded
     /// iPhone Duo) shows a popover pointing at that control instead of one pinned to the window
-    /// centre, which is the fold; a compact iPhone keeps the full-height sheet it always had.
+    /// centre, which is the fold; a compact iPhone shows a full-height sheet.
     func cartSharePresentation(item: Binding<CartSharePayload?>) -> some View {
         popover(item: item, arrowEdge: .top) { payload in
             CartActivityViewController(activityItems: [CartInviteActivityItem(link: payload.link)])
-                // The share sheet draws its own background to the bottom edge, as it did when
-                // it was presented with `.sheet`.
+                // The share sheet draws its own background to the bottom edge.
                 .ignoresSafeArea()
                 .presentationCompactAdaptation(.sheet)
         }

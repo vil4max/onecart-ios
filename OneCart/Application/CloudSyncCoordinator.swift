@@ -82,7 +82,7 @@ final class CloudSyncCoordinator {
             await host.refreshFamilyMetadata(showErrors: false)
             host.applySyncState(host.isOnline ? .synchronized : .offline)
             host.applyLastSyncError(nil)
-        case .skippedDebounce:
+        case .skippedDebounce, .cancelled:
             break
         case let .failed(message):
             host.applyLastSyncError(message)

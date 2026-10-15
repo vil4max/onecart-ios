@@ -156,8 +156,8 @@ private struct ShoppingTripProgressBar: View {
 }
 
 private struct ShoppingTripItemRow: View {
-    /// The row pitch the list had with 6 pt spacing; the check target fills it. Three rows at
-    /// 44 pt would push the card past the 160 pt the Lock Screen shows without truncating.
+    /// The check target fills the row. Three rows must fit the 160 pt the Lock Screen shows
+    /// without truncating, which rules out 44 pt rows.
     static let height: CGFloat = 30
 
     let item: ShoppingTripItem

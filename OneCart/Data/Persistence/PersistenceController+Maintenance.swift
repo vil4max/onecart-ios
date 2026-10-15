@@ -53,12 +53,8 @@ extension PersistenceController {
             at: storeDirectoryURL,
             includingPropertiesForKeys: nil
         )
-        for url in contents {
+        for url in contents where Self.isOneCartStoreFile(url) {
             let name = url.lastPathComponent
-            guard name.lowercased().hasPrefix("onecart-") else { continue }
-            if name.lowercased().hasPrefix("onecart-diagnostics") {
-                continue
-            }
             let destination = diagnosticsRoot.appendingPathComponent(name)
             if fileManager.fileExists(atPath: destination.path) {
                 try fileManager.removeItem(at: destination)
@@ -143,11 +139,14 @@ extension PersistenceController {
                 includingPropertiesForKeys: nil
             )
         else { return false }
-        return contents.contains { url in
-            let name = url.lastPathComponent.lowercased()
-            guard name.hasPrefix("onecart-") else { return false }
-            return !name.hasPrefix("onecart-diagnostics")
-        }
+        return contents.contains(where: isOneCartStoreFile)
+    }
+
+    /// A store file (`OneCart-*.sqlite` and its WAL/SHM siblings); the diagnostics copies
+    /// that share the prefix are kept out.
+    static func isOneCartStoreFile(_ url: URL) -> Bool {
+        let name = url.lastPathComponent.lowercased()
+        return name.hasPrefix("onecart-") && !name.hasPrefix("onecart-diagnostics")
     }
 
     static func removeAllOneCartStoreFiles(in directory: URL) {
@@ -159,12 +158,7 @@ extension PersistenceController {
             )
         else { return }
 
-        for url in contents {
-            let name = url.lastPathComponent.lowercased()
-            guard name.hasPrefix("onecart-") else { continue }
-            if name.hasPrefix("onecart-diagnostics") {
-                continue
-            }
+        for url in contents where isOneCartStoreFile(url) {
             try? fileManager.removeItem(at: url)
         }
     }

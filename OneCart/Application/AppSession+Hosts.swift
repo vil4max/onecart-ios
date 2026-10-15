@@ -115,21 +115,15 @@ extension AppSession: SessionBootstrapHost {
     }
 
     func applyWelcomeSignIn() {
-        needsWelcome = true
-        welcomePhase = .signIn
-        isReady = true
+        showWelcome(.signIn)
     }
 
     func applyWelcomeConnecting() {
-        needsWelcome = true
-        welcomePhase = .connecting
-        isReady = true
+        showWelcome(.connecting)
     }
 
     func applyWelcomeFailed(_ message: String) {
-        needsWelcome = true
-        welcomePhase = .failed(message)
-        isReady = true
+        showWelcome(.failed(message))
     }
 
     func applyWelcomeReady(needsWelcome: Bool) {

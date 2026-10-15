@@ -99,9 +99,6 @@ enum CartSuggestionsEngine {
             }
         }
 
-        // 4. Filter candidates:
-        //    - Not currently in the active cart
-        //    - Matches query (if query is provided)
         let filtered = candidates.filter { name in
             let key = name.lowercased()
             if excludedSet.contains(FamilyCartMerge.normalizedProductName(name)) {
@@ -113,7 +110,6 @@ enum CartSuggestionsEngine {
             return key.contains(trimmedQuery)
         }
 
-        // 5. Prioritize prefix matches when query is present
         let ranked: [String]
         if !trimmedQuery.isEmpty {
             let prefixMatches = filtered.filter { $0.lowercased().hasPrefix(trimmedQuery) }

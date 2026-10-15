@@ -14,12 +14,12 @@ public enum OneCartPalette {
     private static let accentStorage = Mutex<AppAccentColor>(storedAccent())
 
     private static func storedAccent() -> AppAccentColor {
-        if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
+        if let raw = OneCartAppGroup.defaults?.string(forKey: OneCartAppGroup.accentColorKey),
             let accent = AppAccentColor(rawValue: raw)
         {
             return accent
         }
-        if let raw = UserDefaults.standard.string(forKey: "onecart.accent-color"),
+        if let raw = UserDefaults.standard.string(forKey: OneCartAppGroup.accentColorKey),
             let accent = AppAccentColor(rawValue: raw)
         {
             return accent

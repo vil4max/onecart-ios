@@ -113,9 +113,6 @@ final class DevicePreferences {
     }
 
     var accentColor: AppAccentColor {
-        willSet {
-            OneCartPalette.currentAccent = newValue
-        }
         didSet {
             defaults.set(accentColor.rawValue, forKey: Keys.accentColor)
             defaults.synchronize()
@@ -181,19 +178,19 @@ final class DevicePreferences {
     private enum Keys {
         static let theme = "onecart.theme"
         static let language = "onecart.language"
-        static let accentColor = "onecart.accent-color"
+        static let accentColor = OneCartAppGroup.accentColorKey
         static let appIcon = "onecart.app-icon"
         static let participantDisplayName = "onecart.participant-display-name"
     }
 }
 
 enum InviteLinkError: LocalizedError, Equatable {
-    case notOwner
+    case noCart
     case offline
 
     var errorDescription: String? {
         switch self {
-        case .notOwner:
+        case .noCart:
             String(localized: "sync.invite_owner_only")
         case .offline:
             String(localized: "sync.invite_need_network")

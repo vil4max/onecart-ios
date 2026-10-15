@@ -238,7 +238,7 @@ extension FragileSyncOutcomeTests {
         XCTAssertEqual(refreshCount, 2)
     }
 
-    func test_REQ_SYNC_010_cancelledRefreshIsReportedAsSkipped() async throws {
+    func test_REQ_SYNC_010_cancelledRefreshIsReportedAsCancelled() async throws {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
@@ -250,7 +250,7 @@ extension FragileSyncOutcomeTests {
         let outcome = await cartSync.syncCart(reason: .pull)
         await coordinator.syncCart(reason: .pull)
 
-        XCTAssertEqual(outcome, .skippedDebounce)
+        XCTAssertEqual(outcome, .cancelled)
         XCTAssertEqual(host.syncState, .synchronized, "A cancelled sync leaves the state alone")
         XCTAssertTrue(host.syncAlerts.isEmpty)
     }

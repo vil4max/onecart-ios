@@ -98,9 +98,7 @@ extension AppSession {
         lastSyncError = nil
         syncState = .synchronized
         preferredMainTab = nil
-        needsWelcome = true
-        welcomePhase = .signIn
-        isReady = true
+        showWelcome(.signIn)
         started = true
     }
 

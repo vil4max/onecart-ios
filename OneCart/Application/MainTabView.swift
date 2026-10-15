@@ -6,23 +6,43 @@ enum MainTab: String, Hashable {
     case account
 }
 
-/// The screen boundary for the three tabs: creates each ViewModel once from the session.
+/// The three tabs' ViewModels, built once by the owner of `MainTabView`: a `State` initial
+/// value is evaluated on every view init, so building them inside the tab view would throw
+/// away three ViewModels each time its parent re-renders.
+@MainActor
+struct MainTabViewModels {
+    let cart: CartViewModel
+    let history: HistoryViewModel
+    let account: AccountViewModel
+
+    init(session: AppSession) {
+        cart = CartViewModel(session: session)
+        history = HistoryViewModel(history: session)
+        account = AccountViewModel(session: session)
+    }
+}
+
+/// The screen boundary for the three tabs.
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selection: MainTab = Self.initialTab
-    @State private var cartViewModel: CartViewModel
-    @State private var historyViewModel: HistoryViewModel
-    @State private var accountViewModel: AccountViewModel
 
+    private let cartViewModel: CartViewModel
+    private let historyViewModel: HistoryViewModel
+    private let accountViewModel: AccountViewModel
     private let state: any SessionStateReading
     private let tabs: any MainTabRouting
 
-    init(session: AppSession) {
+    init(session: AppSession, viewModels: MainTabViewModels) {
         state = session
         tabs = session
-        _cartViewModel = State(initialValue: CartViewModel(session: session))
-        _historyViewModel = State(initialValue: HistoryViewModel(history: session))
-        _accountViewModel = State(initialValue: AccountViewModel(session: session))
+        cartViewModel = viewModels.cart
+        historyViewModel = viewModels.history
+        accountViewModel = viewModels.account
+    }
+
+    init(session: AppSession) {
+        self.init(session: session, viewModels: MainTabViewModels(session: session))
     }
 
     var body: some View {

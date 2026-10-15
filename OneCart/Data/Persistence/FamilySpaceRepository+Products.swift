@@ -27,7 +27,7 @@ extension FamilySpaceRepository {
                 throw RepositoryError.familySpaceNotFound
             }
 
-            // Idempotent only for the exact stable id (CloudKit redelivery), never by name.
+            // Redelivery of the same stable id returns that row.
             if let existing = try Self.fetchProduct(
                 id: id,
                 familySpaceID: space.id,
@@ -57,7 +57,7 @@ extension FamilySpaceRepository {
             product.updatedAt = now
             product.purchasedAt = nil
             product.purchasedByName = nil
-            product.createdByName = createdByName?.trimmedNilIfEmpty
+            product.createdByName = createdByName?.nilIfBlank
             product.familySpace = space
             product.list = list
             product.store = list.store
@@ -141,7 +141,7 @@ extension FamilySpaceRepository {
             product.purchasedAt = isPurchased ? now : nil
             product.purchasedByName =
                 isPurchased
-                ? participantDisplayName?.trimmedNilIfEmpty
+                ? participantDisplayName?.nilIfBlank
                 : nil
             product.updatedAt = now
             product.list?.updatedAt = now
@@ -177,7 +177,7 @@ extension FamilySpaceRepository {
             if product.isPurchasedValue != isPurchased {
                 product.isPurchased = NSNumber(value: isPurchased)
                 product.purchasedAt = isPurchased ? purchasedAt : nil
-                product.purchasedByName = isPurchased ? participantDisplayName?.trimmedNilIfEmpty : nil
+                product.purchasedByName = isPurchased ? participantDisplayName?.nilIfBlank : nil
             }
             product.updatedAt = purchasedAt
             product.list?.updatedAt = now
@@ -265,7 +265,7 @@ extension FamilySpaceRepository {
             history.store = list.store
 
             let names = Set(
-                unarchived.compactMap { $0.purchasedByName?.trimmedNilIfEmpty }
+                unarchived.compactMap { $0.purchasedByName?.nilIfBlank }
             ).sorted()
             history.memberNames =
                 names.isEmpty
@@ -374,18 +374,11 @@ extension FamilySpaceRepository {
         product.category = draft.category.rawValue
         product.estimatedPrice = NSNumber(value: max(draft.estimatedPrice, 0))
         product.note = draft.note.trimmingCharacters(in: .whitespacesAndNewlines)
-        product.imageURL = draft.imageURL?.trimmedNilIfEmpty
-        product.sourceURL = draft.sourceURL?.trimmedNilIfEmpty
+        product.imageURL = draft.imageURL?.nilIfBlank
+        product.sourceURL = draft.sourceURL?.nilIfBlank
         product.originalPrice = draft.originalPrice.map { NSNumber(value: max($0, 0)) }
         product.loyaltyPrice = draft.loyaltyPrice.map { NSNumber(value: max($0, 0)) }
         product.catalogFetchedAt = draft.catalogFetchedAt
         product.promotionEndsAt = draft.promotionEndsAt
-    }
-}
-
-private extension String {
-    var trimmedNilIfEmpty: String? {
-        let value = trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
     }
 }

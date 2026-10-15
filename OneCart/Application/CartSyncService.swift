@@ -13,6 +13,7 @@ enum CartSyncReason: String {
 enum CartSyncOutcome: Equatable {
     case succeeded
     case skippedDebounce
+    case cancelled
     case failed(String)
 }
 
@@ -52,10 +53,10 @@ final class CartSyncService {
         pendingReason = Self.preferred(pending: pendingReason, incoming: reason)
 
         if isExclusiveRunning {
+            let incoming = reason.rawValue
             let pendingLabel = pendingReason?.rawValue ?? "-"
             CartSyncLog.cart.info(
-                // swiftlint:disable:next line_length
-                "syncCart coalesce reason=\(reason.rawValue, privacy: .public) pending=\(pendingLabel, privacy: .public)"
+                "syncCart coalesce reason=\(incoming, privacy: .public) pending=\(pendingLabel, privacy: .public)"
             )
             return await withCheckedContinuation { continuation in
                 syncWaiters.append(continuation)
@@ -118,9 +119,9 @@ final class CartSyncService {
         do {
             try await onHardRefresh?()
             if let counts = purchasedCountProvider?() {
+                let label = reason.rawValue
                 CartSyncLog.cart.info(
-                    // swiftlint:disable:next line_length
-                    "syncCart refresh purchased=\(counts.purchased) total=\(counts.total) reason=\(reason.rawValue, privacy: .public)"
+                    "syncCart refresh purchased=\(counts.purchased)/\(counts.total) reason=\(label, privacy: .public)"
                 )
             }
             contentRevision &+= 1
@@ -133,7 +134,7 @@ final class CartSyncService {
             CartSyncLog.cart.info(
                 "syncCart cancelled reason=\(reason.rawValue, privacy: .public)"
             )
-            return .skippedDebounce
+            return .cancelled
         } catch {
             let message = error.localizedDescription
             CartSyncLog.cart.error(

@@ -88,9 +88,10 @@ extension AppSession {
             }
             try refreshProducts()
             cartSync.bumpRevisionAfterLocalChange()
+            let id = productID.uuidString
+            let category = classified.rawValue
             CartSyncLog.action.info(
-                // swiftlint:disable:next line_length
-                "refineProductCategory id=\(productID.uuidString, privacy: .public) category=\(classified.rawValue, privacy: .public)"
+                "refineProductCategory id=\(id, privacy: .public) category=\(category, privacy: .public)"
             )
         } catch {
             CartSyncLog.action.error(
@@ -229,9 +230,10 @@ extension AppSession {
                     )
                 }
             } catch {
+                let listID = id.uuidString
+                let message = error.localizedDescription
                 CartSyncLog.action.error(
-                    // swiftlint:disable:next line_length
-                    "archiveStalePurchased fail list=\(id.uuidString, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                    "archiveStalePurchased fail list=\(listID, privacy: .public) error=\(message, privacy: .public)"
                 )
             }
         }

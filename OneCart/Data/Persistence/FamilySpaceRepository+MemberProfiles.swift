@@ -16,7 +16,7 @@ extension FamilySpaceRepository {
     ) async throws -> Bool {
         let recordName = userRecordName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !recordName.isEmpty else { return false }
-        let name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmptyProfileName
+        let name = displayName?.nilIfBlank
 
         return try await persistence.performBackgroundTask(author: "OneCartMemberProfile") { context in
             let space = try Self.requireFamilySpace(id: familySpaceID, in: context)
@@ -57,11 +57,5 @@ extension FamilySpaceRepository {
             }
             return changed
         }
-    }
-}
-
-private extension String {
-    var nilIfEmptyProfileName: String? {
-        isEmpty ? nil : self
     }
 }

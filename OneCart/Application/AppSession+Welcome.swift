@@ -47,21 +47,22 @@ extension AppSession {
 
     func reportWelcomeFailure(_ message: String) {
         bootstrapper.disarmStoreWipe()
-        needsWelcome = true
-        welcomePhase = .failed(message)
-        isReady = true
+        showWelcome(.failed(message))
     }
 
     func dismissWelcomeSignInAttempt() {
+        showWelcome(.signIn)
+    }
+
+    /// Welcome is on screen in `phase`, and the root stops showing the loading state.
+    func showWelcome(_ phase: WelcomePhase) {
         needsWelcome = true
-        welcomePhase = .signIn
+        welcomePhase = phase
         isReady = true
     }
 
     func completeAppleSignIn(credential: AppleSignInCredential) async {
-        needsWelcome = true
-        welcomePhase = .connecting
-        isReady = true
+        showWelcome(.connecting)
         do {
             // The busy operation ends before reconciliation: the coordinator skips
             // reconciling while the session reports busy.
@@ -114,9 +115,7 @@ extension AppSession {
         clearAccountData()
         account = nil
         userAlert = nil
-        needsWelcome = true
-        welcomePhase = .signIn
-        isReady = true
+        showWelcome(.signIn)
         started = true
     }
 
@@ -127,7 +126,7 @@ extension AppSession {
     func createFamilyInviteLink() async throws -> FamilyInviteLink {
         guard let family = activeFamilySpace else {
             CartSyncLog.action.error("shareInvite denied noFamily")
-            throw InviteLinkError.notOwner
+            throw InviteLinkError.noCart
         }
         return try await invitePreparer.createInviteLink(
             family: family,

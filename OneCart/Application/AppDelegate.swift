@@ -11,7 +11,7 @@ extension Notification.Name {
 }
 
 final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    private static let metadataLock = NSLock()
+    /// Main-actor isolated like the delegate, so every enqueue and take is serialized.
     private static var pendingShareMetadata: [CKShare.Metadata] = []
     private let metricKitLogger = MetricKitLogger()
 
@@ -31,7 +31,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         didReceiveRemoteNotification _: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        completionHandler(.newData)
+        // NSPersistentCloudKitContainer imports CloudKit changes on its own; this handler
+        // fetches nothing, so it never reports new data.
+        completionHandler(.noData)
     }
 
     /// UserNotifications may call its delegate off the main thread.
@@ -74,14 +76,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
     }
 
     static func enqueue(_ metadata: CKShare.Metadata) {
-        metadataLock.lock()
         pendingShareMetadata.append(metadata)
-        metadataLock.unlock()
     }
 
     static func takePendingShareMetadata() -> [CKShare.Metadata] {
-        metadataLock.lock()
-        defer { metadataLock.unlock() }
         let copy = pendingShareMetadata
         pendingShareMetadata.removeAll()
         return copy
@@ -89,8 +87,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
 
     static func requeue(_ metadata: [CKShare.Metadata]) {
         guard !metadata.isEmpty else { return }
-        metadataLock.lock()
         pendingShareMetadata.append(contentsOf: metadata)
-        metadataLock.unlock()
     }
 }

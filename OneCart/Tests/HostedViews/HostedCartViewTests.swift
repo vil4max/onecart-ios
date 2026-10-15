@@ -227,8 +227,7 @@ struct HostedCartViewTests {
         arguments: [DynamicTypeSize.large, .accessibility1, .accessibility3, .accessibility5]
     )
     func productNameSpansRowContentWidth(size: DynamicTypeSize) async throws {
-        // A dedicated single-line fixture, kept local to this test, so the row's name and
-        // toggle elements are unambiguous; the shared `cartWithLines()` fixture is untouched.
+        // A single-line fixture so the row's name and toggle elements are unambiguous.
         let fixture = try await CartFixture.make()
         _ = try await fixture.addProduct(named: "Апельсиновый сок")
         let harness = try CartHarness(fixture: fixture)
@@ -243,8 +242,8 @@ struct HostedCartViewTests {
         if size.isAccessibilitySize {
             // Row content width: there is no accessibility identifier on the row itself (the
             // category tile is `accessibilityHidden`), so this is the union of the name and
-            // toggle frames — the row's leading edge to its trailing edge. With the fixed
-            // layout the tile and toggle share a line above the name, and the name spans the
+            // toggle frames — the row's leading edge to its trailing edge. At accessibility
+            // sizes the tile and toggle share a line above the name, and the name spans the
             // same leading-to-trailing width below them, so the two widths converge.
             let rowContentWidth = max(nameFrame.maxX, toggleFrame.maxX) - min(nameFrame.minX, toggleFrame.minX)
             #expect(
@@ -268,7 +267,7 @@ struct HostedCartViewTests {
                 )
             }
         } else {
-            // At .large the current layout holds: the name and the toggle sit on the same line.
+            // At .large the name and the toggle share one line.
             #expect(
                 toggleFrame.minY < nameFrame.midY && nameFrame.midY < toggleFrame.maxY,
                 "name \(nameFrame), toggle \(toggleFrame)"

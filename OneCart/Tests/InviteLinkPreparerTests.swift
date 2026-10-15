@@ -74,9 +74,9 @@ final class InviteLinkPreparerTests: XCTestCase {
                     throw InviteLinkError.offline
                 }
             )
-            XCTFail("expected notOwner")
+            XCTFail("expected noCart")
         } catch let error as InviteLinkError {
-            XCTAssertEqual(error, .notOwner)
+            XCTAssertEqual(error, .noCart)
         }
         XCTAssertNil(preparer.preparedInviteLink)
     }
@@ -114,7 +114,7 @@ final class InviteLinkPreparerTests: XCTestCase {
                 isOnline: false,
                 fetch: {
                     XCTFail("fetch must not run")
-                    throw InviteLinkError.notOwner
+                    throw InviteLinkError.noCart
                 }
             )
             XCTFail("expected offline")

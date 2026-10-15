@@ -74,7 +74,7 @@ final class DevicePreferencesTests: XCTestCase {
     }
 
     func testInviteLinkErrorDescriptionsAreNonEmpty() {
-        XCTAssertFalse(InviteLinkError.notOwner.localizedDescription.isEmpty)
+        XCTAssertFalse(InviteLinkError.noCart.localizedDescription.isEmpty)
         XCTAssertFalse(InviteLinkError.offline.localizedDescription.isEmpty)
     }
 

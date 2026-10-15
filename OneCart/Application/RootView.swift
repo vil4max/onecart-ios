@@ -24,6 +24,7 @@ private struct RootSessionView: View {
     @State private var cartRideFinished = false
     @State private var welcomeViewModel: WelcomeViewModel
     @State private var namePromptViewModel: MemberNamePromptViewModel
+    @State private var tabViewModels: MainTabViewModels
 
     private let session: AppSession
     private let state: any SessionStateReading
@@ -35,6 +36,7 @@ private struct RootSessionView: View {
         alerts = session
         _welcomeViewModel = State(initialValue: WelcomeViewModel(session: session))
         _namePromptViewModel = State(initialValue: MemberNamePromptViewModel(prompting: session))
+        _tabViewModels = State(initialValue: MainTabViewModels(session: session))
     }
 
     private var isNamePromptPresented: Binding<Bool> {
@@ -105,6 +107,10 @@ private struct RootSessionView: View {
         .sheet(isPresented: isNamePromptPresented) {
             MemberNamePromptView(viewModel: namePromptViewModel)
         }
+        // Each signed-in account starts with fresh tab screens, as when the tabs first mount.
+        .onChange(of: state.account?.id) {
+            tabViewModels = MainTabViewModels(session: session)
+        }
     }
 
     @ViewBuilder
@@ -115,7 +121,7 @@ private struct RootSessionView: View {
         case .welcome:
             WelcomeView(viewModel: welcomeViewModel)
         case .main:
-            MainTabView(session: session)
+            MainTabView(session: session, viewModels: tabViewModels)
         }
     }
 }

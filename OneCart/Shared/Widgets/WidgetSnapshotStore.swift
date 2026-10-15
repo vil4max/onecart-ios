@@ -13,7 +13,7 @@ public final class WidgetSnapshotStore: Sendable {
     private let pendingDirectoryURL: URL?
     private let mutex = Mutex<Void>(())
 
-    private static let logger = Logger(subsystem: "com.vil555tim.onecart", category: "WidgetSnapshot")
+    private static let logger = Logger(subsystem: OneCartLog.subsystem, category: "WidgetSnapshot")
 
     /// No fallback to `.standard`: in the extension that is a different domain, so a
     /// fallback would hide a broken App Group behind a widget that never updates.

@@ -3,6 +3,8 @@ import SwiftUI
 
 public enum OneCartAppGroup {
     public static let identifier = "group.com.vil555tim.onecart"
+    /// The accent the app last chose; the widget and the palette read it before a snapshot exists.
+    public static let accentColorKey = "onecart.accent-color"
     public static var defaults: UserDefaults? {
         UserDefaults(suiteName: identifier)
     }
@@ -69,7 +71,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     /// app last wrote to the App Group, then to emerald.
     static func accentColor(raw: String?, legacyDefaults: UserDefaults?) -> AppAccentColor {
         guard let raw else {
-            if let stored = legacyDefaults?.string(forKey: "onecart.accent-color"),
+            if let stored = legacyDefaults?.string(forKey: OneCartAppGroup.accentColorKey),
                 let accent = AppAccentColor(rawValue: stored)
             {
                 return accent

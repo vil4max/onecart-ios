@@ -65,7 +65,6 @@ public enum CartActivityDiff {
 
         var events: [CartActivityEvent] = []
 
-        // 1. Detect items added by partner
         let newItems = current.filter { !baselineIDs.contains($0.id) }
         var itemsByAuthor: [String: [String]] = [:]
 
@@ -81,7 +80,6 @@ public enum CartActivityDiff {
             events.append(.itemsAdded(author: author, itemNames: names))
         }
 
-        // 2. Detect "All Purchased" by partner
         let previouslyHadUnpurchased = baseline.contains(where: { !$0.isPurchased })
         let currentlyAllPurchased = !current.isEmpty && current.allSatisfy(\.isPurchased)
 

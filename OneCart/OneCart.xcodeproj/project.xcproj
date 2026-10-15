@@ -201,6 +201,13 @@
             { "path": "CartActivityNotifier.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartSuggestionsEngine.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "String+NilIfBlank.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            {
+              "path": "OneCartLog.swift",
+              "target-membership": [
+                "OneCart/compile-sources",
+                "OneCartWidgets/compile-sources",
+              ],
+            },
             { "path": "CategoryClassifier.swift", "target-membership": [ "OneCart/compile-sources" ] },
             {
               "path": "ProductCategory.swift",

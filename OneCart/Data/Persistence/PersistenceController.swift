@@ -65,7 +65,7 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     let logger = Logger(
-        subsystem: "com.vil555tim.onecart",
+        subsystem: OneCartLog.subsystem,
         category: "Persistence"
     )
     let loadLock = NSLock()

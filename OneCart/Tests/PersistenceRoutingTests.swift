@@ -56,6 +56,22 @@ final class PersistenceRoutingTests: XCTestCase {
         XCTAssertNil(PersistenceController.scope(forStoreURL: nil))
     }
 
+    func test_REQ_AUTH_080_storeFilePredicateKeepsDiagnosticsFolders() {
+        let directory = FileManager.default.temporaryDirectory
+        for name in ["OneCart-private.sqlite", "OneCart-shared.sqlite-wal", "onecart-private.sqlite-shm"] {
+            XCTAssertTrue(PersistenceController.isOneCartStoreFile(directory.appendingPathComponent(name)), name)
+        }
+        for name in ["OneCart-diagnostics", "Other.sqlite", "OneCart.sqlite"] {
+            XCTAssertFalse(PersistenceController.isOneCartStoreFile(directory.appendingPathComponent(name)), name)
+        }
+    }
+
+    func test_REQ_AUTH_040_blankAndWhitespaceOnlyNamesNormalizeToNil() {
+        XCTAssertNil("".nilIfBlank)
+        XCTAssertNil(" \n\t ".nilIfBlank)
+        XCTAssertEqual("  Alex ".nilIfBlank, "Alex")
+    }
+
     func test_REQ_SHARE_050_discardingTheSharedCartLeavesPrivateCartsUntouched() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let privateID = try await repository.createFamilySpace(name: "Private")

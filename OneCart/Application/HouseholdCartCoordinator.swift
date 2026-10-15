@@ -33,8 +33,8 @@ final class HouseholdCartCoordinator {
     private let repository: FamilySpaceRepository
     private let defaults: UserDefaults
     private weak var host: (any HouseholdCartHost)?
-    /// Callers that arrived while this coordinator's setup was running; resumed when it ends.
     private var isRunningEnsure = false
+    /// Callers that arrived while this coordinator's setup was running; resumed when it ends.
     private var ensureWaiters: [CheckedContinuation<Void, Never>] = []
 
     init(

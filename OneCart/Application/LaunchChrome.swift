@@ -134,9 +134,11 @@ private final class LaunchRideView: UIView {
     }
 
     private func updateBackgroundColor() {
+        // The provider is stored in backgroundColor; capturing self would retain the view.
+        let accent = accent
         backgroundColor = UIColor { traits in
             let dark = traits.userInterfaceStyle == .dark
-            let rgb = dark ? self.accent.primaryRGB.dark : self.accent.primaryRGB.light
+            let rgb = dark ? accent.primaryRGB.dark : accent.primaryRGB.light
             return UIColor(
                 red: rgb.0 / 255,
                 green: rgb.1 / 255,

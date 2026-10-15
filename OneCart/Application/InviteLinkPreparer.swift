@@ -17,7 +17,7 @@ final class InviteLinkPreparer {
     ) async throws -> FamilyInviteLink {
         guard let familyID = family.id else {
             CartSyncLog.action.error("shareInvite denied noFamily")
-            throw InviteLinkError.notOwner
+            throw InviteLinkError.noCart
         }
         guard isOnline else {
             CartSyncLog.action.error("shareInvite denied offline")
