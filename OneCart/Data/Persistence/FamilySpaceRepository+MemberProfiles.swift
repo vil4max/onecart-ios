@@ -12,11 +12,12 @@ extension FamilySpaceRepository {
         familySpaceID: UUID,
         userRecordName: String,
         displayName: String?,
-        now: Date = Date()
+        now: Date? = nil
     ) async throws -> Bool {
         let recordName = userRecordName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !recordName.isEmpty else { return false }
         let name = displayName?.nilIfBlank
+        let now = now ?? clock.now()
 
         return try await persistence.performBackgroundTask(author: "OneCartMemberProfile") { context in
             let space = try Self.requireFamilySpace(id: familySpaceID, in: context)

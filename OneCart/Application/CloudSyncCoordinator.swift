@@ -38,10 +38,12 @@ final class CloudSyncCoordinator {
     private var pendingReloadDelay: UInt64?
     /// Delay the reload loop is currently sleeping on; nil while it is syncing.
     private var sleepingReloadDelay: UInt64?
+    private let clock: AppClock
 
-    init(persistence: PersistenceController, cartSync: CartSyncService) {
+    init(persistence: PersistenceController, cartSync: CartSyncService, clock: AppClock = .live) {
         self.persistence = persistence
         self.cartSync = cartSync
+        self.clock = clock
     }
 
     func bind(host: CloudSyncHost) {
@@ -175,8 +177,9 @@ final class CloudSyncCoordinator {
     func scheduleSoftProductRefresh(delayNanoseconds: UInt64 = 80_000_000) {
         guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
         softRefreshTask?.cancel()
+        let clock = clock
         softRefreshTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            try? await clock.sleep(nanoseconds: delayNanoseconds)
             guard !Task.isCancelled, let self, let host, host.account != nil else {
                 return
             }
@@ -207,7 +210,7 @@ final class CloudSyncCoordinator {
                 guard let delay = pendingReloadDelay else { return }
                 pendingReloadDelay = nil
                 sleepingReloadDelay = delay
-                try? await Task.sleep(nanoseconds: delay)
+                try? await clock.sleep(nanoseconds: delay)
                 // A cancelled task no longer owns the shared state; leave it to its successor.
                 guard !Task.isCancelled else { return }
                 sleepingReloadDelay = nil

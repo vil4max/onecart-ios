@@ -29,6 +29,7 @@ final class CartViewModel {
     private let tabs: any MainTabRouting
     private let trip: any ShoppingTripControlling
     private let duplicateHighlightNanoseconds: UInt64
+    private let clock: AppClock
 
     init(
         state: any SessionStateReading,
@@ -38,8 +39,10 @@ final class CartViewModel {
         alerts: any AlertPresenting,
         tabs: any MainTabRouting,
         trip: any ShoppingTripControlling,
-        duplicateHighlightNanoseconds: UInt64 = 1_800_000_000
+        duplicateHighlightNanoseconds: UInt64 = 1_800_000_000,
+        clock: AppClock = .live
     ) {
+        self.clock = clock
         self.state = state
         self.cart = cart
         historyBrowser = history
@@ -265,8 +268,9 @@ final class CartViewModel {
     private func flashDuplicateRow(_ productID: UUID) {
         duplicateHighlightID = productID
         let delay = duplicateHighlightNanoseconds
+        let clock = clock
         Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: delay)
+            try? await clock.sleep(nanoseconds: delay)
             guard let self, duplicateHighlightID == productID else { return }
             duplicateHighlightID = nil
         }

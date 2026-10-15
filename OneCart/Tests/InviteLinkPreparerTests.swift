@@ -202,7 +202,7 @@ final class InviteLinkPreparerTests: XCTestCase {
         let (_, repository) = try await makeInMemoryRepository()
         let familyID = try await repository.createFamilySpace(name: "Cart")
         let family = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
-        let preparer = InviteLinkPreparer()
+        let preparer = InviteLinkPreparer(clock: .immediate)
         let fetchFailed = expectation(description: "Warm-up reached the failing fetch")
         var fetchCount = 0
         preparer.schedulePreparation(

@@ -23,16 +23,19 @@ extension AccountViewModelFakeTests {
             lateFailure.isSet = true
             throw LateFailure()
         }
+        let clock = TestClock()
         let viewModel = AccountViewModel(
             state: state,
             membership: membership,
             account: FakeAccountManager(),
             iconSwitcher: FakeAppIconSwitcher(),
-            shareTimeoutNanoseconds: 1_000_000
+            clock: clock.appClock
         )
 
         viewModel.shareCart()
-        for _ in 0..<100_000 where !lateFailure.isSet {
+        #expect(await clock.waitForSleepers())
+        clock.advance(by: AccountViewModel.defaultShareTimeout)
+        for _ in 0..<10_000 where !lateFailure.isSet {
             await Task.yield()
         }
         await Task.yield()

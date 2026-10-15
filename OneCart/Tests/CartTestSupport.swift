@@ -6,14 +6,15 @@ import XCTest
 /// Main-actor isolated so main-actor test cases do not send `self` across isolation.
 @MainActor
 extension XCTestCase {
-    func makeInMemoryRepository() async throws
+    func makeInMemoryRepository(clock: AppClock = .live) async throws
         -> (PersistenceController, FamilySpaceRepository)
     {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
+            permissionAuthorizer: AllowAllPermissionAuthorizer(),
+            clock: clock
         )
         return (persistence, repository)
     }
@@ -63,7 +64,8 @@ extension XCTestCase {
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
         widgetStore: WidgetSnapshotStore? = nil,
         categoryClassifier: any CategoryClassifying = KeywordCategoryClassifier(),
-        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil
+        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil,
+        clock: AppClock = .live
     ) throws -> AppSession {
         let defaults = try defaults ?? makeDefaults()
         return try AppSession(
@@ -77,7 +79,8 @@ extension XCTestCase {
             // Never the on-device language model or the live ActivityKit backend: a test must
             // not wait on a model or put a trip on the simulator.
             categoryClassifier: categoryClassifier,
-            shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend()
+            shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend(),
+            clock: clock
         )
     }
 

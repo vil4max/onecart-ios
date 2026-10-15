@@ -30,11 +30,17 @@ struct HostedShellViewTests {
     @Test("REQ-AUTH-010: a signed-out root rides in and lands on Welcome")
     func signedOutRootLandsOnWelcome() async throws {
         let fixture = try await MembershipSessionFixture.signedOut()
-        let hosted = HostedView(RootView().environment(fixture.session))
+        let clock = TestClock()
+        let hosted = HostedView(RootView().environment(fixture.session).environment(\.appClock, clock.appClock))
         defer { hosted.tearDown() }
 
         #expect(hosted.containsLabel(String(localized: "common.loading")))
-        #expect(await hosted.pump(maxTurns: 80) { hosted.element(identifier: "welcome.app_name") != nil })
+        // Each pump turn moves the ride clock a second on, so the ride ends within a few turns.
+        #expect(
+            await hosted.pump {
+                clock.advance(by: .seconds(1))
+                return hosted.element(identifier: "welcome.app_name") != nil
+            })
         #expect(hosted.element(identifier: "welcome.app_name")?.label == "OneCart Family")
         #expect(hosted.views(of: UITabBar.self).isEmpty)
     }
@@ -42,10 +48,10 @@ struct HostedShellViewTests {
     @Test("REQ-SHELL-010: a signed-in root rides in and lands on the tabs")
     func signedInRootLandsOnTabs() async throws {
         let fixture = try await MembershipSessionFixture.owner()
-        let hosted = HostedView(RootView().environment(fixture.session))
+        let hosted = HostedView(RootView().environment(fixture.session).environment(\.appClock, .immediate))
         defer { hosted.tearDown() }
 
-        #expect(await hosted.pump(maxTurns: 80) { !hosted.views(of: UITabBar.self).isEmpty })
+        #expect(await hosted.pump { !hosted.views(of: UITabBar.self).isEmpty })
         #expect(hosted.element(identifier: "welcome.app_name") == nil)
         #expect(hosted.views(of: UITabBar.self).first?.items?.count == 3)
     }

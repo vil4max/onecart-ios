@@ -165,7 +165,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
         cartSync.onHardRefresh = {}
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let clock = TestClock()
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock.appClock)
         let host = ReloadCountingHost()
         coordinator.bind(host: host)
 
@@ -174,7 +175,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         // The cancelled task has not run its cleanup yet; the new request must not be dropped.
         coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
 
-        try await waitForReloads(1, on: host)
+        let reloaded = await clock.advanceWhenSleeping(by: .milliseconds(20)) { host.reloadCount >= 1 }
+        XCTAssertTrue(reloaded)
         XCTAssertEqual(host.reloadCount, 1)
     }
 
@@ -183,7 +185,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
         cartSync.onHardRefresh = {}
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let clock = TestClock()
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock.appClock)
         let host = ReloadCountingHost()
         coordinator.bind(host: host)
         defer { coordinator.cancel() }
@@ -191,7 +194,9 @@ final class FragileSyncOutcomeTests: XCTestCase {
         coordinator.scheduleCloudReload(delayNanoseconds: 30_000_000_000)
         coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
 
-        try await waitForReloads(1, on: host)
+        // Only the shorter delay passes; the 30 s request must not be what runs the reload.
+        let reloaded = await clock.advanceWhenSleeping(by: .milliseconds(20)) { host.reloadCount >= 1 }
+        XCTAssertTrue(reloaded)
         XCTAssertEqual(host.reloadCount, 1)
     }
 
@@ -221,15 +226,15 @@ extension FragileSyncOutcomeTests {
     func test_REQ_SYNC_010_secondAppearWithinDebounceIsSkipped() async throws {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
-        var clock = Date(timeIntervalSinceReferenceDate: 0)
-        let cartSync = CartSyncService(persistence: persistence, now: { clock })
+        let clock = TestClock()
+        let cartSync = CartSyncService(persistence: persistence, clock: clock.appClock)
         var refreshCount = 0
         cartSync.onHardRefresh = { refreshCount += 1 }
 
         let first = await cartSync.syncCart(reason: .appear)
-        clock.addTimeInterval(2)
+        clock.advance(by: .seconds(2))
         let second = await cartSync.syncCart(reason: .appear)
-        clock.addTimeInterval(1)
+        clock.advance(by: .seconds(1))
         let third = await cartSync.syncCart(reason: .appear)
 
         XCTAssertEqual(first, .succeeded)
@@ -290,12 +295,6 @@ extension FragileSyncOutcomeTests {
         _ = await (first.value, cloud.value, appear.value)
         // A cloud import outranks an appear and runs without the "Updating…" chrome.
         XCTAssertEqual(chromeDuringRefresh, [true, false])
-    }
-
-    private func waitForReloads(_ count: Int, on host: ReloadCountingHost) async throws {
-        for _ in 0..<100 where host.reloadCount < count {
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
     }
 
     func testSoftRefreshCartProductsBumpsRevision() async throws {

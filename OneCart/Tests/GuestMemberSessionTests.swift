@@ -130,6 +130,35 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertNil(session.sharedCartRemovedMessage)
     }
 
+    func test_REQ_SHARE_050_leaveRecoveryGivesUpAfterEightPasses() async throws {
+        let clock = TestClock()
+        let fixture = try await makeGuestFixture(sharedName: "Семейная", sharedProduct: "Milk", clock: clock.appClock)
+        let session = fixture.session
+        @MainActor final class Done {
+            var value = false
+        }
+        let done = Done()
+
+        // The shared cart never goes away here, so every recovery pass fails.
+        session.leaveRecoveryTask = Task {
+            await session.recoverAfterLeaveTimeout()
+            done.value = true
+        }
+        for pass in 1...AppSession.leaveRecoveryPasses {
+            let sleeping = await clock.waitForSleepers()
+            XCTAssertTrue(sleeping, "Pass \(pass) waits one interval on the clock")
+            XCTAssertFalse(done.value)
+            clock.advance(by: AppSession.leaveRecoveryInterval)
+        }
+        for _ in 0..<10_000 where !done.value {
+            await Task.yield()
+        }
+
+        XCTAssertTrue(done.value, "Recovery stops after the last pass instead of waiting again")
+        XCTAssertEqual(clock.pendingSleepers, 0)
+        XCTAssertTrue(session.familySpaces.contains { session.persistence.scope(for: $0) == .shared })
+    }
+
     func testBenignShareLeaveFailures() {
         let zoneGone = NSError(
             domain: CKError.errorDomain,
@@ -168,7 +197,8 @@ final class GuestMemberSessionTests: XCTestCase {
 
     private func makeGuestFixture(
         sharedName: String,
-        sharedProduct: String
+        sharedProduct: String,
+        clock: AppClock = .live
     ) async throws -> GuestFixture {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
@@ -231,7 +261,8 @@ final class GuestMemberSessionTests: XCTestCase {
 
         let session = try makeTestSession(
             persistence: persistence,
-            defaults: defaults
+            defaults: defaults,
+            clock: clock
         )
         try session.bootstrapTestingSession(account: account)
         try await session.offerSharedCartJoinIfNeededForTesting()

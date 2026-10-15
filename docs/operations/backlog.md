@@ -44,7 +44,7 @@ Planned order (status kept here):
 | G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | done |
 | G2 | Remove the remaining theme plumbing that does nothing in Release | done |
 | G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | done |
-| G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | pending |
+| G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | done (exceptions listed in architecture.md) |
 | G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | pending |
 | G6 | One share-mutation path; leave-purge timeout and recovery tests | pending |
 | G7 | Composition root without default singletons; intents through dependencies | pending |

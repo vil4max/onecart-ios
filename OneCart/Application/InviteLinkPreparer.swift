@@ -9,6 +9,11 @@ final class InviteLinkPreparer {
     private(set) var preparedInviteLink: FamilyInviteLink?
     private(set) var preparedInviteFamilyID: UUID?
     private var invitePrepareTask: Task<Void, Never>?
+    private let clock: AppClock
+
+    init(clock: AppClock = .live) {
+        self.clock = clock
+    }
 
     func createInviteLink(
         family: FamilySpace,
@@ -42,8 +47,9 @@ final class InviteLinkPreparer {
         fetch: @escaping @MainActor (FamilySpace) async throws -> FamilyInviteLink
     ) {
         invitePrepareTask?.cancel()
+        let clock = clock
         invitePrepareTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            try? await clock.sleep(nanoseconds: delayNanoseconds)
             guard !Task.isCancelled else { return }
             await prepareInBackground(
                 isOnline: isOnline(),

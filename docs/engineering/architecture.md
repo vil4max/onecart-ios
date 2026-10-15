@@ -50,6 +50,15 @@ as `@State` from the session and passes them into the screens. Tests drive the V
 fakes that conform to the same protocols (`OneCart/Tests/Support/Fake*.swift`); hosted-view tests
 mount the screens over those fakes.
 
+Time and sleeping come from `AppClock` (`OneCart/Shared/Support/AppClock.swift`): the repository,
+the sync services, the invite preparer, the Settings share watchdog and the leave recovery take it
+through their initializer (default `.live`, which sleeps on the suspending clock like the timers
+it replaced), and the launch ride reads it from the `appClock` environment value. Tests pass a
+`TestClock` (`OneCart/Tests/Support/TestClock.swift`) and move time with `advance(by:)` instead of
+waiting it out. Not on the clock yet: view-only animation timing, display dates, the CloudKit
+deadlines (`CloudKitDeadline`, the leave-purge timeout), the classifier timeout, and the Siri
+deadline and Live Activity controller, which have their own seams.
+
 Size guideline: the composition root stays around 200 lines and is split at 400 or more. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
 
 ## Key files

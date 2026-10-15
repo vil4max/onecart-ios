@@ -24,17 +24,21 @@ final class AccountViewModel {
     private let membership: any MembershipManaging
     private let accountManager: any AccountManaging
     private let iconSwitcher: any AppIconSwitching
-    private let shareTimeoutNanoseconds: UInt64
+    private let shareTimeout: Duration
+    private let clock: AppClock
     private let requestNotificationAuthorization: @MainActor () -> Void
     private var shareGeneration = 0
     @ObservationIgnored private var shareWatchdog: Task<Void, Never>?
+
+    static let defaultShareTimeout: Duration = .seconds(48)
 
     init(
         state: any SessionStateReading,
         membership: any MembershipManaging,
         account: any AccountManaging,
         iconSwitcher: any AppIconSwitching = SystemAppIconSwitcher(),
-        shareTimeoutNanoseconds: UInt64 = 48_000_000_000,
+        shareTimeout: Duration = defaultShareTimeout,
+        clock: AppClock = .live,
         requestNotificationAuthorization: @escaping @MainActor () -> Void = {
             CartActivityNotifier.requestAuthorizationIfNeeded()
         }
@@ -43,16 +47,22 @@ final class AccountViewModel {
         self.membership = membership
         accountManager = account
         self.iconSwitcher = iconSwitcher
-        self.shareTimeoutNanoseconds = shareTimeoutNanoseconds
+        self.shareTimeout = shareTimeout
+        self.clock = clock
         self.requestNotificationAuthorization = requestNotificationAuthorization
     }
 
-    convenience init(session: any AccountSessionServices, shareTimeoutNanoseconds: UInt64 = 48_000_000_000) {
+    convenience init(
+        session: any AccountSessionServices,
+        shareTimeout: Duration = defaultShareTimeout,
+        clock: AppClock = .live
+    ) {
         self.init(
             state: session,
             membership: session,
             account: session,
-            shareTimeoutNanoseconds: shareTimeoutNanoseconds
+            shareTimeout: shareTimeout,
+            clock: clock
         )
     }
 
@@ -154,7 +164,7 @@ final class AccountViewModel {
             id: account.id,
             displayName: account.displayName,
             access: state.access ?? .owner,
-            joinedAt: family.createdAt ?? Date(),
+            joinedAt: family.createdAt ?? clock.now(),
             isCurrentUser: true,
             avatarURL: account.avatarURL,
             bannerURL: account.bannerURL
@@ -307,8 +317,10 @@ final class AccountViewModel {
                 }
             }
         }
+        let clock = clock
+        let shareTimeout = shareTimeout
         shareWatchdog = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: shareTimeoutNanoseconds)
+            try? await clock.sleep(shareTimeout)
             guard generation == shareGeneration else { return }
             work.cancel()
             finishShare(generation: generation)

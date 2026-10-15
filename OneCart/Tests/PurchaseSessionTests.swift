@@ -90,7 +90,8 @@ final class PurchaseSessionTests: XCTestCase {
     }
 
     func test_REQ_HIST_020_archivePurchasedBeforeMovesOnlyStaleCheckedItems() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
             draft: productDraft(name: "Хлеб")
@@ -103,7 +104,7 @@ final class PurchaseSessionTests: XCTestCase {
         try await repository.togglePurchased(id: milkID, participantDisplayName: "Игорь")
 
         let calendar = Calendar(identifier: .gregorian)
-        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfToday = calendar.startOfDay(for: clock.now())
         let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: startOfToday))
 
         try await persistence.performBackgroundTask { context in
@@ -136,12 +137,13 @@ final class PurchaseSessionTests: XCTestCase {
     }
 
     func test_REQ_HIST_020_archivePurchasedBeforeKeepsItemsPurchasedAtStartOfToday() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
         let (familyID, listID, productID) = try await seedCart(repository: repository)
         try await repository.togglePurchased(id: productID, participantDisplayName: "Игорь")
 
         let calendar = Calendar(identifier: .gregorian)
-        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfToday = calendar.startOfDay(for: clock.now())
 
         try await persistence.performBackgroundTask { context in
             let request = ProductEntity.fetchRequest()
@@ -170,7 +172,8 @@ final class PurchaseSessionTests: XCTestCase {
     }
 
     func test_REQ_HIST_010_historyDayGroupsByPurchasedAt() async throws {
-        let (persistence, repository) = try await makeInMemoryRepository()
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
         let (familyID, listID, breadID) = try await seedCart(
             repository: repository,
             draft: productDraft(name: "Хлеб")
@@ -183,7 +186,7 @@ final class PurchaseSessionTests: XCTestCase {
         try await repository.togglePurchased(id: milkID, participantDisplayName: "Игорь")
 
         let calendar = Calendar(identifier: .gregorian)
-        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfToday = calendar.startOfDay(for: clock.now())
         let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: startOfToday))
         let twoDaysAgo = try XCTUnwrap(calendar.date(byAdding: .day, value: -2, to: startOfToday))
 
@@ -233,9 +236,11 @@ final class PurchaseSessionTests: XCTestCase {
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Игорь")
+        let clock = TestClock()
         let repository = FamilySpaceRepository(
             persistence: persistence,
-            permissionAuthorizer: AllowAllPermissionAuthorizer()
+            permissionAuthorizer: AllowAllPermissionAuthorizer(),
+            clock: clock.appClock
         )
         let familyID = try await repository.createFamilySpace(
             name: "Семья",
@@ -257,30 +262,20 @@ final class PurchaseSessionTests: XCTestCase {
             to: listID,
             draft: productDraft(name: "Молоко")
         )
+        // Bread is checked off at noon; the night passes before milk is checked off.
         try await repository.togglePurchased(id: staleID, participantDisplayName: "Игорь")
+        clock.advance(by: .seconds(24 * 60 * 60))
         try await repository.togglePurchased(id: freshID, participantDisplayName: "Игорь")
-
-        let calendar = Calendar(identifier: .gregorian)
-        let now = Date()
-        let startOfToday = calendar.startOfDay(for: now)
-        let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: startOfToday))
-
-        try await persistence.performBackgroundTask { context in
-            let request = ProductEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "id == %@", staleID as NSUUID)
-            request.fetchLimit = 1
-            let product = try XCTUnwrap(context.fetch(request).first)
-            product.purchasedAt = yesterday
-        }
 
         let session = try makeTestSession(
             persistence: persistence,
-            defaults: defaults
+            defaults: defaults,
+            clock: clock.appClock
         )
         try session.bootstrapTestingSession(account: account)
         XCTAssertTrue(session.canEdit)
 
-        await session.archiveStalePurchasedIfNeeded(now: now, calendar: calendar)
+        await session.archiveStalePurchasedIfNeeded(calendar: Calendar(identifier: .gregorian))
 
         let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
         XCTAssertEqual(space.sortedHistory.count, 1)

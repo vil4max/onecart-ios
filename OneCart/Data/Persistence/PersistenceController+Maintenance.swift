@@ -110,7 +110,7 @@ extension PersistenceController {
         guard !inMemory, cloudKitEnabled else { return }
 
         let current = CloudKitShareEnvironment.process.rawValue
-        let previous = UserDefaults.standard.string(forKey: Self.cloudKitLocalEnvironmentKey)
+        let previous = defaults.string(forKey: Self.cloudKitLocalEnvironmentKey)
         guard Self.shouldWipeLocalStoresForCloudKitEnvironment(previous: previous) else { return }
 
         let storeFilesExist = Self.oneCartStoreFilesExist(in: storeDirectoryURL)
@@ -123,12 +123,12 @@ extension PersistenceController {
         )
         _ = try? copyStoreFilesForDiagnostics()
         Self.removeAllOneCartStoreFiles(in: storeDirectoryURL)
-        UserDefaults.standard.removeObject(forKey: Self.cloudKitLocalEnvironmentKey)
+        defaults.removeObject(forKey: Self.cloudKitLocalEnvironmentKey)
     }
 
     func stampCloudKitEnvironmentAfterSuccessfulLoad() {
         guard !inMemory, cloudKitEnabled else { return }
-        UserDefaults.standard.set(
+        defaults.set(
             CloudKitShareEnvironment.process.rawValue,
             forKey: Self.cloudKitLocalEnvironmentKey
         )

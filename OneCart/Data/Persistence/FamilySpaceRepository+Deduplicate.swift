@@ -4,42 +4,42 @@ import Foundation
 extension FamilySpaceRepository {
     func deduplicateStableIDs() async throws {
         try await persistence.performBackgroundTask(author: "OneCartDeduplication") { context in
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: FamilySpace.fetchRequest(),
                 familySpaceID: { $0.id },
                 stableID: { $0.id },
                 updatedAt: { $0.updatedAt },
                 in: context
             )
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: StoreEntity.fetchRequest(),
                 familySpaceID: { $0.familySpace?.id },
                 stableID: { $0.id },
                 updatedAt: { $0.updatedAt },
                 in: context
             )
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: ShoppingListEntity.fetchRequest(),
                 familySpaceID: { $0.familySpace?.id },
                 stableID: { $0.id },
                 updatedAt: { $0.updatedAt },
                 in: context
             )
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: ProductEntity.fetchRequest(),
                 familySpaceID: { $0.familySpace?.id },
                 stableID: { $0.id },
                 updatedAt: { $0.updatedAt },
                 in: context
             )
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: PurchaseHistoryEntity.fetchRequest(),
                 familySpaceID: { $0.familySpace?.id },
                 stableID: { $0.id },
                 updatedAt: { $0.updatedAt },
                 in: context
             )
-            try Self.deduplicate(
+            try self.deduplicate(
                 request: MemberProfileEntity.fetchRequest(),
                 familySpaceID: { $0.familySpace?.id },
                 stableID: { $0.id },
@@ -67,7 +67,7 @@ extension FamilySpaceRepository {
                 groups[key, default: []].append(product)
             }
             var merged = 0
-            let now = Date()
+            let now = self.clock.now()
             for items in groups.values where items.count > 1 {
                 let ordered = items.sorted {
                     let left = $0.createdAt ?? .distantPast
@@ -121,7 +121,7 @@ extension FamilySpaceRepository {
         return "\(storeIdentifier)|\(listKey)|\(normalized)"
     }
 
-    static func deduplicate<T: NSManagedObject>(
+    func deduplicate<T: NSManagedObject>(
         request: NSFetchRequest<T>,
         familySpaceID: (T) -> UUID?,
         stableID: (T) -> UUID?,
@@ -146,7 +146,7 @@ extension FamilySpaceRepository {
                 continue
             }
 
-            let preferred = preferredDuplicate(
+            let preferred = Self.preferredDuplicate(
                 existing: winner,
                 candidate: object,
                 updatedAt: updatedAt,
@@ -156,10 +156,10 @@ extension FamilySpaceRepository {
             winners[key] = preferred
             // Soft-delete losers instead of hard-deleting mirrored CloudKit rows.
             if let softLoser = loser as? SoftDeletable, softLoser.deletedAt == nil {
-                let now = Date()
-                softLoser.deletedAt = now
+                let deletedNow = clock.now()
+                softLoser.deletedAt = deletedNow
                 if let stamped = loser as? Timestamped {
-                    stamped.updatedAt = now
+                    stamped.updatedAt = deletedNow
                 }
             } else if deletedAt(loser) == nil {
                 context.delete(loser)

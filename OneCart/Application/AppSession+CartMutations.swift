@@ -211,13 +211,12 @@ extension AppSession {
     }
 
     func archiveStalePurchasedIfNeeded(
-        now: Date = Date(),
         calendar: Calendar = .current
     ) async {
         guard canEdit else { return }
         pendingCartMutationCount += 1
         defer { finishCartMutation() }
-        let cutoff = calendar.startOfDay(for: now)
+        let cutoff = calendar.startOfDay(for: clock.now())
         var didArchive = false
 
         for list in activeLists {

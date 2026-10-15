@@ -28,22 +28,22 @@ final class CartSyncService {
     private var isExclusiveRunning = false
     private var syncWaiters: [CheckedContinuation<CartSyncOutcome, Never>] = []
     private var lastAppearSyncAt: Date?
-    private let now: () -> Date
+    private let clock: AppClock
 
     var onHardRefresh: (() async throws -> Void)?
     var onOwnerACLHeal: (() async -> Void)?
     var onInviteeSharedGone: (() async -> Void)?
     var purchasedCountProvider: (() -> (purchased: Int, total: Int))?
 
-    init(persistence: PersistenceController, now: @escaping () -> Date = Date.init) {
+    init(persistence: PersistenceController, clock: AppClock = .live) {
         self.persistence = persistence
-        self.now = now
+        self.clock = clock
     }
 
     @discardableResult
     func syncCart(reason: CartSyncReason, debouncedAppear: Bool = true) async -> CartSyncOutcome {
         if reason == .appear, debouncedAppear {
-            let appearedAt = now()
+            let appearedAt = clock.now()
             if let lastAppearSyncAt, appearedAt.timeIntervalSince(lastAppearSyncAt) < 2.5 {
                 return .skippedDebounce
             }
@@ -157,7 +157,7 @@ final class CartSyncService {
             case .pull, .appear, .foreground:
                 250_000_000
             }
-        try? await Task.sleep(nanoseconds: nanoseconds)
+        try? await clock.sleep(nanoseconds: nanoseconds)
     }
 
     static func resetViewContextAndRefetch(

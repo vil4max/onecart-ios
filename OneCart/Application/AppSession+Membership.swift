@@ -195,12 +195,18 @@ extension AppSession {
         return false
     }
 
-    private func recoverAfterLeaveTimeout() async {
+    nonisolated static let leaveRecoveryPasses = 8
+    nonisolated static let leaveRecoveryInterval: Duration = .milliseconds(1500)
+
+    /// Retries the fallback to the personal cart until the shared cart is gone, the late purge
+    /// reports in, or the passes run out.
+    func recoverAfterLeaveTimeout() async {
+        let clock = clock
         await withTaskGroup(of: Bool.self) { group in
             group.addTask {
-                for _ in 0..<8 {
+                for _ in 0..<Self.leaveRecoveryPasses {
                     do {
-                        try await Task.sleep(nanoseconds: 1_500_000_000)
+                        try await clock.sleep(Self.leaveRecoveryInterval)
                     } catch {
                         return false
                     }

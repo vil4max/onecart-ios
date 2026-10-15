@@ -126,13 +126,13 @@ struct MemberNamePromptTests {
     @Test("REQ-AUTH-040: a root signed in without a name asks after the ride, and Not now closes it")
     func rootPresentsPromptForUnnamedAccount() async throws {
         let fixture = try await MembershipSessionFixture.owner(displayName: ParticipantDisplayName.placeholder)
-        let hosted = HostedView(RootView().environment(fixture.session))
+        let hosted = HostedView(RootView().environment(fixture.session).environment(\.appClock, .immediate))
         defer { hosted.tearDown() }
 
-        #expect(await hosted.pump(maxTurns: 120) { hosted.element(identifier: "name_prompt.not_now") != nil })
+        #expect(await hosted.pump { hosted.element(identifier: "name_prompt.not_now") != nil })
         let notNow = try #require(hosted.element(identifier: "name_prompt.not_now"))
         #expect(notNow.activate())
-        #expect(await hosted.pump(maxTurns: 120) { hosted.element(identifier: "name_prompt.not_now") == nil })
+        #expect(await hosted.pump { hosted.element(identifier: "name_prompt.not_now") == nil })
         #expect(fixture.session.memberNamePromptDeclined)
     }
 }

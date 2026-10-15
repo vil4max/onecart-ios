@@ -46,24 +46,26 @@ final class AccountViewModelTests: XCTestCase {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
-        let session = try makeTestSession(
-            persistence: persistence,
-            defaults: defaults
-        )
-        let viewModel = AccountViewModel(session: session, shareTimeoutNanoseconds: 200_000_000)
+        let session = try makeTestSession(persistence: persistence, defaults: defaults)
+        let clock = TestClock()
+        let viewModel = AccountViewModel(session: session, clock: clock.appClock)
 
-        // Without an active family the first share fails immediately.
+        // Without an active family the first share fails without waiting on the clock.
         viewModel.shareCart()
-        for _ in 0..<50 where viewModel.isSharing {
-            try await Task.sleep(nanoseconds: 2_000_000)
+        for _ in 0..<1000 where viewModel.isSharing {
+            await Task.yield()
         }
         XCTAssertFalse(viewModel.isSharing)
         XCTAssertNotNil(viewModel.shareAlert)
+        XCTAssertEqual(clock.pendingSleepers, 0, "A finished share retires its watchdog")
 
         // Stand in for a second share that is still in flight when the first deadline passes.
         viewModel.shareAlert = nil
         viewModel.isSharing = true
-        try await Task.sleep(nanoseconds: 500_000_000)
+        clock.advance(by: AccountViewModel.defaultShareTimeout + .seconds(1))
+        for _ in 0..<100 {
+            await Task.yield()
+        }
 
         XCTAssertTrue(viewModel.isSharing)
         XCTAssertNil(viewModel.shareAlert)
@@ -80,6 +82,7 @@ struct AccountHarness {
     let accountManager = FakeAccountManager()
     let iconSwitcher = FakeAppIconSwitcher()
     let notificationRequests = CallCounter()
+    let clock = TestClock()
     let viewModel: AccountViewModel
 
     init() throws {
@@ -91,6 +94,7 @@ struct AccountHarness {
             membership: membership,
             account: accountManager,
             iconSwitcher: iconSwitcher,
+            clock: clock.appClock,
             requestNotificationAuthorization: { notificationRequests.record() }
         )
     }
@@ -139,8 +143,8 @@ struct AccountViewModelFakeTests {
             #expect(!harness.viewModel.isSharing)
             released = harness.viewModel
         }
-        for _ in 0..<500 where released != nil {
-            try await Task.sleep(nanoseconds: 2_000_000)
+        for _ in 0..<1000 where released != nil {
+            await Task.yield()
         }
         #expect(released == nil)
     }

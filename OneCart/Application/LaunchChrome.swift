@@ -19,9 +19,15 @@ enum LaunchChromeLayout {
     }
 }
 
+extension EnvironmentValues {
+    /// The clock views sleep on; hosted tests replace it so they never wait out the launch ride.
+    @Entry var appClock: AppClock = .live
+}
+
 struct LaunchCartRideView: View {
     @Environment(AppSession.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.appClock) private var clock
 
     let onFinished: () -> Void
 
@@ -46,9 +52,7 @@ struct LaunchCartRideView: View {
     private func runRide() async {
         async let ready: Bool = waitUntilAppReady()
         do {
-            try await Task.sleep(
-                nanoseconds: UInt64(LaunchChromeLayout.minimumPeekDuration * 1_000_000_000)
-            )
+            try await clock.sleep(.seconds(LaunchChromeLayout.minimumPeekDuration))
         } catch {
             return
         }
@@ -63,9 +67,7 @@ struct LaunchCartRideView: View {
         titleOpacity = 0
 
         do {
-            try await Task.sleep(
-                nanoseconds: UInt64((LaunchChromeLayout.driveOutDuration + 0.04) * 1_000_000_000)
-            )
+            try await clock.sleep(.seconds(LaunchChromeLayout.driveOutDuration + 0.04))
         } catch {
             onFinished()
             return

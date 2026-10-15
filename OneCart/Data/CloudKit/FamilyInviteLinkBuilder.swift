@@ -46,7 +46,8 @@ enum FamilyInviteLinkBuilder {
     static func makeInviteLink(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,
-        displayName: String
+        displayName: String,
+        clock: AppClock = .live
     ) async throws -> FamilyInviteLink {
         try Task.checkCancellation()
 
@@ -65,11 +66,12 @@ enum FamilyInviteLinkBuilder {
 
         // Nudge + brief wait help, but must not block invite forever when recordID
         // stays nil (common right after first household cart creation).
-        try await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
+        try await nudgeCloudKitExport(persistence: persistence, objectID: objectID, clock: clock)
         await waitUntilMirroredIfPossible(
             persistence: persistence,
             objectID: objectID,
-            timeoutSeconds: FamilyInviteShareBudget.mirrorWaitSeconds
+            timeoutSeconds: FamilyInviteShareBudget.mirrorWaitSeconds,
+            clock: clock
         )
 
         if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
@@ -95,7 +97,8 @@ enum FamilyInviteLinkBuilder {
         // must not be required beforehand: waiting for it left the Invite spinner hanging.
         let created = try await createShareWithRetry(
             persistence: persistence,
-            objectID: objectID
+            objectID: objectID,
+            clock: clock
         )
         return try await finalizeShare(
             created,
@@ -107,7 +110,8 @@ enum FamilyInviteLinkBuilder {
     /// Touches the family root so NSPersistentCloudKitContainer schedules an export.
     private static func nudgeCloudKitExport(
         persistence: PersistenceController,
-        objectID: NSManagedObjectID
+        objectID: NSManagedObjectID,
+        clock: AppClock
     ) async throws {
         try await persistence.performBackgroundTask(author: "OneCartShareNudge") { context in
             let object = try context.existingObject(with: objectID)
@@ -115,7 +119,7 @@ enum FamilyInviteLinkBuilder {
                 try context.obtainPermanentIDs(for: [object])
             }
             if let space = object as? FamilySpace {
-                space.updatedAt = Date()
+                space.updatedAt = clock.now()
             }
         }
     }
@@ -125,37 +129,39 @@ enum FamilyInviteLinkBuilder {
     private static func waitUntilMirroredIfPossible(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,
-        timeoutSeconds: TimeInterval
+        timeoutSeconds: TimeInterval,
+        clock: AppClock
     ) async {
-        let deadline = Date().addingTimeInterval(timeoutSeconds)
-        while Date() < deadline {
+        let deadline = clock.now().addingTimeInterval(timeoutSeconds)
+        while clock.now() < deadline {
             if Task.isCancelled {
                 return
             }
             if persistence.container.recordID(for: objectID) != nil {
                 return
             }
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await clock.sleep(nanoseconds: 350_000_000)
         }
     }
 
     private static func createShareWithRetry(
         persistence: PersistenceController,
         objectID: NSManagedObjectID,
-        attempts: Int = FamilyInviteShareBudget.createAttempts
+        attempts: Int = FamilyInviteShareBudget.createAttempts,
+        clock: AppClock
     ) async throws -> CKShare {
         var lastError: Error = OneCartCloudKitError.stillSyncing
         for attempt in 0..<attempts {
             try Task.checkCancellation()
             if attempt > 0 {
-                try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID)
+                try? await nudgeCloudKitExport(persistence: persistence, objectID: objectID, clock: clock)
                 let delayNanoseconds =
                     if let seconds = (lastError as? CKError)?.retryAfterSeconds, seconds > 0 {
                         UInt64(seconds * 1_000_000_000)
                     } else {
                         FamilyInviteShareBudget.createBackoffStepNanoseconds * UInt64(attempt)
                     }
-                try await Task.sleep(nanoseconds: delayNanoseconds)
+                try await clock.sleep(nanoseconds: delayNanoseconds)
             }
             do {
                 return try await createShare(persistence: persistence, objectID: objectID)

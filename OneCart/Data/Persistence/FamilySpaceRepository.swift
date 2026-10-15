@@ -47,13 +47,17 @@ struct ProductDraft: Equatable {
 final class FamilySpaceRepository: Sendable {
     let persistence: PersistenceController
     let permissionAuthorizer: PermissionAuthorizing
+    /// Stamps every write, so archive cutoffs and last-writer-wins tie-breaks follow one clock.
+    let clock: AppClock
 
     init(
         persistence: PersistenceController,
-        permissionAuthorizer: PermissionAuthorizing
+        permissionAuthorizer: PermissionAuthorizing,
+        clock: AppClock = .live
     ) {
         self.persistence = persistence
         self.permissionAuthorizer = permissionAuthorizer
+        self.clock = clock
     }
 
     /// Reads the view context, so the objects it returns belong to the main actor.
@@ -92,12 +96,13 @@ final class FamilySpaceRepository: Sendable {
     func createFamilySpace(
         id: UUID = UUID(),
         name: String,
-        createdAt: Date = Date(),
+        createdAt: Date? = nil,
         cachedForUserID: UUID? = nil,
         isHouseholdDefault: Bool = false
     ) async throws -> UUID {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
+        let createdAt = createdAt ?? clock.now()
 
         return try await persistence.performBackgroundTask { context in
             if let existing = try Self.fetchFamilySpace(id: id, in: context) {
@@ -151,7 +156,7 @@ final class FamilySpaceRepository: Sendable {
             let space = try Self.requireFamilySpace(id: id, in: context)
             try self.requireUpdatePermission(for: space)
             space.name = normalizedName
-            space.updatedAt = Date()
+            space.updatedAt = self.clock.now()
         }
     }
 

@@ -75,14 +75,17 @@ final class PersistenceController: @unchecked Sendable {
     var loadWaiters: [CheckedContinuation<Result<Void, Error>, Never>] = []
     let storeDirectoryURL: URL
     let cloudKitEnabled: Bool
+    let defaults: UserDefaults
 
     init(
         inMemory: Bool = false,
         storeDirectoryURL: URL? = nil,
-        cloudKitEnabled: Bool = true
+        cloudKitEnabled: Bool = true,
+        defaults: UserDefaults = .standard
     ) {
         self.inMemory = inMemory
         self.cloudKitEnabled = cloudKitEnabled
+        self.defaults = defaults
         self.storeDirectoryURL =
             storeDirectoryURL
             ?? (inMemory

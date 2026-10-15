@@ -48,7 +48,7 @@ extension FamilySpaceRepository {
                 return duplicateID
             }
 
-            let now = Date()
+            let now = self.clock.now()
             let product = ProductEntity(context: context)
             try self.persistence.assign(product, toSameStoreAs: list, in: context)
             product.id = id
@@ -78,7 +78,7 @@ extension FamilySpaceRepository {
                 throw RepositoryError.productNotFound
             }
             try self.requireUpdatePermission(for: product)
-            let now = Date()
+            let now = self.clock.now()
             // Rename into an existing living row merges instead of duplicating:
             // the edited duplicate is tombstoned, the earlier row stays visible.
             if let listID = product.list?.id,
@@ -116,7 +116,7 @@ extension FamilySpaceRepository {
             }
             try self.requireUpdatePermission(for: product)
             guard product.categoryValue != category else { return }
-            let now = Date()
+            let now = self.clock.now()
             product.category = category.rawValue
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
@@ -138,7 +138,7 @@ extension FamilySpaceRepository {
             }
             try self.requireUpdatePermission(for: product)
             guard product.isPurchasedValue != isPurchased else { return }
-            let now = Date()
+            let now = self.clock.now()
             product.isPurchased = NSNumber(value: isPurchased)
             product.purchasedAt = isPurchased ? now : nil
             product.purchasedByName =
@@ -175,7 +175,7 @@ extension FamilySpaceRepository {
             try self.requireUpdatePermission(for: product)
             // A retried command cannot replace a newer app edit or widget command.
             guard (product.updatedAt ?? .distantPast) < purchasedAt else { return }
-            let now = Date()
+            let now = self.clock.now()
             if product.isPurchasedValue != isPurchased {
                 product.isPurchased = NSNumber(value: isPurchased)
                 product.purchasedAt = isPurchased ? purchasedAt : nil
@@ -194,7 +194,7 @@ extension FamilySpaceRepository {
             }
             try self.requireDeletePermission(for: product)
             guard !product.isPurchasedValue else { return }
-            let now = Date()
+            let now = self.clock.now()
             product.deletedAt = now
             product.updatedAt = now
             product.list?.updatedAt = now
@@ -230,7 +230,7 @@ extension FamilySpaceRepository {
             }
             guard !purchased.isEmpty else { return nil }
 
-            let now = Date()
+            let now = self.clock.now()
             let existingItems = try Self.existingHistoryItems(
                 productIDs: purchased.compactMap(\.id),
                 familySpace: space,

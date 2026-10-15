@@ -273,7 +273,7 @@ final class CartIntentTests: XCTestCase {
     func test_REQ_SIRI_040_stopsWaitingForAStartupThatTakesTooLong() async throws {
         let signIn = GatedAppleSignIn(credential: siriUser)
         let (session, _) = try makeStartingSession(credential: nil, appleSignIn: signIn)
-        let clock = IntentTestClock()
+        let clock = TestClock()
         let reported = expectation(description: "Siri reports the app unavailable")
 
         let request = Task { @MainActor in
@@ -286,6 +286,9 @@ final class CartIntentTests: XCTestCase {
             reported.fulfill()
         }
         await signIn.waitUntilAsked()
+        // The deadline timer registers off the main actor; advancing before it exists would miss it.
+        let deadlineIsWaiting = await clock.waitForSleepers()
+        XCTAssertTrue(deadlineIsWaiting)
         clock.advance(by: CartIntentDeadline.startupLimit)
         await fulfillment(of: [reported], timeout: 5)
 
@@ -301,7 +304,7 @@ final class CartIntentTests: XCTestCase {
         let signIn = GatedAppleSignIn(credential: siriUser)
         let backend = FakeShoppingTripBackend()
         let (session, _) = try makeStartingSession(credential: nil, appleSignIn: signIn, backend: backend)
-        let clock = IntentTestClock()
+        let clock = TestClock()
 
         let request = Task { @MainActor in
             try await session.startShoppingTripFromIntent(deadline: clock.deadline())
@@ -318,8 +321,8 @@ final class CartIntentTests: XCTestCase {
         }
         XCTAssertTrue(backend.requested.isEmpty)
 
-        _ = try await session.addItemsFromIntent("Milk", deadline: IntentTestClock().deadline())
-        try await session.startShoppingTripFromIntent(deadline: IntentTestClock().deadline())
+        _ = try await session.addItemsFromIntent("Milk", deadline: TestClock().deadline())
+        try await session.startShoppingTripFromIntent(deadline: TestClock().deadline())
         XCTAssertEqual(backend.requested.count, 1, "Within the limit the same request starts the trip")
     }
 

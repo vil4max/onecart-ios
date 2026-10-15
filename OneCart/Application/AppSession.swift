@@ -118,6 +118,7 @@ final class AppSession {
     let categoryClassifier: any CategoryClassifying
     let defaults: UserDefaults
     let cloudUserIdentity: any CloudUserIdentifying
+    let clock: AppClock
     /// This user's CloudKit record name once iCloud reported it; keys the shared member profile.
     /// Read under an identity generation, so an iCloud account change hides it without an observer.
     var knownUserRecordName: (name: String, generation: UInt64)?
@@ -153,10 +154,12 @@ final class AppSession {
         widgetStore: WidgetSnapshotStore = .shared,
         categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared,
         cloudUserIdentity: (any CloudUserIdentifying)? = nil,
-        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil
+        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil,
+        clock: AppClock = .live
     ) {
         let persistence = persistence ?? Self.makeDefaultPersistence()
         self.persistence = persistence
+        self.clock = clock
         self.preferences = preferences ?? DevicePreferences(defaults: defaults)
         self.defaults = defaults
         self.appleSignIn = appleSignIn
@@ -168,7 +171,8 @@ final class AppSession {
 
         let repository = FamilySpaceRepository(
             persistence: persistence,
-            permissionAuthorizer: CloudKitPermissionAuthorizer(persistence: persistence)
+            permissionAuthorizer: CloudKitPermissionAuthorizer(persistence: persistence),
+            clock: clock
         )
         let backend = backend ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
@@ -177,7 +181,7 @@ final class AppSession {
         memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: defaults)
         self.accountCloudDataDeleter = accountCloudDataDeleter ?? backend
         self.accountLocalStorePreparer = accountLocalStorePreparer ?? persistence
-        cartSync = CartSyncService(persistence: persistence)
+        cartSync = CartSyncService(persistence: persistence, clock: clock)
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(
             persistence: persistence,
@@ -185,13 +189,13 @@ final class AppSession {
             backend: backend,
             appleSignIn: appleSignIn
         )
-        cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             backend: backend,
             repository: repository
         )
-        invitePreparer = InviteLinkPreparer()
+        invitePreparer = InviteLinkPreparer(clock: clock)
         household = HouseholdCartCoordinator(
             persistence: persistence,
             repository: repository,
