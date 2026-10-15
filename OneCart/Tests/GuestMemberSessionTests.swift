@@ -140,8 +140,9 @@ final class GuestMemberSessionTests: XCTestCase {
         let done = Done()
 
         // The shared cart never goes away here, so every recovery pass fails.
+        // No late purge ever reports in: only the timed passes run.
         session.leaveRecoveryTask = Task {
-            await session.recoverAfterLeaveTimeout()
+            await session.recoverAfterLeaveTimeout(latePurgeCompletions: AsyncStream { $0.finish() })
             done.value = true
         }
         for pass in 1...AppSession.leaveRecoveryPasses {
@@ -189,16 +190,17 @@ final class GuestMemberSessionTests: XCTestCase {
         XCTAssertFalse(CloudKitUserFacingError.isBenignShareLeaveFailure(network))
     }
 
-    private struct GuestFixture {
+    struct GuestFixture {
         var session: AppSession
         var privateID: UUID
         var sharedID: UUID
     }
 
-    private func makeGuestFixture(
+    func makeGuestFixture(
         sharedName: String,
         sharedProduct: String,
-        clock: AppClock = .live
+        clock: AppClock = .live,
+        cloudSharing: ((PersistenceController) -> any FamilyCloudSharing)? = nil
     ) async throws -> GuestFixture {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
@@ -262,6 +264,7 @@ final class GuestMemberSessionTests: XCTestCase {
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults,
+            cloudSharing: cloudSharing?(persistence),
             clock: clock
         )
         try session.bootstrapTestingSession(account: account)

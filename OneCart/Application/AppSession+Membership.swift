@@ -149,8 +149,15 @@ extension AppSession {
             isLeavingSharedCart = false
             endBusyOperation()
         }
+        // Buffered, so a late purge that reports in before the recovery starts listening is kept.
+        let (latePurgeCompletions, latePurgeSink) = AsyncStream<Void>.makeStream(
+            bufferingPolicy: .bufferingNewest(1)
+        )
         do {
-            let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID)
+            let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID) {
+                latePurgeSink.yield()
+                latePurgeSink.finish()
+            }
             if discardLeftovers, let familyID {
                 do {
                     try await repository.discardLocalSharedFamilySpace(id: familyID)
@@ -172,7 +179,9 @@ extension AppSession {
             if case OneCartCloudKitError.leaveTimedOut = error {
                 lastActiveFamilyWasShared = true
                 leaveRecoveryTask?.cancel()
-                leaveRecoveryTask = Task { await recoverAfterLeaveTimeout() }
+                leaveRecoveryTask = Task {
+                    await recoverAfterLeaveTimeout(latePurgeCompletions: latePurgeCompletions)
+                }
             }
         }
     }
@@ -198,33 +207,39 @@ extension AppSession {
     nonisolated static let leaveRecoveryPasses = 8
     nonisolated static let leaveRecoveryInterval: Duration = .milliseconds(1500)
 
-    /// Retries the fallback to the personal cart until the shared cart is gone, the late purge
-    /// reports in, or the passes run out.
-    func recoverAfterLeaveTimeout() async {
+    private enum LeaveRecoveryEnd: Sendable {
+        case recovered, passesSpent, latePurgeSpent
+    }
+
+    /// Retries the fallback to the personal cart until the shared cart is gone or the passes run
+    /// out; each element of `latePurgeCompletions` (a purge that finished after the leave timed
+    /// out) triggers one extra pass at once. A late purge that does not clear the cart leaves
+    /// the timed passes running.
+    func recoverAfterLeaveTimeout(latePurgeCompletions: AsyncStream<Void>) async {
         let clock = clock
-        await withTaskGroup(of: Bool.self) { group in
+        await withTaskGroup(of: LeaveRecoveryEnd.self) { group in
             group.addTask {
                 for _ in 0..<Self.leaveRecoveryPasses {
                     do {
                         try await clock.sleep(Self.leaveRecoveryInterval)
                     } catch {
-                        return false
+                        return .passesSpent
                     }
                     if await self.attemptLeaveRecoveryPass() {
-                        return true
+                        return .recovered
                     }
                 }
-                return false
+                return .passesSpent
             }
             group.addTask {
-                for await _ in NotificationCenter.default.notifications(
-                    named: .oneCartDidFinishLateLeavePurge
-                ) where await self.attemptLeaveRecoveryPass() {
-                    return true
+                for await _ in latePurgeCompletions where await self.attemptLeaveRecoveryPass() {
+                    return .recovered
                 }
-                return false
+                return .latePurgeSpent
             }
-            _ = await group.next()
+            for await end in group where end != .latePurgeSpent {
+                break
+            }
             group.cancelAll()
         }
     }

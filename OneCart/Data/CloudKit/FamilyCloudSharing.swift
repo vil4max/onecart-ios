@@ -23,9 +23,22 @@ protocol FamilyCloudSharing: CloudUserIdentifying, AccountCloudDataDeleting {
     @discardableResult
     func ensureReadWriteACL(objectID: NSManagedObjectID) async throws -> Bool
     func removeMember(_ member: FamilyMember, fromFamily objectID: NSManagedObjectID) async throws
-    /// Returns whether the caller should discard the local leftovers of the shared cart.
+    /// Returns whether the caller should discard the local leftovers of the shared cart. When it
+    /// throws `leaveTimedOut`, the purge may still finish: `onLatePurgeCompletion` then runs once,
+    /// so the caller's leave recovery can react (REQ-SHARE-050).
     @discardableResult
-    func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool
+    func leaveFamily(
+        objectID: NSManagedObjectID,
+        onLatePurgeCompletion: @escaping @Sendable () -> Void
+    ) async throws -> Bool
+}
+
+extension FamilyCloudSharing {
+    /// A leave whose caller has no recovery to run after a timeout.
+    @discardableResult
+    func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool {
+        try await leaveFamily(objectID: objectID, onLatePurgeCompletion: {})
+    }
 }
 
 extension CloudKitBackendService: FamilyCloudSharing {}

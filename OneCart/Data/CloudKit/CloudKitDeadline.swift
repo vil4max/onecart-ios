@@ -5,18 +5,24 @@ enum CloudKitDeadline {
     static func run<Value: Sendable>(
         timeoutNanoseconds: UInt64,
         timeoutError: Error = OneCartCloudKitError.shareTimedOut,
+        onLateCompletion: (@Sendable (Result<Value, Error>) -> Void)? = nil,
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         try await run(
             timeout: { try await Task.sleep(nanoseconds: timeoutNanoseconds) },
             timeoutError: timeoutError,
+            onLateCompletion: onLateCompletion,
             operation: operation
         )
     }
 
+    /// `onLateCompletion` runs at most once, with the operation's own result, when the operation
+    /// finishes after the caller was already released by the timeout or by cancellation. A late
+    /// cloud write is still a write: the caller learns it happened instead of guessing.
     static func run<Value: Sendable>(
         timeout: @escaping @Sendable () async throws -> Void,
         timeoutError: Error = OneCartCloudKitError.shareTimedOut,
+        onLateCompletion: (@Sendable (Result<Value, Error>) -> Void)? = nil,
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         let gate = DeadlineResultGate<Value>()
@@ -24,7 +30,11 @@ enum CloudKitDeadline {
             try await withCheckedThrowingContinuation { continuation in
                 guard gate.install(continuation) else { return }
                 let work = Task {
-                    do { try await gate.resolve(.success(operation())) } catch { gate.resolve(.failure(error)) }
+                    let result: Result<Value, Error>
+                    do { result = .success(try await operation()) } catch { result = .failure(error) }
+                    if !gate.resolve(result) {
+                        onLateCompletion?(result)
+                    }
                 }
                 let timer = Task {
                     do {
@@ -41,6 +51,7 @@ enum CloudKitDeadline {
     }
 }
 
+/// `@unchecked Sendable`: every mutable field is read and written only under `lock`.
 private final class DeadlineResultGate<Value: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var result: Result<Value, Error>?
@@ -71,11 +82,13 @@ private final class DeadlineResultGate<Value: Sendable>: @unchecked Sendable {
         }
     }
 
-    func resolve(_ result: Result<Value, Error>) {
+    /// Returns whether this call settled the caller; only the first result does.
+    @discardableResult
+    func resolve(_ result: Result<Value, Error>) -> Bool {
         lock.lock()
         guard self.result == nil else {
             lock.unlock()
-            return
+            return false
         }
         self.result = result
         let continuation = continuation
@@ -85,5 +98,6 @@ private final class DeadlineResultGate<Value: Sendable>: @unchecked Sendable {
         lock.unlock()
         tasks.forEach { $0.cancel() }
         continuation?.resume(with: result)
+        return true
     }
 }

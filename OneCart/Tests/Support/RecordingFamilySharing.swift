@@ -95,7 +95,10 @@ final class RecordingFamilySharing: FamilyCloudSharing {
         try await base.removeMember(member, fromFamily: objectID)
     }
 
-    func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool {
-        try await base.leaveFamily(objectID: objectID)
+    func leaveFamily(
+        objectID: NSManagedObjectID,
+        onLatePurgeCompletion: @escaping @Sendable () -> Void
+    ) async throws -> Bool {
+        try await base.leaveFamily(objectID: objectID, onLatePurgeCompletion: onLatePurgeCompletion)
     }
 }

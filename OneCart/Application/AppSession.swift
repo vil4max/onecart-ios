@@ -183,7 +183,16 @@ final class AppSession {
             ),
             clock: clock
         )
-        let cloudSharing = cloudSharing ?? CloudKitBackendService(persistence: persistence)
+        let cloudContainer = LazyCloudContainer()
+        let shareStore = LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer)
+        let cloudSharing =
+            cloudSharing
+            ?? CloudKitBackendService(
+                persistence: persistence,
+                cloudContainer: cloudContainer,
+                shareStore: shareStore,
+                clock: clock
+            )
         repository = repositories.families
         cartItems = repositories.cartItems
         purchaseArchiver = repositories.purchaseArchiver
@@ -206,6 +215,7 @@ final class AppSession {
         cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
+            shareStore: shareStore,
             cloudSharing: cloudSharing
         )
         invitePreparer = InviteLinkPreparer(clock: clock)

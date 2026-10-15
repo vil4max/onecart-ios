@@ -4,36 +4,33 @@ import Foundation
 import Synchronization
 
 final class CloudKitBackendService: Sendable {
+    /// How long a leave waits for the zone purge before it reports `leaveTimedOut`.
+    static let leavePurgeTimeout: Duration = .seconds(22)
+
     let persistence: PersistenceController
-    private let injectedCloudContainer: CKContainer?
-    private let cachedCloudContainer = Mutex<CKContainer?>(nil)
+    let shareStore: any CloudKitShareStoring
+    private let lazyCloudContainer: LazyCloudContainer
+    private let clock: AppClock
     let userRecordNameCache = Mutex(UserRecordNameCache())
     /// Written once in `init` and read only in `deinit`, so no two threads touch it at once.
     nonisolated(unsafe) private var accountChangeObserver: (any NSObjectProtocol)?
 
-    /// Lazily created — constructing `CKContainer` in unit tests / Xcode Cloud without iCloud can SEGV.
     var cloudContainer: CKContainer {
-        if let injectedCloudContainer {
-            return injectedCloudContainer
-        }
-        return cachedCloudContainer.withLock { cached in
-            if let cached {
-                return cached
-            }
-            let created = CKContainer(
-                identifier: PersistenceController.cloudKitContainerIdentifier
-            )
-            cached = created
-            return created
-        }
+        lazyCloudContainer.container
     }
 
+    /// Without `shareStore` the backend talks to the live container of `persistence`.
     init(
         persistence: PersistenceController,
-        cloudContainer: CKContainer? = nil
+        cloudContainer: LazyCloudContainer = LazyCloudContainer(),
+        shareStore: (any CloudKitShareStoring)? = nil,
+        clock: AppClock = .live
     ) {
         self.persistence = persistence
-        injectedCloudContainer = cloudContainer
+        lazyCloudContainer = cloudContainer
+        self.shareStore =
+            shareStore ?? LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer)
+        self.clock = clock
         // The backend outlives an iCloud account switch; the old record name would publish this
         // member's profile under the previous user.
         accountChangeObserver = NotificationCenter.default.addObserver(
@@ -53,6 +50,10 @@ final class CloudKitBackendService: Sendable {
 
     func resetCachedUserRecordName() {
         userRecordNameCache.withLock { $0.reset() }
+    }
+
+    func accountStatus() async throws -> CKAccountStatus {
+        try await shareStore.accountStatus()
     }
 
     func restoredAccount(
@@ -97,6 +98,8 @@ final class CloudKitBackendService: Sendable {
         displayName: String
     ) async throws -> FamilyInviteLink {
         let persistence = persistence
+        let shareStore = shareStore
+        let clock = clock
         // CloudKitDeadline releases the caller even when an SDK callback ignores cancellation;
         // the ceiling and why it is below the builder's worst case: FamilyInviteShareBudget.
         return try await CloudKitDeadline.run(
@@ -105,8 +108,10 @@ final class CloudKitBackendService: Sendable {
         ) {
             try await FamilyInviteLinkBuilder.makeInviteLink(
                 persistence: persistence,
+                shareStore: shareStore,
                 objectID: objectID,
-                displayName: displayName
+                displayName: displayName,
+                clock: clock
             )
         }
     }
@@ -173,8 +178,7 @@ final class CloudKitBackendService: Sendable {
             "removeMember kick (not ban) doorBefore=\(String(describing: doorBefore), privacy: .public)"
         )
         share.removeParticipant(participant)
-        let store = try persistence.store(for: .private)
-        let saved = try await persist(share, in: store)
+        let saved = try await shareStore.persistShare(share, in: .private)
         let doorAfter = saved.publicPermission
         CartSyncLog.shareACL.info(
             "removeMember done doorAfter=\(String(describing: doorAfter), privacy: .public)"
@@ -187,14 +191,17 @@ final class CloudKitBackendService: Sendable {
     }
 
     @discardableResult
-    func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool {
+    func leaveFamily(
+        objectID: NSManagedObjectID,
+        onLatePurgeCompletion: @escaping @Sendable () -> Void
+    ) async throws -> Bool {
         let zoneID: CKRecordZone.ID
         if let share = try share(forObjectID: objectID) {
             CartSyncLog.shareACL.info(
                 "leaveFamily begin record=\(share.recordID.recordName, privacy: .public)"
             )
             zoneID = share.recordID.zoneID
-        } else if let recordID = persistence.container.recordID(for: objectID) {
+        } else if let recordID = shareStore.recordID(for: objectID) {
             CartSyncLog.shareACL.info(
                 "leaveFamily begin via record zone=\(recordID.zoneID.zoneName, privacy: .public)"
             )
@@ -204,9 +211,8 @@ final class CloudKitBackendService: Sendable {
             throw OneCartCloudKitError.familyNotShared
         }
 
-        let sharedStore = try persistence.store(for: .shared)
         do {
-            try await purgeSharedZone(zoneID, in: sharedStore)
+            try await purgeSharedZone(zoneID, onLateCompletion: onLatePurgeCompletion)
             return true
         } catch {
             if CloudKitUserFacingError.isBenignShareLeaveFailure(error) {
@@ -219,46 +225,25 @@ final class CloudKitBackendService: Sendable {
         }
     }
 
+    /// A purge that outlives the timeout still clears the shared zone, so its completion is
+    /// handed to the caller's leave recovery (REQ-SHARE-050) instead of being dropped.
     private func purgeSharedZone(
         _ zoneID: CKRecordZone.ID,
-        in store: NSPersistentStore,
-        timeoutNanoseconds: UInt64 = 22_000_000_000
+        onLateCompletion: @escaping @Sendable () -> Void
     ) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let gate = LeavePurgeSettleGate()
-
-            let timeoutTask = Task {
-                do {
-                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
-                } catch {
-                    return
-                }
-                guard gate.trySettle() else { return }
-                continuation.resume(throwing: OneCartCloudKitError.leaveTimedOut)
+        let shareStore = shareStore
+        let clock = clock
+        try await CloudKitDeadline.run(
+            timeout: { try await clock.sleep(Self.leavePurgeTimeout) },
+            timeoutError: OneCartCloudKitError.leaveTimedOut,
+            onLateCompletion: { _ in
+                CartSyncLog.shareACL.info("leaveFamily late purge finished after timeout")
+                onLateCompletion()
+            },
+            operation: {
+                try await shareStore.purgeObjectsAndRecordsInZone(with: zoneID, in: .shared)
             }
-
-            persistence.container.purgeObjectsAndRecordsInZone(
-                with: zoneID,
-                in: store
-            ) { _, error in
-                let shouldResume = gate.trySettle()
-                timeoutTask.cancel()
-
-                guard shouldResume else {
-                    CartSyncLog.shareACL.info("leaveFamily late purge finished after timeout")
-                    NotificationCenter.default.post(
-                        name: .oneCartDidFinishLateLeavePurge,
-                        object: nil
-                    )
-                    return
-                }
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
-        }
+        )
     }
 }
 
@@ -268,18 +253,13 @@ extension CloudKitBackendService {
     @discardableResult
     func ensureReadWriteACL(objectID: NSManagedObjectID) async throws -> Bool {
         guard let share = try share(forObjectID: objectID) else { return false }
-        var needsPersist = false
-        if OneCartShareLinkJoin.applyReadWriteACL(to: share) {
-            needsPersist = true
-        }
-        if OneCartShareBranding.apply(to: share) {
-            needsPersist = true
-        }
-        guard needsPersist else { return false }
-        let storeScope = persistence.scope(for: objectID) ?? .private
-        let store = try persistence.store(for: storeScope)
-        _ = try await persist(share, in: store)
-        return true
+        // The heal never reopens a revoked invite door; only Share does (REQ-SHARE-060).
+        let saved = try await shareStore.applyReadWriteACL(
+            to: share,
+            reopenInviteDoor: false,
+            in: persistence.scope(for: objectID) ?? .private
+        )
+        return saved != nil
     }
 
     func revokeInviteLink(objectID: NSManagedObjectID) async throws {
@@ -295,9 +275,8 @@ extension CloudKitBackendService {
             return
         }
         share.publicPermission = .none
-        let store = try persistence.store(for: .private)
         do {
-            _ = try await persist(share, in: store, timeoutNanoseconds: 8_000_000_000)
+            _ = try await shareStore.persistShare(share, in: .private, timeoutNanoseconds: 8_000_000_000)
             CartSyncLog.shareACL.info("revokeInvite persist done")
         } catch {
             CartSyncLog.shareACL.error(
@@ -312,20 +291,6 @@ extension CloudKitBackendService {
     }
 
     private func share(forObjectID objectID: NSManagedObjectID) throws -> CKShare? {
-        try persistence.container.fetchShares(matching: [objectID])[objectID]
-    }
-
-}
-
-private final class LeavePurgeSettleGate: @unchecked Sendable {
-    private let lock = NSLock()
-    private var settled = false
-
-    func trySettle() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !settled else { return false }
-        settled = true
-        return true
+        try shareStore.fetchShare(for: objectID)
     }
 }

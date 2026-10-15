@@ -21,10 +21,12 @@ enum FamilyInviteShareBudget {
 enum FamilyInviteLinkBuilder {
     static func existingInviteLink(
         persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        guard let share = try await fetchShare(persistence: persistence, objectID: objectID) else {
+        guard let share = try await fetchShare(persistence: persistence, shareStore: shareStore, objectID: objectID)
+        else {
             throw OneCartCloudKitError.stillSyncing
         }
         return try linkForOpenShare(share, displayName: displayName)
@@ -45,6 +47,7 @@ enum FamilyInviteLinkBuilder {
 
     static func makeInviteLink(
         persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID,
         displayName: String,
         clock: AppClock = .live
@@ -53,10 +56,10 @@ enum FamilyInviteLinkBuilder {
 
         // Fast path: reuse an existing share URL only after the invite door is
         // confirmed open (Revoke sets publicPermission=.none; Share must reopen it).
-        if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
+        if let existing = try await fetchShare(persistence: persistence, shareStore: shareStore, objectID: objectID),
             let url = existing.url
         {
-            try await ensureInviteDoorOpen(existing, persistence: persistence)
+            try await ensureInviteDoorOpen(existing, shareStore: shareStore)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -68,16 +71,16 @@ enum FamilyInviteLinkBuilder {
         // stays nil (common right after first household cart creation).
         try await nudgeCloudKitExport(persistence: persistence, objectID: objectID, clock: clock)
         await waitUntilMirroredIfPossible(
-            persistence: persistence,
+            shareStore: shareStore,
             objectID: objectID,
             timeoutSeconds: FamilyInviteShareBudget.mirrorWaitSeconds,
             clock: clock
         )
 
-        if let existing = try await fetchShare(persistence: persistence, objectID: objectID),
+        if let existing = try await fetchShare(persistence: persistence, shareStore: shareStore, objectID: objectID),
             let url = existing.url
         {
-            try await ensureInviteDoorOpen(existing, persistence: persistence)
+            try await ensureInviteDoorOpen(existing, shareStore: shareStore)
             return FamilyInviteLink(
                 id: stableUUID(for: existing.recordID.recordName),
                 familyName: displayName,
@@ -85,10 +88,10 @@ enum FamilyInviteLinkBuilder {
             )
         }
 
-        if let existing = try await fetchShare(persistence: persistence, objectID: objectID) {
+        if let existing = try await fetchShare(persistence: persistence, shareStore: shareStore, objectID: objectID) {
             return try await finalizeShare(
                 existing,
-                persistence: persistence,
+                shareStore: shareStore,
                 displayName: displayName
             )
         }
@@ -97,12 +100,13 @@ enum FamilyInviteLinkBuilder {
         // must not be required beforehand: waiting for it left the Invite spinner hanging.
         let created = try await createShareWithRetry(
             persistence: persistence,
+            shareStore: shareStore,
             objectID: objectID,
             clock: clock
         )
         return try await finalizeShare(
             created,
-            persistence: persistence,
+            shareStore: shareStore,
             displayName: displayName
         )
     }
@@ -127,7 +131,7 @@ enum FamilyInviteLinkBuilder {
     /// Best-effort wait for a mirrored CKRecord. Returns even if still syncing so
     /// callers can attempt `share()` instead of looping on stillSyncing alerts.
     private static func waitUntilMirroredIfPossible(
-        persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID,
         timeoutSeconds: TimeInterval,
         clock: AppClock
@@ -137,7 +141,7 @@ enum FamilyInviteLinkBuilder {
             if Task.isCancelled {
                 return
             }
-            if persistence.container.recordID(for: objectID) != nil {
+            if shareStore.recordID(for: objectID) != nil {
                 return
             }
             try? await clock.sleep(nanoseconds: 350_000_000)
@@ -146,6 +150,7 @@ enum FamilyInviteLinkBuilder {
 
     private static func createShareWithRetry(
         persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID,
         attempts: Int = FamilyInviteShareBudget.createAttempts,
         clock: AppClock
@@ -164,7 +169,7 @@ enum FamilyInviteLinkBuilder {
                 try await clock.sleep(nanoseconds: delayNanoseconds)
             }
             do {
-                return try await createShare(persistence: persistence, objectID: objectID)
+                return try await createShare(shareStore: shareStore, objectID: objectID)
             } catch {
                 lastError = error
                 guard isRetryableShareFailure(error), attempt + 1 < attempts else {
@@ -204,8 +209,11 @@ enum FamilyInviteLinkBuilder {
         return error
     }
 
+    /// Checks the cart still exists first, so a deleted cart surfaces its Core Data failure
+    /// rather than a missing share.
     private static func fetchShare(
         persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID
     ) async throws -> CKShare? {
         try await withCheckedThrowingContinuation { continuation in
@@ -213,8 +221,7 @@ enum FamilyInviteLinkBuilder {
             context.perform {
                 do {
                     _ = try context.existingObject(with: objectID)
-                    let share = try persistence.container.fetchShares(matching: [objectID])[objectID]
-                    continuation.resume(returning: share)
+                    continuation.resume(returning: try shareStore.fetchShare(for: objectID))
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -223,62 +230,23 @@ enum FamilyInviteLinkBuilder {
     }
 
     private static func createShare(
-        persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         objectID: NSManagedObjectID
     ) async throws -> CKShare {
         try await CloudKitDeadline.run(
             timeoutNanoseconds: FamilyInviteShareBudget.createTimeoutNanoseconds,
             timeoutError: OneCartCloudKitError.stillSyncing
         ) {
-            try await createShareUnscoped(persistence: persistence, objectID: objectID)
-        }
-    }
-
-    private static func createShareUnscoped(
-        persistence: PersistenceController,
-        objectID: NSManagedObjectID
-    ) async throws -> CKShare {
-        try await withCheckedThrowingContinuation { continuation in
-            let lock = NSLock()
-            var resumed = false
-            func resume(_ result: Result<CKShare, Error>) {
-                lock.lock()
-                defer { lock.unlock() }
-                guard !resumed else { return }
-                resumed = true
-                continuation.resume(with: result)
-            }
-
-            let context = persistence.newBackgroundContext(author: "OneCartShareCreate")
-            context.perform {
-                do {
-                    let object = try context.existingObject(with: objectID)
-                    if object.objectID.isTemporaryID {
-                        try context.obtainPermanentIDs(for: [object])
-                        try context.save()
-                    }
-                    persistence.container.share([object], to: nil) { _, share, _, error in
-                        if let error {
-                            resume(.failure(error))
-                        } else if let share {
-                            resume(.success(share))
-                        } else {
-                            resume(.failure(OneCartCloudKitError.shareURLUnavailable))
-                        }
-                    }
-                } catch {
-                    resume(.failure(error))
-                }
-            }
+            try await shareStore.share(objectWith: objectID)
         }
     }
 
     private static func finalizeShare(
         _ share: CKShare,
-        persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        try await ensureInviteDoorOpen(share, persistence: persistence)
+        try await ensureInviteDoorOpen(share, shareStore: shareStore)
 
         if let url = share.url {
             return FamilyInviteLink(
@@ -288,7 +256,7 @@ enum FamilyInviteLinkBuilder {
             )
         }
 
-        let saved = try await persistShareRequired(share, persistence: persistence)
+        let saved = try await shareStore.persistShare(share, in: .private)
         guard let url = saved.url ?? share.url else {
             throw OneCartCloudKitError.shareURLUnavailable
         }
@@ -301,74 +269,27 @@ enum FamilyInviteLinkBuilder {
     }
 }
 
-// MARK: - Invite door and share persistence
+// MARK: - Invite door
 
 extension FamilyInviteLinkBuilder {
     /// Revoke only closes the link door (`publicPermission = .none`). It is not a
     /// guest ban. Share must reopen and persist `.readWrite` before handing out URL.
     private static func ensureInviteDoorOpen(
         _ share: CKShare,
-        persistence: PersistenceController
+        shareStore: any CloudKitShareStoring
     ) async throws {
         let doorWasClosed = share.publicPermission == .none
-        let aclChanged = OneCartShareLinkJoin.applyReadWriteACL(
-            to: share,
-            reopenInviteDoor: true
-        )
-        let brandingChanged = OneCartShareBranding.apply(to: share)
-
-        if aclChanged || brandingChanged || doorWasClosed {
-            CartSyncLog.shareACL.info(
-                // swiftlint:disable:next line_length
-                "invite door persist reopen=\(doorWasClosed, privacy: .public) aclChanged=\(aclChanged, privacy: .public) brandingChanged=\(brandingChanged, privacy: .public)"
-            )
-            let saved = try await persistShareRequired(share, persistence: persistence)
-            guard saved.publicPermission == .readWrite else {
-                CartSyncLog.shareACL.error(
-                    // swiftlint:disable:next line_length
-                    "invite door persist returned closed permission=\(String(describing: saved.publicPermission), privacy: .public)"
-                )
-                throw OneCartCloudKitError.inviteDoorClosed
-            }
-            if doorWasClosed {
-                CartSyncLog.shareACL.info("invite door repaired to readWrite")
-            }
-            return
-        }
-
-        guard share.publicPermission == .readWrite else {
+        let saved = try await shareStore.applyReadWriteACL(to: share, reopenInviteDoor: true, in: .private)
+        let permission = (saved ?? share).publicPermission
+        guard permission == .readWrite else {
             CartSyncLog.shareACL.error(
-                "invite door still closed permission=\(String(describing: share.publicPermission), privacy: .public)"
+                // swiftlint:disable:next line_length
+                "invite door closed after persist=\(saved != nil, privacy: .public) permission=\(String(describing: permission), privacy: .public)"
             )
             throw OneCartCloudKitError.inviteDoorClosed
         }
-    }
-
-    private static func persistShareRequired(
-        _ share: CKShare,
-        persistence: PersistenceController,
-        timeoutNanoseconds: UInt64 = FamilyInviteShareBudget.persistTimeoutNanoseconds
-    ) async throws -> CKShare {
-        try await CloudKitDeadline.run(timeoutNanoseconds: timeoutNanoseconds) {
-            try await persistShare(share, persistence: persistence)
-        }
-    }
-
-    private static func persistShare(
-        _ share: CKShare,
-        persistence: PersistenceController
-    ) async throws -> CKShare {
-        let store = try persistence.store(for: .private)
-        return try await withCheckedThrowingContinuation { continuation in
-            persistence.container.persistUpdatedShare(share, in: store) { savedShare, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let savedShare {
-                    continuation.resume(returning: savedShare)
-                } else {
-                    continuation.resume(throwing: OneCartCloudKitError.shareURLUnavailable)
-                }
-            }
+        if saved != nil, doorWasClosed {
+            CartSyncLog.shareACL.info("invite door repaired to readWrite")
         }
     }
 

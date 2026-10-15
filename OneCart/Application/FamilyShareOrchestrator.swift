@@ -6,13 +6,18 @@ import OSLog
 @MainActor
 final class FamilyShareOrchestrator {
     private let persistence: PersistenceController
+    /// Background invite preparation reads the existing share straight from the container,
+    /// whichever `FamilyCloudSharing` the session runs on.
+    private let shareStore: any CloudKitShareStoring
     private let cloudSharing: any FamilyCloudSharing
 
     init(
         persistence: PersistenceController,
+        shareStore: any CloudKitShareStoring,
         cloudSharing: any FamilyCloudSharing
     ) {
         self.persistence = persistence
+        self.shareStore = shareStore
         self.cloudSharing = cloudSharing
     }
 
@@ -38,6 +43,7 @@ final class FamilyShareOrchestrator {
     func existingInviteLink(for family: FamilySpace) async throws -> FamilyInviteLink {
         try await FamilyInviteLinkBuilder.existingInviteLink(
             persistence: persistence,
+            shareStore: shareStore,
             objectID: family.objectID,
             displayName: family.displayName
         )

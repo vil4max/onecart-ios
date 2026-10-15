@@ -43,10 +43,10 @@ extension CloudKitBackendService: CloudUserIdentifying {
         if let cached {
             return cached
         }
-        let container = cloudContainer
+        let shareStore = shareStore
         do {
             let recordName = try await CloudKitDeadline.run(timeoutNanoseconds: 10_000_000_000) {
-                try await container.userRecordID().recordName
+                try await shareStore.userRecordID().recordName
             }
             // The owner's own participant can read `__defaultOwner__`; only a real name is useful to others.
             guard !recordName.isEmpty, recordName != CKCurrentUserDefaultName else { return nil }

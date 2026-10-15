@@ -4,8 +4,8 @@ import CoreData
 import Testing
 
 /// Decisions the backend makes before or instead of a CloudKit call, on stores without a
-/// `CKShare`. Everything that needs a `CKContainer` (account status, share persistence, zone
-/// purge) stays out of unit tests; the session suites run on `InMemoryFamilySharing` instead.
+/// `CKShare`. The leave purge runs on `FakeCloudKitShareStore` in `LeaveFamilyPurgeTests`; most
+/// session suites run on `InMemoryFamilySharing` instead.
 @Suite("CloudKitBackendService", .removesStores)
 @MainActor
 struct CloudKitBackendServiceTests {

@@ -86,7 +86,10 @@
             throw OneCartCloudKitError.familyNotShared
         }
 
-        func leaveFamily(objectID _: NSManagedObjectID) async throws -> Bool {
+        func leaveFamily(
+            objectID _: NSManagedObjectID,
+            onLatePurgeCompletion _: @escaping @Sendable () -> Void
+        ) async throws -> Bool {
             true
         }
     }

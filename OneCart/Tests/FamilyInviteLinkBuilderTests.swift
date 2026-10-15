@@ -106,6 +106,7 @@ struct FamilyInviteLinkBuilderTests {
         await expectCloudKitError(.stillSyncing) {
             _ = try await FamilyInviteLinkBuilder.existingInviteLink(
                 persistence: fixture.persistence,
+                shareStore: LiveCloudKitShareStore(persistence: fixture.persistence),
                 objectID: family.objectID,
                 displayName: family.displayName
             )
@@ -127,6 +128,7 @@ struct FamilyInviteLinkBuilderTests {
         do {
             _ = try await FamilyInviteLinkBuilder.existingInviteLink(
                 persistence: fixture.persistence,
+                shareStore: LiveCloudKitShareStore(persistence: fixture.persistence),
                 objectID: objectID,
                 displayName: "Family"
             )
@@ -150,6 +152,7 @@ struct FamilyInviteLinkBuilderTests {
         let request = Task {
             try await FamilyInviteLinkBuilder.makeInviteLink(
                 persistence: persistence,
+                shareStore: LiveCloudKitShareStore(persistence: persistence),
                 objectID: objectID,
                 displayName: "Family"
             )

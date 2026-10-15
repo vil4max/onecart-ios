@@ -44,7 +44,13 @@ iCloud reaches the session only through `FamilyCloudSharing`
 revoke, ACL heal, remove member, leave, plus the `CloudUserIdentifying` and
 `AccountCloudDataDeleting` members it inherits. `AppSession`, `SessionBootstrapper` and
 `FamilyShareOrchestrator` take `any FamilyCloudSharing` in `init`; the live composition builds
-`CloudKitBackendService`. Shared-store edit rights come from `RecordPermissionChecking`, injected
+`CloudKitBackendService`. Below it, every container call the share code makes (share lookup,
+creation and persistence, the leave's zone purge, account status, user record ID) goes through
+`CloudKitShareStoring` (`OneCart/Data/CloudKit/CloudKitShareStoring.swift`; live:
+`LiveCloudKitShareStore`), injected into `CloudKitBackendService` and passed to
+`FamilyInviteLinkBuilder`; tests use `FakeCloudKitShareStore`. Share changes are saved through
+one path, `persistShare(_:in:)`, and the owner ACL heal and the invite door share
+`applyReadWriteACL(to:reopenInviteDoor:in:)`. Shared-store edit rights come from `RecordPermissionChecking`, injected
 into `CloudKitPermissionAuthorizer` (live: `ContainerRecordPermissions`, which asks the container).
 No production path branches on the store kind: unit tests and the DEBUG welcome demo inject the
 `#if DEBUG` `InMemoryFamilySharing` (`OneCart/Application/Demo/`), which answers as the app did on an
@@ -114,9 +120,10 @@ the sync services, the invite preparer, the Settings share watchdog and the leav
 through their initializer (the session passes its clock; defaults are `.live`, which sleeps on the suspending clock like the timers
 it replaced), and the launch ride reads it from the `appClock` environment value. Tests pass a
 `TestClock` (`OneCart/Tests/Support/TestClock.swift`) and move time with `advance(by:)` instead of
-waiting it out. Not on the clock yet: view-only animation timing, display dates, the CloudKit
-deadlines (`CloudKitDeadline`, the leave-purge timeout), the classifier timeout, and the Siri
-deadline and Live Activity controller, which have their own seams.
+waiting it out. The leave-purge deadline sleeps on the clock `CloudKitBackendService` takes. Not
+on the clock yet: view-only animation timing, display dates, the other CloudKit deadlines
+(`CloudKitDeadline` with a nanosecond timeout), the classifier timeout, and the Siri deadline and
+Live Activity controller, which have their own seams.
 
 Size guideline: the composition root stays around 200 lines and is split at 400 or more. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
 
@@ -149,7 +156,7 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Data/Persistence/FamilyRepository.swift`, `CartItemsRepository.swift`, `PurchaseArchiver.swift`, `CartDeduplicator.swift`, `PersonalCartRestorer.swift`, `MemberProfileStore.swift` | Repository protocols with their Core Data implementations; `PurchaseArchiver` has `archivePurchasedBefore` / `completePurchased` (Completed → history) |
 | `OneCart/Data/Persistence/RepositoryFetch.swift`, `PermissionAuthorizing.swift`, `RepositoryError.swift`, `ProductDraft.swift`, `SoftDeletable.swift` | Shared lookups, write permission guard, errors, the add/rename draft, tombstone markers |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Transitional facade: builds the repositories; forwarding API for tests |
-| `OneCart/Data/CloudKit/` | Split: `FamilyCloudSharing` seam, models, errors, share ACL/branding, `CloudKitDeadline`, permissions (`RecordPermissionChecking`), backend, invite builder |
+| `OneCart/Data/CloudKit/` | Split: `FamilyCloudSharing` seam, `CloudKitShareStoring` container seam and share mutation path, models, errors, share ACL/branding, `CloudKitDeadline`, permissions (`RecordPermissionChecking`), backend, invite builder |
 | `OneCart/Application/Demo/InMemoryFamilySharing.swift` | DEBUG-only iCloud stand-in for unit tests and the welcome demo |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple, behind `AppleSignInAuthenticating`; that protocol, the credential, state, error, store protocol, Keychain store and presentation anchor each in their own file beside it |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
@@ -226,7 +233,8 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 - Provisional personal-cart IDs are stored per account. Late imports reconcile local content by stable IDs before selecting the restored cart; pending mutations defer reconciliation and retry on completion. Neither the provisional source nor other shared families are deleted by selection.
 - `HistoryItems.unique` selects one logical item per `(family ID, item ID)` for history and suggestions. Archive retries reuse existing logical purchases. This does not physically delete duplicate CloudKit history records.
 - Account deletion unloads stores without deleting SQLite, checks every requested zone result, then marks confirmed cloud deletion before local cleanup. `account-deletion-state.json` survives interrupted cleanup. Pending cloud deletion loads original stores without mirroring; confirmed deletion finishes cleanup before reopening. Credentials clear only after cleanup succeeds.
-- `CloudKitDeadline` resolves the caller once on result, timeout, or cancellation without waiting for a cancellation-insensitive SDK callback. A late cloud write remains possible; timeout is not proof of server-side cancellation.
+- `CloudKitDeadline` resolves the caller once on result, timeout, or cancellation without waiting for a cancellation-insensitive SDK callback. A late cloud write remains possible; timeout is not proof of server-side cancellation. An operation that finishes after the caller was released is reported once through `onLateCompletion`.
+- Leave (REQ-SHARE-050): the zone purge runs under `CloudKitDeadline` with `leaveTimedOut` after `CloudKitBackendService.leavePurgeTimeout`. On a timeout the session shows the alert and starts its leave recovery, which retries the fallback to the personal cart on the `AppClock` and also runs one pass when the late purge reports in through `leaveFamily(objectID:onLatePurgeCompletion:)`; a late purge that leaves the shared cart behind does not end the timed passes.
 - Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer purchase change of the product are ignored (a rename or category refinement does not count); confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
 - Both the app and widget extension bundle their own `PrivacyInfo.xcprivacy`. App Group defaults access is declared in each relevant target.
 - Files compiled into both the app and the widget extension (`OneCart/Shared/Widgets/`, `AppAccentColor`, `ProductCategory`, `OneCartLog`) hold plain models and logic: they import Foundation or OSLog (plus ActivityKit or AppIntents where the type requires it), and model values never read the App Group or call WidgetCenter. SwiftUI presentation lives in per-target extension files (`ProductCategory+SwiftUI.swift` in the app, `WidgetCartSnapshot+SwiftUI.swift` in the widget). `WidgetSnapshotStore` takes its timeline reload as a closure; each target defines its live `shared` store with `WidgetCenter` reloads, and the store, not the snapshot, reads the stored accent (`withStoredAccent`). Known exceptions: `OneCartPalette` is shared SwiftUI presentation that also reads the App Group accent at launch, and the two `LiveActivityIntent`s keep their dual membership and `#if ONECART_WIDGET_EXTENSION` branches.
