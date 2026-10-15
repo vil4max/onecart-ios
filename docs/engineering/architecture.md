@@ -86,7 +86,7 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |
 | `OneCart/Features/Shopping/ShoppingListView.swift` | Active list composition + inline add/edit; To Buy / Completed |
 | `OneCart/Features/Shopping/CartProductRow.swift` | Product row, purchase toggle, category thumbnail |
-| `OneCart/Features/Shopping/CartAddFAB.swift` | FAB `+` |
+| `OneCart/Features/Shopping/CartAddComposer.swift` | Add field and `+` button |
 | `OneCart/Features/Shopping/HistoryViews.swift` | History by day (`historyHasMore` / load more); read-only |
 | `OneCart/Features/Shopping/HistoryDetailViews.swift` | Day detail product list |
 | `OneCart/Features/Shopping/CartChromeViews.swift` | Empty / read-only / unavailable chrome |

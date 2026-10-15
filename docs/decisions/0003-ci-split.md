@@ -20,7 +20,7 @@ The app's minimum OS is iOS 27, so `Tests` runs on the public-preview `xcode-27`
 
 | System | Owns | Trigger | Config |
 |--------|------|---------|--------|
-| GitHub Actions `Tests` | Build for testing, `OneCartTests`, coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
+| GitHub Actions `Tests` | Build for testing, `OneCartTests` and the `OneCartUITests` smoke tests (both in the `OneCart` scheme), coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
 | GitHub Actions `TestFlight` | Checks a `tf-` tag and fast-forwards `testflight`, or checks that a `v` tag marks a commit with its own `tf-` round | Push of a `tf-*` or `v*.*.*` tag, or manual run with `tag` | [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml), `Tooling/scripts/tf-promote.sh` |
 | Xcode Cloud "Internal TestFlight (verified main)" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
 | Xcode Cloud "App Store candidate (release tag)" | Deactivated (ADR 0004): no build starts from it; turning it back on in App Store Connect would resume builds from `release` | Push to `release` | App Store Connect workflow |
