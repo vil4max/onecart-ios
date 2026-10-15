@@ -113,6 +113,33 @@ extension CartContentMappingTests {
         #expect(store.products(inListID: fixture.listID).map(\.displayName) == ["Milk", "Bread"])
     }
 
+    @Test("REQ-CART-090: a rename by ID changes the row the cart shows, not its hidden duplicate")
+    func renameByRepeatedIDTargetsTheShownRow() async throws {
+        let fixture = try await CartFixture.make()
+        let sharedID = UUID()
+        let now = Date()
+        // The hidden row is written first, so a lookup in insertion order would pick it.
+        try await insertProducts(
+            [
+                (sharedID, "Milk copy", now),
+                (sharedID, "Milk", now.addingTimeInterval(60)),
+            ],
+            into: fixture
+        )
+
+        try await fixture.repository.updateProduct(
+            id: sharedID,
+            familySpaceID: fixture.familyID,
+            draft: .nameOnly("Oat milk")
+        )
+        await fixture.settle()
+        let store = CartContentStore(persistence: fixture.persistence)
+        try store.reloadContent(familySpaceID: fixture.familyID)
+
+        #expect(store.cartItems(inListID: fixture.listID).map(\.displayName) == ["Oat milk"])
+        #expect(try Set(fixture.products.map(\.displayName)) == ["Oat milk", "Milk copy"])
+    }
+
     @Test("REQ-WIDGET-010: a product without an ID is left out of the lines the widgets, the trip and Siri count")
     func productWithoutIDIsLeftOutOfEverySurface() async throws {
         let fixture = try await CartFixture.make()

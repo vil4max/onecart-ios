@@ -62,6 +62,13 @@ enum RepositoryFetch {
             )
         }
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        // Until launch dedupe tombstones it, a replica can leave two live rows with one ID. The
+        // cart's order (to buy first, newest first) picks the row it shows in the common case;
+        // rows tied on both keys, or a twin in another list, can still differ.
+        request.sortDescriptors = [
+            NSSortDescriptor(key: "isPurchased", ascending: true),
+            NSSortDescriptor(key: "createdAt", ascending: false),
+        ]
         request.fetchLimit = 1
         return try context.fetch(request).first
     }
