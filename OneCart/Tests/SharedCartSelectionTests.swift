@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class SharedCartSelectionTests: XCTestCase, SharedCartSeeding {
     func test_REQ_SYNC_040_cloudReloadKeepsChosenSharedCartWhenAnotherSharedCartIsNewer() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -37,7 +37,7 @@ final class SharedCartSelectionTests: XCTestCase, SharedCartSeeding {
 
         XCTAssertEqual(session.activeFamilySpace?.id, chosenID)
         XCTAssertEqual(
-            defaults.string(forKey: activeFamilyKey(accountID: account.id)),
+            defaults.string(forKey: AppSession.activeFamilyKey(accountID: account.id)),
             chosenID.uuidString
         )
         XCTAssertEqual(Set(session.products.map(\.displayName)), ["Chosen"])
@@ -45,7 +45,7 @@ final class SharedCartSelectionTests: XCTestCase, SharedCartSeeding {
     }
 
     func test_REQ_SHARE_090_newlyJoinedSharedCartBecomesActiveOverCurrentSharedCart() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -77,8 +77,7 @@ final class SharedCartSelectionTests: XCTestCase, SharedCartSeeding {
     }
 }
 
-/// Shared by the join and selection suites. A protocol rather than an `XCTestCase` extension,
-/// because another suite declares its own private `activeFamilyKey(accountID:)`.
+/// Shared by the join and selection suites without widening every `XCTestCase`.
 @MainActor
 protocol SharedCartSeeding {}
 
@@ -130,9 +129,5 @@ extension SharedCartSeeding {
         }
         persistence.container.viewContext.processPendingChanges()
         return sharedID
-    }
-
-    func activeFamilyKey(accountID: UUID) -> String {
-        "onecart.active-family-space-id.\(accountID.uuidString)"
     }
 }

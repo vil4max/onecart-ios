@@ -26,10 +26,7 @@ struct AccountView: View {
             }
             .navigationTitle("settings.nav_title")
             .task {
-                // Single request path: member-join notifications reuse this grant.
-                // Two concurrent requests with different options race on first run.
-                CartActivityNotifier.requestAuthorizationIfNeeded()
-                await viewModel.refreshAccountSharing()
+                await viewModel.onAppear()
             }
             .sheet(isPresented: $viewModel.isEditingDisplayName) {
                 NameEditorSheet(

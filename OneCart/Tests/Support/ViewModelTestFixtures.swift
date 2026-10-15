@@ -32,9 +32,11 @@ struct CartFixture {
     let repository: FamilySpaceRepository
     let familyID: UUID
     let listID: UUID
+    private let cleanup: StoreFileCleanup
 
     static func make() async throws -> CartFixture {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let cleanup = StoreFileCleanup(persistence)
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -42,7 +44,13 @@ struct CartFixture {
         )
         let familyID = try await repository.createFamilySpace(name: "Family")
         let listID = try #require(try repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id)
-        return CartFixture(persistence: persistence, repository: repository, familyID: familyID, listID: listID)
+        return CartFixture(
+            persistence: persistence,
+            repository: repository,
+            familyID: familyID,
+            listID: listID,
+            cleanup: cleanup
+        )
     }
 
     var family: FamilySpace {

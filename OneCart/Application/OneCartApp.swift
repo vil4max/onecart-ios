@@ -3,29 +3,55 @@ import SwiftUI
 @main
 struct OneCartApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var model = OneCartAppComposition.session
 
     var body: some Scene {
         WindowGroup {
-            OneCartScene(model: model)
-                .environment(
-                    \.managedObjectContext,
-                    model.persistence.container.viewContext
-                )
+            // The unit-test host never builds the production session: tests build their own
+            // over isolated stores, and the real one would touch ActivityKit and the App Group.
+            if TestHost.isRunningUnitTests {
+                Color.clear
+            } else {
+                OneCartRootScene()
+            }
         }
+    }
+}
+
+/// UI tests launch the app in a separate process without this variable, so only the unit-test
+/// host is affected.
+enum TestHost {
+    static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 }
 
 @MainActor
 enum OneCartAppComposition {
+    #if DEBUG
+        private(set) static var didBuildSession = false
+    #endif
+
     static let session: AppSession = {
         #if DEBUG
+            didBuildSession = true
             if DemoUIMode.isEnabled {
                 return DemoUIMode.makeSession()
             }
         #endif
         return AppSession()
     }()
+}
+
+private struct OneCartRootScene: View {
+    @State private var model = OneCartAppComposition.session
+
+    var body: some View {
+        OneCartScene(model: model)
+            .environment(
+                \.managedObjectContext,
+                model.persistence.container.viewContext
+            )
+    }
 }
 
 private struct OneCartScene: View {
@@ -41,7 +67,6 @@ private struct OneCartScene: View {
             .environment(model)
             .preferredColorScheme(preferences.theme.colorScheme)
             .task {
-                guard !Self.isRunningUnitTests else { return }
                 if Self.bootstrapTask == nil {
                     Self.bootstrapTask = Task { @MainActor in
                         await model.start()
@@ -55,7 +80,6 @@ private struct OneCartScene: View {
                 await Self.bootstrapTask?.value
             }
             .onChange(of: scenePhase) { _, newPhase in
-                guard !Self.isRunningUnitTests else { return }
                 guard newPhase == .active, model.account != nil else { return }
                 Task {
                     await model.start()
@@ -65,13 +89,8 @@ private struct OneCartScene: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .oneCartDidReceiveCloudKitShare)) { _ in
-                guard !Self.isRunningUnitTests else { return }
                 Task { await model.acceptPendingCloudKitShares() }
             }
-    }
-
-    private static var isRunningUnitTests: Bool {
-        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
     @MainActor

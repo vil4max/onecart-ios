@@ -11,7 +11,7 @@ import XCTest
 // swiftlint:disable:next type_body_length
 final class AccountDeletionTests: XCTestCase {
     func test_REQ_AUTH_070_deleteAccount_whenCloudSucceeds_signsOutAndClearsLocalState() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -54,7 +54,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_REQ_AUTH_070_deleteAccount_removesActivitySnapshotsAccountKeysAndICloudIdentity() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -85,7 +85,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_REQ_AUTH_080_deleteAccount_whenCloudFails_keepsSignedInAndLocalState() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -122,7 +122,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_deleteAccount_whenLocalDetachFails_doesNotCallCloudOrClearCredentials() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -150,7 +150,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_deleteAccount_whenAttachFailsAfterCloudSuccess_keepsRetryAvailable() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -183,7 +183,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_deleteAccount_ignoresDuplicateWhileInFlight() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -223,7 +223,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_deleteAccount_whenOffline_doesNotCallCloudOrSignOut() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: true)
+        let persistence = makeInMemoryPersistence(cloudKitEnabled: true)
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -248,7 +248,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_REQ_AUTH_070_deleteAccount_whenMember_leavesSharedBeforeCloudDelete() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -273,7 +273,7 @@ final class AccountDeletionTests: XCTestCase {
             space.updatedAt = Date()
         }
         persistence.container.viewContext.processPendingChanges()
-        defaults.set(privateID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(privateID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -298,7 +298,7 @@ final class AccountDeletionTests: XCTestCase {
     }
 
     func test_REQ_AUTH_030_deleteAccount_whenICloudUnavailable_showsSpecificMessage() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: true)
+        let persistence = makeInMemoryPersistence(cloudKitEnabled: true)
         try await persistence.load()
         let defaults = try makeDefaults()
         let apple = TrackingAppleSignIn()
@@ -796,16 +796,6 @@ final class AccountDeletionTests: XCTestCase {
 
         XCTAssertFalse(CloudKitBackendService.isIdempotentAccountDeletionFailure(failure))
     }
-
-    private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return request
-    }
 }
 
 private enum TestAccountDeletionError: Error {
@@ -815,7 +805,6 @@ private enum TestAccountDeletionError: Error {
 private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unchecked Sendable {
     var callCount = 0
     var errorToThrow: Error?
-    var delayNanoseconds: UInt64 = 0
     /// Holds only the first call so a wrongly admitted duplicate fails the count instead of hanging.
     var suspendFirstCall: (@MainActor () async -> Void)?
     var failurePoint: FailurePoint = .afterDestructiveRequestStarted
@@ -831,9 +820,6 @@ private final class RecordingAccountCloudDeleter: AccountCloudDataDeleting, @unc
     func deletePrivateAccountCloudData() async throws {
         callCount += 1
         storeRecorder?.events.append("cloud")
-        if delayNanoseconds > 0 {
-            try await Task.sleep(nanoseconds: delayNanoseconds)
-        }
         if callCount == 1, let suspendFirstCall {
             await suspendFirstCall()
         }

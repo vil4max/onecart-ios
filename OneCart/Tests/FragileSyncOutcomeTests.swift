@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class FragileSyncOutcomeTests: XCTestCase {
     func test_REQ_SYNC_010_syncCartPullFailureSetsFailedState() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -36,7 +36,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func test_REQ_SYNC_010_syncCartAppearFailureDoesNotPresentAlert() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -61,7 +61,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func test_REQ_SYNC_010_syncCartSuccessSetsSynchronized() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -78,7 +78,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func testSyncCartCoalescesWithoutCancellingInFlight() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
         let firstSuspended = expectation(description: "First refresh is suspended")
@@ -129,7 +129,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func test_coalescedPull_whenRefreshFails_returnsFailureToBothCallers() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let sync = CartSyncService(persistence: persistence)
         let started = expectation(description: "First refresh is suspended")
@@ -161,7 +161,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func testCloudReloadScheduledRightAfterCancelStillRuns() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
         cartSync.onHardRefresh = {}
@@ -179,7 +179,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func testShorterCloudReloadDelayReschedulesPendingReload() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let cartSync = CartSyncService(persistence: persistence)
         cartSync.onHardRefresh = {}
@@ -195,6 +195,103 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(host.reloadCount, 1)
     }
 
+}
+
+extension FragileSyncOutcomeTests {
+    func test_REQ_SHELL_050_foregroundSyncFailureAlertsOnlyAfterHealthyState() async throws {
+        let persistence = makeInMemoryPersistence()
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        cartSync.onHardRefresh = {
+            throw NSError(domain: "Sync", code: 1, userInfo: [NSLocalizedDescriptionKey: "Foreground failed"])
+        }
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let host = ReloadCountingHost()
+        coordinator.bind(host: host)
+
+        host.syncState = .synchronized
+        await coordinator.syncCart(reason: .foreground)
+        XCTAssertEqual(host.syncAlerts, ["Foreground failed"])
+        XCTAssertEqual(host.syncState, .failed)
+
+        await coordinator.syncCart(reason: .foreground)
+        XCTAssertEqual(host.syncAlerts.count, 1, "A failure after a failure stays silent")
+    }
+
+    func test_REQ_SYNC_010_secondAppearWithinDebounceIsSkipped() async throws {
+        let persistence = makeInMemoryPersistence()
+        try await persistence.load()
+        var clock = Date(timeIntervalSinceReferenceDate: 0)
+        let cartSync = CartSyncService(persistence: persistence, now: { clock })
+        var refreshCount = 0
+        cartSync.onHardRefresh = { refreshCount += 1 }
+
+        let first = await cartSync.syncCart(reason: .appear)
+        clock.addTimeInterval(2)
+        let second = await cartSync.syncCart(reason: .appear)
+        clock.addTimeInterval(1)
+        let third = await cartSync.syncCart(reason: .appear)
+
+        XCTAssertEqual(first, .succeeded)
+        XCTAssertEqual(second, .skippedDebounce)
+        XCTAssertEqual(third, .succeeded)
+        XCTAssertEqual(refreshCount, 2)
+    }
+
+    func test_REQ_SYNC_010_cancelledRefreshIsReportedAsSkipped() async throws {
+        let persistence = makeInMemoryPersistence()
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        cartSync.onHardRefresh = { throw CancellationError() }
+        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
+        let host = ReloadCountingHost()
+        coordinator.bind(host: host)
+
+        let outcome = await cartSync.syncCart(reason: .pull)
+        await coordinator.syncCart(reason: .pull)
+
+        XCTAssertEqual(outcome, .skippedDebounce)
+        XCTAssertEqual(host.syncState, .synchronized, "A cancelled sync leaves the state alone")
+        XCTAssertTrue(host.syncAlerts.isEmpty)
+    }
+
+    func test_REQ_SYNC_010_reasonsQueuedDuringASyncRunOnceWithTheHighestRank() async throws {
+        let persistence = makeInMemoryPersistence()
+        try await persistence.load()
+        let cartSync = CartSyncService(persistence: persistence)
+        let firstSuspended = expectation(description: "First refresh is suspended")
+        var release: CheckedContinuation<Void, Never>?
+        var chromeDuringRefresh: [Bool] = []
+        cartSync.onHardRefresh = {
+            chromeDuringRefresh.append(cartSync.isCartSyncing)
+            if chromeDuringRefresh.count == 1 {
+                await withCheckedContinuation { continuation in
+                    release = continuation
+                    firstSuspended.fulfill()
+                }
+            }
+        }
+
+        let first = Task { await cartSync.syncCart(reason: .pull) }
+        await fulfillment(of: [firstSuspended], timeout: 5)
+        // Same-actor calls queue before they suspend, so both wait once their expectations are met.
+        let cloudQueued = expectation(description: "Cloud import is queued")
+        let appearQueued = expectation(description: "Appear is queued")
+        let cloud = Task {
+            cloudQueued.fulfill()
+            return await cartSync.syncCart(reason: .cloudImport)
+        }
+        let appear = Task {
+            appearQueued.fulfill()
+            return await cartSync.syncCart(reason: .appear, debouncedAppear: false)
+        }
+        await fulfillment(of: [cloudQueued, appearQueued], timeout: 5)
+        release?.resume()
+        _ = await (first.value, cloud.value, appear.value)
+        // A cloud import outranks an appear and runs without the "Updating…" chrome.
+        XCTAssertEqual(chromeDuringRefresh, [true, false])
+    }
+
     private func waitForReloads(_ count: Int, on host: ReloadCountingHost) async throws {
         for _ in 0..<100 where host.reloadCount < count {
             try await Task.sleep(nanoseconds: 20_000_000)
@@ -202,7 +299,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func testSoftRefreshCartProductsBumpsRevision() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Soft")
@@ -215,7 +312,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -232,7 +329,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
     }
 
     func test_REQ_SYNC_010_cartContentStorePublishesAfterReload() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Content")
@@ -245,7 +342,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -269,6 +366,7 @@ private final class ReloadCountingHost: CloudSyncHost {
     var isOnline = true
     var syncState: OneCartSyncState = .synchronized
     private(set) var reloadCount = 0
+    private(set) var syncAlerts: [String] = []
 
     func applySyncState(_ state: OneCartSyncState) {
         syncState = state
@@ -276,7 +374,9 @@ private final class ReloadCountingHost: CloudSyncHost {
 
     func applyLastSyncError(_: String?) {}
 
-    func presentSyncAlert(_: String) {}
+    func presentSyncAlert(_ message: String) {
+        syncAlerts.append(message)
+    }
 
     func presentProductionSchemaAlertIfNeeded(_: String) {}
 

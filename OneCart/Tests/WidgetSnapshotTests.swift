@@ -195,7 +195,6 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.accentColorRaw, "berry")
         XCTAssertEqual(decoded.accentColor, .berry)
 
-        // Snapshot without accentColorRaw (legacy) falls back gracefully to emerald
         let legacyJson = Data(
             """
             {
@@ -210,11 +209,22 @@ final class WidgetSnapshotTests: XCTestCase {
             """.utf8)
         let legacyDecoded = try JSONDecoder().decode(WidgetCartSnapshot.self, from: legacyJson)
         XCTAssertNil(legacyDecoded.accentColorRaw)
-        let expectedFallback =
-            AppAccentColor(
-                rawValue: OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color") ?? ""
-            ) ?? .emerald
-        XCTAssertEqual(legacyDecoded.accentColor, expectedFallback)
+    }
+
+    func test_REQ_WIDGET_010_legacySnapshotFallsBackToEmeraldWithEmptySuite() throws {
+        let suite = try makeDefaults()
+
+        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: suite), .emerald)
+        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: nil), .emerald)
+        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: "unknown", legacyDefaults: suite), .emerald)
+    }
+
+    func test_REQ_WIDGET_010_legacySnapshotUsesTheStoredAccent() throws {
+        let suite = try makeDefaults()
+        suite.set("ocean", forKey: "onecart.accent-color")
+
+        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: nil, legacyDefaults: suite), .ocean)
+        XCTAssertEqual(WidgetCartSnapshot.accentColor(raw: "berry", legacyDefaults: suite), .berry)
     }
 
     @MainActor
@@ -284,20 +294,5 @@ extension WidgetSnapshotTests {
         XCTAssertFalse(FileManager.default.fileExists(atPath: malformedURL.path))
         XCTAssertEqual(try Data(contentsOf: quarantinedURL), Data("{invalid".utf8))
         XCTAssertTrue(FileManager.default.fileExists(atPath: unreadableURL.path))
-    }
-}
-
-// Shared with the widget purchase and privacy cleanup tests, hence internal.
-extension XCTestCase {
-    func makeWidgetStore() throws -> (store: WidgetSnapshotStore, suite: String, directory: URL) {
-        let suite = "OneCartWidgetTests.\(UUID().uuidString)"
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
-        addTeardownBlock {
-            UserDefaults.standard.removePersistentDomain(forName: suite)
-            if FileManager.default.fileExists(atPath: directory.path) {
-                try FileManager.default.removeItem(at: directory)
-            }
-        }
-        return (WidgetSnapshotStore(suiteName: suite, pendingDirectoryURL: directory), suite, directory)
     }
 }

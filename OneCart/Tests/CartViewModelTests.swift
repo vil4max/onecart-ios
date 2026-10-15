@@ -161,6 +161,21 @@ struct CartViewModelTests {
         #expect(harness.viewModel.duplicateHighlightID == breadID)
     }
 
+    @Test("REQ-CART-090: the duplicate highlight clears after its delay")
+    func duplicateHighlightClears() async throws {
+        let fixture = try await CartFixture.make()
+        let breadID = try await fixture.addProduct(named: "Bread")
+        let harness = try CartHarness(fixture: fixture)
+        harness.cart.addResult = breadID
+
+        _ = await harness.viewModel.addItem(named: "bread")
+        for _ in 0..<1000 where harness.viewModel.duplicateHighlightID != nil {
+            await Task.yield()
+        }
+
+        #expect(harness.viewModel.duplicateHighlightID == nil)
+    }
+
     @Test("REQ-CART-040: checking the last to-buy item celebrates once until something is unchecked")
     func celebrationFiresOncePerCompletion() async throws {
         let fixture = try await CartFixture.make()

@@ -190,7 +190,7 @@ final class AppSession {
             repository: repository,
             defaults: defaults
         )
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if TestHost.isRunningUnitTests {
             isReady = true
         }
         bootstrapper.bind(host: self)
@@ -200,7 +200,7 @@ final class AppSession {
     }
 
     private static func makeDefaultPersistence() -> PersistenceController {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if TestHost.isRunningUnitTests {
             return PersistenceController(inMemory: true, cloudKitEnabled: false)
         }
         return .shared

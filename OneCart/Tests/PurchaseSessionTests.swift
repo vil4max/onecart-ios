@@ -227,7 +227,7 @@ final class PurchaseSessionTests: XCTestCase {
     }
 
     func test_REQ_HIST_020_archiveStalePurchasedIfNeededViaSession() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Игорь")
@@ -242,7 +242,7 @@ final class PurchaseSessionTests: XCTestCase {
         )
         defaults.set(
             familyID.uuidString,
-            forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
+            forKey: AppSession.activeFamilyKey(accountID: account.id)
         )
         let listID = try XCTUnwrap(
             repository.fetchFamilySpace(id: familyID)?.activeLists.first?.id

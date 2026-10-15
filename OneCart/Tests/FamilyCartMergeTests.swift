@@ -100,7 +100,7 @@ final class FamilyCartMergeTests: XCTestCase {
     }
 
     func test_REQ_CART_090_mergeFamilyContentLWWSameNormalizedName() async throws {
-        let persistence = PersistenceController(inMemory: true)
+        let persistence = makeInMemoryPersistence(cloudKitEnabled: true)
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -274,7 +274,7 @@ final class FamilyCartMergeTests: XCTestCase {
     }
 
     func testMergeFamilyContentRequiresDestinationPermission() async throws {
-        let persistence = PersistenceController(inMemory: true)
+        let persistence = makeInMemoryPersistence(cloudKitEnabled: true)
         try await persistence.load()
         let owner = FamilySpaceRepository(
             persistence: persistence,

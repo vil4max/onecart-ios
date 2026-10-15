@@ -238,6 +238,35 @@ extension WidgetSnapshotTests {
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
         XCTAssertEqual(fixture.session.pendingCartMutationCount, 0)
     }
+
+    func test_REQ_WIDGET_020_purchaseIntentWithMalformedIDThrowsBeforeReachingTheSession() async throws {
+        let valid = UUID().uuidString
+        let intents = [
+            ToggleProductPurchasedIntent(productID: "not-a-uuid", accountID: valid, familyID: valid, isPurchased: true),
+            ToggleProductPurchasedIntent(productID: valid, accountID: "", familyID: valid, isPurchased: true),
+            ToggleProductPurchasedIntent(productID: valid, accountID: valid, familyID: "family", isPurchased: false),
+        ]
+
+        for intent in intents {
+            do {
+                _ = try await intent.perform()
+                XCTFail("A malformed purchase request must be rejected")
+            } catch {
+                guard case WidgetPurchaseError.invalidRequest = error else {
+                    XCTFail("Unexpected error \(error)")
+                    continue
+                }
+            }
+        }
+        #if DEBUG
+            XCTAssertFalse(OneCartAppComposition.didBuildSession, "The rejection must not build the app session")
+        #endif
+    }
+
+    func test_REQ_WIDGET_020_widgetIntentsAreNotOfferedInShortcuts() {
+        XCTAssertFalse(ToggleProductPurchasedIntent.isDiscoverable)
+        XCTAssertFalse(EndShoppingTripIntent.isDiscoverable)
+    }
 }
 
 // Shared with WidgetPrivacyCleanupTests, hence internal.

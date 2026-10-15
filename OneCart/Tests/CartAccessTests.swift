@@ -13,7 +13,7 @@ final class CartAccessTests: XCTestCase {
     }
 
     func test_REQ_SHARE_010_selectivePermissionAuthorizerBlocksSharedUpdates() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let allowRepository = FamilySpaceRepository(
             persistence: persistence,
@@ -54,7 +54,7 @@ final class CartAccessTests: XCTestCase {
     }
 
     func test_REQ_SHARE_060_revokeInviteKeepsFamilySpaceIdentity() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -67,7 +67,7 @@ final class CartAccessTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -84,7 +84,7 @@ final class CartAccessTests: XCTestCase {
     }
 
     func test_REQ_CART_110_renameActiveCartUpdatesFamilySpaceName() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -97,7 +97,7 @@ final class CartAccessTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -118,7 +118,7 @@ final class CartAccessTests: XCTestCase {
     }
 
     func test_REQ_CART_100_renamingParticipantUpdatesPersonalCartTitleWhileAutoNamed() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -131,7 +131,7 @@ final class CartAccessTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -153,7 +153,7 @@ final class CartAccessTests: XCTestCase {
     }
 
     func test_REQ_CART_100_customCartNameStopsFollowingParticipantNickname() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -166,7 +166,7 @@ final class CartAccessTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults

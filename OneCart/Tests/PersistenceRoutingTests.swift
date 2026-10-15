@@ -6,7 +6,7 @@ import XCTest
 @MainActor
 final class PersistenceRoutingTests: XCTestCase {
     func testPrivateAndSharedStoreRouting() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -40,6 +40,41 @@ final class PersistenceRoutingTests: XCTestCase {
         let sharedScope = try XCTUnwrap(persistence.scope(for: sharedSpace))
         XCTAssertEqual(privateScope, .private)
         XCTAssertEqual(sharedScope, .shared)
+    }
+
+    func test_REQ_AUTH_050_storeURLsMapToPrivateAndSharedScopes() {
+        let directory = FileManager.default.temporaryDirectory
+        XCTAssertEqual(
+            PersistenceController.scope(forStoreURL: directory.appendingPathComponent("OneCart-private.sqlite")),
+            .private
+        )
+        XCTAssertEqual(
+            PersistenceController.scope(forStoreURL: directory.appendingPathComponent("OneCart-shared.sqlite")),
+            .shared
+        )
+        XCTAssertNil(PersistenceController.scope(forStoreURL: directory.appendingPathComponent("OneCart.sqlite")))
+        XCTAssertNil(PersistenceController.scope(forStoreURL: nil))
+    }
+
+    func test_REQ_SHARE_050_discardingTheSharedCartLeavesPrivateCartsUntouched() async throws {
+        let (persistence, repository) = try await makeInMemoryRepository()
+        let privateID = try await repository.createFamilySpace(name: "Private")
+        let sharedID = UUID()
+        try await persistence.performBackgroundTask { context in
+            let space = FamilySpace(context: context)
+            try persistence.assign(space, to: .shared, in: context)
+            space.id = sharedID
+            space.name = "Shared"
+            space.createdAt = Date()
+            space.updatedAt = Date()
+        }
+
+        try await repository.discardLocalSharedFamilySpace(id: privateID)
+        try await repository.discardLocalSharedFamilySpace(id: sharedID)
+
+        let viewContext = persistence.container.viewContext
+        XCTAssertNotNil(try viewContext.fetch(familySpaceRequest(id: privateID)).first)
+        XCTAssertNil(try viewContext.fetch(familySpaceRequest(id: sharedID)).first)
     }
 
     func testCreatingFamilySpaceAlsoCreatesGeneralList() async throws {

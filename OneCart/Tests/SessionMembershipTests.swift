@@ -16,7 +16,7 @@ struct SessionMembershipTests {
     @Test("REQ-SHARE-040: removing a member is a CKShare kick; a cart without a share reports it and stays intact")
     func removeMemberWithoutShareReportsFamilyNotShared() async throws {
         let fixture = try await MembershipSessionFixture.owner()
-        let guest = fixture.member(named: "Sam")
+        let guest = familyMember(named: "Sam")
 
         await fixture.session.removeMember(guest)
 
@@ -45,7 +45,7 @@ struct SessionMembershipTests {
         let fixture = try await MembershipSessionFixture.owner()
         fixture.session.online = false
 
-        await fixture.session.removeMember(fixture.member(named: "Sam"))
+        await fixture.session.removeMember(familyMember(named: "Sam"))
 
         #expect(fixture.session.userAlert?.kind == .error)
         #expect(fixture.session.alertMessage == String(localized: "alert.members_need_network"))
@@ -57,7 +57,7 @@ struct SessionMembershipTests {
         let fixture = try await MembershipSessionFixture.guest()
         #expect(fixture.session.access == .member)
 
-        await fixture.session.removeMember(fixture.member(named: "Owner", access: .owner))
+        await fixture.session.removeMember(familyMember(named: "Owner", access: .owner))
 
         #expect(fixture.session.userAlert == nil)
         #expect(fixture.session.activeFamilySpace?.id == fixture.sharedID)

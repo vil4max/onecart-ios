@@ -25,6 +25,7 @@ final class AccountViewModel {
     private let accountManager: any AccountManaging
     private let iconSwitcher: any AppIconSwitching
     private let shareTimeoutNanoseconds: UInt64
+    private let requestNotificationAuthorization: @MainActor () -> Void
     private var shareGeneration = 0
 
     init(
@@ -32,13 +33,17 @@ final class AccountViewModel {
         membership: any MembershipManaging,
         account: any AccountManaging,
         iconSwitcher: any AppIconSwitching = SystemAppIconSwitcher(),
-        shareTimeoutNanoseconds: UInt64 = 48_000_000_000
+        shareTimeoutNanoseconds: UInt64 = 48_000_000_000,
+        requestNotificationAuthorization: @escaping @MainActor () -> Void = {
+            CartActivityNotifier.requestAuthorizationIfNeeded()
+        }
     ) {
         self.state = state
         self.membership = membership
         accountManager = account
         self.iconSwitcher = iconSwitcher
         self.shareTimeoutNanoseconds = shareTimeoutNanoseconds
+        self.requestNotificationAuthorization = requestNotificationAuthorization
     }
 
     convenience init(session: any AccountSessionServices, shareTimeoutNanoseconds: UInt64 = 48_000_000_000) {
@@ -197,6 +202,14 @@ final class AccountViewModel {
     }
 
     // MARK: - Actions
+
+    /// Settings is the single place that asks for notification permission: member-join and
+    /// activity notifications reuse this grant, and two concurrent requests with different
+    /// options race on first run.
+    func onAppear() async {
+        requestNotificationAuthorization()
+        await refreshAccountSharing()
+    }
 
     func refreshAccountSharing() async {
         await membership.refreshAccountSharing()

@@ -80,19 +80,7 @@ struct MemberNamePromptTests {
         fixture.session.declineMemberNamePrompt()
 
         #expect(!fixture.session.shouldPromptForMemberName)
-        let suiteName = "OneCartNamePrompt.\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suiteName) }
-        let relaunched = AppSession(
-            persistence: fixture.persistence,
-            preferences: DevicePreferences(defaults: fixture.defaults),
-            defaults: fixture.defaults,
-            appleSignIn: InMemoryAppleSignIn(),
-            widgetStore: WidgetSnapshotStore(
-                suiteName: suiteName,
-                pendingDirectoryURL: FileManager.default.temporaryDirectory
-                    .appendingPathComponent(suiteName, isDirectory: true)
-            )
-        )
+        let relaunched = fixture.relaunchedSession()
         try relaunched.bootstrapTestingSession(account: fixture.account)
         #expect(!relaunched.shouldPromptForMemberName)
     }

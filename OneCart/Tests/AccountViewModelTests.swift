@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class AccountViewModelTests: XCTestCase {
     func test_REQ_SHELL_030_ownerGatesEnableRenameAndRevoke() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -25,7 +25,7 @@ final class AccountViewModelTests: XCTestCase {
     }
 
     func test_REQ_SHELL_030_memberGatesEnableLeaveOnly() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -43,7 +43,7 @@ final class AccountViewModelTests: XCTestCase {
     }
 
     func test_REQ_SHARE_030_finishedShareWatchdogDoesNotTimeOutNextShare() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let session = try makeTestSession(
@@ -79,16 +79,19 @@ struct AccountHarness {
     let membership = FakeMembershipManager()
     let accountManager = FakeAccountManager()
     let iconSwitcher = FakeAppIconSwitcher()
+    let notificationRequests = CallCounter()
     let viewModel: AccountViewModel
 
     init() throws {
         isolated = try IsolatedPreferences()
         state = FakeSessionState(preferences: isolated.preferences)
+        let notificationRequests = notificationRequests
         viewModel = AccountViewModel(
             state: state,
             membership: membership,
             account: accountManager,
-            iconSwitcher: iconSwitcher
+            iconSwitcher: iconSwitcher,
+            requestNotificationAuthorization: { notificationRequests.record() }
         )
     }
 
@@ -97,18 +100,6 @@ struct AccountHarness {
         for _ in 0..<1000 where viewModel.isSharing {
             await Task.yield()
         }
-    }
-
-    static func member(named name: String, access: FamilyAccess, isCurrentUser: Bool = false) -> FamilyMember {
-        FamilyMember(
-            id: UUID(),
-            displayName: name,
-            access: access,
-            joinedAt: Date(),
-            isCurrentUser: isCurrentUser,
-            avatarURL: nil,
-            bannerURL: nil
-        )
     }
 }
 
@@ -154,6 +145,7 @@ struct AccountViewModelFakeTests {
         #expect(!fixture.viewModel.canShareCart)
 
         let store = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        defer { removeStoreFiles(of: store) }
         fixture.state.activeFamilySpace = FamilySpace(context: store.container.viewContext)
         fixture.state.access = .member
         #expect(fixture.viewModel.canShareCart)
@@ -219,7 +211,7 @@ struct AccountViewModelFakeTests {
     @Test("REQ-SHARE-040: removing a member forwards that member to the session")
     func removeMemberForwards() async throws {
         let harness = try AccountHarness()
-        let guest = AccountHarness.member(named: "Guest", access: .member)
+        let guest = familyMember(named: "Guest", access: .member)
 
         await harness.viewModel.removeMember(guest)
 
@@ -243,7 +235,7 @@ struct AccountViewModelFakeTests {
     @Test("REQ-SHELL-030: the cart section reads the members list from the session")
     func refreshAndMembersMirrorSession() async throws {
         let harness = try AccountHarness()
-        let owner = AccountHarness.member(named: "Alex", access: .owner, isCurrentUser: true)
+        let owner = familyMember(named: "Alex", access: .owner, isCurrentUser: true)
         harness.state.familyMembers = [owner]
         harness.state.isFamilyMetadataLoading = true
 
@@ -285,8 +277,8 @@ struct AccountViewModelFakeTests {
 
         harness.state.access = .owner
         harness.state.familyMembers = [
-            AccountHarness.member(named: "Alex", access: .owner, isCurrentUser: true),
-            AccountHarness.member(named: "Guest", access: .member),
+            familyMember(named: "Alex", access: .owner, isCurrentUser: true),
+            familyMember(named: "Guest", access: .member),
         ]
         #expect(harness.viewModel.deleteAccountConfirmMessageKey == "account.delete_confirm_message_owner")
 
@@ -313,8 +305,8 @@ struct AccountViewModelFakeTests {
     @Test("REQ-SHARE-040: only the owner can remove a member, and never themselves")
     func removalGateFollowsRoleAndIdentity() throws {
         let harness = try AccountHarness()
-        let me = AccountHarness.member(named: "Alex", access: .owner, isCurrentUser: true)
-        let guest = AccountHarness.member(named: "Guest", access: .member)
+        let me = familyMember(named: "Alex", access: .owner, isCurrentUser: true)
+        let guest = familyMember(named: "Guest", access: .member)
 
         #expect(!harness.viewModel.canRemove(guest))
 
@@ -331,7 +323,7 @@ struct AccountViewModelFakeTests {
         let harness = try AccountHarness()
         #expect(!harness.viewModel.isConfirmingMemberRemoval)
 
-        harness.viewModel.memberToRemove = AccountHarness.member(named: "Guest", access: .member)
+        harness.viewModel.memberToRemove = familyMember(named: "Guest", access: .member)
         #expect(harness.viewModel.isConfirmingMemberRemoval)
 
         harness.viewModel.isConfirmingMemberRemoval = false

@@ -78,7 +78,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
     }
 
     func test_REQ_SHARE_090_reloadSwitchesToSharedWhenSharedAppearsLater() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -91,7 +91,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(privateID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -112,7 +112,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
     }
 
     func test_REQ_SHARE_090_alreadyOnSharedStaysShared() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -121,7 +121,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
             name: "Семейная",
             productName: "Test 1"
         )
-        defaults.set(sharedID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(sharedID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -163,7 +163,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
     }
 
     func test_REQ_SYNC_040_acceptSelectsNewestSharedWithoutDeletingOtherFamilies() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -197,7 +197,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
             productName: "New",
             updatedAt: Date()
         )
-        defaults.set(oldSharedID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(oldSharedID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -226,7 +226,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
     }
 
     func test_REQ_SYNC_030_refreshFromServerPicksUpToggledPurchasedState() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -246,7 +246,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
             to: listID,
             draft: productDraft(name: "Test 1")
         )
-        defaults.set(familyID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -275,7 +275,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
         sharedProduct: String? = nil,
         includeSharedList: Bool = true
     ) async throws -> JoinFixture {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Саша")
@@ -305,7 +305,7 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
             productName: sharedProduct,
             includeList: includeSharedList
         )
-        defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(privateID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -314,16 +314,6 @@ final class SharedCartJoinTests: XCTestCase, SharedCartSeeding {
         try session.bootstrapTestingSession(account: account)
         persistence.container.viewContext.processPendingChanges()
         return JoinFixture(session: session, account: account, privateID: privateID, sharedID: sharedID)
-    }
-
-    private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return request
     }
 
     private func persistenceScope(

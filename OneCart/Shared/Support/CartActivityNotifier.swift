@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 import UserNotifications
 
 public struct CartItemSnapshot: Codable, Equatable, Sendable {
@@ -194,15 +193,14 @@ public enum CartActivityNotifier {
     ) {
         notificationCenter.getNotificationSettings { settings in
             guard settings.authorizationStatus == .notDetermined else { return }
-            notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-                if granted {
-                    DispatchQueue.main.async {
-                        UIApplication.shared.registerForRemoteNotifications()
-                    }
-                }
-            }
+            // Remote notifications are registered at every launch by AppDelegate; CloudKit's
+            // silent pushes do not depend on this grant.
+            notificationCenter.requestAuthorization(options: authorizationOptions) { _, _ in }
         }
     }
+
+    /// Activity notifications show a banner with sound; the app never sets a badge.
+    static let authorizationOptions: UNAuthorizationOptions = [.alert, .sound]
 
     private static func loadStoredSnapshot(cartID: UUID, defaults: UserDefaults) -> [CartItemSnapshot] {
         guard let data = defaults.data(forKey: snapshotKey(cartID: cartID)),

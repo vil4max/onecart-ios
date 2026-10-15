@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class HouseholdEnsureTests: XCTestCase {
     func test_REQ_CART_070_ensureHouseholdCreatesCartWhenEmpty() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -25,7 +25,7 @@ final class HouseholdEnsureTests: XCTestCase {
     }
 
     func test_REQ_CART_080_ensureHouseholdNoOpWhenActiveFamilyExists() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -38,7 +38,7 @@ final class HouseholdEnsureTests: XCTestCase {
             cachedForUserID: account.id,
             isHouseholdDefault: true
         )
-        defaults.set(familyID.uuidString, forKey: "onecart.active-family-space-id.\(account.id.uuidString)")
+        defaults.set(familyID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
         let session = try makeTestSession(
             persistence: persistence,
             defaults: defaults
@@ -53,7 +53,7 @@ final class HouseholdEnsureTests: XCTestCase {
     }
 
     func test_REQ_SHARE_090_ensureHouseholdAdoptsSharedWhileOnPrivate() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -68,7 +68,7 @@ final class HouseholdEnsureTests: XCTestCase {
         )
         defaults.set(
             privateID.uuidString,
-            forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
+            forKey: AppSession.activeFamilyKey(accountID: account.id)
         )
         let session = try makeTestSession(
             persistence: persistence,
@@ -102,7 +102,7 @@ final class HouseholdEnsureTests: XCTestCase {
     }
 
     func test_REQ_SYNC_040_ensureHouseholdSelectsNewestWithoutDeletingOtherSharedFamilies() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Alex")
@@ -130,7 +130,7 @@ final class HouseholdEnsureTests: XCTestCase {
         }
         defaults.set(
             oldSharedID.uuidString,
-            forKey: "onecart.active-family-space-id.\(account.id.uuidString)"
+            forKey: AppSession.activeFamilyKey(accountID: account.id)
         )
         let session = try makeTestSession(
             persistence: persistence,

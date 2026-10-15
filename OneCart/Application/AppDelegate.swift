@@ -19,6 +19,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         _ application: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        guard !TestHost.isRunningUnitTests else { return true }
         metricKitLogger.start()
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()

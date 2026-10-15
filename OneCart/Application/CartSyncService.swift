@@ -27,23 +27,26 @@ final class CartSyncService {
     private var isExclusiveRunning = false
     private var syncWaiters: [CheckedContinuation<CartSyncOutcome, Never>] = []
     private var lastAppearSyncAt: Date?
+    private let now: () -> Date
 
     var onHardRefresh: (() async throws -> Void)?
     var onOwnerACLHeal: (() async -> Void)?
     var onInviteeSharedGone: (() async -> Void)?
     var purchasedCountProvider: (() -> (purchased: Int, total: Int))?
 
-    init(persistence: PersistenceController) {
+    init(persistence: PersistenceController, now: @escaping () -> Date = Date.init) {
         self.persistence = persistence
+        self.now = now
     }
 
     @discardableResult
     func syncCart(reason: CartSyncReason, debouncedAppear: Bool = true) async -> CartSyncOutcome {
         if reason == .appear, debouncedAppear {
-            if let lastAppearSyncAt, Date().timeIntervalSince(lastAppearSyncAt) < 2.5 {
+            let appearedAt = now()
+            if let lastAppearSyncAt, appearedAt.timeIntervalSince(lastAppearSyncAt) < 2.5 {
                 return .skippedDebounce
             }
-            lastAppearSyncAt = Date()
+            lastAppearSyncAt = appearedAt
         }
 
         pendingReason = Self.preferred(pending: pendingReason, incoming: reason)

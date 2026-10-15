@@ -121,7 +121,7 @@ final class AppleSignInTests: XCTestCase {
 
     @MainActor
     func test_REQ_AUTH_010_welcomeViewModelSignInWithTestAccountBootstrapsSession() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         let (store, defaults, _) = try makeKeychainStore()
         let session = try makeTestSession(
             persistence: persistence,

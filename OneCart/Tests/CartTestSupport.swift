@@ -9,7 +9,7 @@ extension XCTestCase {
     func makeInMemoryRepository() async throws
         -> (PersistenceController, FamilySpaceRepository)
     {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let repository = FamilySpaceRepository(
             persistence: persistence,
@@ -71,32 +71,43 @@ extension XCTestCase {
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
         widgetStore: WidgetSnapshotStore? = nil,
+        categoryClassifier: any CategoryClassifying = KeywordCategoryClassifier(),
         shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil
     ) throws -> AppSession {
         let defaults = try defaults ?? makeDefaults()
         return try AppSession(
-            persistence: persistence ?? PersistenceController(inMemory: true, cloudKitEnabled: false),
+            persistence: persistence ?? makeInMemoryPersistence(),
             preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
             appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
             accountCloudDataDeleter: accountCloudDataDeleter,
             accountLocalStorePreparer: accountLocalStorePreparer,
-            widgetStore: widgetStore ?? makeIsolatedWidgetStore(),
-            // Never the live ActivityKit backend: a test must not put a trip on the simulator.
+            widgetStore: widgetStore ?? makeWidgetStore().store,
+            // Never the on-device language model or the live ActivityKit backend: a test must
+            // not wait on a model or put a trip on the simulator.
+            categoryClassifier: categoryClassifier,
             shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend()
         )
     }
 
+    /// An "in-memory" store is a SQLite file in a temporary directory; teardown removes it.
+    nonisolated func makeInMemoryPersistence(cloudKitEnabled: Bool = false) -> PersistenceController {
+        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: cloudKitEnabled)
+        addTeardownBlock {
+            removeStoreFiles(of: persistence)
+        }
+        return persistence
+    }
+
     /// Both halves of the store are isolated: the defaults suite and the pending-purchase
     /// directory, which otherwise resolves to the real App Group container.
-    nonisolated func makeIsolatedWidgetStore() throws -> WidgetSnapshotStore {
-        let suiteName = try makeDefaultsSuiteName()
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent(suiteName, isDirectory: true)
+    nonisolated func makeWidgetStore() throws -> (store: WidgetSnapshotStore, suite: String, directory: URL) {
+        let suite = try makeDefaultsSuiteName()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
         addTeardownBlock {
             try? FileManager.default.removeItem(at: directory)
         }
-        return WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: directory)
+        return (WidgetSnapshotStore(suiteName: suite, pendingDirectoryURL: directory), suite, directory)
     }
 
     nonisolated func makeDefaults() throws -> UserDefaults {

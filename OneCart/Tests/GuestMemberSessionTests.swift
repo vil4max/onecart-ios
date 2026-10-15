@@ -36,7 +36,7 @@ final class GuestMemberSessionTests: XCTestCase {
     }
 
     func testGuestMetadataFallbackUsesMemberAccess() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
 
         let sharedID = UUID()
@@ -170,7 +170,7 @@ final class GuestMemberSessionTests: XCTestCase {
         sharedName: String,
         sharedProduct: String
     ) async throws -> GuestFixture {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let defaults = try makeDefaults()
         let account = OneCartAccount(id: UUID(), displayName: "Sam")
@@ -227,7 +227,7 @@ final class GuestMemberSessionTests: XCTestCase {
             product.list = list
         }
         persistence.container.viewContext.processPendingChanges()
-        defaults.set(privateID.uuidString, forKey: activeFamilyKey(accountID: account.id))
+        defaults.set(privateID.uuidString, forKey: AppSession.activeFamilyKey(accountID: account.id))
 
         let session = try makeTestSession(
             persistence: persistence,
@@ -237,20 +237,6 @@ final class GuestMemberSessionTests: XCTestCase {
         try await session.offerSharedCartJoinIfNeededForTesting()
 
         return GuestFixture(session: session, privateID: privateID, sharedID: sharedID)
-    }
-
-    private func activeFamilyKey(accountID: UUID) -> String {
-        "onecart.active-family-space-id.\(accountID.uuidString)"
-    }
-
-    private func familySpaceRequest(id: UUID) -> NSFetchRequest<FamilySpace> {
-        let request = FamilySpace.fetchRequest()
-        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "id == %@", id as NSUUID),
-            NSPredicate(format: "deletedAt == nil"),
-        ])
-        request.fetchLimit = 1
-        return request
     }
 }
 

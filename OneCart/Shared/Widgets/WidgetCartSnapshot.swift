@@ -62,15 +62,21 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     }
 
     public var accentColor: AppAccentColor {
-        guard let accentColorRaw else {
-            if let raw = OneCartAppGroup.defaults?.string(forKey: "onecart.accent-color"),
-                let accent = AppAccentColor(rawValue: raw)
+        Self.accentColor(raw: accentColorRaw, legacyDefaults: OneCartAppGroup.defaults)
+    }
+
+    /// A snapshot written before the accent was stored in it falls back to the accent the
+    /// app last wrote to the App Group, then to emerald.
+    static func accentColor(raw: String?, legacyDefaults: UserDefaults?) -> AppAccentColor {
+        guard let raw else {
+            if let stored = legacyDefaults?.string(forKey: "onecart.accent-color"),
+                let accent = AppAccentColor(rawValue: stored)
             {
                 return accent
             }
             return .emerald
         }
-        return AppAccentColor(rawValue: accentColorRaw) ?? .emerald
+        return AppAccentColor(rawValue: raw) ?? .emerald
     }
 
     public var remainingCount: Int {

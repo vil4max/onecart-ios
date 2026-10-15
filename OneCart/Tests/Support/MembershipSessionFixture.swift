@@ -22,7 +22,7 @@ final class MembershipSessionFixture {
     private init(
         displayName: String,
         loadStore: Bool,
-        classifier: any CategoryClassifying = ProductCategoryClassifier.shared,
+        classifier: any CategoryClassifying = KeywordCategoryClassifier(),
         cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) async throws {
         let suiteName = "OneCartMembershipTests.\(UUID().uuidString)"
@@ -41,16 +41,11 @@ final class MembershipSessionFixture {
             permissionAuthorizer: AllowAllPermissionAuthorizer()
         )
         account = OneCartAccount(id: UUID(), displayName: displayName)
-        session = AppSession(
+        session = Self.makeSession(
             persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
-            appleSignIn: InMemoryAppleSignIn(),
-            widgetStore: WidgetSnapshotStore(
-                suiteName: suiteName,
-                pendingDirectoryURL: widgetDirectory
-            ),
-            categoryClassifier: classifier,
+            widgetStore: WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: widgetDirectory),
+            classifier: classifier,
             cloudUserIdentity: cloudUserIdentity
         )
     }
@@ -58,6 +53,39 @@ final class MembershipSessionFixture {
     deinit {
         UserDefaults.standard.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: widgetDirectory)
+        removeStoreFiles(of: persistence)
+    }
+
+    /// A second session over the same stores and defaults, as after an app relaunch.
+    func relaunchedSession() -> AppSession {
+        Self.makeSession(
+            persistence: persistence,
+            defaults: defaults,
+            widgetStore: WidgetSnapshotStore(suiteName: suiteName, pendingDirectoryURL: widgetDirectory),
+            classifier: KeywordCategoryClassifier(),
+            cloudUserIdentity: nil
+        )
+    }
+
+    /// Every dependency is a fake or isolated: never the live ActivityKit backend or the
+    /// on-device language model.
+    private static func makeSession(
+        persistence: PersistenceController,
+        defaults: UserDefaults,
+        widgetStore: WidgetSnapshotStore,
+        classifier: any CategoryClassifying,
+        cloudUserIdentity: (any CloudUserIdentifying)?
+    ) -> AppSession {
+        AppSession(
+            persistence: persistence,
+            preferences: DevicePreferences(defaults: defaults),
+            defaults: defaults,
+            appleSignIn: InMemoryAppleSignIn(),
+            widgetStore: widgetStore,
+            categoryClassifier: classifier,
+            cloudUserIdentity: cloudUserIdentity,
+            shoppingTripBackend: FakeShoppingTripBackend()
+        )
     }
 
     /// A session with no account: the store may stay unloaded to exercise pre-load guards.
@@ -69,7 +97,7 @@ final class MembershipSessionFixture {
     static func owner(
         displayName: String = "Alex",
         cartName: String? = nil,
-        classifier: any CategoryClassifying = ProductCategoryClassifier.shared,
+        classifier: any CategoryClassifying = KeywordCategoryClassifier(),
         cloudUserIdentity: (any CloudUserIdentifying)? = nil
     ) async throws -> MembershipSessionFixture {
         let fixture = try await MembershipSessionFixture(
@@ -100,18 +128,6 @@ final class MembershipSessionFixture {
         try fixture.session.bootstrapTestingSession(account: fixture.account)
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         return fixture
-    }
-
-    func member(named name: String, access: FamilyAccess = .member) -> FamilyMember {
-        FamilyMember(
-            id: UUID(),
-            displayName: name,
-            access: access,
-            joinedAt: Date(),
-            isCurrentUser: false,
-            avatarURL: nil,
-            bannerURL: nil
-        )
     }
 
     private func createPersonalCart(named cartName: String?) async throws {

@@ -164,6 +164,15 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertEqual(notifiedTheme, .dark)
     }
 
+    func test_REQ_SHELL_030_themeOnIsolatedDefaultsDoesNotTouchAppGroup() throws {
+        let preferences = DevicePreferences(defaults: try makeDefaults())
+        let before = OneCartAppGroup.defaults?.string(forKey: "onecart.theme")
+
+        preferences.theme = before == AppTheme.dark.rawValue ? .light : .dark
+
+        XCTAssertEqual(OneCartAppGroup.defaults?.string(forKey: "onecart.theme"), before)
+    }
+
     func testAppAccentColorProperties() {
         typealias Palette = (light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat))
         func key(_ rgb: (CGFloat, CGFloat, CGFloat)) -> String {

@@ -318,9 +318,14 @@ private actor GatedClassifier: CategoryClassifying {
         pending.removeFirst().resume()
     }
 
+    /// Bounded so a refinement that never reaches the classifier fails the test instead of
+    /// hanging the run.
     func waitUntilHeld(_ count: Int) async {
-        while pending.count < count {
+        for _ in 0..<10000 where pending.count < count {
             await Task.yield()
+        }
+        if pending.count < count {
+            Issue.record("refinement never reached the classifier")
         }
     }
 }

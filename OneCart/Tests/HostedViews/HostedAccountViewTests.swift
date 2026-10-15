@@ -15,6 +15,8 @@ struct HostedAccountHarness {
     let accountManager = FakeAccountManager()
     let iconSwitcher = FakeAppIconSwitcher()
     let account = OneCartAccount(id: UUID(), displayName: "Alex")
+    /// Mounting Settings must never reach the real notification center.
+    let notificationRequests = CallCounter()
     let viewModel: AccountViewModel
 
     init(access: FamilyAccess) async throws {
@@ -25,23 +27,13 @@ struct HostedAccountHarness {
         state.activeFamilySpace = try fixture.family
         state.access = access
         state.cartTitle = "Family"
+        let notificationRequests = notificationRequests
         viewModel = AccountViewModel(
             state: state,
             membership: membership,
             account: accountManager,
-            iconSwitcher: iconSwitcher
-        )
-    }
-
-    func member(named name: String, access: FamilyAccess = .member, isCurrentUser: Bool = false) -> FamilyMember {
-        FamilyMember(
-            id: UUID(),
-            displayName: name,
-            access: access,
-            joinedAt: Date(),
-            isCurrentUser: isCurrentUser,
-            avatarURL: nil,
-            bannerURL: nil
+            iconSwitcher: iconSwitcher,
+            requestNotificationAuthorization: { notificationRequests.record() }
         )
     }
 }
@@ -165,8 +157,8 @@ struct HostedAccountViewTests {
         defer { hosted.tearDown() }
 
         harness.state.familyMembers = [
-            harness.member(named: "Alex", access: .owner, isCurrentUser: true),
-            harness.member(named: "Sam"),
+            familyMember(named: "Alex", access: .owner, isCurrentUser: true),
+            familyMember(named: "Sam"),
         ]
         #expect(await hosted.pump { hosted.elements(identifier: "account.member_row").count == 2 })
         let rows = hosted.elements(identifier: "account.member_row")

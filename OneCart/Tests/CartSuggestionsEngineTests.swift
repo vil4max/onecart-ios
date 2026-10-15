@@ -140,6 +140,7 @@ struct CartSuggestionsEngineTests {
     @Test("REQ-HIST-040: Counts replicated purchases once per family when ranking suggestions")
     func replicatedPurchasesDoNotInflateFrequency() async throws {
         let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        defer { removeStoreFiles(of: persistence) }
         try await persistence.load()
         let context = persistence.container.viewContext
         let firstFamily = FamilySpace(context: context)

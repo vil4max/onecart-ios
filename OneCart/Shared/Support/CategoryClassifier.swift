@@ -67,7 +67,7 @@ struct CompositeCategoryClassifier: CategoryClassifying {
             let model = SystemLanguageModel.default
             guard case .available = model.availability else { return nil }
 
-            return await withTimeout(nanoseconds: timeoutNanoseconds) {
+            return await Self.withTimeout(nanoseconds: timeoutNanoseconds) {
                 let session = LanguageModelSession(
                     instructions: """
                         You classify grocery shopping-list item names into exactly one Metro-style category.
@@ -100,7 +100,8 @@ struct CompositeCategoryClassifier: CategoryClassifying {
             }
         }
 
-        private func withTimeout(
+        /// A slow or failing model yields nil, so the caller keeps the keyword category.
+        static func withTimeout(
             nanoseconds: UInt64,
             operation: @escaping @Sendable () async throws -> ProductCategory
         ) async -> ProductCategory? {

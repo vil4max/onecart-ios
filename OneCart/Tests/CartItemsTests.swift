@@ -244,7 +244,7 @@ final class CartItemsTests: XCTestCase {
     func testBusyFlagStaysSetUntilLastOverlappingOperationEnds() throws {
         let defaults = try makeDefaults()
         let session = try makeTestSession(
-            persistence: PersistenceController(inMemory: true, cloudKitEnabled: false),
+            persistence: makeInMemoryPersistence(),
             defaults: defaults
         )
 

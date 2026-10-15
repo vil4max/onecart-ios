@@ -1,6 +1,8 @@
+import CloudKit
 import Foundation
 @testable import OneCart
 import Testing
+import UserNotifications
 
 extension AccountViewModelFakeTests {
     @Test("REQ-SHARE-030: an error from a timed-out share does not replace the timeout alert")
@@ -39,5 +41,46 @@ extension AccountViewModelFakeTests {
         #expect(viewModel.isSharing == false)
         #expect(viewModel.shareAlert == .error(try #require(OneCartCloudKitError.shareTimedOut.errorDescription)))
         #expect(membership.describedErrors.isEmpty)
+    }
+
+    @Test("REQ-SHELL-050: a production-schema failure shows the schema-missing alert")
+    func productionSchemaFailureShowsSchemaAlert() async throws {
+        let harness = try AccountHarness()
+        harness.membership.inviteLinkResult = .failure(
+            NSError(
+                domain: CKError.errorDomain,
+                code: CKError.Code.partialFailure.rawValue,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Partial Failure",
+                    "CKErrorDescription": "Cannot create new type CD_ShoppingList in production schema",
+                ]
+            )
+        )
+
+        harness.viewModel.shareCart()
+        await harness.awaitShareCompletion()
+
+        #expect(harness.viewModel.shareAlert == .error(CloudKitUserFacingError.productionSchemaMissing))
+        #expect(harness.membership.describedErrors.isEmpty)
+        #expect(!harness.viewModel.isSharing)
+    }
+
+    @Test("REQ-WIDGET-030: each Settings appearance asks for notification permission through the ViewModel")
+    func appearanceRequestsNotificationAuthorization() async throws {
+        let harness = try AccountHarness()
+
+        await harness.viewModel.onAppear()
+        #expect(harness.notificationRequests.count == 1)
+        #expect(harness.membership.refreshAccountSharingCount == 1)
+
+        await harness.viewModel.onAppear()
+        #expect(harness.notificationRequests.count == 2)
+        #expect(harness.membership.refreshAccountSharingCount == 2)
+    }
+
+    @Test("REQ-WIDGET-030: activity notifications ask for alert and sound, not badge")
+    func notificationPermissionOmitsBadge() {
+        #expect(CartActivityNotifier.authorizationOptions == [.alert, .sound])
+        #expect(!CartActivityNotifier.authorizationOptions.contains(.badge))
     }
 }

@@ -7,20 +7,22 @@ import Foundation
 public struct ToggleProductPurchasedIntent: LiveActivityIntent {
     public static let title: LocalizedStringResource = "intent.toggle_purchased.title"
     public static let description = IntentDescription("intent.toggle_purchased.description")
+    /// Only the widget and the Live Activity build this intent; it is not a Shortcuts action.
+    public static let isDiscoverable = false
 
-    @Parameter(title: "Product ID")
+    @Parameter(title: "intent.toggle_purchased.product_id")
     public var productID: String
 
-    @Parameter(title: "Account ID")
+    @Parameter(title: "intent.toggle_purchased.account_id")
     public var accountID: String
 
-    @Parameter(title: "Family ID")
+    @Parameter(title: "intent.toggle_purchased.family_id")
     public var familyID: String
 
-    @Parameter(title: "Purchased")
+    @Parameter(title: "intent.toggle_purchased.is_purchased")
     public var isPurchased: Bool
 
-    @Parameter(title: "Request ID")
+    @Parameter(title: "intent.toggle_purchased.request_id")
     public var requestID: String
 
     public init() {

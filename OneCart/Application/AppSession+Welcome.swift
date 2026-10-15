@@ -191,6 +191,10 @@ extension AppSession {
     }
 
     func activeFamilyKey(accountID: UUID) -> String {
+        Self.activeFamilyKey(accountID: accountID)
+    }
+
+    nonisolated static func activeFamilyKey(accountID: UUID) -> String {
         "onecart.active-family-space-id.\(accountID.uuidString)"
     }
 

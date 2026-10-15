@@ -77,7 +77,7 @@ final class CartIntentTests: XCTestCase {
     }
 
     func test_REQ_SIRI_010_waitsForAHouseholdCartStillBeingSetUp() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let session = try makeTestSession(persistence: persistence)
         try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Alex"))
@@ -323,6 +323,17 @@ final class CartIntentTests: XCTestCase {
         _ = try await session.addItemsFromIntent("Milk", deadline: IntentTestClock().deadline())
         try await session.startShoppingTripFromIntent(deadline: IntentTestClock().deadline())
         XCTAssertEqual(backend.requested.count, 1, "Within the limit the same request starts the trip")
+    }
+
+    // MARK: - REQ-SIRI-040 startup
+
+    /// The intents reach `OneCartAppComposition.session`; in the unit-test host it must never
+    /// be built, so no test runs against the production stores, ActivityKit or the App Group.
+    func test_REQ_SIRI_040_unitTestHostNeverBuildsTheCompositionSession() {
+        XCTAssertTrue(TestHost.isRunningUnitTests)
+        #if DEBUG
+            XCTAssertFalse(OneCartAppComposition.didBuildSession)
+        #endif
     }
 
     // MARK: - REQ-SIRI-040 phrases

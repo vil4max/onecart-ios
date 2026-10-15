@@ -93,7 +93,9 @@ final class DevicePreferences {
         didSet {
             defaults.set(theme.rawValue, forKey: Keys.theme)
             defaults.synchronize()
-            OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
+            if defaults == .standard {
+                OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
+            }
             onThemeChanged?(theme)
             onChanged?()
         }
