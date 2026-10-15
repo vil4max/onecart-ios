@@ -29,6 +29,13 @@ provisional cart. Retries happen only when selecting the restored cart failed.
 The maintainer approved every item below ("все owner-решения"). Each changes architecture, a
 requirement or shipped data, so each lands as its own reviewed group with `just verify` green.
 
+Resume point (2026-10-15, paused for a reboot): `main` is at `b31485d` with L, G1, G2 and G3
+done. G4 was started and stopped before it committed; restart it from `main`. G9 was stopped
+mid-way; its unfinished edits are on the local branch `worktree-agent-ae162d1647cc773bf`
+(commit `4926efc`), either finish them from there or restart G9 from `main`. Every group gets
+an independent review, `just verify` green and a push before the next dependent group. The
+move to the iOS plugin waits for the orchestrator's "RENAME LANDED".
+
 Planned order (status kept here):
 
 | Group | Scope | Status |
