@@ -8,8 +8,6 @@ extension Notification.Name {
 }
 
 final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    /// Main-actor isolated like the delegate, so every enqueue and take is serialized.
-    private static var pendingShareMetadata: [CKShare.Metadata] = []
     private let metricKitLogger = MetricKitLogger()
 
     func application(
@@ -59,31 +57,18 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         _: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        Self.receiveCloudKitShare(cloudKitShareMetadata)
+        Self.receiveCloudKitShare(cloudKitShareMetadata, into: OneCartAppComposition.shareInbox)
     }
 
-    static func receiveCloudKitShare(_ metadata: CKShare.Metadata) {
-        enqueue(metadata)
+    /// UIKit creates the delegates, so they cannot take the inbox in `init`; they reach the one
+    /// the composition root built and the session drains.
+    static func receiveCloudKitShare(_ metadata: CKShare.Metadata, into inbox: any PendingShareInbox) {
+        inbox.enqueue(PendingShareInvitation(metadata: metadata))
         NotificationCenter.default.post(name: .oneCartDidReceiveCloudKitShare, object: nil)
     }
 
-    static func enqueuePendingShare(from options: UIScene.ConnectionOptions) {
+    static func enqueuePendingShare(from options: UIScene.ConnectionOptions, into inbox: any PendingShareInbox) {
         guard let metadata = options.cloudKitShareMetadata else { return }
-        enqueue(metadata)
-    }
-
-    static func enqueue(_ metadata: CKShare.Metadata) {
-        pendingShareMetadata.append(metadata)
-    }
-
-    static func takePendingShareMetadata() -> [CKShare.Metadata] {
-        let copy = pendingShareMetadata
-        pendingShareMetadata.removeAll()
-        return copy
-    }
-
-    static func requeue(_ metadata: [CKShare.Metadata]) {
-        guard !metadata.isEmpty else { return }
-        pendingShareMetadata.append(contentsOf: metadata)
+        inbox.enqueue(PendingShareInvitation(metadata: metadata))
     }
 }

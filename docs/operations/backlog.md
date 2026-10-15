@@ -47,7 +47,7 @@ Planned order (status kept here):
 | G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | done (exceptions listed in architecture.md) |
 | G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | done |
 | G6 | One share-mutation path; leave-purge timeout and recovery tests | done |
-| G7 | Composition root without default singletons; intents through dependencies | pending |
+| G7 | Composition root without default singletons; intents through dependencies | done |
 | G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
 | G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | done (`OneCartPalette` stays shared presentation) |
 | G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | done |

@@ -83,11 +83,11 @@ extension AppSession {
         let deletedAccountID = account?.id
         if let deletedAccountID {
             defaults.removeObject(forKey: activeFamilyKey(accountID: deletedAccountID))
-            MemberJoinNotifier.clearSeenMembers(accountID: deletedAccountID, defaults: defaults)
+            memberJoinNotifier.clearSeenMembers(accountID: deletedAccountID)
             HouseholdCartCoordinator.clearKnownSharedFamilies(accountID: deletedAccountID, defaults: defaults)
             HouseholdCartCoordinator.clearPersonalCartKeys(accountID: deletedAccountID, defaults: defaults)
         }
-        CartActivityNotifier.clearSnapshots(defaults: defaults)
+        activityNotifier.clearSnapshots()
         forgetCurrentUserRecordName()
         preferences.participantDisplayName = ""
         appleSignIn.clearCredential()

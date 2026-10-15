@@ -15,9 +15,7 @@ extension WidgetSnapshotStore {
 }
 
 struct CartWidgetProvider: TimelineProvider {
-    private var store: WidgetSnapshotStore {
-        .shared
-    }
+    let store: any WidgetSnapshotStoring
 
     func placeholder(in _: Context) -> CartWidgetEntry {
         CartWidgetEntry(date: Date(), snapshot: store.withStoredAccent(.placeholder))
@@ -61,7 +59,7 @@ struct CartOverviewWidget: Widget {
     let kind: String = "OneCartOverviewWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: CartWidgetProvider()) { entry in
+        StaticConfiguration(kind: kind, provider: CartWidgetProvider(store: WidgetSnapshotStore.shared)) { entry in
             CartWidgetContainerView(entry: entry)
         }
         .configurationDisplayName("widget.display_name")

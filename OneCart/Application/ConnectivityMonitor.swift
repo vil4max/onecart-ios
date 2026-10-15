@@ -2,7 +2,16 @@ import Foundation
 import Network
 import Synchronization
 
-final class ConnectivityMonitor: Sendable {
+/// Online/offline transitions for `CloudSyncCoordinator`; the composition root injects the live
+/// monitor and tests a fake, so no test depends on the simulator's network path.
+protocol ConnectivityMonitoring: AnyObject, Sendable {
+    /// Called on the monitor's queue with whether the network is reachable.
+    var onChange: (@Sendable (Bool) -> Void)? { get set }
+    func start()
+    func stop()
+}
+
+final class ConnectivityMonitor: ConnectivityMonitoring {
     private struct State {
         var onChange: (@Sendable (Bool) -> Void)?
         var monitor: NWPathMonitor?

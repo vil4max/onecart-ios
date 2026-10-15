@@ -1,115 +1,50 @@
 import Foundation
 import UserNotifications
 
-public struct CartItemSnapshot: Codable, Equatable, Sendable {
-    public let id: UUID
-    public let name: String
-    public let isPurchased: Bool
-    public let createdByName: String?
-    public let purchasedByName: String?
-
-    public init(
-        id: UUID,
-        name: String,
-        isPurchased: Bool,
-        createdByName: String? = nil,
-        purchasedByName: String? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.isPurchased = isPurchased
-        self.createdByName = createdByName
-        self.purchasedByName = purchasedByName
-    }
-}
-
-public enum CartActivityEvent: Equatable, Sendable {
-    case itemsAdded(author: String, itemNames: [String])
-    case allPurchased(author: String)
-}
-
-public enum CartActivityDiff {
-    public struct Result: Equatable, Sendable {
-        public var events: [CartActivityEvent]
-        public var nextSnapshot: [CartItemSnapshot]
-        public var shouldNotify: Bool
-
-        public init(events: [CartActivityEvent], nextSnapshot: [CartItemSnapshot], shouldNotify: Bool) {
-            self.events = events
-            self.nextSnapshot = nextSnapshot
-            self.shouldNotify = shouldNotify
-        }
-    }
-
-    public static func evaluate(
+/// Cart activity banners for a shared cart (REQ-WIDGET-030), injected into the session so the
+/// notification side effect stays behind a seam.
+@MainActor
+protocol CartActivityNotifying {
+    func notifyIfNeeded(
+        cartID: UUID,
         previous: [CartItemSnapshot],
-        stored: [CartItemSnapshot],
         current: [CartItemSnapshot],
         currentUserName: String,
         isSharedCart: Bool
-    ) -> Result {
-        guard isSharedCart else {
-            return Result(events: [], nextSnapshot: current, shouldNotify: false)
-        }
+    )
+    func clearSnapshots()
+}
 
-        // Baseline seeding on first launch: learn existing items without notifying
-        if previous.isEmpty && stored.isEmpty {
-            return Result(events: [], nextSnapshot: current, shouldNotify: false)
-        }
+/// Keeps its snapshots in the session's defaults, so the composition root passes the same suite.
+/// A nil center stores the snapshots and posts nothing (the test session builders).
+struct LiveCartActivityNotifier: CartActivityNotifying {
+    let defaults: UserDefaults
+    let notificationCenter: UNUserNotificationCenter?
 
-        let baseline = previous.isEmpty ? stored : previous
-        let baselineIDs = Set(baseline.map(\.id))
-        // Replica rows can share an id until launch dedupe runs; keep the first instead of trapping.
-        let baselineMap = Dictionary(baseline.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let normalizedUser = currentUserName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-
-        var events: [CartActivityEvent] = []
-
-        let newItems = current.filter { !baselineIDs.contains($0.id) }
-        var itemsByAuthor: [String: [String]] = [:]
-
-        for item in newItems {
-            let author = item.createdByName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !author.isEmpty, author.lowercased() != normalizedUser else {
-                continue
-            }
-            itemsByAuthor[author, default: []].append(item.name)
-        }
-
-        for (author, names) in itemsByAuthor {
-            events.append(.itemsAdded(author: author, itemNames: names))
-        }
-
-        let previouslyHadUnpurchased = baseline.contains(where: { !$0.isPurchased })
-        let currentlyAllPurchased = !current.isEmpty && current.allSatisfy(\.isPurchased)
-
-        if previouslyHadUnpurchased, currentlyAllPurchased {
-            let newlyCompleted = current.filter { currentItem in
-                if let old = baselineMap[currentItem.id] {
-                    return !old.isPurchased && currentItem.isPurchased
-                }
-                return currentItem.isPurchased
-            }
-
-            let completingAuthor = newlyCompleted.compactMap(\.purchasedByName).first { name in
-                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                return !trimmed.isEmpty && trimmed.lowercased() != normalizedUser
-            }
-
-            if let author = completingAuthor {
-                events.append(.allPurchased(author: author))
-            }
-        }
-
-        return Result(
-            events: events,
-            nextSnapshot: current,
-            shouldNotify: !events.isEmpty
+    func notifyIfNeeded(
+        cartID: UUID,
+        previous: [CartItemSnapshot],
+        current: [CartItemSnapshot],
+        currentUserName: String,
+        isSharedCart: Bool
+    ) {
+        CartActivityNotifier.notifyIfNeeded(
+            cartID: cartID,
+            previous: previous,
+            current: current,
+            currentUserName: currentUserName,
+            isSharedCart: isSharedCart,
+            defaults: defaults,
+            notificationCenter: notificationCenter
         )
+    }
+
+    func clearSnapshots() {
+        CartActivityNotifier.clearSnapshots(defaults: defaults)
     }
 }
 
-public enum CartActivityNotifier {
+enum CartActivityNotifier {
     private static let snapshotKeyPrefix = "onecart.cart-activity-snapshot."
 
     private static func snapshotKey(cartID: UUID) -> String {
@@ -124,14 +59,14 @@ public enum CartActivityNotifier {
         }
     }
 
-    public static func notifyIfNeeded(
+    static func notifyIfNeeded(
         cartID: UUID,
         previous: [CartItemSnapshot],
         current: [CartItemSnapshot],
         currentUserName: String,
         isSharedCart: Bool,
         defaults: UserDefaults = .standard,
-        notificationCenter: UNUserNotificationCenter = .current()
+        notificationCenter: UNUserNotificationCenter? = .current()
     ) {
         let stored = loadStoredSnapshot(cartID: cartID, defaults: defaults)
         let diff = CartActivityDiff.evaluate(
@@ -144,15 +79,18 @@ public enum CartActivityNotifier {
 
         saveSnapshot(diff.nextSnapshot, cartID: cartID, defaults: defaults)
 
-        guard diff.shouldNotify else { return }
+        guard diff.shouldNotify, let notificationCenter else { return }
+        post(diff.events, to: notificationCenter)
+    }
 
+    private static func post(_ events: [CartActivityEvent], to notificationCenter: UNUserNotificationCenter) {
         notificationCenter.getNotificationSettings { settings in
             guard
                 settings.authorizationStatus == .authorized
                     || settings.authorizationStatus == .provisional
             else { return }
 
-            for event in diff.events {
+            for event in events {
                 let content = UNMutableNotificationContent()
                 content.sound = .default
 
@@ -186,7 +124,7 @@ public enum CartActivityNotifier {
         }
     }
 
-    public static func requestAuthorizationIfNeeded(
+    static func requestAuthorizationIfNeeded(
         notificationCenter: UNUserNotificationCenter = .current()
     ) {
         notificationCenter.getNotificationSettings { settings in

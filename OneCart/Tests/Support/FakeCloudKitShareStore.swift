@@ -22,6 +22,7 @@ final class FakeCloudKitShareStore: CloudKitShareStoring {
     private struct State {
         var purgeOutcome: PurgeOutcome = .succeed
         var purgeCalls: [PurgeCall] = []
+        var persistedScopes: [PersistentStoreScope] = []
         var heldPurge: CheckedContinuation<Void, Error>?
     }
 
@@ -66,8 +67,14 @@ final class FakeCloudKitShareStore: CloudKitShareStoring {
         throw OneCartCloudKitError.stillSyncing
     }
 
-    func persistUpdatedShare(_ share: CKShare, in _: PersistentStoreScope) async throws -> CKShare {
-        share
+    /// The scope of each share save, in call order.
+    var persistedScopes: [PersistentStoreScope] {
+        state.withLock { $0.persistedScopes }
+    }
+
+    func persistUpdatedShare(_ share: CKShare, in scope: PersistentStoreScope) async throws -> CKShare {
+        state.withLock { $0.persistedScopes.append(scope) }
+        return share
     }
 
     func purgeObjectsAndRecordsInZone(with zoneID: CKRecordZone.ID, in scope: PersistentStoreScope) async throws {

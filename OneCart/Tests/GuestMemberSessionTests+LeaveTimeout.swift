@@ -22,7 +22,8 @@ extension GuestMemberSessionTests {
         // The purge clears the shared cart locally, then its late callback arrives.
         try await session.repository.discardLocalSharedFamilySpace(id: leave.fixture.sharedID)
         leave.store.finishHeldPurge()
-        await recovery.value
+        let finished = await waitForRecovery(recovery)
+        XCTAssertTrue(finished, "The late purge ends recovery without a timed pass")
 
         XCTAssertEqual(session.activeFamilySpace?.id, leave.fixture.privateID)
         XCTAssertEqual(session.access, .owner)
@@ -43,10 +44,10 @@ extension GuestMemberSessionTests {
         }
 
         // The late purge reports in while the shared cart is still on disk: its one pass fails.
+        XCTAssertEqual(session.leaveRecoveryPassCount, 0)
         leave.store.finishHeldPurge()
-        for _ in 0..<1_000 {
-            await Task.yield()
-        }
+        let latePassRan = await waitUntil { session.leaveRecoveryPassCount == 1 }
+        XCTAssertTrue(latePassRan, "The late purge runs one recovery pass")
         XCTAssertFalse(done.value, "A late purge that did not clear the cart does not end recovery")
         let waiting = await leave.sessionClock.waitForSleepers()
         XCTAssertTrue(waiting, "The timed pass still waits on the clock")
@@ -57,6 +58,37 @@ extension GuestMemberSessionTests {
 
         XCTAssertEqual(session.activeFamilySpace?.id, leave.fixture.privateID)
         XCTAssertEqual(leave.sessionClock.pendingSleepers, 0)
+    }
+
+    /// Waits for recovery to end, cancelling it after `seconds` so a regression fails the test
+    /// instead of hanging the run.
+    private func waitForRecovery(_ recovery: Task<Void, Never>, seconds: Int = 10) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                await recovery.value
+                return true
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(seconds))
+                return false
+            }
+            let finished = await group.next() ?? false
+            if !finished {
+                recovery.cancel()
+            }
+            group.cancelAll()
+            return finished
+        }
+    }
+
+    /// Polls a main-actor condition the code under test sets, giving up after `seconds`.
+    private func waitUntil(seconds: Int = 10, _ condition: () -> Bool) async -> Bool {
+        let deadline = ContinuousClock.now + .seconds(seconds)
+        while !condition() {
+            guard ContinuousClock.now < deadline else { return false }
+            await Task.yield()
+        }
+        return true
     }
 
     private struct TimedOutLeave {

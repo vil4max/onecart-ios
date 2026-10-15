@@ -2,9 +2,21 @@ import Foundation
 import os
 import Synchronization
 
+/// The widget snapshot and the durable widget purchase commands in the App Group. The session and
+/// the widget timeline provider take it in `init`; `WidgetSnapshotStore` is the live store.
+protocol WidgetSnapshotStoring: Sendable {
+    func save(snapshot: WidgetCartSnapshot)
+    func withStoredAccent(_ snapshot: WidgetCartSnapshot) -> WidgetCartSnapshot
+    func loadSnapshot() -> WidgetCartSnapshot?
+    func enqueuePurchase(_ request: WidgetPurchaseRequest) throws
+    func pendingPurchases() throws -> [WidgetPurchaseRequest]
+    func acknowledgePurchase(id: UUID) throws
+    func clear() throws
+}
+
 /// Shared by the app and the widget, so it imports no UI framework: each target defines its
 /// live `shared` instance with WidgetCenter reloads, and tests inject their own closure.
-public final class WidgetSnapshotStore: Sendable {
+public final class WidgetSnapshotStore: WidgetSnapshotStoring {
     private let suiteName: String
     private let snapshotKey = "onecart.widget.snapshot"
     private let pendingDirectoryURL: URL?

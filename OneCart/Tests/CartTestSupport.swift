@@ -62,31 +62,45 @@ extension XCTestCase {
         persistence: PersistenceController? = nil,
         defaults: UserDefaults? = nil,
         cloudSharing: (any FamilyCloudSharing)? = nil,
+        shareStore: (any CloudKitShareStoring)? = nil,
         appleSignIn: AppleSignInAuthenticating? = nil,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
-        widgetStore: WidgetSnapshotStore? = nil,
+        widgetStore: (any WidgetSnapshotStoring)? = nil,
         categoryClassifier: any CategoryClassifying = KeywordCategoryClassifier(),
         shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil,
+        shareInbox: (any PendingShareInbox)? = nil,
+        shareAccepter: (any ShareInvitationAccepting)? = nil,
         clock: AppClock = .live
     ) throws -> AppSession {
         let defaults = try defaults ?? makeDefaults()
         let persistence = persistence ?? makeInMemoryPersistence()
+        let cloudSharing = cloudSharing ?? InMemoryFamilySharing(persistence: persistence)
         let session = try AppSession(
-            persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
-            defaults: defaults,
-            cloudSharing: cloudSharing ?? InMemoryFamilySharing(persistence: persistence),
-            recordPermissions: AllowAllRecordPermissions(),
-            appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
-            accountCloudDataDeleter: accountCloudDataDeleter,
-            accountLocalStorePreparer: accountLocalStorePreparer,
-            widgetStore: widgetStore ?? makeWidgetStore().store,
-            // Never the on-device language model or the live ActivityKit backend: a test must
-            // not wait on a model or put a trip on the simulator.
-            categoryClassifier: categoryClassifier,
-            shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend(),
-            clock: clock
+            AppSessionDependencies(
+                persistence: persistence,
+                preferences: DevicePreferences(defaults: defaults, appGroupDefaults: nil),
+                defaults: defaults,
+                cloudSharing: cloudSharing,
+                shareStore: shareStore ?? FakeCloudKitShareStore(),
+                recordPermissions: AllowAllRecordPermissions(),
+                appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
+                accountCloudDataDeleter: accountCloudDataDeleter ?? cloudSharing,
+                accountLocalStorePreparer: accountLocalStorePreparer ?? persistence,
+                widgetStore: widgetStore ?? makeWidgetStore().store,
+                // Never the on-device language model or the live ActivityKit backend: a test must
+                // not wait on a model or put a trip on the simulator.
+                categoryClassifier: categoryClassifier,
+                cloudUserIdentity: cloudSharing,
+                shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend(),
+                shareInbox: shareInbox ?? LivePendingShareInbox(),
+                shareAccepter: shareAccepter ?? FakeShareInvitationAccepter(),
+                // Snapshots and seen members land in the test suite; no banner is posted.
+                activityNotifier: LiveCartActivityNotifier(defaults: defaults, notificationCenter: nil),
+                memberJoinNotifier: LiveMemberJoinNotifier(defaults: defaults, notificationCenter: nil),
+                connectivity: FakeConnectivityMonitor(),
+                clock: clock
+            )
         )
         session.isReady = true
         return session

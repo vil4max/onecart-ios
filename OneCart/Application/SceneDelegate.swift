@@ -7,13 +7,13 @@ final class SceneDelegate: NSObject, UIWindowSceneDelegate {
         willConnectTo _: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        AppDelegate.enqueuePendingShare(from: connectionOptions)
+        AppDelegate.enqueuePendingShare(from: connectionOptions, into: OneCartAppComposition.shareInbox)
     }
 
     func windowScene(
         _: UIWindowScene,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        AppDelegate.receiveCloudKitShare(cloudKitShareMetadata)
+        AppDelegate.receiveCloudKitShare(cloudKitShareMetadata, into: OneCartAppComposition.shareInbox)
     }
 }

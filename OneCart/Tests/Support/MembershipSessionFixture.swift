@@ -80,17 +80,29 @@ final class MembershipSessionFixture {
         classifier: any CategoryClassifying,
         cloudUserIdentity: (any CloudUserIdentifying)?
     ) -> AppSession {
+        let cloudSharing = InMemoryFamilySharing(persistence: persistence)
         let session = AppSession(
-            persistence: persistence,
-            preferences: DevicePreferences(defaults: defaults),
-            defaults: defaults,
-            cloudSharing: InMemoryFamilySharing(persistence: persistence),
-            recordPermissions: AllowAllRecordPermissions(),
-            appleSignIn: InMemoryAppleSignIn(),
-            widgetStore: widgetStore,
-            categoryClassifier: classifier,
-            cloudUserIdentity: cloudUserIdentity,
-            shoppingTripBackend: FakeShoppingTripBackend()
+            AppSessionDependencies(
+                persistence: persistence,
+                preferences: DevicePreferences(defaults: defaults, appGroupDefaults: nil),
+                defaults: defaults,
+                cloudSharing: cloudSharing,
+                shareStore: FakeCloudKitShareStore(),
+                recordPermissions: AllowAllRecordPermissions(),
+                appleSignIn: InMemoryAppleSignIn(),
+                accountCloudDataDeleter: cloudSharing,
+                accountLocalStorePreparer: persistence,
+                widgetStore: widgetStore,
+                categoryClassifier: classifier,
+                cloudUserIdentity: cloudUserIdentity ?? cloudSharing,
+                shoppingTripBackend: FakeShoppingTripBackend(),
+                shareInbox: LivePendingShareInbox(),
+                shareAccepter: FakeShareInvitationAccepter(),
+                activityNotifier: LiveCartActivityNotifier(defaults: defaults, notificationCenter: nil),
+                memberJoinNotifier: LiveMemberJoinNotifier(defaults: defaults, notificationCenter: nil),
+                connectivity: FakeConnectivityMonitor(),
+                clock: .live
+            )
         )
         session.isReady = true
         StoreCleanupRegistry.register(session: session)

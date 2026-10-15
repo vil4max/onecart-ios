@@ -230,7 +230,7 @@ struct SessionMembershipTests {
     @Test("REQ-SHARE-090: an empty share queue does not start a sync")
     func acceptPendingSharesWithEmptyQueueIsANoOp() async throws {
         let fixture = try await MembershipSessionFixture.owner()
-        _ = AppDelegate.takePendingShareMetadata()
+        #expect(fixture.session.shareInbox.takeAll().isEmpty)
 
         await fixture.session.acceptPendingCloudKitShares()
 

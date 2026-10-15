@@ -32,12 +32,47 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset; maps them once per reload into the screens' value snapshots |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
 | `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
-| `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator |
+| `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator, injected as `ConnectivityMonitoring` |
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
 | Repositories (`FamilyRepository`, `CartItemsRepository`, `PurchaseArchiver`, `CartDeduplicator`, `PersonalCartRestorer`, `MemberProfileStore`) | local Core Data reads and writes, one responsibility each, injected as protocols |
 | `FamilyCloudSharing` (`CloudKitBackendService` + `FamilyInviteLinkBuilder`) | iCloud account, members, share lifecycle, user identity, private-zone account deletion |
+
+`AppSession.init` takes one `AppSessionDependencies` value
+(`OneCart/Application/AppSessionDependencies.swift`) and builds only the coordinators and
+repositories over it; no collaborator has a default and the session creates no live service.
+`OneCartAppComposition` (`OneCartApp.swift`) is the composition root: `live()` builds the
+production graph once (the real store, `.standard` defaults with the App Group suite for the
+accent, `AppleSignInService.shared`, the CloudKit backend and `LiveCloudKitShareStore` over one
+`LazyCloudContainer`, `WidgetSnapshotStore.shared`, `CompositeCategoryClassifier.live()`,
+`LiveShoppingTripActivityBackend`, the notification center), and the DEBUG demo passes its own
+store, defaults and sign-in through the same `dependencies(...)` factory. The remaining process
+globals sit behind protocols the root fills: `PendingShareInbox` (`LivePendingShareInbox`, filled
+by `AppDelegate`/`SceneDelegate`, which UIKit creates and which therefore read
+`OneCartAppComposition.shareInbox`, and drained by the session), `ShareInvitationAccepting`
+(`PersistenceController`), `CartActivityNotifying` and `MemberJoinNotifying` (the live notifiers
+keep their bookkeeping in the session's defaults; a nil notification center stores without
+posting), `ConnectivityMonitoring` (injected into `CloudSyncCoordinator`) and
+`WidgetSnapshotStoring` (also injected into the widget's timeline provider). `DevicePreferences`
+writes the accent to the App Group only through its explicit `appGroupDefaults:` (nil in tests
+and the demo). The test builders (`makeTestSession`, `MembershipSessionFixture`) pass fakes for
+every protocol (`FakeCloudKitShareStore`, `FakeConnectivityMonitor`,
+`FakeShareInvitationAccepter`, an isolated widget store and defaults). Still global: the
+`OneCartPalette.currentAccent` accent, `UserDefaults.standard` in the store maintenance, and the
+UIKit haptics.
+
+The App Intents get the session through `@Dependency` on `CartIntentHandling`
+(`OneCart/Application/Services/CartIntentHandling.swift`): `OneCartApp.init` registers a lazy
+provider with `AppDependencyManager.shared` at launch (never in the unit-test host), so the
+session is still built on first use by the scene or an intent, not on every process launch. A
+`LiveActivityIntent` (the purchase toggle, the trip stop button, the voice trip start) is
+performed in the app process, which the system launches in the background, so the registration
+is in place; the toggle and stop intents keep their membership in the widget extension, where
+`#if ONECART_WIDGET_EXTENSION` leaves out the dependency and throws `unavailable`. The toggle, add
+and stop intents forward through `perform(using:)`, which tests call with `FakeCartIntentHandler`;
+the toggle validates its IDs before it reads the dependency. The remaining-items and start-trip
+intents call the dependency directly and have no forwarding test.
 
 iCloud reaches the session only through `FamilyCloudSharing`
 (`OneCart/Data/CloudKit/FamilyCloudSharing.swift`): restored account, access, members, invite link,
@@ -47,8 +82,10 @@ revoke, ACL heal, remove member, leave, plus the `CloudUserIdentifying` and
 `CloudKitBackendService`. Below it, every container call the share code makes (share lookup,
 creation and persistence, the leave's zone purge, account status, user record ID) goes through
 `CloudKitShareStoring` (`OneCart/Data/CloudKit/CloudKitShareStoring.swift`; live:
-`LiveCloudKitShareStore`), injected into `CloudKitBackendService` and passed to
-`FamilyInviteLinkBuilder`; tests use `FakeCloudKitShareStore`. Share changes are saved through
+`LiveCloudKitShareStore`), injected into `CloudKitBackendService`, `FamilyShareOrchestrator` and
+the session (its check whether a failed invite accept names a cart it already holds) and passed
+to `FamilyInviteLinkBuilder`; tests use `FakeCloudKitShareStore`. The one container call outside
+it is `PersistenceController.acceptShareInvitations`, reached through `ShareInvitationAccepting`. Share changes are saved through
 one path, `persistShare(_:in:)`, and the owner ACL heal and the invite door share
 `applyReadWriteACL(to:reopenInviteDoor:in:)`. Shared-store edit rights come from `RecordPermissionChecking`, injected
 into `CloudKitPermissionAuthorizer` (live: `ContainerRecordPermissions`, which asks the container).

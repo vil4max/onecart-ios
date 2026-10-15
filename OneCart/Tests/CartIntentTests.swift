@@ -329,8 +329,9 @@ final class CartIntentTests: XCTestCase {
 
     // MARK: - REQ-SIRI-040 startup
 
-    /// The intents reach `OneCartAppComposition.session`; in the unit-test host it must never
-    /// be built, so no test runs against the production stores, ActivityKit or the App Group.
+    /// `OneCartApp` registers `OneCartAppComposition.session` for the intents' `@Dependency`; in
+    /// the unit-test host it must never be built, so no test runs against the production stores,
+    /// ActivityKit or the App Group.
     /// The builder traps in the unit-test host, so a test that reaches it fails the whole run
     /// before or after this one; this test only pins the host detection and the flag.
     func test_REQ_SIRI_040_unitTestHostNeverBuildsTheCompositionSession() {

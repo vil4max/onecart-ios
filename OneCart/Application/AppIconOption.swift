@@ -1,17 +1,17 @@
 import SwiftUI
 import UIKit
 
-public enum AppIconOption: String, CaseIterable, Identifiable {
+enum AppIconOption: String, CaseIterable, Identifiable {
     case classic
     case midnight
     case ocean
     case sunset
 
-    public var id: String {
+    var id: String {
         rawValue
     }
 
-    public var iconName: String? {
+    var iconName: String? {
         switch self {
         case .classic:
             nil
@@ -24,7 +24,7 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         }
     }
 
-    public var localizedTitleKey: LocalizedStringKey {
+    var localizedTitleKey: LocalizedStringKey {
         switch self {
         case .classic: "icon.classic"
         case .midnight: "icon.midnight"
@@ -33,7 +33,7 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         }
     }
 
-    public var title: String {
+    var title: String {
         switch self {
         case .classic: String(localized: "icon.classic")
         case .midnight: String(localized: "icon.midnight")
@@ -42,7 +42,7 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
         }
     }
 
-    public var previewImageName: String {
+    var previewImageName: String {
         switch self {
         case .classic: "IconPreview-Classic"
         case .midnight: "IconPreview-Midnight"
@@ -52,7 +52,7 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
     }
 
     /// The app's accent follows the chosen icon; Midnight's amber check reads as Sunset.
-    public var accent: AppAccentColor {
+    var accent: AppAccentColor {
         switch self {
         case .classic: .emerald
         case .midnight: .sunset
@@ -63,9 +63,9 @@ public enum AppIconOption: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-public enum AppIconManager {
+enum AppIconManager {
     @discardableResult
-    public static func setAlternateIcon(to option: AppIconOption) async -> Bool {
+    static func setAlternateIcon(to option: AppIconOption) async -> Bool {
         guard UIApplication.shared.supportsAlternateIcons else { return false }
         do {
             try await UIApplication.shared.setAlternateIconName(option.iconName)

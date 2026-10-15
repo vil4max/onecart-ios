@@ -69,10 +69,8 @@ final class DevicePreferences {
         didSet {
             defaults.set(accentColor.rawValue, forKey: Keys.accentColor)
             defaults.synchronize()
-            if defaults == .standard {
-                OneCartAppGroup.defaults?.set(accentColor.rawValue, forKey: Keys.accentColor)
-                OneCartAppGroup.defaults?.synchronize()
-            }
+            appGroupDefaults?.set(accentColor.rawValue, forKey: Keys.accentColor)
+            appGroupDefaults?.synchronize()
             OneCartPalette.currentAccent = accentColor
             onAccentChanged?(accentColor)
             onChanged?()
@@ -88,13 +86,17 @@ final class DevicePreferences {
     }
 
     private let defaults: UserDefaults
+    /// The App Group suite the widget reads the accent from; nil keeps every write in `defaults`
+    /// (tests, the DEBUG demo).
+    private let appGroupDefaults: UserDefaults?
 
     /// Appearance and language follow the device (per-app language in iOS Settings) and the
     /// accent follows the app icon. The app never writes `AppleLanguages`, so the system's
     /// per-app choice stays in place.
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults, appGroupDefaults: UserDefaults?) {
         self.defaults = defaults
-        Self.removeRetiredKeys(from: defaults)
+        self.appGroupDefaults = appGroupDefaults
+        Self.removeRetiredKeys(from: defaults, appGroupDefaults: appGroupDefaults)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         let initialIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         appIcon = initialIcon
@@ -102,15 +104,13 @@ final class DevicePreferences {
         accentColor = initialAccent
         OneCartPalette.currentAccent = initialAccent
         defaults.set(initialAccent.rawValue, forKey: Keys.accentColor)
-        if defaults == .standard {
-            OneCartAppGroup.defaults?.set(initialAccent.rawValue, forKey: Keys.accentColor)
-        }
+        appGroupDefaults?.set(initialAccent.rawValue, forKey: Keys.accentColor)
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
     func reloadFromDefaults() {
-        Self.removeRetiredKeys(from: defaults)
+        Self.removeRetiredKeys(from: defaults, appGroupDefaults: appGroupDefaults)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         appIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         accentColor = appIcon.accent
@@ -120,13 +120,11 @@ final class DevicePreferences {
     }
 
     /// Older versions stored a theme and an in-app language; drop them so old installs are
-    /// cleaned. Only the real defaults own the App Group copy of the theme.
-    private static func removeRetiredKeys(from defaults: UserDefaults) {
+    /// cleaned, the App Group copy of the theme included.
+    private static func removeRetiredKeys(from defaults: UserDefaults, appGroupDefaults: UserDefaults?) {
         defaults.removeObject(forKey: Keys.retiredTheme)
         defaults.removeObject(forKey: Keys.retiredLanguage)
-        if defaults == .standard {
-            OneCartAppGroup.defaults?.removeObject(forKey: Keys.retiredTheme)
-        }
+        appGroupDefaults?.removeObject(forKey: Keys.retiredTheme)
     }
 
     private enum Keys {

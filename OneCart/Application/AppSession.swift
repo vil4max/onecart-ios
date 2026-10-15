@@ -50,8 +50,13 @@ final class AppSession {
     let household: HouseholdCartCoordinator
     let accountCloudDataDeleter: AccountCloudDataDeleting
     let accountLocalStorePreparer: AccountLocalStorePreparing
-    let widgetStore: WidgetSnapshotStore
+    let widgetStore: any WidgetSnapshotStoring
     let shoppingTrip: ShoppingTripActivityController
+    let shareStore: any CloudKitShareStoring
+    let shareInbox: any PendingShareInbox
+    let shareAccepter: any ShareInvitationAccepting
+    let activityNotifier: any CartActivityNotifying
+    let memberJoinNotifier: any MemberJoinNotifying
     var startupTask: Task<Void, Never>?
     var widgetDrainTask: Task<Void, Error>?
 
@@ -142,67 +147,54 @@ final class AppSession {
     var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]
     /// Retries the fallback to the personal cart after a leave timed out; sign-out cancels it.
     var leaveRecoveryTask: Task<Void, Never>?
+    /// Fallback passes run after a leave timed out; tests wait on it instead of yielding.
+    var leaveRecoveryPassCount = 0
     var online = true
     var started = false
     var didPresentProductionSchemaAlert = false
     var lastActiveFamilyWasShared = false
     var isLeavingSharedCart = false
 
-    init(
-        persistence: PersistenceController? = nil,
-        preferences: DevicePreferences? = nil,
-        defaults: UserDefaults = .standard,
-        cloudSharing: (any FamilyCloudSharing)? = nil,
-        recordPermissions: (any RecordPermissionChecking)? = nil,
-        appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
-        accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
-        accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
-        widgetStore: WidgetSnapshotStore = .shared,
-        categoryClassifier: any CategoryClassifying = ProductCategoryClassifier.shared,
-        cloudUserIdentity: (any CloudUserIdentifying)? = nil,
-        shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil,
-        clock: AppClock = .live
-    ) {
-        let persistence = persistence ?? .shared
+    /// Builds the coordinators and repositories over the injected collaborators; it creates no
+    /// live service of its own (see `OneCartAppComposition.live()`).
+    init(_ dependencies: AppSessionDependencies) {
+        let persistence = dependencies.persistence
+        let clock = dependencies.clock
+        let cloudSharing = dependencies.cloudSharing
+        let shareStore = dependencies.shareStore
+        let defaults = dependencies.defaults
         self.persistence = persistence
         self.clock = clock
-        self.preferences = preferences ?? DevicePreferences(defaults: defaults)
+        preferences = dependencies.preferences
         self.defaults = defaults
-        self.appleSignIn = appleSignIn
-        self.categoryClassifier = categoryClassifier
-        self.widgetStore = widgetStore
-        shoppingTrip = ShoppingTripActivityController(
-            backend: shoppingTripBackend ?? LiveShoppingTripActivityBackend()
-        )
+        appleSignIn = dependencies.appleSignIn
+        categoryClassifier = dependencies.categoryClassifier
+        widgetStore = dependencies.widgetStore
+        self.shareStore = shareStore
+        shareInbox = dependencies.shareInbox
+        shareAccepter = dependencies.shareAccepter
+        activityNotifier = dependencies.activityNotifier
+        memberJoinNotifier = dependencies.memberJoinNotifier
+        shoppingTrip = ShoppingTripActivityController(backend: dependencies.shoppingTripBackend)
 
         let repositories = FamilySpaceRepository(
             persistence: persistence,
             permissionAuthorizer: CloudKitPermissionAuthorizer(
                 persistence: persistence,
-                permissions: recordPermissions ?? ContainerRecordPermissions(persistence: persistence)
+                permissions: dependencies.recordPermissions
             ),
             clock: clock
         )
-        let cloudContainer = LazyCloudContainer()
-        let shareStore = LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer)
-        let cloudSharing =
-            cloudSharing
-            ?? CloudKitBackendService(
-                persistence: persistence,
-                cloudContainer: cloudContainer,
-                shareStore: shareStore,
-                clock: clock
-            )
         repository = repositories.families
         cartItems = repositories.cartItems
         purchaseArchiver = repositories.purchaseArchiver
         cartDeduplicator = repositories.deduplicator
         memberProfiles = repositories.memberProfiles
         self.cloudSharing = cloudSharing
-        self.cloudUserIdentity = cloudUserIdentity ?? cloudSharing
+        cloudUserIdentity = dependencies.cloudUserIdentity
         memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: defaults)
-        self.accountCloudDataDeleter = accountCloudDataDeleter ?? cloudSharing
-        self.accountLocalStorePreparer = accountLocalStorePreparer ?? persistence
+        accountCloudDataDeleter = dependencies.accountCloudDataDeleter
+        accountLocalStorePreparer = dependencies.accountLocalStorePreparer
         cartSync = CartSyncService(persistence: persistence, clock: clock)
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(
@@ -210,9 +202,14 @@ final class AppSession {
             families: repositories.families,
             deduplicator: repositories.deduplicator,
             cloudSharing: cloudSharing,
-            appleSignIn: appleSignIn
+            appleSignIn: dependencies.appleSignIn
         )
-        cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock)
+        cloudSync = CloudSyncCoordinator(
+            persistence: persistence,
+            cartSync: cartSync,
+            connectivity: dependencies.connectivity,
+            clock: clock
+        )
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
             shareStore: shareStore,
@@ -296,3 +293,7 @@ final class AppSession {
         sharedCartRemovedMessage = nil
     }
 }
+
+/// Declared here because `CartIntentHandling` refines `Sendable`, which must be stated in the
+/// class's own file; the members live in `AppSession+Services.swift`.
+extension AppSession: CartIntentHandling {}

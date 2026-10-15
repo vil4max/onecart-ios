@@ -57,27 +57,27 @@ extension AppSession {
 
     func acceptPendingCloudKitShares() async {
         guard persistence.isLoaded else { return }
-        let metadata = AppDelegate.takePendingShareMetadata()
-        guard !metadata.isEmpty else { return }
+        let invitations = shareInbox.takeAll()
+        guard !invitations.isEmpty else { return }
         beginBusyOperation()
         syncState = .syncing
         defer { endBusyOperation() }
 
-        let alreadyAccepted = metadata.allSatisfy { $0.participantStatus == .accepted }
-        let toAccept = metadata.filter { $0.participantStatus != .accepted }
+        let alreadyAccepted = invitations.allSatisfy { $0.participantStatus == .accepted }
+        let toAccept = invitations.filter { $0.participantStatus != .accepted }
 
         if !alreadyAccepted, !toAccept.isEmpty {
             do {
-                try await persistence.acceptShareInvitations(from: toAccept)
+                try await shareAccepter.acceptShareInvitations(toAccept)
             } catch {
-                if alreadyJoinedMatchingShare(in: metadata),
+                if alreadyJoinedMatchingShare(in: invitations),
                     CloudKitUserFacingError.isBenignShareAcceptFailure(error)
                 {
                     CartSyncLog.action.info(
                         "acceptShare soft-success matchingShare error=\(error.localizedDescription, privacy: .public)"
                     )
                 } else {
-                    AppDelegate.requeue(metadata)
+                    shareInbox.requeue(invitations)
                     syncState = .failed
                     lastSyncError = userFacingMessage(for: error)
                     show(error)
@@ -186,16 +186,16 @@ extension AppSession {
         }
     }
 
-    private func alreadyJoinedMatchingShare(in metadata: [CKShare.Metadata]) -> Bool {
-        let pendingShareNames = Set(metadata.map(\.share.recordID.recordName))
-        let pendingRootIDs = Set(metadata.compactMap(\.hierarchicalRootRecordID))
+    private func alreadyJoinedMatchingShare(in invitations: [PendingShareInvitation]) -> Bool {
+        let pendingShareNames = Set(invitations.map(\.shareRecordName))
+        let pendingRootIDs = Set(invitations.compactMap(\.rootRecordID))
         for family in familySpaces where persistence.scope(for: family) == .shared {
-            if let share = try? persistence.container.fetchShares(matching: [family.objectID])[family.objectID],
+            if let share = try? shareStore.fetchShare(for: family.objectID),
                 pendingShareNames.contains(share.recordID.recordName)
             {
                 return true
             }
-            if let recordID = persistence.container.recordID(for: family.objectID),
+            if let recordID = shareStore.recordID(for: family.objectID),
                 pendingRootIDs.contains(recordID)
             {
                 return true
@@ -257,6 +257,7 @@ extension AppSession {
         if !hasShared {
             CartSyncLog.action.info("leaveFamily recovery shared gone")
         }
+        leaveRecoveryPassCount += 1
         return !hasShared
     }
 
@@ -293,11 +294,10 @@ extension AppSession {
                     account: account,
                     currentUserRecordName: currentUserRecordName
                 )
-                MemberJoinNotifier.notifyNewMembersIfNeeded(
+                memberJoinNotifier.notifyNewMembersIfNeeded(
                     previousIDs: Set(previous.map(\.id)),
                     current: familyMembers,
-                    accountID: account.id,
-                    defaults: defaults
+                    accountID: account.id
                 )
                 // The widget names a partner; a synced profile can rename one without a reload.
                 if familyMembers != previous {

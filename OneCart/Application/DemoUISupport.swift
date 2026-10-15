@@ -73,11 +73,13 @@
             // The welcome role signs in on a throwaway store and must never reach iCloud; the
             // seeded roles keep the live backend, which stays local because mirroring is off.
             let session = AppSession(
-                persistence: persistence,
-                preferences: DevicePreferences(defaults: demoDefaults),
-                defaults: demoDefaults,
-                cloudSharing: role == .welcome ? InMemoryFamilySharing(persistence: persistence) : nil,
-                appleSignIn: DemoAppleSignInService(role: role)
+                OneCartAppComposition.dependencies(
+                    persistence: persistence,
+                    preferences: DevicePreferences(defaults: demoDefaults, appGroupDefaults: nil),
+                    defaults: demoDefaults,
+                    appleSignIn: DemoAppleSignInService(role: role),
+                    cloudSharing: role == .welcome ? InMemoryFamilySharing(persistence: persistence) : nil
+                )
             )
             if role == .welcome {
                 session.needsWelcome = true

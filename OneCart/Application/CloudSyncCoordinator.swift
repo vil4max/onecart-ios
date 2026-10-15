@@ -23,7 +23,7 @@ protocol CloudSyncHost: AnyObject {
 final class CloudSyncCoordinator {
     private let persistence: PersistenceController
     private let cartSync: CartSyncService
-    private let connectivity = ConnectivityMonitor()
+    private let connectivity: any ConnectivityMonitoring
     private weak var host: CloudSyncHost?
 
     private var remoteChangeObserver: NSObjectProtocol?
@@ -40,9 +40,15 @@ final class CloudSyncCoordinator {
     private var sleepingReloadDelay: UInt64?
     private let clock: AppClock
 
-    init(persistence: PersistenceController, cartSync: CartSyncService, clock: AppClock = .live) {
+    init(
+        persistence: PersistenceController,
+        cartSync: CartSyncService,
+        connectivity: any ConnectivityMonitoring,
+        clock: AppClock = .live
+    ) {
         self.persistence = persistence
         self.cartSync = cartSync
+        self.connectivity = connectivity
         self.clock = clock
     }
 

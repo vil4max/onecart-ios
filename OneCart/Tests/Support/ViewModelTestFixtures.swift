@@ -16,7 +16,7 @@ final class IsolatedPreferences {
         self.suiteName = suiteName
         defaults = try #require(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
-        preferences = DevicePreferences(defaults: defaults)
+        preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
     }
 
     deinit {

@@ -136,23 +136,21 @@ final class ProductCategoryInferenceTests: XCTestCase {
         XCTAssertEqual(category.symbolName, "birthday.cake.fill")
     }
 
-    #if canImport(FoundationModels)
-        func test_REQ_SHELL_010_slowOrFailingModelFallsBackToTheKeywordCategory() async {
-            struct ModelFailure: Error {}
-            let timedOut = await FoundationModelsCategoryClassifier.withTimeout(nanoseconds: 1_000_000) {
-                try await Task.sleep(nanoseconds: 60_000_000_000)
-                return .bakery
-            }
-            let failed = await FoundationModelsCategoryClassifier.withTimeout(nanoseconds: 60_000_000_000) {
-                throw ModelFailure()
-            }
-            let answered = await FoundationModelsCategoryClassifier.withTimeout(nanoseconds: 60_000_000_000) {
-                .dairyEggs
-            }
-
-            XCTAssertNil(timedOut)
-            XCTAssertNil(failed)
-            XCTAssertEqual(answered, .dairyEggs)
+    func test_REQ_SHELL_010_slowOrFailingModelFallsBackToTheKeywordCategory() async {
+        struct ModelFailure: Error {}
+        let timedOut = await CompositeCategoryClassifier.withTimeout(nanoseconds: 1_000_000) {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            return .bakery
         }
-    #endif
+        let failed = await CompositeCategoryClassifier.withTimeout(nanoseconds: 60_000_000_000) {
+            throw ModelFailure()
+        }
+        let answered = await CompositeCategoryClassifier.withTimeout(nanoseconds: 60_000_000_000) {
+            .dairyEggs
+        }
+
+        XCTAssertNil(timedOut)
+        XCTAssertNil(failed)
+        XCTAssertEqual(answered, .dairyEggs)
+    }
 }

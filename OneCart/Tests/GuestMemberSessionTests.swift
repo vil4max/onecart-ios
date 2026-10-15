@@ -200,6 +200,8 @@ final class GuestMemberSessionTests: XCTestCase {
         sharedName: String,
         sharedProduct: String,
         clock: AppClock = .live,
+        shareInbox: (any PendingShareInbox)? = nil,
+        shareAccepter: (any ShareInvitationAccepting)? = nil,
         cloudSharing: ((PersistenceController) -> any FamilyCloudSharing)? = nil
     ) async throws -> GuestFixture {
         let persistence = makeInMemoryPersistence()
@@ -265,6 +267,8 @@ final class GuestMemberSessionTests: XCTestCase {
             persistence: persistence,
             defaults: defaults,
             cloudSharing: cloudSharing?(persistence),
+            shareInbox: shareInbox,
+            shareAccepter: shareAccepter,
             clock: clock
         )
         try session.bootstrapTestingSession(account: account)

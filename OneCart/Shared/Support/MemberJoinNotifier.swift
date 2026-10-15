@@ -1,6 +1,35 @@
 import Foundation
 import UserNotifications
 
+/// "A member joined" banners, injected into the session so the notification side effect stays
+/// behind a seam.
+@MainActor
+protocol MemberJoinNotifying {
+    func notifyNewMembersIfNeeded(previousIDs: Set<UUID>, current: [FamilyMember], accountID: UUID)
+    func clearSeenMembers(accountID: UUID)
+}
+
+/// Keeps the seen members in the session's defaults, so the composition root passes the same suite.
+/// A nil center stores the seen members and posts nothing (the test session builders).
+struct LiveMemberJoinNotifier: MemberJoinNotifying {
+    let defaults: UserDefaults
+    let notificationCenter: UNUserNotificationCenter?
+
+    func notifyNewMembersIfNeeded(previousIDs: Set<UUID>, current: [FamilyMember], accountID: UUID) {
+        MemberJoinNotifier.notifyNewMembersIfNeeded(
+            previousIDs: previousIDs,
+            current: current,
+            accountID: accountID,
+            defaults: defaults,
+            notificationCenter: notificationCenter
+        )
+    }
+
+    func clearSeenMembers(accountID: UUID) {
+        MemberJoinNotifier.clearSeenMembers(accountID: accountID, defaults: defaults)
+    }
+}
+
 enum MemberJoinNotifier {
     private static func seenKey(accountID: UUID) -> String {
         "onecart.seen-member-ids.\(accountID.uuidString)"
@@ -10,7 +39,8 @@ enum MemberJoinNotifier {
         previousIDs: Set<UUID>,
         current: [FamilyMember],
         accountID: UUID,
-        defaults: UserDefaults
+        defaults: UserDefaults,
+        notificationCenter: UNUserNotificationCenter? = .current()
     ) {
         let stored = storedIDs(accountID: accountID, defaults: defaults)
         let diff = MemberJoinDiff.evaluate(
@@ -19,10 +49,11 @@ enum MemberJoinNotifier {
             current: current
         )
         defaults.set(diff.nextStoredIDs.map(\.uuidString), forKey: seenKey(accountID: accountID))
-        guard diff.shouldNotify, !diff.newcomerIDs.isEmpty else { return }
+        guard diff.shouldNotify, !diff.newcomerIDs.isEmpty, let notificationCenter else { return }
+        post(current.filter { diff.newcomerIDs.contains($0.id) }, to: notificationCenter)
+    }
 
-        let newcomers = current.filter { diff.newcomerIDs.contains($0.id) }
-        let center = UNUserNotificationCenter.current()
+    private static func post(_ newcomers: [FamilyMember], to center: UNUserNotificationCenter) {
         center.getNotificationSettings { settings in
             guard
                 settings.authorizationStatus == .authorized

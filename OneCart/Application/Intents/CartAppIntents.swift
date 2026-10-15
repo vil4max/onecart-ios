@@ -9,6 +9,9 @@ struct AddCartItemsIntent: AppIntent {
     @Parameter(title: "intent.add_item.name", requestValueDialog: IntentDialog("intent.add_item.prompt"))
     var names: String
 
+    /// Registered by `OneCartApp` at launch; read only when the intent performs.
+    @Dependency private var cart: any CartIntentHandling
+
     init() {}
 
     init(names: String) {
@@ -17,8 +20,13 @@ struct AddCartItemsIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let result = try await OneCartAppComposition.session.addItemsFromIntent(names)
+        let result = try await perform(using: cart)
         return .result(dialog: IntentDialog(CartIntentSpeech.addResult(result)))
+    }
+
+    @MainActor
+    func perform(using cart: any CartIntentHandling) async throws -> CartIntentAddResult {
+        try await cart.handleAddItems(names)
     }
 }
 
@@ -27,9 +35,11 @@ struct RemainingCartItemsIntent: AppIntent {
     static let title: LocalizedStringResource = "intent.remaining.title"
     static let description = IntentDescription("intent.remaining.description")
 
+    @Dependency private var cart: any CartIntentHandling
+
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let remaining = try await OneCartAppComposition.session.remainingItemsForIntent()
+        let remaining = try await cart.handleRemainingItems()
         return .result(dialog: IntentDialog(CartIntentSpeech.remaining(remaining)))
     }
 }
@@ -40,9 +50,11 @@ struct StartShoppingTripIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "intent.start_trip.title"
     static let description = IntentDescription("intent.start_trip.description")
 
+    @Dependency private var cart: any CartIntentHandling
+
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        try await OneCartAppComposition.session.startShoppingTripFromIntent()
+        try await cart.handleStartShoppingTrip()
         return .result(dialog: "intent.start_trip.started")
     }
 }

@@ -6,7 +6,7 @@ import XCTest
 final class DevicePreferencesTests: XCTestCase {
     func testParticipantDisplayNamePersistsAndReloads() throws {
         let defaults = try makeDefaults()
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         preferences.participantDisplayName = "  Alex  "
         XCTAssertEqual(preferences.participantDisplayName, "  Alex  ")
         XCTAssertEqual(
@@ -14,7 +14,7 @@ final class DevicePreferencesTests: XCTestCase {
             "Alex"
         )
 
-        let reloaded = DevicePreferences(defaults: defaults)
+        let reloaded = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(reloaded.participantDisplayName, "Alex")
 
         defaults.set("Sam", forKey: "onecart.participant-display-name")
@@ -35,7 +35,7 @@ final class DevicePreferencesTests: XCTestCase {
         let defaults = try makeDefaults()
         defaults.set("dark", forKey: "onecart.theme")
         defaults.set("Папа", forKey: "onecart.unrelated-test-key")
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertNil(defaults.string(forKey: "onecart.theme"))
         XCTAssertEqual(defaults.string(forKey: "onecart.unrelated-test-key"), "Папа")
 
@@ -44,13 +44,28 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertNil(defaults.string(forKey: "onecart.theme"))
     }
 
+    /// The accent reaches the App Group suite the widget reads only through the injected
+    /// `appGroupDefaults`, and a retired theme is dropped there too.
+    func test_REQ_WIDGET_010_accentIsWrittenToTheInjectedAppGroupSuite() throws {
+        let defaults = try makeDefaults()
+        let appGroup = try makeDefaults()
+        appGroup.set("dark", forKey: "onecart.theme")
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: appGroup)
+        XCTAssertEqual(appGroup.string(forKey: OneCartAppGroup.accentColorKey), preferences.accentColor.rawValue)
+        XCTAssertNil(appGroup.string(forKey: "onecart.theme"))
+
+        let other = try XCTUnwrap(AppAccentColor.allCases.first { $0 != preferences.accentColor })
+        preferences.accentColor = other
+        XCTAssertEqual(appGroup.string(forKey: OneCartAppGroup.accentColorKey), other.rawValue)
+    }
+
     /// REQ-SHELL-030: the language comes from the system (per-app language in iOS Settings); a
     /// language stored by an older version is dropped without touching `AppleLanguages`.
     func testLanguageFollowsTheSystemAndKeepsAppleLanguages() throws {
         let defaults = try makeDefaults()
         defaults.set("uk", forKey: "onecart.language")
         defaults.set(["uk"], forKey: "AppleLanguages")
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertNil(defaults.string(forKey: "onecart.language"))
         XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
 
@@ -110,14 +125,14 @@ final class DevicePreferencesTests: XCTestCase {
     /// (including berry and coral, which no icon carries) gives way to the icon's accent.
     func testAccentFollowsTheAppIconAtLaunch() throws {
         let defaults = try makeDefaults()
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(preferences.appIcon, .classic)
         XCTAssertEqual(preferences.accentColor, .emerald)
         XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
 
         defaults.set("ocean", forKey: "onecart.app-icon")
         defaults.set("berry", forKey: "onecart.accent-color")
-        let reloaded = DevicePreferences(defaults: defaults)
+        let reloaded = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(reloaded.accentColor, .ocean)
         XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "ocean")
         XCTAssertEqual(OneCartPalette.currentAccent, .ocean)
@@ -138,7 +153,7 @@ final class DevicePreferencesTests: XCTestCase {
 
     func testAccentChangeCallback() throws {
         let defaults = try makeDefaults()
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
 
         var notifiedAccent: AppAccentColor?
         preferences.onAccentChanged = { notifiedAccent = $0 }
@@ -153,7 +168,7 @@ final class DevicePreferencesTests: XCTestCase {
         defer { appGroup.set(original, forKey: "onecart.theme") }
         appGroup.set("dark", forKey: "onecart.theme")
 
-        let preferences = DevicePreferences(defaults: try makeDefaults())
+        let preferences = DevicePreferences(defaults: try makeDefaults(), appGroupDefaults: nil)
         preferences.reloadFromDefaults()
 
         XCTAssertEqual(appGroup.string(forKey: "onecart.theme"), "dark")
@@ -199,14 +214,14 @@ final class DevicePreferencesTests: XCTestCase {
 
     func testAppIconOptionPropertiesAndDefaults() throws {
         let defaults = try makeDefaults()
-        let preferences = DevicePreferences(defaults: defaults)
+        let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(preferences.appIcon, .classic)
 
         preferences.appIcon = .midnight
         XCTAssertEqual(preferences.appIcon, .midnight)
         XCTAssertEqual(defaults.string(forKey: "onecart.app-icon"), "midnight")
 
-        let reloaded = DevicePreferences(defaults: defaults)
+        let reloaded = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(reloaded.appIcon, .midnight)
 
         defaults.set("ocean", forKey: "onecart.app-icon")

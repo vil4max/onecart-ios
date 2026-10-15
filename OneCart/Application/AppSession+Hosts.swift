@@ -53,13 +53,12 @@ extension AppSession: CloudSyncHost {
             if let cartID = activeFamilySpace?.id {
                 let currentUserName = Self.participantName(preferences: preferences, account: account) ?? ""
                 let isShared = familyMembers.count > 1
-                CartActivityNotifier.notifyIfNeeded(
+                activityNotifier.notifyIfNeeded(
                     cartID: cartID,
                     previous: previous,
                     current: current,
                     currentUserName: currentUserName,
-                    isSharedCart: isShared,
-                    defaults: defaults
+                    isSharedCart: isShared
                 )
             }
         } catch {
