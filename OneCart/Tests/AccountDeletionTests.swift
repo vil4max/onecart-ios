@@ -73,7 +73,8 @@ final class AccountDeletionTests: XCTestCase {
         defaults.set(Data("[{\"name\":\"Milk\"}]".utf8), forKey: snapshotKey)
         defaults.set(UUID().uuidString, forKey: provisionalKey)
         defaults.set(UUID().uuidString, forKey: restoredKey)
-        _ = session.backend.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
+        let cloudSharing = try XCTUnwrap(session.cloudSharing as? InMemoryFamilySharing)
+        _ = cloudSharing.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
         session.knownUserRecordName = ("_previousUser", session.cloudUserIdentity.identityGeneration)
 
         await session.deleteAccount()
@@ -82,7 +83,7 @@ final class AccountDeletionTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: snapshotKey), "item and member names must not survive deletion")
         XCTAssertNil(defaults.object(forKey: provisionalKey))
         XCTAssertNil(defaults.object(forKey: restoredKey))
-        XCTAssertNil(session.backend.userRecordNameCache.withLock { $0.recordName })
+        XCTAssertNil(cloudSharing.userRecordNameCache.withLock { $0.recordName })
         XCTAssertNil(session.knownUserRecordName)
     }
 

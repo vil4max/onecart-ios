@@ -55,10 +55,13 @@ extension XCTestCase {
     }
 
     /// The only sanctioned way to build an `AppSession` in tests: the defaults and the
-    /// sign-in service never fall back to `.standard`, the App Group, or the Keychain.
+    /// sign-in service never fall back to `.standard`, the App Group, or the Keychain, and iCloud
+    /// is `InMemoryFamilySharing`, so no test creates a `CKContainer`. The session starts ready,
+    /// as after a finished launch, so guards such as the widget drain's `isReady` let tests in.
     func makeTestSession(
         persistence: PersistenceController? = nil,
         defaults: UserDefaults? = nil,
+        cloudSharing: (any FamilyCloudSharing)? = nil,
         appleSignIn: AppleSignInAuthenticating? = nil,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
@@ -68,10 +71,13 @@ extension XCTestCase {
         clock: AppClock = .live
     ) throws -> AppSession {
         let defaults = try defaults ?? makeDefaults()
-        return try AppSession(
-            persistence: persistence ?? makeInMemoryPersistence(),
+        let persistence = persistence ?? makeInMemoryPersistence()
+        let session = try AppSession(
+            persistence: persistence,
             preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
+            cloudSharing: cloudSharing ?? InMemoryFamilySharing(persistence: persistence),
+            recordPermissions: AllowAllRecordPermissions(),
             appleSignIn: appleSignIn ?? InMemoryAppleSignIn(),
             accountCloudDataDeleter: accountCloudDataDeleter,
             accountLocalStorePreparer: accountLocalStorePreparer,
@@ -82,11 +88,13 @@ extension XCTestCase {
             shoppingTripBackend: shoppingTripBackend ?? FakeShoppingTripBackend(),
             clock: clock
         )
+        session.isReady = true
+        return session
     }
 
-    /// An "in-memory" store is a SQLite file in a temporary directory; teardown removes it.
+    /// An "in-memory" store is an ephemeral SQLite file in a temporary directory; teardown removes it.
     nonisolated func makeInMemoryPersistence(cloudKitEnabled: Bool = false) -> PersistenceController {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: cloudKitEnabled)
+        let persistence = PersistenceController(isEphemeral: true, cloudKitEnabled: cloudKitEnabled)
         addTeardownBlock {
             removeStoreFiles(of: persistence)
         }

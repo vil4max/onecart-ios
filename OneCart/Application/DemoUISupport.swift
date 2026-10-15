@@ -65,14 +65,18 @@
             // Preferences share the demo suite: on `.standard` the demo name and accent would reach
             // the real defaults and the App Group.
             let demoDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+            let persistence = PersistenceController(
+                isEphemeral: role == .welcome,
+                storeDirectoryURL: role == .welcome ? nil : storeDirectoryURL(for: role),
+                cloudKitEnabled: false
+            )
+            // The welcome role signs in on a throwaway store and must never reach iCloud; the
+            // seeded roles keep the live backend, which stays local because mirroring is off.
             let session = AppSession(
-                persistence: PersistenceController(
-                    inMemory: role == .welcome,
-                    storeDirectoryURL: role == .welcome ? nil : storeDirectoryURL(for: role),
-                    cloudKitEnabled: false
-                ),
+                persistence: persistence,
                 preferences: DevicePreferences(defaults: demoDefaults),
                 defaults: demoDefaults,
+                cloudSharing: role == .welcome ? InMemoryFamilySharing(persistence: persistence) : nil,
                 appleSignIn: DemoAppleSignInService(role: role)
             )
             if role == .welcome {

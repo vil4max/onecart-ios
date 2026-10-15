@@ -30,19 +30,19 @@ protocol SessionBootstrapHost: AnyObject {
 final class SessionBootstrapper {
     private let persistence: PersistenceController
     private let repository: FamilySpaceRepository
-    private let backend: CloudKitBackendService
+    private let cloudSharing: any FamilyCloudSharing
     private let appleSignIn: AppleSignInAuthenticating
     private weak var host: SessionBootstrapHost?
 
     init(
         persistence: PersistenceController,
         repository: FamilySpaceRepository,
-        backend: CloudKitBackendService,
+        cloudSharing: any FamilyCloudSharing,
         appleSignIn: AppleSignInAuthenticating
     ) {
         self.persistence = persistence
         self.repository = repository
-        self.backend = backend
+        self.cloudSharing = cloudSharing
         self.appleSignIn = appleSignIn
     }
 
@@ -167,7 +167,7 @@ final class SessionBootstrapper {
                         displayName: preferredName ?? String(localized: "common.default_user")
                     )
                 } else {
-                    try await backend.restoredAccount(
+                    try await cloudSharing.restoredAccount(
                         appleUserID: appleCredential.userID,
                         displayName: preferredName
                     )

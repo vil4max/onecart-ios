@@ -146,14 +146,12 @@ final class CloudKitErrorMappingTests: XCTestCase {
         let sharedSpace = try XCTUnwrap(repository.fetchFamilySpace(id: sharedID))
         XCTAssertEqual(backend.access(for: sharedSpace), .member)
 
-        let account = try await backend.restoredAccount(
+        let account = try await InMemoryFamilySharing(persistence: persistence).restoredAccount(
             appleUserID: "apple-user",
             displayName: "  "
         )
         XCTAssertEqual(account.id, OneCartStableID.uuid(for: "onecart.in-memory-user"))
         XCTAssertEqual(account.displayName, String(localized: "common.default_user"))
-        // In-memory path must not construct CKContainer (Xcode Cloud SEGV risk).
-        XCTAssertFalse(backend.cloudContainerInitializedForTesting)
     }
 
     func test_REQ_SHELL_050_cloudKitUserFacingErrorMapsAuthAndPermission() {

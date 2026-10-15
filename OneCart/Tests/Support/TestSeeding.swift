@@ -44,6 +44,11 @@ final class CallCounter {
 /// "In-memory" stores are SQLite files in a temporary directory; a suite that builds one
 /// removes it when it is done so test runs do not accumulate store files.
 func removeStoreFiles(of persistence: PersistenceController) {
+    // A session can outlive its test by a few hops (an appear sync still deduplicating or
+    // archiving). Its next background task must fail with a Swift error, not save into the
+    // destroyed coordinator, which raises an Objective-C exception and crashes the next test.
+    // The account-deletion gate is the store's existing "reject every repository call" switch.
+    persistence.loadLock.withLock { persistence.accountDeletionInProgress = true }
     // Deleting the folder under an open SQLite connection logs "disk I/O error"; the
     // coordinator closes and truncates each loaded store first.
     let coordinator = persistence.container.persistentStoreCoordinator

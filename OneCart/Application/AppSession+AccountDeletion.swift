@@ -67,7 +67,7 @@ extension AppSession {
         CartSyncLog.action.info(
             "deleteAccount leaveShared family=\(familyID.uuidString, privacy: .public)"
         )
-        let discardLeftovers = try await backend.leaveFamily(objectID: family.objectID)
+        let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID)
         if discardLeftovers {
             do {
                 try await repository.discardLocalSharedFamilySpace(id: familyID)

@@ -112,7 +112,7 @@ final class AppSession {
     }
 
     let repository: FamilySpaceRepository
-    let backend: CloudKitBackendService
+    let cloudSharing: any FamilyCloudSharing
     let shareOrchestrator: FamilyShareOrchestrator
     let appleSignIn: AppleSignInAuthenticating
     let categoryClassifier: any CategoryClassifying
@@ -147,7 +147,8 @@ final class AppSession {
         persistence: PersistenceController? = nil,
         preferences: DevicePreferences? = nil,
         defaults: UserDefaults = .standard,
-        backend: CloudKitBackendService? = nil,
+        cloudSharing: (any FamilyCloudSharing)? = nil,
+        recordPermissions: (any RecordPermissionChecking)? = nil,
         appleSignIn: AppleSignInAuthenticating = AppleSignInService.shared,
         accountCloudDataDeleter: AccountCloudDataDeleting? = nil,
         accountLocalStorePreparer: AccountLocalStorePreparing? = nil,
@@ -157,7 +158,7 @@ final class AppSession {
         shoppingTripBackend: (any ShoppingTripActivityBackend)? = nil,
         clock: AppClock = .live
     ) {
-        let persistence = persistence ?? Self.makeDefaultPersistence()
+        let persistence = persistence ?? .shared
         self.persistence = persistence
         self.clock = clock
         self.preferences = preferences ?? DevicePreferences(defaults: defaults)
@@ -171,28 +172,31 @@ final class AppSession {
 
         let repository = FamilySpaceRepository(
             persistence: persistence,
-            permissionAuthorizer: CloudKitPermissionAuthorizer(persistence: persistence),
+            permissionAuthorizer: CloudKitPermissionAuthorizer(
+                persistence: persistence,
+                permissions: recordPermissions ?? ContainerRecordPermissions(persistence: persistence)
+            ),
             clock: clock
         )
-        let backend = backend ?? CloudKitBackendService(persistence: persistence)
+        let cloudSharing = cloudSharing ?? CloudKitBackendService(persistence: persistence)
         self.repository = repository
-        self.backend = backend
-        self.cloudUserIdentity = cloudUserIdentity ?? backend
+        self.cloudSharing = cloudSharing
+        self.cloudUserIdentity = cloudUserIdentity ?? cloudSharing
         memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: defaults)
-        self.accountCloudDataDeleter = accountCloudDataDeleter ?? backend
+        self.accountCloudDataDeleter = accountCloudDataDeleter ?? cloudSharing
         self.accountLocalStorePreparer = accountLocalStorePreparer ?? persistence
         cartSync = CartSyncService(persistence: persistence, clock: clock)
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(
             persistence: persistence,
             repository: repository,
-            backend: backend,
+            cloudSharing: cloudSharing,
             appleSignIn: appleSignIn
         )
         cloudSync = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock)
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
-            backend: backend,
+            cloudSharing: cloudSharing,
             repository: repository
         )
         invitePreparer = InviteLinkPreparer(clock: clock)
@@ -201,20 +205,10 @@ final class AppSession {
             repository: repository,
             defaults: defaults
         )
-        if TestHost.isRunningUnitTests {
-            isReady = true
-        }
         bootstrapper.bind(host: self)
         cloudSync.bind(host: self)
         household.bind(host: self)
         bindCartSync()
-    }
-
-    private static func makeDefaultPersistence() -> PersistenceController {
-        if TestHost.isRunningUnitTests {
-            return PersistenceController(inMemory: true, cloudKitEnabled: false)
-        }
-        return .shared
     }
 
     private func bindCartSync() {

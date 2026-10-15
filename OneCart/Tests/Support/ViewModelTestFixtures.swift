@@ -35,7 +35,7 @@ struct CartFixture {
 
     /// The store is removed by the suite's `.removesStores` scope after the test returns.
     static func make() async throws -> CartFixture {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = PersistenceController(isEphemeral: true, cloudKitEnabled: false)
         StoreCleanupRegistry.register(persistence)
         try await persistence.load()
         let repository = FamilySpaceRepository(

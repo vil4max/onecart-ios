@@ -56,7 +56,7 @@ final class PersistenceController: @unchecked Sendable {
         set { storeLock.withLock { lockedSharedStore = newValue } }
     }
 
-    let inMemory: Bool
+    let isEphemeral: Bool
 
     var isLoaded: Bool {
         loadLock.lock()
@@ -78,17 +78,17 @@ final class PersistenceController: @unchecked Sendable {
     let defaults: UserDefaults
 
     init(
-        inMemory: Bool = false,
+        isEphemeral: Bool = false,
         storeDirectoryURL: URL? = nil,
         cloudKitEnabled: Bool = true,
         defaults: UserDefaults = .standard
     ) {
-        self.inMemory = inMemory
+        self.isEphemeral = isEphemeral
         self.cloudKitEnabled = cloudKitEnabled
         self.defaults = defaults
         self.storeDirectoryURL =
             storeDirectoryURL
-            ?? (inMemory
+            ?? (isEphemeral
                 ? FileManager.default.temporaryDirectory
                     .appendingPathComponent("OneCartInMemory-\(UUID().uuidString)", isDirectory: true)
                 : NSPersistentContainer.defaultDirectoryURL())
@@ -107,7 +107,7 @@ final class PersistenceController: @unchecked Sendable {
         lockedContainer = Self.makeContainer()
         lockedContainer.persistentStoreDescriptions = Self.makeStoreDescriptions(
             directory: self.storeDirectoryURL,
-            inMemory: inMemory,
+            isEphemeral: isEphemeral,
             cloudKitEnabled: cloudKitEnabled
         )
     }
@@ -221,7 +221,7 @@ final class PersistenceController: @unchecked Sendable {
     }
 
     func acceptShareInvitations(from metadata: [CKShare.Metadata]) async throws {
-        guard !inMemory else { return }
+        guard !isEphemeral else { return }
         // The store reference is only handed back to the container; it is never mutated here.
         nonisolated(unsafe) let sharedStore = try store(for: .shared)
         try await CloudKitDeadline.run(timeoutNanoseconds: 22_000_000_000) {

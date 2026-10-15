@@ -18,7 +18,7 @@ final class FragileStoreLoadTests: XCTestCase {
         try Data("keep".utf8).write(to: sentinel)
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
@@ -44,7 +44,7 @@ final class FragileStoreLoadTests: XCTestCase {
         try FileManager.default.createDirectory(at: sharedURL, withIntermediateDirectories: true)
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
@@ -75,7 +75,7 @@ final class FragileStoreLoadTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
@@ -123,7 +123,7 @@ final class FragileStoreLoadTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
@@ -215,7 +215,7 @@ final class FragileStoreLoadTests: XCTestCase {
         try FileManager.default.createDirectory(at: privateURL, withIntermediateDirectories: true)
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )
@@ -250,7 +250,7 @@ final class FragileStoreLoadTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )

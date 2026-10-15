@@ -17,8 +17,8 @@ extension AppSession {
 
     /// Sign-out and account deletion: the next user must never be named after this one.
     func forgetCurrentUserRecordName() {
-        backend.resetCachedUserRecordName()
-        if cloudUserIdentity !== backend {
+        cloudSharing.resetCachedUserRecordName()
+        if cloudUserIdentity !== cloudSharing {
             cloudUserIdentity.resetCachedUserRecordName()
         }
         knownUserRecordName = nil

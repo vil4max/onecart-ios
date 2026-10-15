@@ -38,7 +38,7 @@ extension CloudKitBackendService: CloudUserIdentifying {
     }
 
     func currentUserRecordName() async -> String? {
-        guard !persistence.inMemory, persistence.cloudKitEnabled else { return nil }
+        guard persistence.cloudKitEnabled else { return nil }
         let (cached, lookupGeneration) = userRecordNameCache.withLock { ($0.recordName, $0.generation) }
         if let cached {
             return cached

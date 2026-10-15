@@ -149,7 +149,7 @@ final class CartSyncService {
     }
 
     private func waitForCloudImportBestEffort(reason: CartSyncReason) async {
-        guard !persistence.inMemory else { return }
+        guard persistence.mirrorsToCloudKit else { return }
         let nanoseconds: UInt64 =
             switch reason {
             case .cloudImport:

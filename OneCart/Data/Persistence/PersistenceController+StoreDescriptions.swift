@@ -10,20 +10,20 @@ extension PersistenceController {
 
     static func makeStoreDescriptions(
         directory: URL,
-        inMemory: Bool,
+        isEphemeral: Bool,
         cloudKitEnabled: Bool
     ) -> [NSPersistentStoreDescription] {
         [
             makeStoreDescription(
                 scope: .private,
                 directory: directory,
-                inMemory: inMemory,
+                isEphemeral: isEphemeral,
                 cloudKitEnabled: cloudKitEnabled
             ),
             makeStoreDescription(
                 scope: .shared,
                 directory: directory,
-                inMemory: inMemory,
+                isEphemeral: isEphemeral,
                 cloudKitEnabled: cloudKitEnabled
             ),
         ]
@@ -32,13 +32,13 @@ extension PersistenceController {
     static func makeStoreDescription(
         scope: PersistentStoreScope,
         directory: URL,
-        inMemory: Bool,
+        isEphemeral: Bool,
         cloudKitEnabled: Bool
     ) -> NSPersistentStoreDescription {
         let fileName = scope == .private ? "OneCart-private.sqlite" : "OneCart-shared.sqlite"
         let description: NSPersistentStoreDescription
 
-        if inMemory {
+        if isEphemeral {
             description = NSPersistentStoreDescription(
                 url: directory.appendingPathComponent(fileName)
             )

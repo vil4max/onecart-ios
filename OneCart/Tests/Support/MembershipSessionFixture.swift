@@ -32,7 +32,7 @@ final class MembershipSessionFixture {
         widgetDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(suiteName, isDirectory: true)
 
-        persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        persistence = PersistenceController(isEphemeral: true, cloudKitEnabled: false)
         StoreCleanupRegistry.register(persistence)
         if loadStore {
             try await persistence.load()
@@ -71,8 +71,8 @@ final class MembershipSessionFixture {
         )
     }
 
-    /// Every dependency is a fake or isolated: never the live ActivityKit backend or the
-    /// on-device language model.
+    /// Every dependency is a fake or isolated: never iCloud, the live ActivityKit backend or the
+    /// on-device language model. The session starts ready, as after a finished launch.
     private static func makeSession(
         persistence: PersistenceController,
         defaults: UserDefaults,
@@ -80,16 +80,20 @@ final class MembershipSessionFixture {
         classifier: any CategoryClassifying,
         cloudUserIdentity: (any CloudUserIdentifying)?
     ) -> AppSession {
-        AppSession(
+        let session = AppSession(
             persistence: persistence,
             preferences: DevicePreferences(defaults: defaults),
             defaults: defaults,
+            cloudSharing: InMemoryFamilySharing(persistence: persistence),
+            recordPermissions: AllowAllRecordPermissions(),
             appleSignIn: InMemoryAppleSignIn(),
             widgetStore: widgetStore,
             categoryClassifier: classifier,
             cloudUserIdentity: cloudUserIdentity,
             shoppingTripBackend: FakeShoppingTripBackend()
         )
+        session.isReady = true
+        return session
     }
 
     /// A session with no account: the store may stay unloaded to exercise pre-load guards.

@@ -119,7 +119,7 @@ extension AppSession {
         beginBusyOperation()
         defer { endBusyOperation() }
         do {
-            try await backend.removeMember(member, fromFamily: family.objectID)
+            try await cloudSharing.removeMember(member, fromFamily: family.objectID)
             await refreshFamilyMetadata(showErrors: false)
             CartHaptics.success()
             CartSyncLog.action.info("removeMember done")
@@ -150,7 +150,7 @@ extension AppSession {
             endBusyOperation()
         }
         do {
-            let discardLeftovers = try await backend.leaveFamily(objectID: family.objectID)
+            let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID)
             if discardLeftovers, let familyID {
                 do {
                     try await repository.discardLocalSharedFamilySpace(id: familyID)
@@ -273,7 +273,7 @@ extension AppSession {
         do {
             if let family = activeFamilySpace {
                 let previous = familyMembers
-                familyMembers = try backend.familyMembers(
+                familyMembers = try cloudSharing.familyMembers(
                     for: family,
                     account: account,
                     currentUserRecordName: currentUserRecordName

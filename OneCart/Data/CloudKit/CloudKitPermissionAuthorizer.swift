@@ -1,17 +1,19 @@
 import CoreData
 import Foundation
 
+/// Private-store records always belong to this user; only a shared-store record asks the share.
 final class CloudKitPermissionAuthorizer: PermissionAuthorizing {
     private let persistence: PersistenceController
+    private let permissions: any RecordPermissionChecking
 
-    init(persistence: PersistenceController) {
+    init(persistence: PersistenceController, permissions: any RecordPermissionChecking) {
         self.persistence = persistence
+        self.permissions = permissions
     }
 
     func canUpdate(_ objectID: NSManagedObjectID) -> Bool {
-        guard !persistence.inMemory else { return true }
         guard persistence.scope(for: objectID) == .shared else { return true }
-        let allowed = persistence.container.canUpdateRecord(forManagedObjectWith: objectID)
+        let allowed = permissions.canUpdateRecord(forManagedObjectWith: objectID)
         if !allowed {
             CartSyncLog.cart.error("permission deny canUpdate entity=\(objectID.entity.name ?? "?", privacy: .public)")
         }
@@ -19,9 +21,8 @@ final class CloudKitPermissionAuthorizer: PermissionAuthorizing {
     }
 
     func canDelete(_ objectID: NSManagedObjectID) -> Bool {
-        guard !persistence.inMemory else { return true }
         guard persistence.scope(for: objectID) == .shared else { return true }
-        let allowed = persistence.container.canDeleteRecord(forManagedObjectWith: objectID)
+        let allowed = permissions.canDeleteRecord(forManagedObjectWith: objectID)
         if !allowed {
             CartSyncLog.cart.error("permission deny canDelete entity=\(objectID.entity.name ?? "?", privacy: .public)")
         }

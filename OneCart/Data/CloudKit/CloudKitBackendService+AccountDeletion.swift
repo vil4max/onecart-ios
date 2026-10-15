@@ -5,7 +5,7 @@ extension CloudKitBackendService {
     /// Permanently deletes deletable private-database record zones in the app container.
     /// Local Core Data CloudKit stores must already be unloaded so the mirror cannot recreate zones.
     func deletePrivateAccountCloudData() async throws {
-        if persistence.inMemory || !persistence.cloudKitEnabled {
+        if !persistence.cloudKitEnabled {
             return
         }
 

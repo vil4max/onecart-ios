@@ -28,11 +28,6 @@ final class CloudKitBackendService: Sendable {
         }
     }
 
-    /// Exposed for tests: true only after a real `CKContainer` was constructed or injected.
-    var cloudContainerInitializedForTesting: Bool {
-        injectedCloudContainer != nil || cachedCloudContainer.withLock { $0 != nil }
-    }
-
     init(
         persistence: PersistenceController,
         cloudContainer: CKContainer? = nil
@@ -64,13 +59,9 @@ final class CloudKitBackendService: Sendable {
         appleUserID: String,
         displayName: String?
     ) async throws -> OneCartAccount {
-        if persistence.inMemory || !persistence.cloudKitEnabled {
-            let namespaceKey =
-                persistence.inMemory
-                ? "onecart.in-memory-user"
-                : "apple:\(appleUserID)"
+        if !persistence.cloudKitEnabled {
             return OneCartAccount(
-                id: OneCartStableID.uuid(for: namespaceKey),
+                id: OneCartStableID.uuid(for: "apple:\(appleUserID)"),
                 displayName: displayName?.nilIfBlank ?? String(localized: "common.default_user")
             )
         }
@@ -105,13 +96,6 @@ final class CloudKitBackendService: Sendable {
         objectID: NSManagedObjectID,
         displayName: String
     ) async throws -> FamilyInviteLink {
-        if persistence.inMemory {
-            guard let previewURL = URL(string: "https://www.icloud.com/share/onecart-preview") else {
-                throw OneCartCloudKitError.shareURLUnavailable
-            }
-            return FamilyInviteLink(id: UUID(), familyName: displayName, url: previewURL)
-        }
-
         let persistence = persistence
         // CloudKitDeadline releases the caller even when an SDK callback ignores cancellation;
         // the ceiling and why it is below the builder's worst case: FamilyInviteShareBudget.
@@ -204,10 +188,6 @@ final class CloudKitBackendService: Sendable {
 
     @discardableResult
     func leaveFamily(objectID: NSManagedObjectID) async throws -> Bool {
-        if persistence.inMemory {
-            return true
-        }
-
         let zoneID: CKRecordZone.ID
         if let share = try share(forObjectID: objectID) {
             CartSyncLog.shareACL.info(
@@ -303,9 +283,6 @@ extension CloudKitBackendService {
     }
 
     func revokeInviteLink(objectID: NSManagedObjectID) async throws {
-        if persistence.inMemory {
-            return
-        }
         guard let share = try share(forObjectID: objectID) else {
             CartSyncLog.shareACL.info("revokeInvite skip no-share")
             throw OneCartCloudKitError.familyNotShared

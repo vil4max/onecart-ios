@@ -65,7 +65,7 @@ extension AppSession {
                 forKey: activeFamilyKey(accountID: account.id)
             )
             try cartContent.reloadContent(familySpaceID: selectedID)
-            access = backend.access(for: selected)
+            access = cloudSharing.access(for: selected)
             if previousID != selectedID {
                 familyMembers = []
             }

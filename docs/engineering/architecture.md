@@ -37,7 +37,22 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
 | `FamilySpaceRepository` | local CRUD / purchase sessions (+ personal restore / dedupe / product slices) |
-| `CloudKitBackendService` + `FamilyInviteLinkBuilder` | iCloud account, members, share lifecycle, private-zone account deletion |
+| `FamilyCloudSharing` (`CloudKitBackendService` + `FamilyInviteLinkBuilder`) | iCloud account, members, share lifecycle, user identity, private-zone account deletion |
+
+iCloud reaches the session only through `FamilyCloudSharing`
+(`OneCart/Data/CloudKit/FamilyCloudSharing.swift`): restored account, access, members, invite link,
+revoke, ACL heal, remove member, leave, plus the `CloudUserIdentifying` and
+`AccountCloudDataDeleting` members it inherits. `AppSession`, `SessionBootstrapper` and
+`FamilyShareOrchestrator` take `any FamilyCloudSharing` in `init`; the live composition builds
+`CloudKitBackendService`. Shared-store edit rights come from `RecordPermissionChecking`, injected
+into `CloudKitPermissionAuthorizer` (live: `ContainerRecordPermissions`, which asks the container).
+No production path branches on the store kind: unit tests and the DEBUG welcome demo inject the
+`#if DEBUG` `InMemoryFamilySharing` (`OneCart/Application/Demo/`), which answers as the app did on an
+ephemeral store (one fixed account, scope-based access, no `CKShare`, a preview invite link, leave
+and revoke without a server). The test session builders (`makeTestSession`,
+`MembershipSessionFixture`) also pass `AllowAllRecordPermissions` and start the session ready.
+`PersistenceController.isEphemeral` (temporary store files) only shapes store setup and
+maintenance; `mirrorsToCloudKit` gates the wait for a cloud import before a hard refresh.
 
 Screens never see `AppSession`. Its surface is split into role protocols in
 `OneCart/Application/Services/` (`SessionStateReading`, `CartEditing`, `HistoryBrowsing`,
@@ -84,12 +99,13 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Application/LaunchChrome.swift` | Launch cart ride + shared chrome controls |
 | `OneCart/Application/MainTabView.swift` | Корзина / История / Настройки |
 | `OneCart/Data/Persistence/PersistenceController.swift` | Private/shared SQLite + CloudKit scopes; non-destructive `load()` |
-| `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile |
+| `OneCart/Data/Persistence/PersistenceController+*.swift` | Store descriptions + diagnostics / wipe / env reconcile + account-deletion store state machine |
 | `OneCart/Data/Persistence/OneCartManagedObjectModel.swift` | Programmatic `NSManagedObjectModel` |
 | `OneCart/Data/Persistence/ManagedObjects.swift` | Core Data entity subclasses |
 | `OneCart/Data/Persistence/FamilySpaceRepository.swift` | Local CRUD; `archivePurchasedBefore` / `completePurchased` (Completed → history) |
 | `OneCart/Data/Persistence/FamilySpaceRepository+*.swift` | Personal restore (`+Merge`) / dedupe / product mutation slices |
-| `OneCart/Data/CloudKit/` | Split: models, errors, share ACL/branding, permissions, backend, invite builder |
+| `OneCart/Data/CloudKit/` | Split: `FamilyCloudSharing` seam, models, errors, share ACL/branding, `CloudKitDeadline`, permissions (`RecordPermissionChecking`), backend, invite builder |
+| `OneCart/Application/Demo/InMemoryFamilySharing.swift` | DEBUG-only iCloud stand-in for unit tests and the welcome demo |
 | `OneCart/Data/Authentication/AppleSignInService.swift` | Sign in with Apple + Keychain session |
 | `OneCart/Features/Onboarding/WelcomeView.swift` | SIWA + cart pitch + iCloud connect |
 | `OneCart/Features/Shopping/HomeView.swift` | Cart home |

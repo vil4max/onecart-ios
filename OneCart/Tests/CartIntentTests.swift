@@ -218,7 +218,8 @@ final class CartIntentTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneCartSiriStart-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let persistence = PersistenceController(inMemory: false, storeDirectoryURL: directory, cloudKitEnabled: false)
+        let persistence = PersistenceController(
+            isEphemeral: false, storeDirectoryURL: directory, cloudKitEnabled: false)
         addTeardownBlock { removeStoreFiles(of: persistence) }
         let session = try makeTestSession(
             persistence: persistence,

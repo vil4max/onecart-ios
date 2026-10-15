@@ -167,7 +167,7 @@ struct AccountViewModelFakeTests {
         let fixture = try AccountHarness()
         #expect(!fixture.viewModel.canShareCart)
 
-        let store = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let store = PersistenceController(isEphemeral: true, cloudKitEnabled: false)
         StoreCleanupRegistry.register(store)
         fixture.state.activeFamilySpace = FamilySpace(context: store.container.viewContext)
         fixture.state.access = .member

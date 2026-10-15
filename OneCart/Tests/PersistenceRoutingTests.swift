@@ -125,7 +125,7 @@ final class PersistenceRoutingTests: XCTestCase {
         )
 
         let persistence = PersistenceController(
-            inMemory: false,
+            isEphemeral: false,
             storeDirectoryURL: directory,
             cloudKitEnabled: false
         )

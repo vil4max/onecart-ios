@@ -139,7 +139,7 @@ struct CartSuggestionsEngineTests {
     @MainActor
     @Test("REQ-HIST-040: Counts replicated purchases once per family when ranking suggestions")
     func replicatedPurchasesDoNotInflateFrequency() async throws {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = PersistenceController(isEphemeral: true, cloudKitEnabled: false)
         StoreCleanupRegistry.register(persistence)
         try await persistence.load()
         let context = persistence.container.viewContext

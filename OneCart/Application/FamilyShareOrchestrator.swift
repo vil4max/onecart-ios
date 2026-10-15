@@ -6,26 +6,26 @@ import OSLog
 @MainActor
 final class FamilyShareOrchestrator {
     private let persistence: PersistenceController
-    private let backend: CloudKitBackendService
+    private let cloudSharing: any FamilyCloudSharing
     private let repository: FamilySpaceRepository
 
     init(
         persistence: PersistenceController,
-        backend: CloudKitBackendService,
+        cloudSharing: any FamilyCloudSharing,
         repository: FamilySpaceRepository
     ) {
         self.persistence = persistence
-        self.backend = backend
+        self.cloudSharing = cloudSharing
         self.repository = repository
     }
 
     func ensureOwnerReadWriteACL(for family: FamilySpace, isOwner: Bool) async {
-        guard isOwner, !persistence.inMemory else { return }
+        guard isOwner else { return }
         guard let scope = persistence.scope(for: family), scope == .private || scope == .shared else {
             return
         }
         do {
-            let changed = try await backend.ensureReadWriteACL(objectID: family.objectID)
+            let changed = try await cloudSharing.ensureReadWriteACL(objectID: family.objectID)
             if changed {
                 CartSyncLog.shareACL.info(
                     "owner ACL heal persisted hasURL=true scope=\(scope.rawValue, privacy: .public)"
@@ -53,9 +53,9 @@ final class FamilyShareOrchestrator {
         if viewContext.hasChanges {
             try viewContext.save()
         }
-        let backend = backend
+        let cloudSharing = cloudSharing
         let task = Task.detached(priority: .userInitiated) {
-            try await backend.createFamilyInviteLink(
+            try await cloudSharing.createFamilyInviteLink(
                 objectID: objectID,
                 displayName: displayName
             )
@@ -77,9 +77,9 @@ final class FamilyShareOrchestrator {
         CartSyncLog.action.info(
             "revokeInvite start family=\(familyID?.uuidString ?? "-", privacy: .public)"
         )
-        let backend = backend
+        let cloudSharing = cloudSharing
         let task = Task.detached(priority: .userInitiated) {
-            try await backend.revokeInviteLink(objectID: objectID)
+            try await cloudSharing.revokeInviteLink(objectID: objectID)
         }
         try await withTaskCancellationHandler {
             try await task.value

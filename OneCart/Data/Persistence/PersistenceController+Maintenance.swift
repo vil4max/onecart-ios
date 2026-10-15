@@ -66,7 +66,7 @@ extension PersistenceController {
     }
 
     func hardResetPersistentStores() throws {
-        guard !inMemory else { return }
+        guard !isEphemeral else { return }
 
         loadLock.lock()
         loaded = false
@@ -92,7 +92,7 @@ extension PersistenceController {
         let rebuilt = Self.makeContainer()
         rebuilt.persistentStoreDescriptions = Self.makeStoreDescriptions(
             directory: storeDirectoryURL,
-            inMemory: false,
+            isEphemeral: false,
             cloudKitEnabled: cloudKitEnabled
         )
         container = rebuilt
@@ -106,8 +106,14 @@ extension PersistenceController {
         previous == CloudKitShareEnvironment.development.rawValue
     }
 
+    /// True when the stores mirror to CloudKit, so a refresh has an import worth waiting for.
+    /// `isEphemeral` stores (tests, the DEBUG welcome demo) never mirror; cloud behavior is injected.
+    var mirrorsToCloudKit: Bool {
+        !isEphemeral && cloudKitEnabled
+    }
+
     func reconcileCloudKitEnvironmentBeforeLoad() throws {
-        guard !inMemory, cloudKitEnabled else { return }
+        guard mirrorsToCloudKit else { return }
 
         let current = CloudKitShareEnvironment.process.rawValue
         let previous = defaults.string(forKey: Self.cloudKitLocalEnvironmentKey)
@@ -127,7 +133,7 @@ extension PersistenceController {
     }
 
     func stampCloudKitEnvironmentAfterSuccessfulLoad() {
-        guard !inMemory, cloudKitEnabled else { return }
+        guard mirrorsToCloudKit else { return }
         defaults.set(
             CloudKitShareEnvironment.process.rawValue,
             forKey: Self.cloudKitLocalEnvironmentKey

@@ -187,7 +187,7 @@ struct MemberProfileTests {
 
     @Test("REQ-AUTH-040: an iCloud account change forgets the cached record name")
     func accountChangeForgetsCachedRecordName() {
-        let persistence = PersistenceController(inMemory: true, cloudKitEnabled: false)
+        let persistence = PersistenceController(isEphemeral: true, cloudKitEnabled: false)
         StoreCleanupRegistry.register(persistence)
         let backend = CloudKitBackendService(persistence: persistence)
         _ = backend.userRecordNameCache.withLock { $0.store("_previousUser", readUnder: $0.generation) }
