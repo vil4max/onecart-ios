@@ -12,7 +12,7 @@ Product policy (see [product.md](../requirements/product.md)): **one living fami
 
 | In the shell now | Intentionally out of navigation |
 |------------------|----------------------------------|
-| Tabs: Корзина / История / Настройки; appearance, icon and language preferences | Unit / price input / Stores / catalog UI |
+| Tabs: Корзина / История / Настройки; the app icon choice (it sets the accent); appearance and language follow the device | Unit / price input / Stores / catalog UI |
 | Name-only inline add via `+` empty row + keyboard; category SF Symbol from keywords, optional on-device FM refine | Rich product editor / money UI |
 | Invite + Revoke invite + leave from Настройки; members on the same screen | Multi-cart switcher |
 | Hard cart sync (pull / appear / foreground) with nav «Updating…» | Toast / sync banner chrome |

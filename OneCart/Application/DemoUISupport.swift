@@ -45,34 +45,6 @@
             return MainTab(rawValue: normalized)
         }
 
-        static let accentArgument = "-oneCartDemoAccent"
-
-        static var initialAccent: AppAccentColor? {
-            guard isEnabled else { return nil }
-            let arguments = ProcessInfo.processInfo.arguments
-            guard let index = arguments.firstIndex(of: accentArgument),
-                let raw = arguments[safe: index + 1]
-            else {
-                return nil
-            }
-            let normalized = raw.hasPrefix("accent=") ? String(raw.dropFirst(7)) : raw
-            return AppAccentColor(rawValue: normalized.lowercased())
-        }
-
-        static let themeArgument = "-oneCartDemoTheme"
-
-        static var initialTheme: AppTheme? {
-            guard isEnabled else { return nil }
-            let arguments = ProcessInfo.processInfo.arguments
-            guard let index = arguments.firstIndex(of: themeArgument),
-                let raw = arguments[safe: index + 1]
-            else {
-                return nil
-            }
-            let normalized = raw.hasPrefix("theme=") ? String(raw.dropFirst(6)) : raw
-            return AppTheme(rawValue: normalized.lowercased())
-        }
-
         @MainActor
         static func makeSession() -> AppSession {
             let suiteName: String
@@ -103,12 +75,6 @@
                 defaults: demoDefaults,
                 appleSignIn: DemoAppleSignInService(role: role)
             )
-            if let initialAccent {
-                session.preferences.accentColor = initialAccent
-            }
-            if let initialTheme {
-                session.preferences.theme = initialTheme
-            }
             if role == .welcome {
                 session.needsWelcome = true
                 session.welcomePhase = .signIn

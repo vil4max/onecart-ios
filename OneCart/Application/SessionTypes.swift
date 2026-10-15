@@ -47,59 +47,12 @@ enum ParticipantDisplayName {
     }
 }
 
-enum AppTheme: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String {
-        rawValue
-    }
-
-    var localizedTitleKey: LocalizedStringKey {
-        switch self {
-        case .system: "theme.system"
-        case .light: "theme.light"
-        case .dark: "theme.dark"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .system: String(localized: "theme.system")
-        case .light: String(localized: "theme.light")
-        case .dark: String(localized: "theme.dark")
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class DevicePreferences {
     var onAccentChanged: ((AppAccentColor) -> Void)?
-    var onThemeChanged: ((AppTheme) -> Void)?
     /// Fires after any preference is persisted; the session refreshes the widget snapshot from it.
     var onChanged: (() -> Void)?
-
-    var theme: AppTheme {
-        didSet {
-            defaults.set(theme.rawValue, forKey: Keys.theme)
-            defaults.synchronize()
-            if defaults == .standard {
-                OneCartAppGroup.defaults?.set(theme.rawValue, forKey: Keys.theme)
-            }
-            onThemeChanged?(theme)
-            onChanged?()
-        }
-    }
 
     var participantDisplayName: String {
         didSet {
@@ -136,17 +89,12 @@ final class DevicePreferences {
 
     private let defaults: UserDefaults
 
-    /// Theme and language follow the device (appearance, per-app language in iOS Settings) and
-    /// the accent follows the app icon; values stored by older versions are dropped at launch.
-    /// The app never writes `AppleLanguages`, so the system's per-app choice stays in place.
+    /// Appearance and language follow the device (per-app language in iOS Settings) and the
+    /// accent follows the app icon. The app never writes `AppleLanguages`, so the system's
+    /// per-app choice stays in place.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        theme = .system
-        defaults.removeObject(forKey: Keys.theme)
-        if defaults == .standard {
-            OneCartAppGroup.defaults?.set(AppTheme.system.rawValue, forKey: Keys.theme)
-        }
-        defaults.removeObject(forKey: Keys.language)
+        Self.removeRetiredKeys(from: defaults)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         let initialIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         appIcon = initialIcon
@@ -162,11 +110,7 @@ final class DevicePreferences {
     }
 
     func reloadFromDefaults() {
-        if theme != .system {
-            theme = .system
-        }
-        defaults.removeObject(forKey: Keys.theme)
-        defaults.removeObject(forKey: Keys.language)
+        Self.removeRetiredKeys(from: defaults)
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         appIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         accentColor = appIcon.accent
@@ -175,9 +119,19 @@ final class DevicePreferences {
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }
 
+    /// Older versions stored a theme and an in-app language; drop them so old installs are
+    /// cleaned. Only the real defaults own the App Group copy of the theme.
+    private static func removeRetiredKeys(from defaults: UserDefaults) {
+        defaults.removeObject(forKey: Keys.retiredTheme)
+        defaults.removeObject(forKey: Keys.retiredLanguage)
+        if defaults == .standard {
+            OneCartAppGroup.defaults?.removeObject(forKey: Keys.retiredTheme)
+        }
+    }
+
     private enum Keys {
-        static let theme = "onecart.theme"
-        static let language = "onecart.language"
+        static let retiredTheme = "onecart.theme"
+        static let retiredLanguage = "onecart.language"
         static let accentColor = OneCartAppGroup.accentColorKey
         static let appIcon = "onecart.app-icon"
         static let participantDisplayName = "onecart.participant-display-name"

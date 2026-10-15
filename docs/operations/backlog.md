@@ -35,7 +35,7 @@ Planned order (status kept here):
 |---|---|---|
 | L | Low-severity review leftovers: rename keeps `updatedAt`, session record name reset, single-flight load preparation, share watchdog, plus the second review's lows: test stores deleted while open, tab view models outliving the tab screen, weakened invariant comments, `sync.invite_owner_only` key name | done |
 | G1 | Retire dead requirement code: legacy-name helpers and REQ-CART-120, the unused join merge and REQ-CART-010 coverage, `.spec-lock.json`, the unreferenced preview video | done |
-| G2 | Remove the remaining theme plumbing that does nothing in Release | pending |
+| G2 | Remove the remaining theme plumbing that does nothing in Release | done |
 | G3 | Shrink the shipped-data Swift API (`ProductDraft`, unused accessors and writes) and narrow the share-environment guard; Core Data and CloudKit schema unchanged, `status = "active"` still written for v1.2.1 | pending |
 | G4 | Clock and sleep seam (`AppClock`) replacing direct `Date()` and `Task.sleep` | pending |
 | G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | pending |
@@ -58,8 +58,7 @@ Planned order (status kept here):
   accent in the SwiftUI environment (`features-08`), shared app and widget mappings
   (`features-17`), demo hooks out of views (`features-16`).
 - Requirements: activity notifications identify authors by display name, which needs author IDs
-  in the schema (`features-20`); the theme preference does nothing in Release
-  (`application-08`).
+  in the schema (`features-20`).
 - Shipped data: leftover catalog and price fields still synced to CloudKit (`data-17`); the
   share-environment guard and legacy wipe (`data-19`).
 - Tests that need the seams above: leave-purge timeout and recovery (`tests-06`), untested

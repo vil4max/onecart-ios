@@ -71,10 +71,10 @@ struct HostedAccountViewTests {
 
         #expect(hosted.element(identifier: "account.display_name")?.label == "Alex")
         #expect(hosted.element(identifier: "account.sign_out")?.label == String(localized: "account.sign_out"))
-        // Appearance is the icon alone (it sets the accent); no accent palette, theme or
-        // language picker; one row opens the app's page in the system Settings.
+        // Appearance is the icon alone (it sets the accent); no accent palette, and the catalog
+        // has no theme or language strings to pick; one row opens the app's page in the system
+        // Settings.
         #expect(!hosted.containsLabel(String(localized: "accent.berry")))
-        #expect(!hosted.containsLabel(String(localized: "theme.dark")))
         #expect(
             await hosted.pump {
                 AppIconOption.allCases.allSatisfy { hosted.element(label: $0.title) != nil }

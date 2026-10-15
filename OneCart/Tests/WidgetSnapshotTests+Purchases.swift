@@ -89,10 +89,7 @@ extension WidgetSnapshotTests {
         XCTAssertEqual(fixture.session.activeLists.count, 2)
         XCTAssertNotNil(fixture.session.activeLists.first?.store)
 
-        let snapshot = fixture.session.makeWidgetSnapshot(
-            theme: fixture.session.preferences.theme,
-            accent: fixture.session.preferences.accentColor
-        )
+        let snapshot = fixture.session.makeWidgetSnapshot(accent: fixture.session.preferences.accentColor)
 
         XCTAssertEqual(ShoppingListEntity.primaryList(in: fixture.session.activeLists)?.id, fixture.listID)
         XCTAssertEqual(snapshot.items.map(\.id), [fixture.productID])

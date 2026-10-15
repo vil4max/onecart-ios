@@ -30,17 +30,18 @@ final class DevicePreferencesTests: XCTestCase {
     }
 
     /// REQ-SHELL-030: the app follows the device appearance; a theme stored by an older version
-    /// is dropped at launch, and the widget's copy is reset with it.
+    /// is dropped at launch and on reload.
     func testThemeFollowsTheDeviceAtLaunch() throws {
         let defaults = try makeDefaults()
         defaults.set("dark", forKey: "onecart.theme")
+        defaults.set("Папа", forKey: "onecart.unrelated-test-key")
         let preferences = DevicePreferences(defaults: defaults)
-        XCTAssertEqual(preferences.theme, .system)
-        XCTAssertNil(preferences.theme.colorScheme)
+        XCTAssertNil(defaults.string(forKey: "onecart.theme"))
+        XCTAssertEqual(defaults.string(forKey: "onecart.unrelated-test-key"), "Папа")
 
         defaults.set("light", forKey: "onecart.theme")
         preferences.reloadFromDefaults()
-        XCTAssertEqual(preferences.theme, .system)
+        XCTAssertNil(defaults.string(forKey: "onecart.theme"))
     }
 
     /// REQ-SHELL-030: the language comes from the system (per-app language in iOS Settings); a
@@ -57,20 +58,6 @@ final class DevicePreferencesTests: XCTestCase {
         preferences.reloadFromDefaults()
         XCTAssertNil(defaults.string(forKey: "onecart.language"))
         XCTAssertEqual(defaults.stringArray(forKey: "AppleLanguages"), ["uk"])
-    }
-
-    func testAppThemePropertiesAndColorScheme() {
-        XCTAssertEqual(AppTheme.system.id, "system")
-        XCTAssertEqual(AppTheme.light.id, "light")
-        XCTAssertEqual(AppTheme.dark.id, "dark")
-
-        XCTAssertNil(AppTheme.system.colorScheme)
-        XCTAssertEqual(AppTheme.light.colorScheme, .light)
-        XCTAssertEqual(AppTheme.dark.colorScheme, .dark)
-
-        XCTAssertFalse(AppTheme.system.title.isEmpty)
-        XCTAssertFalse(AppTheme.light.title.isEmpty)
-        XCTAssertFalse(AppTheme.dark.title.isEmpty)
     }
 
     func testInviteLinkErrorDescriptionsAreNonEmpty() {
@@ -149,7 +136,7 @@ final class DevicePreferencesTests: XCTestCase {
         XCTAssertEqual(AppIconOption.midnight.accent, .sunset)
     }
 
-    func testAccentAndThemeChangeCallbacks() throws {
+    func testAccentChangeCallback() throws {
         let defaults = try makeDefaults()
         let preferences = DevicePreferences(defaults: defaults)
 
@@ -157,20 +144,19 @@ final class DevicePreferencesTests: XCTestCase {
         preferences.onAccentChanged = { notifiedAccent = $0 }
         preferences.accentColor = .coral
         XCTAssertEqual(notifiedAccent, .coral)
-
-        var notifiedTheme: AppTheme?
-        preferences.onThemeChanged = { notifiedTheme = $0 }
-        preferences.theme = .dark
-        XCTAssertEqual(notifiedTheme, .dark)
     }
 
-    func test_REQ_SHELL_030_themeOnIsolatedDefaultsDoesNotTouchAppGroup() throws {
+    /// REQ-SHELL-030: cleaning isolated defaults leaves the App Group copy to the real defaults.
+    func test_REQ_SHELL_030_retiredThemeCleanupOnIsolatedDefaultsDoesNotTouchAppGroup() throws {
+        let appGroup = try XCTUnwrap(OneCartAppGroup.defaults, "App Group defaults unavailable")
+        let original = appGroup.object(forKey: "onecart.theme")
+        defer { appGroup.set(original, forKey: "onecart.theme") }
+        appGroup.set("dark", forKey: "onecart.theme")
+
         let preferences = DevicePreferences(defaults: try makeDefaults())
-        let before = OneCartAppGroup.defaults?.string(forKey: "onecart.theme")
+        preferences.reloadFromDefaults()
 
-        preferences.theme = before == AppTheme.dark.rawValue ? .light : .dark
-
-        XCTAssertEqual(OneCartAppGroup.defaults?.string(forKey: "onecart.theme"), before)
+        XCTAssertEqual(appGroup.string(forKey: "onecart.theme"), "dark")
     }
 
     func testAppAccentColorProperties() {

@@ -61,14 +61,9 @@ private struct OneCartScene: View {
     @Environment(\.scenePhase) private var scenePhase
     let model: AppSession
 
-    private var preferences: DevicePreferences {
-        model.preferences
-    }
-
     var body: some View {
         RootView()
             .environment(model)
-            .preferredColorScheme(preferences.theme.colorScheme)
             .task {
                 if Self.bootstrapTask == nil {
                     Self.bootstrapTask = Task { @MainActor in

@@ -212,7 +212,7 @@ extension AppSession {
     /// Starts the shopping trip Live Activity (REQ-SIRI-030, REQ-WIDGET-040).
     func beginShoppingTrip() async throws {
         guard canEdit else { throw CartIntentError.readOnly }
-        let snapshot = makeWidgetSnapshot(theme: preferences.theme, accent: preferences.accentColor)
+        let snapshot = makeWidgetSnapshot(accent: preferences.accentColor)
         try await shoppingTrip.start(with: snapshot)
     }
 

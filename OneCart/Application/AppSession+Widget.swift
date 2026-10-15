@@ -2,17 +2,11 @@ import CoreData
 import Foundation
 
 extension AppSession {
-    func updateWidgetSnapshot(
-        themeOverride: AppTheme? = nil,
-        accentOverride: AppAccentColor? = nil
-    ) {
+    func updateWidgetSnapshot(accentOverride: AppAccentColor? = nil) {
         // Bootstrap reloads run before account state is restored; an empty write here would
         // outlive a process suspended mid-launch and blank the widget.
         guard isReady else { return }
-        let snapshot = makeWidgetSnapshot(
-            theme: themeOverride ?? preferences.theme,
-            accent: accentOverride ?? preferences.accentColor
-        )
+        let snapshot = makeWidgetSnapshot(accent: accentOverride ?? preferences.accentColor)
         widgetStore.save(snapshot: snapshot)
         // The shopping trip reads the same snapshot, so it never disagrees with the widget.
         shoppingTrip.sync(with: snapshot)
@@ -22,9 +16,13 @@ extension AppSession {
     static let widgetNeededLimit = 6
     static let widgetCompletedLimit = 2
 
+    /// REQ-SHELL-030: the widgets follow the device appearance. `themeRaw` stays in the
+    /// snapshot so snapshots written by older builds still decode.
+    static let widgetThemeRaw = "system"
+
     /// The active cart as the widgets and the shopping trip draw it; without an account or
     /// cart it is the empty snapshot, whose missing IDs end a running trip.
-    func makeWidgetSnapshot(theme activeTheme: AppTheme, accent activeAccent: AppAccentColor) -> WidgetCartSnapshot {
+    func makeWidgetSnapshot(accent activeAccent: AppAccentColor) -> WidgetCartSnapshot {
         guard let accountID = account?.id, let familyID = activeFamilySpace?.id,
             let list = ShoppingListEntity.primaryList(in: activeLists)
         else {
@@ -36,7 +34,7 @@ extension AppSession {
                 lastUpdated: Date(),
                 familyMemberCount: 1,
                 activePartnerName: nil,
-                themeRaw: activeTheme.rawValue,
+                themeRaw: Self.widgetThemeRaw,
                 accentColorRaw: activeAccent.rawValue,
                 items: []
             )
@@ -90,7 +88,7 @@ extension AppSession {
             lastUpdated: Date(),
             familyMemberCount: max(1, familyMembers.count),
             activePartnerName: partnerName,
-            themeRaw: activeTheme.rawValue,
+            themeRaw: Self.widgetThemeRaw,
             accentColorRaw: activeAccent.rawValue,
             accountID: accountID,
             familyID: familyID,

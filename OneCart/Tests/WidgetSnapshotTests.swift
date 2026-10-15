@@ -149,15 +149,15 @@ final class WidgetSnapshotTests: XCTestCase {
     }
 
     @MainActor
-    func testUpdateWidgetSnapshotThemeOverride() throws {
+    /// REQ-SHELL-030: the app writes the system appearance, so the widget follows the device.
+    func test_REQ_SHELL_030_widgetSnapshotFollowsTheDeviceAppearance() throws {
         let store = try makeWidgetStore().store
         let session = try makeTestSession(widgetStore: store)
         session.isReady = true
-        session.preferences.theme = .light
-        session.updateWidgetSnapshot(themeOverride: .dark)
-        let loaded = store.loadSnapshot()
-        XCTAssertEqual(loaded?.themeRaw, "dark")
-        XCTAssertEqual(loaded?.preferredColorScheme, .dark)
+        session.updateWidgetSnapshot()
+        let loaded = try XCTUnwrap(store.loadSnapshot())
+        XCTAssertEqual(loaded.themeRaw, "system")
+        XCTAssertNil(loaded.preferredColorScheme)
     }
 
     @MainActor
