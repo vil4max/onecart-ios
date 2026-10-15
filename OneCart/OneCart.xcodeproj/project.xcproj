@@ -91,6 +91,7 @@
         { "path": "LaunchChrome.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "MainTabView.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "DemoUISupport.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "DemoLaunchOptions.swift", "target-membership": [ "OneCart/compile-sources" ] },
         {
           "kind": "group",
           "path": "Demo",
@@ -136,6 +137,7 @@
             { "path": "AccountViewModel.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AccountRows.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AccountView.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "InviteShareController.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
         },
       ],
@@ -225,6 +227,7 @@
             },
             { "path": "OneCartStableID.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AppClock.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "CartLines.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "FamilyCartMerge.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartHaptics.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "MemberJoinNotifier.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -393,6 +396,9 @@
         { "path": "CartIntentSpeechTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "ShareParticipantRulesTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "MetricPayloadSummaryTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "CartLinesTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "InviteShareControllerTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "DemoLaunchOptionsTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",

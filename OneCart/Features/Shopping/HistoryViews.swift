@@ -6,9 +6,8 @@ struct HistoryView: View {
     /// The pushed value is the snapshot the row was tapped with; the detail resolves its live
     /// contents through the ViewModel.
     @State private var path: [HistoryDayGroup] = []
-    #if DEBUG
-        @State private var hasOpenedDemoDetail = false
-    #endif
+    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+    @State private var hasOpenedDemoDetail = false
 
     var body: some View {
         // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
@@ -30,12 +29,8 @@ struct HistoryView: View {
                 HistoryDayDetailView(viewModel: viewModel, group: group)
             }
         }
-        // The conditional sits inside the closure: a modifier wrapped in `#if` is indented
-        // differently by SwiftFormat releases, which split local and CI lint.
         .onChange(of: groups.first?.id, initial: true) {
-            #if DEBUG
-                openDemoDetailIfRequested(groups)
-            #endif
+            openDemoDetailIfRequested(groups)
         }
     }
 
@@ -64,17 +59,14 @@ struct HistoryView: View {
         .listStyle(.insetGrouped)
     }
 
-    #if DEBUG
-        /// Demo launches (`-oneCartDemoHistoryDetail`) open the newest day for screenshots.
-        private func openDemoDetailIfRequested(_ groups: [HistoryDayGroup]) {
-            guard !hasOpenedDemoDetail,
-                ProcessInfo.processInfo.arguments.contains("-oneCartDemoHistoryDetail"),
-                let newest = groups.first
-            else { return }
-            hasOpenedDemoDetail = true
-            path = [newest]
-        }
-    #endif
+    /// Demo launches (`-oneCartDemoHistoryDetail`) open the newest day for screenshots; Release
+    /// builds always carry `DemoLaunchOptions.none`.
+    private func openDemoDetailIfRequested(_ groups: [HistoryDayGroup]) {
+        guard !hasOpenedDemoDetail, demoLaunchOptions.opensNewestHistoryDay, let newest = groups.first
+        else { return }
+        hasOpenedDemoDetail = true
+        path = [newest]
+    }
 }
 
 struct HistoryDayGroup: Identifiable, Hashable {

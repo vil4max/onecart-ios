@@ -132,7 +132,7 @@ struct AccountViewModelFakeTests {
 
     @Test("REQ-SHARE-030: a finished share releases the screen model instead of waiting out the timeout")
     func finishedShareReleasesViewModel() async throws {
-        weak var released: AccountViewModel?
+        weak var released: AccountViewModel?, releasedController: InviteShareController?
         do {
             let harness = try AccountHarness()
             harness.membership.inviteLinkResult = try .success(
@@ -142,11 +142,12 @@ struct AccountViewModelFakeTests {
             await harness.awaitShareCompletion()
             #expect(!harness.viewModel.isSharing)
             released = harness.viewModel
+            releasedController = harness.viewModel.inviteShare
         }
-        for _ in 0..<1000 where released != nil {
+        for _ in 0..<1000 where released != nil || releasedController != nil {
             await Task.yield()
         }
-        #expect(released == nil)
+        #expect(released == nil && releasedController == nil)
     }
 
     @Test("REQ-SHELL-050: a failed share shows the session's user-facing message as an alert")

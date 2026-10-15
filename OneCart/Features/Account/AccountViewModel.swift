@@ -7,9 +7,6 @@ typealias AccountSessionServices = AccountManaging & MembershipManaging & Sessio
 @MainActor
 @Observable
 final class AccountViewModel {
-    var sharePayload: CartSharePayload?
-    var isSharing = false
-    var shareAlert: UserAlert?
     var confirmingLeave = false
     var memberToRemove: FamilyMember?
     var confirmingSignOut = false
@@ -24,19 +21,21 @@ final class AccountViewModel {
     private let membership: any MembershipManaging
     private let accountManager: any AccountManaging
     private let iconSwitcher: any AppIconSwitching
-    private let shareTimeout: Duration
     private let clock: AppClock
     private let requestNotificationAuthorization: @MainActor () -> Void
-    private var shareGeneration = 0
-    @ObservationIgnored private var shareWatchdog: Task<Void, Never>?
+    /// The invite share with its timeout; Settings forwards to it.
+    let inviteShare: InviteShareController
+    let appVersion: AppVersionInfo
 
-    static let defaultShareTimeout: Duration = .seconds(48)
+    static let defaultShareTimeout = InviteShareController.defaultTimeout
 
     init(
         state: any SessionStateReading,
         membership: any MembershipManaging,
         account: any AccountManaging,
         iconSwitcher: any AppIconSwitching = SystemAppIconSwitcher(),
+        haptics: any HapticsPlaying = SystemHaptics(),
+        appVersion: AppVersionInfo = .unknown,
         shareTimeout: Duration = defaultShareTimeout,
         clock: AppClock = .live,
         requestNotificationAuthorization: @escaping @MainActor () -> Void = {
@@ -47,13 +46,20 @@ final class AccountViewModel {
         self.membership = membership
         accountManager = account
         self.iconSwitcher = iconSwitcher
-        self.shareTimeout = shareTimeout
+        self.appVersion = appVersion
         self.clock = clock
         self.requestNotificationAuthorization = requestNotificationAuthorization
+        inviteShare = InviteShareController(
+            membership: membership,
+            haptics: haptics,
+            clock: clock,
+            timeout: shareTimeout
+        )
     }
 
     convenience init(
         session: any AccountSessionServices,
+        appVersion: AppVersionInfo = .unknown,
         shareTimeout: Duration = defaultShareTimeout,
         clock: AppClock = .live
     ) {
@@ -61,9 +67,31 @@ final class AccountViewModel {
             state: session,
             membership: session,
             account: session,
+            appVersion: appVersion,
             shareTimeout: shareTimeout,
             clock: clock
         )
+    }
+
+    // MARK: - Invite share
+
+    var sharePayload: CartSharePayload? {
+        get { inviteShare.sharePayload }
+        set { inviteShare.sharePayload = newValue }
+    }
+
+    var isSharing: Bool {
+        get { inviteShare.isSharing }
+        set { inviteShare.isSharing = newValue }
+    }
+
+    var shareAlert: UserAlert? {
+        get { inviteShare.alert }
+        set { inviteShare.alert = newValue }
+    }
+
+    func shareCart() {
+        inviteShare.share()
     }
 
     // MARK: - Session state
@@ -198,12 +226,6 @@ final class AccountViewModel {
         hasActiveFamilySpace && isOnline && !isSharing
     }
 
-    var appVersion: (version: String, build: String) {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-        return (version, build)
-    }
-
     var cartNamePromptKey: LocalizedStringKey {
         if state.isActiveFamilySpacePrivate {
             "account.cart_name_prompt_personal"
@@ -282,62 +304,23 @@ final class AccountViewModel {
         await accountManager.deleteAccount()
     }
 
-    func shareCart() {
-        guard !isSharing else { return }
-        isSharing = true
-        CartHaptics.light()
-        CartSyncLog.action.info("shareCart UI start")
-        shareGeneration += 1
-        let generation = shareGeneration
-        let work = Task { @MainActor in
-            defer { finishShare(generation: generation) }
-            do {
-                let link = try await membership.createFamilyInviteLink()
-                guard !Task.isCancelled else { return }
-                sharePayload = CartSharePayload(link: link)
-                CartHaptics.success()
-                CartSyncLog.action.info(
-                    "shareCart UI done host=\(link.url.host ?? "-", privacy: .public)"
-                )
-            } catch is CancellationError {
-                CartSyncLog.action.info("shareCart UI cancelled")
-                return
-            } catch {
-                CartSyncLog.action.error(
-                    "shareCart UI fail error=\(error.localizedDescription, privacy: .public)"
-                )
-                // A request the watchdog already timed out can still fail late with another
-                // error; the timeout alert, or a newer share, stays in charge.
-                guard generation == shareGeneration, !Task.isCancelled else { return }
-                CartHaptics.error()
-                if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                    shareAlert = .error(CloudKitUserFacingError.productionSchemaMissing)
-                } else {
-                    shareAlert = .error(membership.userFacingMessage(for: error))
-                }
-            }
-        }
-        let clock = clock
-        let shareTimeout = shareTimeout
-        shareWatchdog = Task { @MainActor in
-            try? await clock.sleep(shareTimeout)
-            guard generation == shareGeneration else { return }
-            work.cancel()
-            finishShare(generation: generation)
-            CartSyncLog.action.error("shareCart UI timeout")
-            if let message = OneCartCloudKitError.shareTimedOut.errorDescription {
-                shareAlert = .error(message)
-            }
-        }
+}
+
+/// The marketing version and build shown in the Settings footer, read once by the composition
+/// root so the screen model never reaches `Bundle.main`.
+struct AppVersionInfo: Equatable, Sendable {
+    let version: String
+    let build: String
+
+    static let unknown = AppVersionInfo(version: "—", build: "—")
+
+    init(version: String, build: String) {
+        self.version = version
+        self.build = build
     }
 
-    /// Retires the attempt so its watchdog and a late-finishing cancelled task cannot touch a newer share.
-    private func finishShare(generation: Int) {
-        guard generation == shareGeneration else { return }
-        shareGeneration += 1
-        isSharing = false
-        // A sleeping watchdog would keep this model alive for the whole timeout.
-        shareWatchdog?.cancel()
-        shareWatchdog = nil
+    init(bundle: Bundle) {
+        version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 }

@@ -51,7 +51,7 @@ Planned order (status kept here):
 | G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
 | G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | done (`OneCartPalette` stays shared presentation) |
 | G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | done |
-| G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | pending |
+| G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | done (trip and suggestions collaborators not extracted: they would not reduce the injected protocols) |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |
 | G13 | Split the repository behind protocols | done |
 | G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |

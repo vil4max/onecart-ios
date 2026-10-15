@@ -15,6 +15,10 @@ extension AppSession: SessionStateReading {
         cartContent.cartLists
     }
 
+    var hasActiveCartLists: Bool {
+        !cartContent.activeLists.isEmpty
+    }
+
     func cartItems(inListID listID: UUID) -> [CartItem] {
         cartContent.cartItems(inListID: listID)
     }

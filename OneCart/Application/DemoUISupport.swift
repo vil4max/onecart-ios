@@ -4,7 +4,7 @@
     import Foundation
 
     enum DemoUIMode {
-        static let launchArgument = "-oneCartDemoUI"
+        static let launchArgument = DemoLaunchOptions.demoUIArgument
         static let tabArgument = "-oneCartDemoTab"
         static let roleArgument = "-oneCartDemoRole"
         /// Starts the role from an empty store so seeding runs again; UI tests pass it on

@@ -18,12 +18,8 @@ struct HomeView: View {
                     ShoppingListView(viewModel: viewModel)
                 } else {
                     ScrollView {
-                        ContentUnavailableView {
-                            Label("cart.empty_title", systemImage: "cart.badge.plus")
-                        } description: {
-                            Text("home.empty_hint")
-                        }
-                        .containerRelativeFrame(.vertical)
+                        noListContent
+                            .containerRelativeFrame(.vertical)
                     }
                     .refreshable {
                         await viewModel.sync(reason: .pull)
@@ -40,6 +36,25 @@ struct HomeView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /// No `+` control is shown here, so a cart whose list cannot be addressed says so instead of
+    /// inviting an add.
+    @ViewBuilder
+    private var noListContent: some View {
+        if viewModel.isPrimaryListUnavailable {
+            ContentUnavailableView {
+                Label("cart.list_unavailable_title", systemImage: "questionmark.folder")
+            } description: {
+                Text("cart.list_unavailable_message")
+            }
+        } else {
+            ContentUnavailableView {
+                Label("cart.empty_title", systemImage: "cart.badge.plus")
+            } description: {
+                Text("home.empty_hint")
             }
         }
     }

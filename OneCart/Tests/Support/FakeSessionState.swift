@@ -20,6 +20,7 @@ final class FakeSessionState: SessionStateReading {
     var contentRevision = 0
     var cartTitle = "Family"
     var cartLists: [CartList] = []
+    var hasActiveCartLists = false
     let preferences: DevicePreferences
     var itemsByListID: [UUID: [CartItem]] = [:]
 

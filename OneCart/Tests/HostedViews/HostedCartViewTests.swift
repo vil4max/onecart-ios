@@ -316,6 +316,24 @@ struct HostedCartViewTests {
         #expect(hosted.element(identifier: "cart.add") == nil)
         #expect(hosted.elements(identifier: "cart.product_toggle").allSatisfy { !$0.isEnabled })
     }
+
+    @Test("REQ-SHELL-010: a cart whose primary list has no ID says the list is unavailable instead of inviting an add")
+    func unaddressablePrimaryListShowsUnavailable() async throws {
+        let harness = try Self.cartHarness(lines: [])
+        harness.state.cartLists = []
+        harness.state.hasActiveCartLists = true
+        let hosted = HostedView(HomeView(viewModel: harness.viewModel))
+        defer { hosted.tearDown() }
+
+        #expect(hosted.containsText(String(localized: "cart.list_unavailable_title")))
+        #expect(hosted.containsText(String(localized: "cart.list_unavailable_message")))
+        #expect(!hosted.containsText(String(localized: "home.empty_hint")))
+        #expect(hosted.element(identifier: "cart.add") == nil)
+
+        harness.state.hasActiveCartLists = false
+        #expect(await hosted.pump { hosted.containsText(String(localized: "home.empty_hint")) })
+        #expect(!hosted.containsText(String(localized: "cart.list_unavailable_title")))
+    }
 }
 
 private extension DynamicTypeSize {

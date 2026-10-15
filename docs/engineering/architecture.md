@@ -95,6 +95,20 @@ as `@State` from the session and passes them into the screens. Tests drive the V
 fakes that conform to the same protocols (`OneCart/Tests/Support/Fake*.swift`); hosted-view tests
 mount the screens over those fakes.
 
+Settings keeps the gates and dialog flags in `AccountViewModel`; the invite share (one at a time,
+the 48 s watchdog on the injected `AppClock`, the generation guard that keeps a timed-out or late
+attempt away from a newer one) lives in `InviteShareController`, which the ViewModel builds from
+its membership protocol and forwards to. Haptics reach both through `HapticsPlaying` (live:
+`SystemHaptics` over `CartHaptics`; tests record them), and the version footer is an
+`AppVersionInfo` value the composition root reads from the bundle. Logging stays on the static
+`CartSyncLog` loggers. The cart ViewModel derives its lines once per snapshot into the pure
+`CartLines` value (to-buy, category sections, completed, counts, progress), keyed by the item
+array the session replaces on each reload, instead of re-filtering it on every property read.
+When the active cart has lists but the primary one has no ID (`SessionStateReading.hasActiveCartLists`
+with no cart list), the cart says the list is unavailable rather than offering an add it has no
+control for. Trip control and suggestions stay on `CartViewModel`: splitting them into
+collaborators would not reduce its injected protocols without changing the screens' API.
+
 Screens and ViewModels see values, not Core Data entities. The role protocols expose immutable
 snapshots from `OneCart/Application/Services/CartValues.swift`: `CartList` and `CartItem`
 (`SessionStateReading.cartLists`, `cartItems(inListID:)`) and `HistoryLine`
@@ -116,7 +130,7 @@ the application layer (Siri intents, widgets, the shopping trip, the coordinator
 still works on entities.
 
 Time and sleeping come from `AppClock` (`OneCart/Shared/Support/AppClock.swift`): the repositories,
-the sync services, the invite preparer, the Settings share watchdog and the leave recovery take it
+the sync services, the invite preparer, the Settings share watchdog (`InviteShareController`) and the leave recovery take it
 through their initializer (the session passes its clock; defaults are `.live`, which sleeps on the suspending clock like the timers
 it replaced), and the launch ride reads it from the `appClock` environment value. Tests pass a
 `TestClock` (`OneCart/Tests/Support/TestClock.swift`) and move time with `advance(by:)` instead of
@@ -170,7 +184,10 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Shared/Support/ProductCategory.swift` | Metro categories, inference, section grouping |
 | `OneCart/Shared/Support/CategoryClassifier.swift` | Keyword + on-device FM category refine |
 | `OneCart/Features/Account/AccountView.swift` | Account tab shell |
-| `OneCart/Features/Account/AccountViewModel.swift` | Share / leave / revoke / rename / display-name / icon presentation state |
+| `OneCart/Features/Account/AccountViewModel.swift` | Leave / revoke / rename / display-name / icon presentation state; `AppVersionInfo` |
+| `OneCart/Features/Account/InviteShareController.swift` | Invite share with its clock-driven timeout and generation guard |
+| `OneCart/Shared/Support/CartLines.swift` | The cart's lines derived once per snapshot: sections, completed, counts |
+| `OneCart/Application/DemoLaunchOptions.swift` | DEBUG demo and test launch switches, parsed at the app root and passed through the environment |
 | `OneCart/Features/Account/AccountRows.swift` | Member and action rows |
 | `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
 | `Tooling/` | Shared build and CI tooling (`backend/`, style configs) |
@@ -219,6 +236,17 @@ Same SQLite filenames as older installs (no rename):
 | `OneCart-shared.sqlite` | shared database |
 
 DEBUG demo mode (`-oneCartDemoUI`) opens the same filenames under `Application Support/OneCartDemo/<role>/` and keeps its Sign in with Apple credential in memory, so seeded demo rows never reach the real stores, CloudKit, or the Keychain. `-oneCartDemoReset` wipes that role's demo store before seeding; the UI smoke suite (`OneCartUITests`, run by the shared scheme's Test action) launches every test with it so no state carries between runs.
+
+Screens read launch arguments only through the environment (the DEBUG initial tab in
+`MainTabView` still asks `DemoUIMode`). The app root parses them once (DEBUG only; Release keeps
+`.none`) into `DemoLaunchOptions` and passes it through the `demoLaunchOptions` environment value:
+`-oneCartDemoUI` hides the debug test-account button on Welcome, `-oneCartDemoComposer` opens the
+add composer and `-oneCartDemoHistoryDetail` the newest History day for screenshots. On the
+simulator, a failed Sign in with Apple turns into the debug test-account sign-in only with
+`-oneCartSimulatorTestAccountFallback` (for example `just run-sim -- -oneCartSimulatorTestAccountFallback`);
+otherwise the failure and Retry show as on a device. A `just demo role=welcome` walkthrough past
+sign-in on a simulator without an Apple ID needs that flag too. Session setup (`DemoUIMode`: role, tab,
+reset, seeding) stays in `DemoUISupport.swift`.
 
 New household spaces and children go to the private store. After `CKShare` accept, the shared space appears in the shared store. Local saves are immediate; CloudKit syncs when online.
 

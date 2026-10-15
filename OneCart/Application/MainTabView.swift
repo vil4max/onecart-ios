@@ -18,7 +18,7 @@ struct MainTabViewModels {
     init(session: AppSession) {
         cart = CartViewModel(session: session)
         history = HistoryViewModel(history: session)
-        account = AccountViewModel(session: session)
+        account = AccountViewModel(session: session, appVersion: AppVersionInfo(bundle: .main))
     }
 }
 

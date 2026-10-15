@@ -4,6 +4,7 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
     @ScaledMetric(relativeTo: .largeTitle) private var iconSize = 64.0
     let viewModel: WelcomeViewModel
     @State private var contentVisible = false
@@ -109,7 +110,7 @@ struct WelcomeView: View {
 
             #if DEBUG
                 // Hidden in the demo UI so store screenshots show the Release welcome screen.
-                if !DemoUIMode.isEnabled {
+                if !demoLaunchOptions.isDemoUI {
                     Button {
                         Task { await viewModel.signInWithTestAccount() }
                     } label: {
@@ -180,12 +181,14 @@ struct WelcomeView: View {
                 return
             }
             #if DEBUG && targetEnvironment(simulator)
-                // A simulator without an Apple ID cannot finish Sign in with Apple;
-                // debug builds fall back to the demo account. Never compiled into Release.
-                Task { await viewModel.signInWithTestAccount() }
-            #else
-                viewModel.reportSignInFailure(error)
+                // A simulator without an Apple ID cannot finish Sign in with Apple; a debug
+                // launch that opts in falls back to the demo account. Never compiled into Release.
+                if demoLaunchOptions.fallsBackToTestAccountOnSimulator {
+                    Task { await viewModel.signInWithTestAccount() }
+                    return
+                }
             #endif
+            viewModel.reportSignInFailure(error)
         }
     }
 

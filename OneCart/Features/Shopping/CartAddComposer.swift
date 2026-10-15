@@ -8,6 +8,7 @@ struct CartAddComposer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
     /// The circular button grows with the glyph's text style instead of clipping it.
     @ScaledMetric(relativeTo: .title2) private var addButtonSize: CGFloat = 44
     @Namespace private var glassNamespace
@@ -57,12 +58,10 @@ struct CartAddComposer: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .onAppear {
-            #if DEBUG
-                // Demo launches (`-oneCartDemoComposer`) open the composer for screenshots.
-                if ProcessInfo.processInfo.arguments.contains("-oneCartDemoComposer") {
-                    Task { await beginComposing() }
-                }
-            #endif
+            // Demo launches (`-oneCartDemoComposer`) open the composer for screenshots.
+            if demoLaunchOptions.opensComposer {
+                Task { await beginComposing() }
+            }
         }
         .onChange(of: draftName) {
             updateSuggestions()

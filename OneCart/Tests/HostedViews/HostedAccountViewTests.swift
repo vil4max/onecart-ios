@@ -33,6 +33,7 @@ struct HostedAccountHarness {
             membership: membership,
             account: accountManager,
             iconSwitcher: iconSwitcher,
+            appVersion: AppVersionInfo(version: "9.8.7", build: "42"),
             requestNotificationAuthorization: { notificationRequests.record() }
         )
     }
@@ -101,7 +102,8 @@ struct HostedAccountViewTests {
         #expect(hosted.element(identifier: "account.app_name")?.label == "OneCart Family")
         #expect(
             hosted.element(identifier: "account.version")?.label?
-                .contains(harness.viewModel.appVersion.version) == true)
+                .contains("9.8.7") == true)
+        #expect(hosted.element(identifier: "account.version")?.label?.contains("42") == true)
         #expect(await hosted.pump { harness.membership.refreshAccountSharingCount == 1 })
         // REQ-HIST-050: Settings has no History control either.
         #expect(

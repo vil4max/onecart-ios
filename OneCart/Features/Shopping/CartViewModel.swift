@@ -20,6 +20,8 @@ final class CartViewModel {
     /// Existing line to flash after an add resolved to it; cleared after `duplicateHighlightNanoseconds`.
     private(set) var duplicateHighlightID: UUID?
     private var hasCelebratedCurrentCompletion = false
+    /// Filled while a view reads `lines`; not observed, since the session state it derives from is.
+    @ObservationIgnored private var cachedLines: (listID: UUID, lines: CartLines)?
 
     private let state: any SessionStateReading
     private let cart: any CartEditing
@@ -144,43 +146,61 @@ final class CartViewModel {
         primaryList?.id
     }
 
+    /// The active cart has lists, but its primary list has no stable ID, so the session shows none
+    /// and there is nothing to add to; the screen says the list is unavailable instead of empty.
+    var isPrimaryListUnavailable: Bool {
+        primaryListID == nil && state.hasActiveCartLists
+    }
+
+    /// The primary list's lines, split once per content change. The session replaces the items
+    /// array on every reload (each bumps `contentRevision`), so the cache is keyed by that array:
+    /// an unchanged snapshot compares by buffer identity, and a changed one rebuilds the lines
+    /// even where a refresh did not bump the revision.
+    var lines: CartLines {
+        guard let listID = primaryListID else { return .empty }
+        let items = state.cartItems(inListID: listID)
+        if let cached = cachedLines, cached.listID == listID, cached.lines.items == items {
+            return cached.lines
+        }
+        let lines = CartLines(items: items)
+        cachedLines = (listID, lines)
+        return lines
+    }
+
     var products: [CartItem] {
-        guard let listID = primaryListID else { return [] }
-        return state.cartItems(inListID: listID)
+        lines.items
     }
 
     var toBuyProducts: [CartItem] {
-        products.filter { !$0.isPurchased }
+        lines.toBuy
     }
 
-    var toBuySections: [(category: ProductCategory, items: [CartItem])] {
-        ProductCategory.groupedSections(from: toBuyProducts) { $0.category }
+    var toBuySections: [CartLines.Section] {
+        lines.toBuySections
     }
 
     var completedProducts: [CartItem] {
-        products.filter(\.isPurchased)
+        lines.completed
     }
 
     var totalCount: Int {
-        products.count
+        lines.totalCount
     }
 
     var purchasedCount: Int {
-        completedProducts.count
+        lines.purchasedCount
     }
 
     var isEmpty: Bool {
-        products.isEmpty
+        lines.isEmpty
     }
 
     var isAllPurchased: Bool {
-        CartCelebration.isAllPurchased(totalCount: totalCount, toBuyCount: toBuyProducts.count)
+        lines.isAllPurchased
     }
 
-    /// Completed share of the cart for the progress bar; an empty cart reads as no progress.
     var progressFraction: Double {
-        guard totalCount > 0 else { return 0 }
-        return Double(purchasedCount) / Double(totalCount)
+        lines.progressFraction
     }
 
     /// The progress header tracks the trip only while the living cart has lines on it.

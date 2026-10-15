@@ -48,12 +48,21 @@ enum OneCartAppComposition {
 private struct OneCartRootScene: View {
     @State private var model = OneCartAppComposition.session
 
+    private static let demoLaunchOptions: DemoLaunchOptions = {
+        #if DEBUG
+            DemoLaunchOptions(arguments: ProcessInfo.processInfo.arguments)
+        #else
+            .none
+        #endif
+    }()
+
     var body: some View {
         OneCartScene(model: model)
             .environment(
                 \.managedObjectContext,
                 model.persistence.container.viewContext
             )
+            .environment(\.demoLaunchOptions, Self.demoLaunchOptions)
     }
 }
 

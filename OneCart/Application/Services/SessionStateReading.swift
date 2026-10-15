@@ -23,6 +23,9 @@ protocol SessionStateReading: AnyObject {
     var contentRevision: Int { get }
     var cartTitle: String { get }
     var cartLists: [CartList] { get }
+    /// True when the active cart has active lists, even when `cartLists` is empty because the
+    /// primary one has no stable ID.
+    var hasActiveCartLists: Bool { get }
     var preferences: DevicePreferences { get }
     /// The list's lines in cart order: newest to-buy first, then completed (REQ-SHELL-010).
     func cartItems(inListID listID: UUID) -> [CartItem]
