@@ -10,13 +10,19 @@ struct ShoppingTripLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ShoppingTripAttributes.self) { context in
             ShoppingTripLockScreenView(attributes: context.attributes, state: context.state)
-                .activitySystemActionForegroundColor(OneCartPalette.primary(accent: context.state.accentColor))
+                .environment(\.accent, context.state.accentColor)
+                .activitySystemActionForegroundColor(
+                    OneCartPalette.color(for: .primary, accent: context.state.accentColor)
+                )
         } dynamicIsland: { context in
             let state = context.state
             let accent = state.accentColor
+            // Each island region is its own view tree, so each region whose views read the
+            // accent from the environment receives it.
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    ShoppingTripCartTile(accent: accent, size: 36)
+                    ShoppingTripCartTile(size: 36)
+                        .environment(\.accent, accent)
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
@@ -30,17 +36,18 @@ struct ShoppingTripLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     ShoppingTripExpandedBottom(attributes: context.attributes, state: state)
+                        .environment(\.accent, accent)
                 }
             } compactLeading: {
                 Image(systemName: "cart.fill")
-                    .foregroundStyle(OneCartPalette.primaryAccent(for: .dark, accent: accent))
+                    .foregroundStyle(OneCartPalette.color(for: .primaryAccent, scheme: .dark, accent: accent))
                     .accessibilityLabel(Text(state.cartTitle))
             } compactTrailing: {
                 ShoppingTripRemainingLabel(state: state, font: .caption.weight(.semibold), isCompact: true)
             } minimal: {
                 ShoppingTripProgressRing(state: state)
             }
-            .keylineTint(OneCartPalette.primary(for: .dark, accent: accent))
+            .keylineTint(OneCartPalette.color(for: .primary, scheme: .dark, accent: accent))
         }
     }
 }
@@ -52,10 +59,14 @@ private struct ShoppingTripLockScreenView: View {
     let attributes: ShoppingTripAttributes
     let state: ShoppingTripAttributes.ContentState
 
+    private var palette: WidgetAccentPalette {
+        WidgetAccentPalette(scheme: scheme, accent: state.accentColor)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                ShoppingTripCartTile(accent: state.accentColor, size: 32)
+                ShoppingTripCartTile(size: 32)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(state.cartTitle)
                         .font(.subheadline.weight(.semibold))
@@ -66,17 +77,17 @@ private struct ShoppingTripLockScreenView: View {
                 ShoppingTripEndButton()
             }
 
-            ShoppingTripProgressBar(state: state, tint: OneCartPalette.primary(for: scheme, accent: state.accentColor))
+            ShoppingTripProgressBar(state: state, tint: palette.color(.primary))
 
             if state.isAllPurchased {
-                Label("widget.all_purchased", systemImage: "checkmark.seal.fill")
+                Label("widget.all_purchased", systemImage: CartSymbolName.progress(isAllPurchased: true))
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: state.accentColor))
+                    .foregroundStyle(palette.color(.primaryAccent))
             } else {
                 // Rows touch so each check target spans the whole row pitch without overlapping.
                 VStack(spacing: 0) {
                     ForEach(state.nextItems) { item in
-                        ShoppingTripItemRow(item: item, attributes: attributes, accent: state.accentColor)
+                        ShoppingTripItemRow(item: item, attributes: attributes)
                     }
                 }
                 ShoppingTripMoreCaption(state: state)
@@ -97,15 +108,18 @@ private struct ShoppingTripExpandedBottom: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ShoppingTripProgressBar(state: state, tint: OneCartPalette.primary(for: .dark, accent: state.accentColor))
+            ShoppingTripProgressBar(
+                state: state,
+                tint: OneCartPalette.color(for: .primary, scheme: .dark, accent: state.accentColor)
+            )
 
             if state.isAllPurchased {
-                Label("widget.all_purchased", systemImage: "checkmark.seal.fill")
+                Label("widget.all_purchased", systemImage: CartSymbolName.progress(isAllPurchased: true))
                     .font(.footnote.weight(.semibold))
             } else {
                 VStack(spacing: 0) {
                     ForEach(state.nextItems.prefix(Self.visibleItems)) { item in
-                        ShoppingTripItemRow(item: item, attributes: attributes, accent: state.accentColor)
+                        ShoppingTripItemRow(item: item, attributes: attributes)
                     }
                 }
             }
@@ -133,7 +147,7 @@ private struct ShoppingTripProgressRing: View {
                 .font(.system(size: symbolSize, weight: .bold))
         }
         .gaugeStyle(.accessoryCircularCapacity)
-        .tint(OneCartPalette.primary(for: .dark, accent: state.accentColor))
+        .tint(OneCartPalette.color(for: .primary, scheme: .dark, accent: state.accentColor))
         .accessibilityLabel(Text("cart.progress_compact \(state.purchasedCount) \(state.totalCount)"))
     }
 }
@@ -162,24 +176,16 @@ private struct ShoppingTripItemRow: View {
 
     let item: ShoppingTripItem
     let attributes: ShoppingTripAttributes
-    let accent: AppAccentColor
 
     var body: some View {
         HStack(spacing: 8) {
-            WidgetCategoryThumbnail(category: item.category, accent: accent, isDimmed: false, size: 24)
+            WidgetCategoryThumbnail(category: item.category, isDimmed: false, size: 24)
             Text(item.name)
                 .font(.footnote.weight(.medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button(
-                intent: ToggleProductPurchasedIntent(
-                    productID: item.id.uuidString,
-                    accountID: attributes.accountID.uuidString,
-                    familyID: attributes.familyID.uuidString,
-                    isPurchased: true
-                )
-            ) {
-                Image(systemName: "circle")
+            Button(intent: ToggleProductPurchasedIntent(purchasingTripItem: item, of: attributes)) {
+                Image(systemName: CartSymbolName.purchase(isPurchased: false))
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .frame(width: shoppingTripTapTarget, height: Self.height)
@@ -212,8 +218,10 @@ private struct ShoppingTripEndButton: View {
     }
 }
 
+/// Unlike `WidgetCartTile`, an opaque fill that follows the drawing appearance: the Live
+/// Activity has no accented or vibrant rendering to wash it out.
 private struct ShoppingTripCartTile: View {
-    let accent: AppAccentColor
+    @Environment(\.accent) private var accent
     let size: CGFloat
 
     var body: some View {
@@ -222,7 +230,7 @@ private struct ShoppingTripCartTile: View {
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .background(
-                OneCartPalette.primary(accent: accent),
+                OneCartPalette.color(for: .primary, accent: accent),
                 in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             )
             .accessibilityHidden(true)
@@ -261,7 +269,7 @@ private struct ShoppingTripRemainingLabel: View {
         }
         .font(font)
         .monospacedDigit()
-        .foregroundStyle(OneCartPalette.primaryAccent(for: .dark, accent: state.accentColor))
+        .foregroundStyle(OneCartPalette.color(for: .primaryAccent, scheme: .dark, accent: state.accentColor))
         .lineLimit(1)
     }
 }

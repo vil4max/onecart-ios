@@ -9,6 +9,8 @@ import Synchronization
 /// timeouts, late callbacks and door persists run without iCloud. Stores are named by scope, so
 /// a fake needs no `NSPersistentStore`.
 protocol CloudKitShareStoring: Sendable {
+    /// Draws the thumbnail a share without one is stamped with; nil stamps none.
+    var shareThumbnail: (any ShareThumbnailRendering)? { get }
     func fetchShares(matching objectIDs: [NSManagedObjectID]) throws -> [NSManagedObjectID: CKShare]
     func recordID(for objectID: NSManagedObjectID) -> CKRecord.ID?
     /// Makes the object's ID permanent if needed and shares it in a new `CKShare`.
@@ -48,7 +50,7 @@ extension CloudKitShareStoring {
         in scope: PersistentStoreScope
     ) async throws -> CKShare? {
         let aclChanged = OneCartShareLinkJoin.applyReadWriteACL(to: share, reopenInviteDoor: reopenInviteDoor)
-        let brandingChanged = OneCartShareBranding.apply(to: share)
+        let brandingChanged = OneCartShareBranding.apply(to: share, thumbnail: shareThumbnail)
         guard aclChanged || brandingChanged else { return nil }
         CartSyncLog.shareACL.info(
             // swiftlint:disable:next line_length
@@ -88,10 +90,18 @@ final class LazyCloudContainer: Sendable {
 struct LiveCloudKitShareStore: CloudKitShareStoring {
     let persistence: PersistenceController
     let cloudContainer: LazyCloudContainer
+    let shareThumbnail: (any ShareThumbnailRendering)?
 
-    init(persistence: PersistenceController, cloudContainer: LazyCloudContainer = LazyCloudContainer()) {
+    /// `shareThumbnail` has no default: the composition root passes the app's renderer, and
+    /// only stores that never brand a share for people (tests) pass nil.
+    init(
+        persistence: PersistenceController,
+        cloudContainer: LazyCloudContainer = LazyCloudContainer(),
+        shareThumbnail: (any ShareThumbnailRendering)?
+    ) {
         self.persistence = persistence
         self.cloudContainer = cloudContainer
+        self.shareThumbnail = shareThumbnail
     }
 
     func fetchShares(matching objectIDs: [NSManagedObjectID]) throws -> [NSManagedObjectID: CKShare] {

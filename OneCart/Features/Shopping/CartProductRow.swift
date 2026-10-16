@@ -9,16 +9,19 @@ struct ProductToggleButtonStyle: ButtonStyle {
 }
 
 struct ProductPurchaseToggle: View {
+    @Environment(\.accent) private var accent
     let isPurchased: Bool
     let canEdit: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: isPurchased ? "checkmark.circle.fill" : "circle")
+            Image(systemName: CartSymbolName.purchase(isPurchased: isPurchased))
                 .font(.title2)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isPurchased ? OneCartPalette.primary : Color.secondary.opacity(0.5))
+                .foregroundStyle(
+                    isPurchased ? OneCartPalette.color(for: .primary, accent: accent) : Color.secondary.opacity(0.5)
+                )
                 .contentTransition(.symbolEffect(.replace))
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
@@ -34,6 +37,7 @@ struct ProductPurchaseToggle: View {
 }
 
 struct CartCategoryThumbnail: View {
+    @Environment(\.accent) private var accent
     let category: ProductCategory
     let isDimmed: Bool
 
@@ -42,10 +46,10 @@ struct CartCategoryThumbnail: View {
     var body: some View {
         Image(systemName: category.symbolName)
             .font(.callout.weight(.semibold))
-            .foregroundStyle(OneCartPalette.primaryAccent)
+            .foregroundStyle(OneCartPalette.color(for: .primaryAccent, accent: accent))
             .frame(width: size, height: size)
             .background(
-                OneCartPalette.primarySoft,
+                OneCartPalette.color(for: .primarySoft, accent: accent),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
             .opacity(isDimmed ? 0.45 : 1)
@@ -57,6 +61,7 @@ struct CartCategoryThumbnail: View {
 /// One cart line: category tile, name (tap to rename), who added or completed it, and the check control.
 struct CartProductRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accent) private var accent
 
     let product: CartItem
     let canEdit: Bool
@@ -106,7 +111,7 @@ struct CartProductRow: View {
         .background {
             // Always in the hierarchy so the duplicate flash fades in and out instead of popping.
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(OneCartPalette.primarySoft)
+                .fill(OneCartPalette.color(for: .primarySoft, accent: accent))
                 .padding(.vertical, -6)
                 .padding(.horizontal, -8)
                 .opacity(isHighlighted ? 1 : 0)

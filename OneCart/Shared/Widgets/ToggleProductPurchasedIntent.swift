@@ -38,6 +38,29 @@ public struct ToggleProductPurchasedIntent: LiveActivityIntent {
         requestID = UUID().uuidString
     }
 
+    /// The check of a widget line: it flips the line's state in the snapshot's account and cart.
+    /// A snapshot without them builds an intent that `makeRequest()` rejects; the widget also
+    /// disables the control then.
+    public init(togglingItem item: WidgetItemSnapshot, in snapshot: WidgetCartSnapshot) {
+        self.init(
+            productID: item.id.uuidString,
+            accountID: snapshot.accountID?.uuidString ?? "",
+            familyID: snapshot.familyID?.uuidString ?? "",
+            isPurchased: !item.isPurchased
+        )
+    }
+
+    /// The check of a shopping-trip line: the trip lists only lines still to buy, so it always
+    /// marks the line purchased.
+    public init(purchasingTripItem item: ShoppingTripItem, of attributes: ShoppingTripAttributes) {
+        self.init(
+            productID: item.id.uuidString,
+            accountID: attributes.accountID.uuidString,
+            familyID: attributes.familyID.uuidString,
+            isPurchased: true
+        )
+    }
+
     #if !ONECART_WIDGET_EXTENSION
         /// A Live Activity intent performs in the app process, where `OneCartApp` registered the
         /// session; the extension's copy never reads it.

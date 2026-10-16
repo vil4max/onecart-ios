@@ -3,10 +3,10 @@ import SwiftUI
 /// Initials on the accent colour, or the remote avatar when the account has one.
 struct MemberAvatarView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accent) private var accent
     @ScaledMetric(relativeTo: .body) private var size = 40.0
     let name: String
     var remoteURL: String?
-    var accent: AppAccentColor?
 
     var body: some View {
         Group {
@@ -32,7 +32,7 @@ struct MemberAvatarView: View {
             .font(.system(.subheadline, design: .rounded, weight: .bold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(OneCartPalette.primary(for: colorScheme, accent: accent))
+            .background(OneCartPalette.color(for: .primary, scheme: colorScheme, accent: accent))
     }
 
     private var initials: String {
@@ -44,11 +44,10 @@ struct MemberAvatarView: View {
 
 struct AccountMemberRow: View {
     let member: FamilyMember
-    var accent: AppAccentColor?
 
     var body: some View {
         HStack(spacing: 12) {
-            MemberAvatarView(name: member.displayName, remoteURL: member.avatarURL, accent: accent)
+            MemberAvatarView(name: member.displayName, remoteURL: member.avatarURL)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -71,9 +70,9 @@ struct AccountMemberRow: View {
 /// The theme picker: icon previews with their names; a theme sets the app icon and the accent.
 struct AppIconPickerRow: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accent) private var accent
     @ScaledMetric(relativeTo: .body) private var previewSize = 56.0
     let selection: AppIconOption
-    var accent: AppAccentColor?
     let onSelect: (AppIconOption) -> Void
 
     var body: some View {
@@ -97,7 +96,11 @@ struct AppIconPickerRow: View {
                                         if selection == option {
                                             RoundedRectangle(cornerRadius: previewSize * 0.22 + 3)
                                                 .strokeBorder(
-                                                    OneCartPalette.primary(for: colorScheme, accent: accent),
+                                                    OneCartPalette.color(
+                                                        for: .primary,
+                                                        scheme: colorScheme,
+                                                        accent: accent
+                                                    ),
                                                     lineWidth: 2.5
                                                 )
                                         }

@@ -134,7 +134,7 @@ struct AccountView: View {
                 }
             } else {
                 ForEach(viewModel.displayedMembers) { member in
-                    AccountMemberRow(member: member, accent: preferences.accentColor)
+                    AccountMemberRow(member: member)
                         .accessibilityIdentifier("account.member_row")
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if viewModel.canRemove(member) {
@@ -229,7 +229,7 @@ struct AccountView: View {
 
     private var appearanceSection: some View {
         Section {
-            AppIconPickerRow(selection: preferences.appIcon, accent: preferences.accentColor) { option in
+            AppIconPickerRow(selection: preferences.appIcon) { option in
                 Task { await viewModel.selectAppIcon(option) }
             }
 
@@ -262,11 +262,7 @@ struct AccountView: View {
                     viewModel.beginEditingDisplayName()
                 } label: {
                     HStack(spacing: 12) {
-                        MemberAvatarView(
-                            name: account.displayName,
-                            remoteURL: account.avatarURL,
-                            accent: preferences.accentColor
-                        )
+                        MemberAvatarView(name: account.displayName, remoteURL: account.avatarURL)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(account.displayName)
                             Text(viewModel.displayNameCaptionKey)

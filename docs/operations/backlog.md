@@ -49,7 +49,7 @@ Planned order (status kept here):
 | G5 | CloudKit sharing protocol seam; no `inMemory` branches in production | done |
 | G6 | One share-mutation path; leave-purge timeout and recovery tests | done |
 | G7 | Composition root without default singletons; intents through dependencies | done |
-| G8 | Accent in the SwiftUI environment; shared app and widget mappings | pending |
+| G8 | Accent in the SwiftUI environment; shared app and widget mappings | done |
 | G9 | Widget shared code free of UI frameworks (no SwiftPM package: the project format has no package support) | done (`OneCartPalette` stays shared presentation) |
 | G10 | Value types for the UI instead of Core Data entities (`FamilySpace` stays) | done |
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | done (trip and suggestions collaborators not extracted: they would not reduce the injected protocols) |

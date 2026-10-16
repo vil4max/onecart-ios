@@ -30,6 +30,9 @@ final class FakeCloudKitShareStore: CloudKitShareStoring {
 
     private let state = Mutex(State())
 
+    /// A fixed stand-in for the app's renderer, so a branding stamp is observable without UIKit.
+    let shareThumbnail: (any ShareThumbnailRendering)? = FixedShareThumbnail()
+
     init(purgeOutcome: PurgeOutcome = .succeed) {
         state.withLock { $0.purgeOutcome = purgeOutcome }
     }
@@ -100,5 +103,14 @@ final class FakeCloudKitShareStore: CloudKitShareStoring {
 
     func userRecordID() async throws -> CKRecord.ID {
         CKRecord.ID(recordName: "_fake-user")
+    }
+}
+
+/// Fixed bytes in place of a rendered PNG; the branding only stores what the renderer returns.
+struct FixedShareThumbnail: ShareThumbnailRendering {
+    static let data = Data([0x89, 0x50, 0x4E, 0x47])
+
+    func thumbnailPNGData() -> Data? {
+        Self.data
     }
 }

@@ -25,7 +25,7 @@ final class CloudKitErrorMappingTests: XCTestCase {
         XCTAssertTrue(invite.shareMessage.contains("Наша группа"))
         XCTAssertTrue(invite.shareMessage.hasPrefix("OneCart Family"))
         XCTAssertEqual(invite.shareTitle, "OneCart Family")
-        XCTAssertFalse(OneCartShareBranding.thumbnailImageData.isEmpty)
+        XCTAssertFalse(try XCTUnwrap(ShareThumbnailRenderer(accent: .emerald).thumbnailPNGData()).isEmpty)
     }
 
     func test_REQ_SHELL_050_cloudKitUserFacingErrorReplacesOpaquePartialFailure() {

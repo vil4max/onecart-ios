@@ -19,7 +19,8 @@ final class CloudKitBackendService: Sendable {
         lazyCloudContainer.container
     }
 
-    /// Without `shareStore` the backend talks to the live container of `persistence`.
+    /// Without `shareStore` the backend talks to the live container of `persistence` and stamps
+    /// no share thumbnail; the composition root always passes its store.
     init(
         persistence: PersistenceController,
         cloudContainer: LazyCloudContainer = LazyCloudContainer(),
@@ -29,7 +30,8 @@ final class CloudKitBackendService: Sendable {
         self.persistence = persistence
         lazyCloudContainer = cloudContainer
         self.shareStore =
-            shareStore ?? LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer)
+            shareStore
+            ?? LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer, shareThumbnail: nil)
         self.clock = clock
         // The backend outlives an iCloud account switch; the old record name would publish this
         // member's profile under the previous user.

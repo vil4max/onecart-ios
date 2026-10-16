@@ -48,7 +48,10 @@ struct CartWidgetContainerView: View {
     }
 
     var body: some View {
+        // The snapshot's accent, filled from the stored accent by the provider, colours every
+        // widget view below (REQ-WIDGET-010).
         CartWidgetRootView(entry: entry)
+            .environment(\.accent, entry.snapshot.accentColor)
             .environment(\.colorScheme, activeScheme)
             .preferredColorScheme(activeScheme)
             .containerBackground(OneCartPalette.widgetBackground(for: activeScheme), for: .widget)

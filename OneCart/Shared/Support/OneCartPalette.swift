@@ -1,94 +1,26 @@
 import SwiftUI
-import Synchronization
 import UIKit
 
+extension EnvironmentValues {
+    /// The accent views draw with. The app sets it at its root from `DevicePreferences`, so a
+    /// change re-renders every reader; the widget and the Live Activity set it from their
+    /// snapshot. The default only shows in previews and hosted views that set none.
+    @Entry var accent: AppAccentColor = .emerald
+}
+
 public enum OneCartPalette {
-    /// Active accent color across the app.
-    public static var currentAccent: AppAccentColor {
-        get { accentStorage.withLock { $0 } }
-        set { accentStorage.withLock { $0 = newValue } }
-    }
-
-    /// Widget timeline providers and share branding read the accent off the main actor
-    /// while the app writes it from preferences, so the storage is lock-protected.
-    private static let accentStorage = Mutex<AppAccentColor>(storedAccent())
-
-    private static func storedAccent() -> AppAccentColor {
-        if let raw = OneCartAppGroup.defaults?.string(forKey: OneCartAppGroup.accentColorKey),
-            let accent = AppAccentColor(rawValue: raw)
-        {
-            return accent
+    /// The accent colour of `role`. With a scheme it is that appearance's fixed colour (widgets
+    /// pin their scheme); without one it follows the trait collection it is drawn in.
+    public static func color(for role: AccentRole, scheme: ColorScheme? = nil, accent: AppAccentColor) -> Color {
+        guard let scheme else {
+            return adaptive(light: accent.rgb(for: role, dark: false), dark: accent.rgb(for: role, dark: true))
         }
-        if let raw = UserDefaults.standard.string(forKey: OneCartAppGroup.accentColorKey),
-            let accent = AppAccentColor(rawValue: raw)
-        {
-            return accent
-        }
-        return .emerald
-    }
-
-    /// Filled surfaces that carry white content.
-    public static var primary: Color {
-        primary()
-    }
-
-    public static func primary(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
-        let active = accent ?? currentAccent
-        if let scheme {
-            let rgb = scheme == .dark ? active.primaryRGB.dark : active.primaryRGB.light
-            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
-        }
-        if let accent {
-            return adaptive(light: accent.primaryRGB.light, dark: accent.primaryRGB.dark)
-        }
-        return adaptiveDynamic(
-            light: { $0.primaryRGB.light },
-            dark: { $0.primaryRGB.dark }
-        )
-    }
-
-    /// Text and glyphs drawn on `background` or `primarySoft`.
-    public static var primaryAccent: Color {
-        primaryAccent()
-    }
-
-    public static func primaryAccent(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
-        let active = accent ?? currentAccent
-        if let scheme {
-            let rgb = scheme == .dark ? active.primaryAccentRGB.dark : active.primaryAccentRGB.light
-            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
-        }
-        if let accent {
-            return adaptive(light: accent.primaryAccentRGB.light, dark: accent.primaryAccentRGB.dark)
-        }
-        return adaptiveDynamic(
-            light: { $0.primaryAccentRGB.light },
-            dark: { $0.primaryAccentRGB.dark }
-        )
-    }
-
-    /// Tinted backing for chips and icon tiles.
-    public static var primarySoft: Color {
-        primarySoft()
-    }
-
-    public static func primarySoft(for scheme: ColorScheme? = nil, accent: AppAccentColor? = nil) -> Color {
-        let active = accent ?? currentAccent
-        if let scheme {
-            let rgb = scheme == .dark ? active.primarySoftRGB.dark : active.primarySoftRGB.light
-            return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
-        }
-        if let accent {
-            return adaptive(light: accent.primarySoftRGB.light, dark: accent.primarySoftRGB.dark)
-        }
-        return adaptiveDynamic(
-            light: { $0.primarySoftRGB.light },
-            dark: { $0.primarySoftRGB.dark }
-        )
+        let rgb = accent.rgb(for: role, dark: scheme == .dark)
+        return Color(red: rgb.red / 255, green: rgb.green / 255, blue: rgb.blue / 255)
     }
 
     public static let background = Color(.systemGroupedBackground)
-    public static let danger = adaptive(light: (185, 74, 72), dark: (232, 117, 111))
+    public static let danger = adaptive(light: AccentRGB(185, 74, 72), dark: AccentRGB(232, 117, 111))
 
     public static func widgetBackground(for scheme: ColorScheme) -> Color {
         if scheme == .dark {
@@ -98,36 +30,11 @@ public enum OneCartPalette {
         }
     }
 
-    private static func adaptive(
-        light: (CGFloat, CGFloat, CGFloat),
-        dark: (CGFloat, CGFloat, CGFloat)
-    ) -> Color {
+    private static func adaptive(light: AccentRGB, dark: AccentRGB) -> Color {
         Color(
             UIColor { traits in
-                let components = traits.userInterfaceStyle == .dark ? dark : light
-                return UIColor(
-                    red: components.0 / 255,
-                    green: components.1 / 255,
-                    blue: components.2 / 255,
-                    alpha: 1
-                )
-            })
-    }
-
-    private static func adaptiveDynamic(
-        light: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat),
-        dark: @escaping (AppAccentColor) -> (CGFloat, CGFloat, CGFloat)
-    ) -> Color {
-        Color(
-            UIColor { traits in
-                let accent = currentAccent
-                let components = traits.userInterfaceStyle == .dark ? dark(accent) : light(accent)
-                return UIColor(
-                    red: components.0 / 255,
-                    green: components.1 / 255,
-                    blue: components.2 / 255,
-                    alpha: 1
-                )
+                let rgb = traits.userInterfaceStyle == .dark ? dark : light
+                return UIColor(red: rgb.red / 255, green: rgb.green / 255, blue: rgb.blue / 255, alpha: 1)
             })
     }
 }

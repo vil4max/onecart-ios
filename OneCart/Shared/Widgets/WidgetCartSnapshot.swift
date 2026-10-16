@@ -56,7 +56,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     }
 
     public var accentColor: AppAccentColor {
-        accentColorRaw.flatMap(AppAccentColor.init(rawValue:)) ?? .emerald
+        AppAccentColor(storedRawValue: accentColorRaw)
     }
 
     /// A snapshot without an accent (written by an older build, or the built-in placeholder
@@ -136,7 +136,7 @@ public struct WidgetCartSnapshot: Codable, Sendable, Equatable {
     )
 
     public static let empty = WidgetCartSnapshot(
-        cartTitle: "OneCart Family",
+        cartTitle: String(localized: "common.app_name"),
         totalCount: 0,
         purchasedCount: 0,
         isSyncing: false,

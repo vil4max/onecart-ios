@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @Environment(\.accent) private var accent
     let viewModel: CartViewModel
 
     var body: some View {
@@ -71,7 +72,7 @@ struct HomeView: View {
                     Task { await viewModel.retryHouseholdCartBootstrap() }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(OneCartPalette.primary)
+                .tint(OneCartPalette.color(for: .primary, accent: accent))
                 .accessibilityIdentifier("home.retry")
             }
         } else {

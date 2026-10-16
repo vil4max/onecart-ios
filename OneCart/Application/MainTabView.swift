@@ -25,16 +25,15 @@ struct MainTabViewModels {
 /// The screen boundary for the three tabs.
 struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accent) private var accent
     @State private var selection: MainTab = Self.initialTab
 
     private let cartViewModel: CartViewModel
     private let historyViewModel: HistoryViewModel
     private let accountViewModel: AccountViewModel
-    private let state: any SessionStateReading
     private let tabs: any MainTabRouting
 
     init(session: AppSession, viewModels: MainTabViewModels) {
-        state = session
         tabs = session
         cartViewModel = viewModels.cart
         historyViewModel = viewModels.history
@@ -59,8 +58,8 @@ struct MainTabView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
-        .tint(OneCartPalette.primary(for: colorScheme, accent: state.preferences.accentColor))
-        .animation(.easeInOut(duration: 0.35), value: state.preferences.accentColor)
+        .tint(OneCartPalette.color(for: .primary, scheme: colorScheme, accent: accent))
+        .animation(.easeInOut(duration: 0.35), value: accent)
         .onChange(of: tabs.preferredMainTab, initial: true) { _, tab in
             guard let tab else { return }
             selection = tab

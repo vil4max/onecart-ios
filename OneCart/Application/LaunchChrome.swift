@@ -28,6 +28,7 @@ struct LaunchCartRideView: View {
     @Environment(AppSession.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.appClock) private var clock
+    @Environment(\.accent) private var accent
 
     let onFinished: () -> Void
 
@@ -38,7 +39,7 @@ struct LaunchCartRideView: View {
         LaunchCartRideUIView(
             progress: driveProgress,
             titleOpacity: titleOpacity,
-            accent: model.preferences.accentColor
+            accent: accent
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
@@ -117,15 +118,9 @@ private final class LaunchRideView: UIView {
     private var driveAnimator: UIViewPropertyAnimator?
     private var accent: AppAccentColor
 
-    init(accent: AppAccentColor = OneCartPalette.currentAccent) {
+    init(accent: AppAccentColor) {
         self.accent = accent
         super.init(frame: .zero)
-        setupView()
-    }
-
-    override init(frame: CGRect) {
-        accent = OneCartPalette.currentAccent
-        super.init(frame: frame)
         setupView()
     }
 
@@ -139,14 +134,8 @@ private final class LaunchRideView: UIView {
         // The provider is stored in backgroundColor; capturing self would retain the view.
         let accent = accent
         backgroundColor = UIColor { traits in
-            let dark = traits.userInterfaceStyle == .dark
-            let rgb = dark ? accent.primaryRGB.dark : accent.primaryRGB.light
-            return UIColor(
-                red: rgb.0 / 255,
-                green: rgb.1 / 255,
-                blue: rgb.2 / 255,
-                alpha: 1
-            )
+            let rgb = accent.rgb(for: .primary, dark: traits.userInterfaceStyle == .dark)
+            return UIColor(red: rgb.red / 255, green: rgb.green / 255, blue: rgb.blue / 255, alpha: 1)
         }
     }
 

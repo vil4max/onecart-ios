@@ -71,7 +71,6 @@ final class DevicePreferences {
             defaults.synchronize()
             appGroupDefaults?.set(accentColor.rawValue, forKey: Keys.accentColor)
             appGroupDefaults?.synchronize()
-            OneCartPalette.currentAccent = accentColor
             onAccentChanged?(accentColor)
             onChanged?()
         }
@@ -102,7 +101,6 @@ final class DevicePreferences {
         appIcon = initialIcon
         let initialAccent = initialIcon.accent
         accentColor = initialAccent
-        OneCartPalette.currentAccent = initialAccent
         defaults.set(initialAccent.rawValue, forKey: Keys.accentColor)
         appGroupDefaults?.set(initialAccent.rawValue, forKey: Keys.accentColor)
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
@@ -114,7 +112,6 @@ final class DevicePreferences {
         let storedIcon = defaults.string(forKey: Keys.appIcon) ?? ""
         appIcon = AppIconOption(rawValue: storedIcon) ?? .classic
         accentColor = appIcon.accent
-        OneCartPalette.currentAccent = accentColor
         let stored = defaults.string(forKey: Keys.participantDisplayName) ?? ""
         participantDisplayName = ParticipantDisplayName.isPlaceholder(stored) ? "" : stored
     }

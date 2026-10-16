@@ -13,11 +13,23 @@ extension View {
     /// centre, which is the fold; a compact iPhone shows a full-height sheet.
     func cartSharePresentation(item: Binding<CartSharePayload?>) -> some View {
         popover(item: item, arrowEdge: .top) { payload in
-            CartActivityViewController(activityItems: [CartInviteActivityItem(link: payload.link)])
+            CartInviteShareSheet(link: payload.link)
                 // The share sheet draws its own background to the bottom edge.
                 .ignoresSafeArea()
                 .presentationCompactAdaptation(.sheet)
         }
+    }
+}
+
+/// Reads the accent the sheet inherits, so the link preview icon matches the app's accent.
+private struct CartInviteShareSheet: View {
+    @Environment(\.accent) private var accent
+    let link: FamilyInviteLink
+
+    var body: some View {
+        CartActivityViewController(
+            activityItems: [CartInviteActivityItem(link: link, thumbnail: ShareThumbnailRenderer(accent: accent))]
+        )
     }
 }
 
@@ -35,9 +47,11 @@ struct CartActivityViewController: UIViewControllerRepresentable {
 
 final class CartInviteActivityItem: NSObject, UIActivityItemSource {
     let link: FamilyInviteLink
+    let thumbnail: ShareThumbnailRenderer
 
-    init(link: FamilyInviteLink) {
+    init(link: FamilyInviteLink, thumbnail: ShareThumbnailRenderer) {
         self.link = link
+        self.thumbnail = thumbnail
     }
 
     func activityViewControllerPlaceholderItem(_: UIActivityViewController) -> Any {
@@ -59,7 +73,7 @@ final class CartInviteActivityItem: NSObject, UIActivityItemSource {
         metadata.originalURL = link.url
         metadata.url = link.url
         metadata.title = link.shareTitle
-        let image = OneCartShareBranding.thumbnailImage
+        let image = thumbnail.image()
         metadata.iconProvider = NSItemProvider(object: image)
         metadata.imageProvider = NSItemProvider(object: image)
         return metadata

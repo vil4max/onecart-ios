@@ -56,7 +56,7 @@ struct WelcomeView: View {
                 .frame(width: iconSize, height: iconSize)
                 .padding(10)
                 .glassEffect(
-                    .regular.tint(OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor)),
+                    .regular.tint(accentColor(.primary)),
                     in: .rect(cornerRadius: iconSize * 0.34)
                 )
                 .accessibilityHidden(true)
@@ -118,7 +118,7 @@ struct WelcomeView: View {
                             .font(.footnote.weight(.semibold))
                     }
                     .buttonStyle(.borderless)
-                    .tint(OneCartPalette.primaryAccent(for: colorScheme, accent: viewModel.accentColor))
+                    .tint(accentColor(.primaryAccent))
                     .accessibilityIdentifier("welcome.test_account_button")
                 }
             #endif
@@ -154,10 +154,16 @@ struct WelcomeView: View {
                 Task { await viewModel.retryWelcome() }
             }
             .buttonStyle(.borderedProminent)
-            .tint(OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor))
+            .tint(accentColor(.primary))
             .accessibilityIdentifier("welcome.try_again")
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+extension WelcomeView {
+    private func accentColor(_ role: AccentRole) -> Color {
+        OneCartPalette.color(for: role, scheme: colorScheme, accent: viewModel.accentColor)
     }
 
     private func reveal() {
@@ -211,7 +217,7 @@ private struct WelcomeFeatureLabel: View {
         } icon: {
             Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent(for: colorScheme, accent: accent))
+                .foregroundStyle(OneCartPalette.color(for: .primaryAccent, scheme: colorScheme, accent: accent))
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("welcome.feature")

@@ -12,7 +12,10 @@ struct RootView: View {
     @Environment(AppSession.self) private var session
 
     var body: some View {
+        // The accent enters the signed-in view tree here; sheets and popovers inherit it.
+        // Welcome takes it from its view model.
         RootSessionView(session: session)
+            .environment(\.accent, session.preferences.accentColor)
     }
 }
 
@@ -20,6 +23,7 @@ struct RootView: View {
 /// loading, Welcome and the main tabs. Screens never see the session itself.
 private struct RootSessionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accent) private var accent
     /// Cart overlay stays up until the ride ends; only then the real UI mounts.
     @State private var cartRideFinished = false
     @State private var welcomeViewModel: WelcomeViewModel
@@ -67,7 +71,7 @@ private struct RootSessionView: View {
                     destinationView
                         .transition(.opacity)
                 } else {
-                    OneCartPalette.primary(accent: state.preferences.accentColor).ignoresSafeArea()
+                    OneCartPalette.color(for: .primary, accent: accent).ignoresSafeArea()
                 }
             }
             .animation(
@@ -119,7 +123,7 @@ private struct RootSessionView: View {
     private var destinationView: some View {
         switch phase {
         case .loading:
-            OneCartPalette.primary(accent: state.preferences.accentColor).ignoresSafeArea()
+            OneCartPalette.color(for: .primary, accent: accent).ignoresSafeArea()
         case .welcome:
             WelcomeView(viewModel: welcomeViewModel)
         case .main:

@@ -100,8 +100,9 @@ final class DevicePreferencesTests: XCTestCase {
             familyName: "Test Family",
             url: XCTUnwrap(URL(string: "https://example.com/invite"))
         )
-        let item = CartInviteActivityItem(link: dummyLink)
+        let item = CartInviteActivityItem(link: dummyLink, thumbnail: ShareThumbnailRenderer(accent: .ocean))
         let dummyController = UIActivityViewController(activityItems: [], applicationActivities: nil)
+        XCTAssertNotNil(item.activityViewControllerLinkMetadata(dummyController)?.imageProvider)
         XCTAssertEqual(item.activityViewControllerPlaceholderItem(dummyController) as? URL, dummyLink.url)
         XCTAssertEqual(
             item.activityViewController(
@@ -128,20 +129,19 @@ final class DevicePreferencesTests: XCTestCase {
         let preferences = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(preferences.appIcon, .classic)
         XCTAssertEqual(preferences.accentColor, .emerald)
-        XCTAssertEqual(OneCartPalette.currentAccent, .emerald)
+        XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "emerald")
 
         defaults.set("ocean", forKey: "onecart.app-icon")
         defaults.set("berry", forKey: "onecart.accent-color")
         let reloaded = DevicePreferences(defaults: defaults, appGroupDefaults: nil)
         XCTAssertEqual(reloaded.accentColor, .ocean)
         XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "ocean")
-        XCTAssertEqual(OneCartPalette.currentAccent, .ocean)
 
         defaults.set("midnight", forKey: "onecart.app-icon")
         defaults.set("coral", forKey: "onecart.accent-color")
         reloaded.reloadFromDefaults()
         XCTAssertEqual(reloaded.accentColor, .sunset)
-        XCTAssertEqual(OneCartPalette.currentAccent, .sunset)
+        XCTAssertEqual(defaults.string(forKey: "onecart.accent-color"), "sunset")
     }
 
     func testEveryAppIconCarriesAnAccent() {
@@ -175,40 +175,29 @@ final class DevicePreferencesTests: XCTestCase {
     }
 
     func testAppAccentColorProperties() {
-        typealias Palette = (light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat))
-        func key(_ rgb: (CGFloat, CGFloat, CGFloat)) -> String {
-            "\(rgb.0)-\(rgb.1)-\(rgb.2)"
+        func key(_ rgb: AccentRGB) -> String {
+            "\(rgb.red)-\(rgb.green)-\(rgb.blue)"
         }
-        let tables: [(name: String, value: (AppAccentColor) -> Palette)] = [
-            ("primary", { $0.primaryRGB }),
-            ("primaryAccent", { $0.primaryAccentRGB }),
-            ("primarySoft", { $0.primarySoftRGB }),
-        ]
         let accents = AppAccentColor.allCases
 
         XCTAssertEqual(Set(accents.map(\.id)).count, accents.count)
         for accent in accents {
             XCTAssertFalse(accent.id.isEmpty)
         }
-        for table in tables {
-            for accent in accents {
-                let palette = table.value(accent)
-                for channel in [
-                    palette.light.0, palette.light.1, palette.light.2,
-                    palette.dark.0, palette.dark.1, palette.dark.2,
-                ] {
-                    XCTAssertTrue((0...255).contains(channel), "\(accent.id) \(table.name) channel \(channel)")
+        for role in AccentRole.allCases {
+            for dark in [false, true] {
+                let colours = accents.map { $0.rgb(for: role, dark: dark) }
+                for rgb in colours {
+                    for channel in [rgb.red, rgb.green, rgb.blue] {
+                        XCTAssertTrue((0...255).contains(channel), "\(role) dark=\(dark) channel \(channel)")
+                    }
                 }
+                // A picked accent must be visible: no two accents may share a colour in any role.
+                XCTAssertEqual(
+                    Set(colours.map(key)).count, accents.count,
+                    "\(role) dark=\(dark) colours must differ between accents"
+                )
             }
-            // A picked accent must be visible: no two accents may share a colour in any role.
-            XCTAssertEqual(
-                Set(accents.map { key(table.value($0).light) }).count, accents.count,
-                "\(table.name) light colours must differ between accents"
-            )
-            XCTAssertEqual(
-                Set(accents.map { key(table.value($0).dark) }).count, accents.count,
-                "\(table.name) dark colours must differ between accents"
-            )
         }
     }
 

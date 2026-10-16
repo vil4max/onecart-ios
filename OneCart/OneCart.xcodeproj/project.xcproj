@@ -181,6 +181,7 @@
             { "path": "CloudKitModels.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitErrors.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitShareSupport.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "ShareThumbnailRendering.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitDeadline.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CloudKitPermissionAuthorizer.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "RecordPermissionChecking.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -228,7 +229,14 @@
                 "OneCart/compile-sources",
                 "OneCartWidgets/compile-sources",
               ],
+            }, {
+              "path": "CartSymbolName.swift",
+              "target-membership": [
+                "OneCart/compile-sources",
+                "OneCartWidgets/compile-sources",
+              ],
             },
+            { "path": "ShareThumbnailRenderer.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "OneCartStableID.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AppClock.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartLines.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -357,6 +365,8 @@
       "path": "Tests",
       "children": [
         { "path": "WidgetSnapshotTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "AccentPaletteTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "SharedMappingTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "WidgetSnapshotTests+Purchases.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "WidgetPrivacyCleanupTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartActivityDiffTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },

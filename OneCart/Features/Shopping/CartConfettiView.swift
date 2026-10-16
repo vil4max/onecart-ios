@@ -21,15 +21,21 @@ struct CartConfettiView: View {
     let trigger: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accent) private var accent
     @State private var particles: [ConfettiParticle] = []
     @State private var isAnimating: Bool = false
     @State private var startDate: Date = .now
     @State private var stopTask: Task<Void, Never>?
     @State private var containerWidth: CGFloat = 390
 
-    private static let palette: [Color] = [
-        OneCartPalette.primary,
-        OneCartPalette.primaryAccent,
+    private var palette: [Color] {
+        [
+            OneCartPalette.color(for: .primary, accent: accent),
+            OneCartPalette.color(for: .primaryAccent, accent: accent),
+        ] + Self.festiveColors
+    }
+
+    private static let festiveColors: [Color] = [
         Color(red: 0.98, green: 0.75, blue: 0.18),  // gold
         Color(red: 0.32, green: 0.82, blue: 0.58),  // mint
         Color(red: 0.98, green: 0.42, blue: 0.46),  // soft coral
@@ -105,9 +111,10 @@ struct CartConfettiView: View {
         var newParticles: [ConfettiParticle] = []
         let count = 56
         let boundsWidth: CGFloat = max(320, width)
+        let colors = palette
 
         for index in 0..<count {
-            let color = Self.palette[index % Self.palette.count]
+            let color = colors[index % colors.count]
             let isCircle = index.isMultiple(of: 4)
             let width = CGFloat.random(in: 7...11)
             let height = isCircle ? width : CGFloat.random(in: 12...20)

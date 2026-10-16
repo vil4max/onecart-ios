@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ShoppingListView: View {
+    @Environment(\.accent) private var accent
     let viewModel: CartViewModel
 
     @State private var renamingProduct: CartItem?
@@ -231,7 +232,7 @@ struct ShoppingListView: View {
                             Label("cart.swipe_complete", systemImage: "checkmark")
                         }
                     }
-                    .tint(shownAsPurchased ? .orange : OneCartPalette.primary)
+                    .tint(shownAsPurchased ? .orange : OneCartPalette.color(for: .primary, accent: accent))
                 }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {

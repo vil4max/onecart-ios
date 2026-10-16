@@ -93,15 +93,8 @@ struct RectangularLockScreenWidgetView: View {
             } else {
                 ForEach(displayItems) { item in
                     HStack(spacing: 6) {
-                        Button(
-                            intent: ToggleProductPurchasedIntent(
-                                productID: item.id.uuidString,
-                                accountID: snapshot.accountID?.uuidString ?? "",
-                                familyID: snapshot.familyID?.uuidString ?? "",
-                                isPurchased: !item.isPurchased
-                            )
-                        ) {
-                            Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
+                        Button(intent: ToggleProductPurchasedIntent(togglingItem: item, in: snapshot)) {
+                            Image(systemName: CartSymbolName.purchase(isPurchased: item.isPurchased))
                                 .font(.footnote)
                                 .widgetAccentable(item.isPurchased)
                         }
@@ -125,18 +118,16 @@ struct RectangularLockScreenWidgetView: View {
 
 struct SmallHomeWidgetView: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accent) private var accent
     let snapshot: WidgetCartSnapshot
 
-    private var accent: AppAccentColor {
-        snapshot.accentColor
-    }
-
     var body: some View {
+        let palette = WidgetAccentPalette(scheme: scheme, accent: accent)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "cart.fill")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+                    .foregroundStyle(palette.color(.primaryAccent))
                     .widgetAccentable()
                     .accessibilityHidden(true)
 
@@ -151,10 +142,10 @@ struct SmallHomeWidgetView: View {
                     Text(snapshot.remainingCount, format: .number)
                         .font(.caption2.weight(.semibold))
                         .monospacedDigit()
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+                        .foregroundStyle(palette.color(.primaryAccent))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+                        .widgetBadge(palette.color(.primarySoft), in: Capsule())
                 }
             }
 
@@ -175,7 +166,6 @@ struct SmallHomeWidgetView: View {
                             WidgetItemRow(
                                 item: item,
                                 snapshot: snapshot,
-                                accent: accent,
                                 thumbnailSize: 22,
                                 nameFont: .footnote,
                                 toggleFont: .title3
@@ -188,7 +178,6 @@ struct SmallHomeWidgetView: View {
 
                 WidgetProgressLine(
                     snapshot: snapshot,
-                    accent: accent,
                     isCompact: true,
                     partnerName: snapshot.activePartnerName
                 )
@@ -201,14 +190,10 @@ struct SmallHomeWidgetView: View {
 struct MediumHomeWidgetView: View {
     let snapshot: WidgetCartSnapshot
 
-    private var accent: AppAccentColor {
-        snapshot.accentColor
-    }
-
     var body: some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                WidgetCartTile(accent: accent, size: 34)
+                WidgetCartTile(size: 34)
 
                 Text(snapshot.cartTitle)
                     .font(.headline)
@@ -219,10 +204,10 @@ struct MediumHomeWidgetView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    WidgetProgressLine(snapshot: snapshot, accent: accent)
+                    WidgetProgressLine(snapshot: snapshot)
 
                     if let partner = snapshot.activePartnerName, !partner.isEmpty {
-                        WidgetPartnerChip(name: partner, accent: accent)
+                        WidgetPartnerChip(name: partner)
                     }
                 }
 
@@ -254,7 +239,6 @@ struct MediumHomeWidgetView: View {
                         WidgetItemRow(
                             item: item,
                             snapshot: snapshot,
-                            accent: accent,
                             thumbnailSize: 24,
                             nameFont: .footnote,
                             toggleFont: .title3
@@ -276,14 +260,10 @@ struct MediumHomeWidgetView: View {
 struct LargeHomeWidgetView: View {
     let snapshot: WidgetCartSnapshot
 
-    private var accent: AppAccentColor {
-        snapshot.accentColor
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
-                WidgetCartTile(accent: accent, size: 32)
+                WidgetCartTile(size: 32)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(snapshot.cartTitle)
@@ -294,13 +274,13 @@ struct LargeHomeWidgetView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
-                        WidgetProgressLine(snapshot: snapshot, accent: accent)
+                        WidgetProgressLine(snapshot: snapshot)
                     }
                 }
 
                 if let partner = snapshot.activePartnerName, !partner.isEmpty {
                     Spacer(minLength: 4)
-                    WidgetPartnerChip(name: partner, accent: accent)
+                    WidgetPartnerChip(name: partner)
                 }
             }
 
@@ -315,7 +295,6 @@ struct LargeHomeWidgetView: View {
                         WidgetItemRow(
                             item: item,
                             snapshot: snapshot,
-                            accent: accent,
                             thumbnailSize: 26,
                             nameFont: .subheadline,
                             toggleFont: .title2,

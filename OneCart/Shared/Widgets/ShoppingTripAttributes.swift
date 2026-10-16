@@ -40,7 +40,7 @@ public struct ShoppingTripAttributes: ActivityAttributes {
         }
 
         public var accentColor: AppAccentColor {
-            accentColorRaw.flatMap(AppAccentColor.init(rawValue:)) ?? .emerald
+            AppAccentColor(storedRawValue: accentColorRaw)
         }
     }
 

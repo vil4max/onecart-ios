@@ -58,9 +58,22 @@ posting), `ConnectivityMonitoring` (injected into `CloudSyncCoordinator`) and
 writes the accent to the App Group only through its explicit `appGroupDefaults:` (nil in tests
 and the demo). The test builders (`makeTestSession`, `MembershipSessionFixture`) pass fakes for
 every protocol (`FakeCloudKitShareStore`, `FakeConnectivityMonitor`,
-`FakeShareInvitationAccepter`, an isolated widget store and defaults). Still global: the
-`OneCartPalette.currentAccent` accent, `UserDefaults.standard` in the store maintenance, and the
-UIKit haptics.
+`FakeShareInvitationAccepter`, an isolated widget store and defaults). Still global:
+`UserDefaults.standard` in the store maintenance, and the UIKit haptics.
+
+The accent is not a process global. `RootView` puts `DevicePreferences.accentColor` into the
+SwiftUI environment (`EnvironmentValues.accent`, declared in `OneCartPalette.swift`), so a theme
+change re-renders every view that reads it, sheets and popovers included; the widget container
+sets it from the snapshot's accent and the Live Activity from its content state (each Dynamic
+Island region gets it separately, being its own view tree). Colours come from one function,
+`OneCartPalette.color(for: AccentRole, scheme:, accent:)`, over the single RGB table in
+`AppAccentColor` (`rgb(for:dark:)`): a scheme pins that appearance's colour (widgets pin the
+resolved scheme), no scheme gives a colour that follows the trait collection. UIKit code (the
+launch ride, the share thumbnail) reads the same table. `AppAccentColor(storedRawValue:)` is the
+one fallback to emerald for a missing or unknown stored accent. The share branding in Data stamps
+the bytes of a `ShareThumbnailRendering`, which `LiveCloudKitShareStore` takes from the
+composition root (`ShareThumbnailRenderer`, UIKit, drawn in the stored accent when a share is stamped), so the CloudKit
+share code imports no UIKit.
 
 The App Intents get the session through `@Dependency` on `CartIntentHandling`
 (`OneCart/Application/Services/CartIntentHandling.swift`): `OneCartApp.init` registers a lazy
@@ -303,7 +316,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 - Leave (REQ-SHARE-050): the zone purge runs under `CloudKitDeadline` with `leaveTimedOut` after `CloudKitBackendService.leavePurgeTimeout`. On a timeout the session shows the alert and starts its leave recovery, which retries the fallback to the personal cart on the `AppClock` and also runs one pass when the late purge reports in through `leaveFamily(objectID:onLatePurgeCompletion:)`; a late purge that leaves the shared cart behind does not end the timed passes.
 - Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer purchase change of the product are ignored (a rename or category refinement does not count); confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
 - Both the app and widget extension bundle their own `PrivacyInfo.xcprivacy`. App Group defaults access is declared in each relevant target.
-- Files compiled into both the app and the widget extension (`OneCart/Shared/Widgets/`, `AppAccentColor`, `ProductCategory`, `OneCartLog`) hold plain models and logic: they import Foundation or OSLog (plus ActivityKit or AppIntents where the type requires it), and model values never read the App Group or call WidgetCenter. SwiftUI presentation lives in per-target extension files (`ProductCategory+SwiftUI.swift` in the app, `WidgetCartSnapshot+SwiftUI.swift` in the widget). `WidgetSnapshotStore` takes its timeline reload as a closure; each target defines its live `shared` store with `WidgetCenter` reloads, and the store, not the snapshot, reads the stored accent (`withStoredAccent`). Known exceptions: `OneCartPalette` is shared SwiftUI presentation that also reads the App Group accent at launch, and the two `LiveActivityIntent`s keep their dual membership and `#if ONECART_WIDGET_EXTENSION` branches.
+- Files compiled into both the app and the widget extension (`OneCart/Shared/Widgets/`, `AppAccentColor`, `CartSymbolName`, `ProductCategory`, `OneCartLog`) hold plain models and logic: they import Foundation or OSLog (plus ActivityKit or AppIntents where the type requires it), and model values never read the App Group or call WidgetCenter. SwiftUI presentation lives in per-target extension files (`ProductCategory+SwiftUI.swift` in the app, `WidgetCartSnapshot+SwiftUI.swift` in the widget). `WidgetSnapshotStore` takes its timeline reload as a closure; each target defines its live `shared` store with `WidgetCenter` reloads, and the store, not the snapshot, reads the stored accent (`withStoredAccent`). What the cart screen, the widgets and the Live Activity would otherwise each spell out lives in one place: the check and progress symbol names (`CartSymbolName`), the purchase intent of a widget line or a trip line (`ToggleProductPurchasedIntent(togglingItem:in:)`, `(purchasingTripItem:of:)`), the stored-accent fallback, and the no-cart widget title (`common.app_name`). The category tiles stay per surface: the widget tile washes out in accented rendering and the Live Activity tile does not. Known exceptions: `OneCartPalette` is shared SwiftUI presentation (it reads no storage), and the two `LiveActivityIntent`s keep their dual membership and `#if ONECART_WIDGET_EXTENSION` branches.
 
 ## Folder layout
 

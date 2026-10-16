@@ -4,6 +4,7 @@ import SwiftUI
 /// title once every line is checked, plus the control that puts the trip on the Lock Screen.
 struct CartProgressHeader: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accent) private var accent
     let viewModel: CartViewModel
 
     var body: some View {
@@ -27,7 +28,7 @@ struct CartProgressHeader: View {
             }
 
             ProgressView(value: viewModel.progressFraction)
-                .tint(OneCartPalette.primary)
+                .tint(OneCartPalette.color(for: .primary, accent: accent))
                 .accessibilityHidden(true)
         }
         .padding(.vertical, 4)
@@ -39,7 +40,7 @@ struct CartProgressHeader: View {
         HStack(spacing: 6) {
             Image(systemName: symbolName)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
+                .foregroundStyle(OneCartPalette.color(for: .primaryAccent, accent: accent))
                 .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
             if viewModel.isAllPurchased {
@@ -70,12 +71,12 @@ struct CartProgressHeader: View {
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
         .controlSize(.small)
-        .tint(OneCartPalette.primary)
+        .tint(OneCartPalette.color(for: .primary, accent: accent))
         .accessibilityHint(Text("trip.control_hint"))
         .accessibilityIdentifier("cart.shoppingTrip")
     }
 
     private var symbolName: String {
-        viewModel.isAllPurchased ? "checkmark.seal.fill" : "cart"
+        CartSymbolName.progress(isAllPurchased: viewModel.isAllPurchased)
     }
 }

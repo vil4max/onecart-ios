@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CartBusyOverlay: View {
+    @Environment(\.accent) private var accent
     var messageKey: LocalizedStringKey = "cart.updating"
 
     var body: some View {
@@ -10,7 +11,7 @@ struct CartBusyOverlay: View {
             VStack(spacing: 12) {
                 ProgressView()
                     .controlSize(.large)
-                    .tint(OneCartPalette.primary)
+                    .tint(OneCartPalette.color(for: .primary, accent: accent))
                 Text(messageKey)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -45,16 +46,18 @@ struct ReadOnlyBanner: View {
 }
 
 struct CartAllPurchasedHeroCard: View {
+    @Environment(\.accent) private var accent
+
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "checkmark.seal.fill")
+            Image(systemName: CartSymbolName.progress(isAllPurchased: true))
                 .font(.largeTitle.weight(.semibold))
-                .foregroundStyle(OneCartPalette.primaryAccent)
+                .foregroundStyle(OneCartPalette.color(for: .primaryAccent, accent: accent))
                 .accessibilityHidden(true)
 
             Text("cart.all_purchased_title")
                 .font(.headline)
-                .foregroundStyle(OneCartPalette.primaryAccent)
+                .foregroundStyle(OneCartPalette.color(for: .primaryAccent, accent: accent))
 
             Text("cart.all_purchased_subtitle")
                 .font(.subheadline)

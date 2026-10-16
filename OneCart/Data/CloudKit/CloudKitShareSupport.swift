@@ -1,5 +1,4 @@
 import CloudKit
-import UIKit
 
 /// The CloudKit environment of this build, stamped as the local store marker. Debug and Release
 /// entitlements both pin `com.apple.developer.icloud-container-environment` to Production, so the
@@ -15,48 +14,21 @@ enum CloudKitShareEnvironment: String {
 enum OneCartShareBranding {
     static let title = "OneCart Family"
 
+    /// Stamps the title, and the thumbnail only on a share that has none, so an existing
+    /// thumbnail is never redrawn. Without a renderer the share keeps no thumbnail.
     @discardableResult
-    static func apply(to share: CKShare) -> Bool {
+    static func apply(to share: CKShare, thumbnail: (any ShareThumbnailRendering)?) -> Bool {
         var changed = false
         if (share[CKShare.SystemFieldKey.title] as? String) != title {
             share[CKShare.SystemFieldKey.title] = title as CKRecordValue
             changed = true
         }
-        if share[CKShare.SystemFieldKey.thumbnailImageData] == nil {
-            share[CKShare.SystemFieldKey.thumbnailImageData] = thumbnailImageData as CKRecordValue
+        if share[CKShare.SystemFieldKey.thumbnailImageData] == nil, let data = thumbnail?.thumbnailPNGData() {
+            share[CKShare.SystemFieldKey.thumbnailImageData] = data as CKRecordValue
             changed = true
         }
         return changed
     }
-
-    static let thumbnailImage: UIImage = {
-        let size = CGSize(width: 512, height: 512)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { _ in
-            let rect = CGRect(origin: .zero, size: size)
-            let rgb = OneCartPalette.currentAccent.primaryRGB.light
-            UIColor(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255, alpha: 1).setFill()
-            UIBezierPath(roundedRect: rect, cornerRadius: 112).fill()
-
-            if let mark = UIImage(named: "LaunchIcon") {
-                let inset = CGRect(x: 80, y: 80, width: 352, height: 352)
-                mark.draw(in: inset)
-            } else {
-                let config = UIImage.SymbolConfiguration(pointSize: 220, weight: .semibold)
-                if let symbol = UIImage(systemName: "cart.fill", withConfiguration: config)?
-                    .withTintColor(.white, renderingMode: .alwaysOriginal)
-                {
-                    let origin = CGPoint(
-                        x: (size.width - symbol.size.width) / 2,
-                        y: (size.height - symbol.size.height) / 2
-                    )
-                    symbol.draw(at: origin)
-                }
-            }
-        }
-    }()
-
-    static let thumbnailImageData: Data = thumbnailImage.pngData() ?? Data()
 }
 
 enum OneCartShareLinkJoin {

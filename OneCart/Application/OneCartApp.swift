@@ -75,6 +75,15 @@ enum OneCartAppComposition {
         )
     }
 
+    /// The thumbnail reads the stored accent when a share is stamped, not the launch accent.
+    private static func shareThumbnail(readingAccentFrom defaults: UserDefaults) -> ShareThumbnailRenderer {
+        // UserDefaults is documented as thread-safe; the SDK just does not mark it Sendable.
+        nonisolated(unsafe) let accentDefaults = defaults
+        return ShareThumbnailRenderer(currentAccent: {
+            AppAccentColor(storedRawValue: accentDefaults.string(forKey: OneCartAppGroup.accentColorKey))
+        })
+    }
+
     /// The live graph over the given store, defaults and sign-in. `cloudSharing` nil builds the
     /// CloudKit backend; the DEBUG demo passes its own pieces through here, so it builds the
     /// session through the same initializer as production.
@@ -87,7 +96,11 @@ enum OneCartAppComposition {
     ) -> AppSessionDependencies {
         let clock = AppClock.live
         let cloudContainer = LazyCloudContainer()
-        let shareStore = LiveCloudKitShareStore(persistence: persistence, cloudContainer: cloudContainer)
+        let shareStore = LiveCloudKitShareStore(
+            persistence: persistence,
+            cloudContainer: cloudContainer,
+            shareThumbnail: shareThumbnail(readingAccentFrom: defaults)
+        )
         let cloudSharing =
             cloudSharing
             ?? CloudKitBackendService(

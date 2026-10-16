@@ -7,6 +7,7 @@ struct CartAddComposer: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accent) private var accent
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.demoLaunchOptions) private var demoLaunchOptions
     /// The circular button grows with the glyph's text style instead of clipping it.
@@ -22,8 +23,8 @@ struct CartAddComposer: View {
         draftName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var accent: Color {
-        OneCartPalette.primary(for: colorScheme, accent: viewModel.accentColor)
+    private var accentTint: Color {
+        OneCartPalette.color(for: .primary, scheme: colorScheme, accent: accent)
     }
 
     /// Reduce Motion swaps the glass morph for a cross-fade by dropping the shared identity.
@@ -88,7 +89,7 @@ struct CartAddComposer: View {
         }
         .buttonStyle(.glassProminent)
         .buttonBorderShape(.circle)
-        .tint(accent)
+        .tint(accentTint)
         .accessibilityLabel(Text("cart.add_a11y"))
         .accessibilityIdentifier("cart.add")
         .keyboardShortcut("n", modifiers: .command)
@@ -125,7 +126,7 @@ struct CartAddComposer: View {
     private var categorySymbol: some View {
         Image(systemName: ProductCategory.inferred(from: draftName).symbolName)
             .font(.body.weight(.semibold))
-            .foregroundStyle(OneCartPalette.primaryAccent)
+            .foregroundStyle(OneCartPalette.color(for: .primaryAccent, accent: accent))
             .frame(minWidth: 28)
             .contentTransition(.symbolEffect(.replace))
             .accessibilityHidden(true)
@@ -151,7 +152,7 @@ struct CartAddComposer: View {
                 .symbolRenderingMode(.hierarchical)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(accent)
+        .foregroundStyle(accentTint)
         .disabled(trimmedDraft.isEmpty)
         .accessibilityLabel(Text("cart.add_a11y"))
         .accessibilityIdentifier("cart.add_submit")
@@ -183,7 +184,7 @@ struct CartAddComposer: View {
                     }
                     .buttonStyle(.glass)
                     .buttonBorderShape(.capsule)
-                    .tint(accent)
+                    .tint(accentTint)
                     .accessibilityLabel(Text("cart.suggestion_chip_a11y \(item)"))
                     .accessibilityIdentifier("cart.suggestion")
                 }

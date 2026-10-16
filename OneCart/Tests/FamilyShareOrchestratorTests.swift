@@ -62,7 +62,7 @@ struct FamilyShareOrchestratorTests {
     ) -> FamilyShareOrchestrator {
         FamilyShareOrchestrator(
             persistence: fixture.persistence,
-            shareStore: LiveCloudKitShareStore(persistence: fixture.persistence),
+            shareStore: LiveCloudKitShareStore(persistence: fixture.persistence, shareThumbnail: nil),
             cloudSharing: cloudSharing
         )
     }

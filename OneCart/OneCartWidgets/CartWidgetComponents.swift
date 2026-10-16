@@ -30,21 +30,34 @@ extension View {
     }
 }
 
+/// Widget colours are pinned to the scheme the container resolved (a snapshot's forced
+/// appearance wins over the system), and the accent comes from the environment the container
+/// sets from the snapshot.
+struct WidgetAccentPalette {
+    let scheme: ColorScheme
+    let accent: AppAccentColor
+
+    func color(_ role: AccentRole) -> Color {
+        OneCartPalette.color(for: role, scheme: scheme, accent: accent)
+    }
+}
+
 struct WidgetCategoryThumbnail: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accent) private var accent
     let category: ProductCategory
-    let accent: AppAccentColor
     let isDimmed: Bool
     var size: CGFloat = 24
 
     var body: some View {
+        let palette = WidgetAccentPalette(scheme: scheme, accent: accent)
         Image(systemName: category.symbolName)
             // The cart tile draws a 16 pt symbol on 36 pt; keep that ratio at widget sizes.
             .font(.system(size: (size * 0.45).rounded(), weight: .semibold))
-            .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+            .foregroundStyle(palette.color(.primaryAccent))
             .frame(width: size, height: size)
             .widgetBadge(
-                OneCartPalette.primarySoft(for: scheme, accent: accent),
+                palette.color(.primarySoft),
                 in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             )
             .opacity(isDimmed ? 0.45 : 1)
@@ -54,26 +67,19 @@ struct WidgetCategoryThumbnail: View {
 
 struct WidgetPurchaseToggle: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accent) private var accent
     let item: WidgetItemSnapshot
     let snapshot: WidgetCartSnapshot
-    let accent: AppAccentColor
     var font: Font = .title3
 
     var body: some View {
-        Button(
-            intent: ToggleProductPurchasedIntent(
-                productID: item.id.uuidString,
-                accountID: snapshot.accountID?.uuidString ?? "",
-                familyID: snapshot.familyID?.uuidString ?? "",
-                isPurchased: !item.isPurchased
-            )
-        ) {
-            Image(systemName: item.isPurchased ? "checkmark.circle.fill" : "circle")
+        Button(intent: ToggleProductPurchasedIntent(togglingItem: item, in: snapshot)) {
+            Image(systemName: CartSymbolName.purchase(isPurchased: item.isPurchased))
                 .font(font)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(
                     item.isPurchased
-                        ? OneCartPalette.primary(for: scheme, accent: accent)
+                        ? WidgetAccentPalette(scheme: scheme, accent: accent).color(.primary)
                         : Color.secondary.opacity(0.5)
                 )
                 .widgetAccentable(item.isPurchased)
@@ -91,7 +97,6 @@ struct WidgetPurchaseToggle: View {
 struct WidgetItemRow: View {
     let item: WidgetItemSnapshot
     let snapshot: WidgetCartSnapshot
-    let accent: AppAccentColor
     var thumbnailSize: CGFloat = 24
     var nameFont: Font = .footnote
     var toggleFont: Font = .title3
@@ -99,12 +104,7 @@ struct WidgetItemRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            WidgetCategoryThumbnail(
-                category: item.category,
-                accent: accent,
-                isDimmed: item.isPurchased,
-                size: thumbnailSize
-            )
+            WidgetCategoryThumbnail(category: item.category, isDimmed: item.isPurchased, size: thumbnailSize)
 
             Text(item.name)
                 .font(nameFont)
@@ -121,7 +121,7 @@ struct WidgetItemRow: View {
                     .lineLimit(1)
             }
 
-            WidgetPurchaseToggle(item: item, snapshot: snapshot, accent: accent, font: toggleFont)
+            WidgetPurchaseToggle(item: item, snapshot: snapshot, font: toggleFont)
         }
         .accessibilityElement(children: .contain)
     }
@@ -131,8 +131,8 @@ struct WidgetItemRow: View {
 /// compact form drops the word where a small family has no room for it.
 struct WidgetProgressLine: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accent) private var accent
     let snapshot: WidgetCartSnapshot
-    let accent: AppAccentColor
     var isCompact = false
     /// Who is shopping right now, shown at the trailing end of the label row.
     var partnerName: String?
@@ -142,11 +142,12 @@ struct WidgetProgressLine: View {
     }
 
     var body: some View {
+        let palette = WidgetAccentPalette(scheme: scheme, accent: accent)
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: snapshot.isAllPurchased ? "checkmark.seal.fill" : "cart")
+                Image(systemName: CartSymbolName.progress(isAllPurchased: snapshot.isAllPurchased))
                     .font(labelFont)
-                    .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+                    .foregroundStyle(palette.color(.primaryAccent))
                     .widgetAccentable()
                     .accessibilityHidden(true)
 
@@ -166,7 +167,7 @@ struct WidgetProgressLine: View {
                     Spacer(minLength: 4)
                     Text(partnerName)
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+                        .foregroundStyle(palette.color(.primaryAccent))
                         .layoutPriority(-1)
                 }
             }
@@ -174,7 +175,7 @@ struct WidgetProgressLine: View {
             .minimumScaleFactor(0.8)
 
             ProgressView(value: snapshot.progress)
-                .tint(OneCartPalette.primary(for: scheme, accent: accent))
+                .tint(palette.color(.primary))
                 .widgetAccentable()
         }
         .accessibilityElement(children: .combine)
@@ -184,7 +185,7 @@ struct WidgetProgressLine: View {
 /// The cart glyph on a filled accent tile that heads the medium and large families.
 struct WidgetCartTile: View {
     @Environment(\.colorScheme) private var scheme
-    let accent: AppAccentColor
+    @Environment(\.accent) private var accent
     var size: CGFloat = 32
 
     var body: some View {
@@ -193,7 +194,7 @@ struct WidgetCartTile: View {
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .widgetBadge(
-                OneCartPalette.primary(for: scheme, accent: accent),
+                WidgetAccentPalette(scheme: scheme, accent: accent).color(.primary),
                 in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             )
             .accessibilityHidden(true)
@@ -202,17 +203,18 @@ struct WidgetCartTile: View {
 
 struct WidgetPartnerChip: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accent) private var accent
     let name: String
-    let accent: AppAccentColor
 
     var body: some View {
+        let palette = WidgetAccentPalette(scheme: scheme, accent: accent)
         Text(name)
             .font(.caption2.weight(.medium))
-            .foregroundStyle(OneCartPalette.primaryAccent(for: scheme, accent: accent))
+            .foregroundStyle(palette.color(.primaryAccent))
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .widgetBadge(OneCartPalette.primarySoft(for: scheme, accent: accent), in: Capsule())
+            .widgetBadge(palette.color(.primarySoft), in: Capsule())
     }
 }
 

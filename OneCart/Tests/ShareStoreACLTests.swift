@@ -10,7 +10,7 @@ struct ShareStoreACLTests {
     private func brandedShare(publicPermission: CKShare.ParticipantPermission) -> CKShare {
         let share = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
         share.publicPermission = publicPermission
-        OneCartShareBranding.apply(to: share)
+        OneCartShareBranding.apply(to: share, thumbnail: FixedShareThumbnail())
         return share
     }
 
@@ -58,6 +58,21 @@ struct ShareStoreACLTests {
         let saved = try await store.applyReadWriteACL(to: share, reopenInviteDoor: false, in: .shared)
 
         #expect(saved?[CKShare.SystemFieldKey.title] as? String == OneCartShareBranding.title)
+        #expect(saved?[CKShare.SystemFieldKey.thumbnailImageData] as? Data == FixedShareThumbnail.data)
         #expect(store.persistedScopes == [.shared])
+    }
+
+    @Test("REQ-SHARE-070: the branding never redraws a thumbnail, and stamps none without a renderer")
+    func brandingKeepsAnExistingThumbnailAndNeedsARenderer() {
+        let unbranded = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        #expect(OneCartShareBranding.apply(to: unbranded, thumbnail: nil))
+        #expect(unbranded[CKShare.SystemFieldKey.thumbnailImageData] == nil)
+
+        let existing = Data([1, 2, 3])
+        let stamped = CKShare(rootRecord: CKRecord(recordType: "FamilySpace"))
+        stamped[CKShare.SystemFieldKey.title] = OneCartShareBranding.title as CKRecordValue
+        stamped[CKShare.SystemFieldKey.thumbnailImageData] = existing as CKRecordValue
+        #expect(!OneCartShareBranding.apply(to: stamped, thumbnail: FixedShareThumbnail()))
+        #expect(stamped[CKShare.SystemFieldKey.thumbnailImageData] as? Data == existing)
     }
 }

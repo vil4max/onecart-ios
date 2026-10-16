@@ -116,10 +116,6 @@ final class CartViewModel {
         state.familyMembers.count
     }
 
-    var accentColor: AppAccentColor {
-        state.preferences.accentColor
-    }
-
     var sharedCartRemovedMessage: String? {
         alerts.sharedCartRemovedMessage
     }
