@@ -36,8 +36,8 @@ enum HouseholdCartOutcome {
 protocol CartMutationContext: AnyObject {
     var account: OneCartAccount? { get }
     var canEdit: Bool { get }
-    /// The name stamped on the lines this user adds or checks.
-    var participantName: String? { get }
+    /// The name and CloudKit identity stamped on the lines this user adds or checks.
+    var cartAuthor: CartAuthor { get }
     var lastSyncError: String? { get }
     func reload(preferredFamilySpaceID: UUID?) throws
     func refreshProducts() throws
@@ -58,7 +58,7 @@ protocol WidgetPurchaseContext: AnyObject {
     var canEdit: Bool { get }
     var cartTitle: String { get }
     var isCartSyncing: Bool { get }
-    var participantName: String? { get }
+    var cartAuthor: CartAuthor { get }
     var preferences: DevicePreferences { get }
     func reload(preferredFamilySpaceID: UUID?) throws
     func show(_ error: Error)

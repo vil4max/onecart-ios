@@ -115,7 +115,7 @@ extension AppSession: CloudSyncContext {
                     cartID: cartID,
                     previous: previous,
                     current: Self.activitySnapshots(of: products),
-                    currentUserName: participantName ?? "",
+                    currentUser: cartAuthor,
                     isSharedCart: familyMembers.count > 1
                 )
             }
@@ -136,7 +136,9 @@ extension AppSession: CloudSyncContext {
                     name: product.displayName,
                     isPurchased: product.isPurchasedValue,
                     createdByName: product.createdByName,
-                    purchasedByName: product.purchasedByName
+                    purchasedByName: product.purchasedByName,
+                    createdByRecordName: product.createdByRecordName,
+                    purchasedByRecordName: product.purchasedByRecordName
                 )
             }
         }

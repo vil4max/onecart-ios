@@ -9,23 +9,57 @@ protocol CartItemsRepository: Sendable {
     /// creating a second line. Quantities are never summed — there is simply
     /// one shared row per name.
     @discardableResult
-    func addProduct(to listID: UUID, id: UUID, draft: ProductDraft, createdByName: String?) async throws -> UUID
+    func addProduct(to listID: UUID, id: UUID, draft: ProductDraft, author: CartAuthor) async throws -> UUID
     func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws
     func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws
+    func setPurchasedState(id: UUID, familySpaceID: UUID, isPurchased: Bool, author: CartAuthor) async throws
+    func setPurchased(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        author: CartAuthor,
+        purchasedAt: Date
+    ) async throws
+    func deleteProduct(id: UUID, familySpaceID: UUID) async throws
+}
+
+/// Name-only entry points for callers that know no CloudKit identity (the repository facade the
+/// tests seed through); the lines they write carry no author record name.
+extension CartItemsRepository {
+    @discardableResult
+    func addProduct(to listID: UUID, id: UUID, draft: ProductDraft, createdByName: String?) async throws -> UUID {
+        try await addProduct(to: listID, id: id, draft: draft, author: CartAuthor(displayName: createdByName))
+    }
+
     func setPurchasedState(
         id: UUID,
         familySpaceID: UUID,
         isPurchased: Bool,
         participantDisplayName: String?
-    ) async throws
+    ) async throws {
+        try await setPurchasedState(
+            id: id,
+            familySpaceID: familySpaceID,
+            isPurchased: isPurchased,
+            author: CartAuthor(displayName: participantDisplayName)
+        )
+    }
+
     func setPurchased(
         id: UUID,
         familySpaceID: UUID,
         isPurchased: Bool,
         participantDisplayName: String?,
         purchasedAt: Date
-    ) async throws
-    func deleteProduct(id: UUID, familySpaceID: UUID) async throws
+    ) async throws {
+        try await setPurchased(
+            id: id,
+            familySpaceID: familySpaceID,
+            isPurchased: isPurchased,
+            author: CartAuthor(displayName: participantDisplayName),
+            purchasedAt: purchasedAt
+        )
+    }
 }
 
 final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedRepository, Sendable {
@@ -44,7 +78,7 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
         to listID: UUID,
         id: UUID,
         draft: ProductDraft,
-        createdByName: String?
+        author: CartAuthor
     ) async throws -> UUID {
         let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
@@ -74,7 +108,9 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
             product.markPurchaseStateChanged(at: now)
             product.purchasedAt = nil
             product.purchasedByName = nil
-            product.createdByName = createdByName?.nilIfBlank
+            product.purchasedByRecordName = nil
+            product.createdByName = author.displayName?.nilIfBlank
+            product.createdByRecordName = author.recordName?.nilIfBlank
             product.familySpace = space
             product.list = list
             product.store = list.store
@@ -218,12 +254,7 @@ extension CoreDataCartItemsRepository {
     /// Applies the state the user asked for instead of flipping the stored one: when another
     /// shopper's change already reached the store, checking an item they checked keeps their
     /// check (and their name) rather than undoing it.
-    func setPurchasedState(
-        id: UUID,
-        familySpaceID: UUID,
-        isPurchased: Bool,
-        participantDisplayName: String?
-    ) async throws {
+    func setPurchasedState(id: UUID, familySpaceID: UUID, isPurchased: Bool, author: CartAuthor) async throws {
         try await persistence.performBackgroundTask { context in
             guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
             else {
@@ -234,10 +265,7 @@ extension CoreDataCartItemsRepository {
             let now = self.clock.now()
             product.isPurchased = NSNumber(value: isPurchased)
             product.purchasedAt = isPurchased ? now : nil
-            product.purchasedByName =
-                isPurchased
-                ? participantDisplayName?.nilIfBlank
-                : nil
+            Self.setBuyer(of: product, to: isPurchased ? author : nil)
             product.markPurchaseStateChanged(at: now)
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
@@ -248,7 +276,7 @@ extension CoreDataCartItemsRepository {
         id: UUID,
         familySpaceID: UUID,
         isPurchased: Bool,
-        participantDisplayName: String?,
+        author: CartAuthor,
         purchasedAt: Date
     ) async throws {
         try await persistence.performBackgroundTask { context in
@@ -267,7 +295,7 @@ extension CoreDataCartItemsRepository {
             if product.isPurchasedValue != isPurchased {
                 product.isPurchased = NSNumber(value: isPurchased)
                 product.purchasedAt = isPurchased ? purchasedAt : nil
-                product.purchasedByName = isPurchased ? participantDisplayName?.nilIfBlank : nil
+                Self.setBuyer(of: product, to: isPurchased ? author : nil)
             }
             // The version is the command's own time, not now: commands queued for one line
             // replay in order, and each must still be newer than the one applied before it.
@@ -276,6 +304,12 @@ extension CoreDataCartItemsRepository {
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now
         }
+    }
+
+    /// Credits a check to its author by name and CloudKit identity; nil clears both on uncheck.
+    private static func setBuyer(of product: ProductEntity, to author: CartAuthor?) {
+        product.purchasedByName = author?.displayName?.nilIfBlank
+        product.purchasedByRecordName = author?.recordName?.nilIfBlank
     }
 
     private static func hasTombstone(

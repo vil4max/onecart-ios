@@ -254,6 +254,7 @@
             { "path": "CartActivityNotifier.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartActivityDiff.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartItemSnapshot.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "CartAuthor.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartSuggestionsEngine.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "String+NilIfBlank.swift", "target-membership": [ "OneCart/compile-sources" ] },
             {
@@ -378,6 +379,7 @@
         { "path": "WidgetSnapshotTests+PurchaseVersion.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "WidgetPrivacyCleanupTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartActivityDiffTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "CartAuthorIdentityTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartSuggestionsEngineTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartCelebrationTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "FamilyCartMergeTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },

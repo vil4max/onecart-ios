@@ -55,13 +55,13 @@ extension CartMutationService {
         CartSyncLog.action.info("addProduct start")
         var addedID: UUID?
         let cartItems = dependencies.cartItems
-        let createdByName = context?.participantName
+        let author = context?.cartAuthor ?? CartAuthor(displayName: nil)
         let succeeded = await performMutation(action: "addProduct") {
             addedID = try await cartItems.addProduct(
                 to: listID,
                 id: UUID(),
                 draft: draft,
-                createdByName: createdByName
+                author: author
             )
         }
         guard succeeded, let productID = addedID else { return nil }
@@ -226,7 +226,7 @@ extension CartMutationService {
                 id: id,
                 familySpaceID: familyID,
                 isPurchased: isPurchased,
-                participantDisplayName: context?.participantName
+                author: context?.cartAuthor ?? CartAuthor(displayName: nil)
             )
             await processPendingViewContextChanges()
             refreshAfterPurchaseChange()

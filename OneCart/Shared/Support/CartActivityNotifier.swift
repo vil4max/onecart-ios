@@ -9,7 +9,7 @@ protocol CartActivityNotifying {
         cartID: UUID,
         previous: [CartItemSnapshot],
         current: [CartItemSnapshot],
-        currentUserName: String,
+        currentUser: CartAuthor,
         isSharedCart: Bool
     )
     func clearSnapshots()
@@ -25,14 +25,15 @@ struct LiveCartActivityNotifier: CartActivityNotifying {
         cartID: UUID,
         previous: [CartItemSnapshot],
         current: [CartItemSnapshot],
-        currentUserName: String,
+        currentUser: CartAuthor,
         isSharedCart: Bool
     ) {
         CartActivityNotifier.notifyIfNeeded(
             cartID: cartID,
             previous: previous,
             current: current,
-            currentUserName: currentUserName,
+            currentUserName: currentUser.displayName ?? "",
+            currentUserRecordName: currentUser.recordName,
             isSharedCart: isSharedCart,
             defaults: defaults,
             notificationCenter: notificationCenter
@@ -64,6 +65,7 @@ enum CartActivityNotifier {
         previous: [CartItemSnapshot],
         current: [CartItemSnapshot],
         currentUserName: String,
+        currentUserRecordName: String? = nil,
         isSharedCart: Bool,
         defaults: UserDefaults = .standard,
         notificationCenter: UNUserNotificationCenter? = .current()
@@ -74,6 +76,7 @@ enum CartActivityNotifier {
             stored: stored,
             current: current,
             currentUserName: currentUserName,
+            currentUserRecordName: currentUserRecordName,
             isSharedCart: isSharedCart
         )
 

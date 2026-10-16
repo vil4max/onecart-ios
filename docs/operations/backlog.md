@@ -51,7 +51,7 @@ Planned order (status kept here):
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | done (trip and suggestions collaborators not extracted: they would not reduce the injected protocols) |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | done |
 | G13 | Split the repository behind protocols | done |
-| G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
+| G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | done on branch, waiting for the Production schema deploy |
 | P | Move to the ios-dev plugin: `ios-verify.conf`, the plugin's lint limits with a SwiftLint baseline of the 85 existing size violations (44 type bodies, 41 function bodies), CI on Apple's tools, TestFlight scripts in `OneCart/ci_scripts/`, `Tooling/` and the justfile removed, `.worktreeinclude` (maintainer decision relayed 2026-10-15) | done; the baseline shrinks as G8, G12 and later splits bring types and functions under the limits |
 
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root

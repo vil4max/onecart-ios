@@ -201,6 +201,7 @@ extension CoreDataCartDeduplicator {
         winner.isPurchased = NSNumber(value: true)
         winner.purchasedAt = latestPurchase.purchasedAt ?? now
         winner.purchasedByName = latestPurchase.purchasedByName
+        winner.purchasedByRecordName = latestPurchase.purchasedByRecordName
         winner.markPurchaseStateChanged(at: now)
     }
 

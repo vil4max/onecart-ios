@@ -68,6 +68,12 @@ extension AppSession {
         return knownUserRecordName.name
     }
 
+    /// The record name is nil until the iCloud identity lookup finishes; lines written before
+    /// then carry only the name, and notifications fall back to comparing names for them.
+    var cartAuthor: CartAuthor {
+        CartAuthor(displayName: participantName, recordName: currentUserRecordName)
+    }
+
     static func householdCartName(for account: OneCartAccount) -> String {
         let trimmed = account.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,

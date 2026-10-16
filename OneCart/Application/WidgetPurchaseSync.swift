@@ -220,7 +220,7 @@ extension WidgetPurchaseSync {
             id: request.productID,
             familySpaceID: request.familyID,
             isPurchased: request.isPurchased,
-            participantDisplayName: context?.participantName,
+            author: context?.cartAuthor ?? CartAuthor(displayName: nil),
             purchasedAt: request.createdAt
         )
         // A crash after save leaves an idempotent desired-state command available for retry.
