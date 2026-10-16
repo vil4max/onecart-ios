@@ -5,7 +5,7 @@ Open engineering work and the decisions it waits on. Every requirement in
 ideas there (multi-cart UI, history assistant, History retention) stay unplanned until the
 maintainer takes them on.
 
-## In progress: audit fixes (started 2026-10-15)
+## Audit fixes (2026-10-15 – 2026-10-16, done)
 
 The source is an engineering audit of 2026-10-10, re-verified against `f07a160`. Each group ended
 with `just verify` (the gate before the move to the ios-dev plugin) green and one commit. Finding IDs (`oc-<scope>-NN`) refer to that audit.
@@ -20,22 +20,22 @@ with `just verify` (the gate before the move to the ios-dev plugin) green and on
 | 6. Accessibility | Add button ignores Dynamic Type, circular widget label (`features-22`); toggle animation ignores Reduce Motion (`architecture-15`) | done (`8a9cff5`) |
 | 7. Docs and hygiene | Stale architecture and ADR facts (`readiness-16`, `architecture-18`); `.gitignore` and private-data allowlist leftovers (`readiness-12`, `readiness-13`); duplicated helpers and keys (`application-14`, `data-25`); naming (`application-15`); `AppDelegate` lock and push result (`application-20`); comment policy (`application-16`, `data-27`, `features-21`, `tests-19`) | done (`7d6412e`, `5ebb494`) |
 
-Known gap until G14: renames and category refinements keep `Product.updatedAt` (a queued widget
-purchase compares it), so a retried personal-cart restore can miss a rename made on the
-provisional cart. Retries happen only when selecting the restored cart failed.
+Known gap until G14 is merged: renames and category refinements keep `Product.updatedAt` (a
+queued widget purchase compares it), so a retried personal-cart restore can miss a rename made on
+the provisional cart. Retries happen only when selecting the restored cart failed.
 
-## Approved by the maintainer (2026-10-15), not started
+## Approved by the maintainer (2026-10-15)
 
 The maintainer approved every item below ("все owner-решения"). Each changes architecture, a
 requirement or shipped data, so each lands as its own reviewed group with `ios-verify` green
 (`just verify` until group P).
 
-Resume point (2026-10-15, paused for a reboot): `main` is at `b31485d` with L, G1, G2 and G3
-done. G4 was started and stopped before it committed; restart it from `main`. G9 was stopped
-mid-way; its unfinished edits are on the local branch `worktree-agent-ae162d1647cc773bf`
-(commit `4926efc`), either finish them from there or restart G9 from `main`. Every group gets
-an independent review, a green gate and a push before the next dependent group. The move to
-the iOS plugin is group P below.
+State (2026-10-16): every group below is done and on `main` except G14. G14 is complete and
+reviewed on the branch `g14-schema-v9` (Core Data V9, additive). It must not reach `main` before
+the maintainer deploys `CD_Product.CD_createdByRecordName`, `CD_purchasedByRecordName` and
+`CD_purchaseUpdatedAt` to the CloudKit Production schema: Debug builds are pinned to Production
+too, so any run of a V9 build would fail to export. After the deploy, fast-forward `main` to the
+branch (rebase it first if `main` moved), run `ios-verify`, push, delete the branch.
 
 Planned order (status kept here):
 
@@ -55,7 +55,7 @@ Planned order (status kept here):
 | G11 | `AccountViewModel` and `CartViewModel` splits; demo hooks out of views | done (trip and suggestions collaborators not extracted: they would not reduce the injected protocols) |
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | done |
 | G13 | Split the repository behind protocols | done |
-| G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
+| G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | done on branch `g14-schema-v9`, waiting for the Production schema deploy |
 | P | Move to the ios-dev plugin: `ios-verify.conf`, the plugin's lint limits with a SwiftLint baseline of the 85 existing size violations (44 type bodies, 41 function bodies), CI on Apple's tools, TestFlight scripts in `OneCart/ci_scripts/`, `Tooling/` and the justfile removed, `.worktreeinclude` (maintainer decision relayed 2026-10-15) | done; the baseline shrinks as G8, G12 and later splits bring types and functions under the limits |
 
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root
