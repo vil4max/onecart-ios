@@ -256,7 +256,7 @@ final class ProductEntity: NSManagedObject {
     /// keeps their check from being replaced by an older widget command; their uncheck clears
     /// `purchasedAt` and stays uncovered (release.md section 2).
     var purchaseVersion: Date {
-        max(purchaseUpdatedAt ?? updatedAt ?? .distantPast, purchasedAt ?? .distantPast)
+        max(purchaseUpdatedAt ?? updatedAt ?? createdAt ?? .distantPast, purchasedAt ?? .distantPast)
     }
 
     func markPurchaseStateChanged(at date: Date) {

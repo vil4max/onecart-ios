@@ -103,9 +103,11 @@ final class CoreDataPersonalCartRestorer: PersonalCartRestorer, PermissionGuarde
             }
             restoredObjects[object.objectID] = copy
             guard existing == nil || Self.shouldRestoreAttributes(from: object, onto: copy) else { continue }
+            let destinationPurchaseVersion = (copy as? ProductEntity)?.purchaseUpdatedAt
             for key in object.entity.attributesByName.keys {
                 copy.setValue(object.value(forKey: key), forKey: key)
             }
+            Self.keepNewerPurchaseVersion(destinationPurchaseVersion, on: copy)
             changedObjects.append((object, copy))
         }
     }
@@ -145,6 +147,15 @@ final class CoreDataPersonalCartRestorer: PersonalCartRestorer, PermissionGuarde
         let leftUpdated = lhs.value(forKey: "updatedAt") as? Date ?? .distantPast
         let rightUpdated = rhs.value(forKey: "updatedAt") as? Date ?? .distantPast
         return leftUpdated > rightUpdated
+    }
+
+    /// A no-op widget command moves only `purchaseUpdatedAt`; a copied row must not move the
+    /// destination's purchase version backwards, or an older queued command could win again.
+    private static func keepNewerPurchaseVersion(_ previous: Date?, on copy: NSManagedObject) {
+        guard let product = copy as? ProductEntity, let previous else { return }
+        if (product.purchaseUpdatedAt ?? .distantPast) < previous {
+            product.purchaseUpdatedAt = previous
+        }
     }
 
     private static func shouldRestoreAttributes(
