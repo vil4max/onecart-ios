@@ -2,7 +2,7 @@ import XCTest
 
 /// End-to-end smoke of the core path on a real app process. Every launch uses DEBUG demo
 /// mode (no Sign in with Apple, no CloudKit) with a freshly seeded owner cart: the seed holds
-/// four cart lines, two of them completed, and one History day of three purchases.
+/// five cart lines, two of them completed, and one History day of three purchases.
 ///
 /// The app under a UI test does not see `XCTestConfigurationFilePath`: XCTest sets it in the
 /// runner process only, so the app's unit-test short-circuits (skipped bootstrap, in-memory
@@ -11,6 +11,12 @@ import XCTest
 @MainActor
 final class OneCartSmokeUITests: XCTestCase {
     private static let timeout: TimeInterval = 15
+    /// The demo seeds the cart line by line after sign-in, while the cart is already on screen;
+    /// on a slow runner that outlasts the launch ride by several seconds.
+    private static let seedTimeout: TimeInterval = 30
+    /// The settled owner seed: the History pass leaves one line, then four are added and the
+    /// first two to-buy lines are checked. The label shows these counts only once the seed is done.
+    private static let seededCart = ProgressCounts(purchased: 2, total: 5)
 
     private var app: XCUIApplication!
 
@@ -34,11 +40,14 @@ final class OneCartSmokeUITests: XCTestCase {
 
     /// REQ-CART-030 adds a name-only line and REQ-CART-040 marks it bought; the progress
     /// header counts both steps.
-    func test_REQ_CART_040_addedItemMarkedBoughtUpdatesProgress() throws {
+    func test_REQ_CART_040_addedItemMarkedBoughtUpdatesProgress() {
         app.launch()
         let progress = app.descendants(matching: .any)["cart.progress"]
         XCTAssertTrue(progress.waitForExistence(timeout: Self.timeout))
-        let before = try progressCounts(progress)
+        // The first label can be a seeding step ("0 of 4"); adding before the seed settles
+        // races its toggles, so start from the settled seed, not from the first value read.
+        waitForProgress(progress, toEqual: Self.seededCart, timeout: Self.seedTimeout)
+        let before = Self.seededCart
 
         let itemName = "Smoke test item"
         app.buttons["cart.add"].tapWhenHittable(timeout: Self.timeout)
@@ -99,6 +108,7 @@ final class OneCartSmokeUITests: XCTestCase {
     private func waitForProgress(
         _ progress: XCUIElement,
         toEqual expected: ProgressCounts,
+        timeout: TimeInterval = OneCartSmokeUITests.timeout,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
@@ -107,7 +117,7 @@ final class OneCartSmokeUITests: XCTestCase {
             predicate: NSPredicate(format: "label MATCHES %@", pattern),
             object: progress
         )
-        let result = XCTWaiter.wait(for: [expectation], timeout: Self.timeout)
+        let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
         XCTAssertEqual(
             result,
             .completed,
@@ -115,17 +125,6 @@ final class OneCartSmokeUITests: XCTestCase {
             file: file,
             line: line
         )
-    }
-
-    private func progressCounts(_ progress: XCUIElement) throws -> ProgressCounts {
-        let numbers = progress.label
-            .split(whereSeparator: { !$0.isNumber })
-            .compactMap { Int($0) }
-        guard numbers.count == 2 else {
-            XCTFail("progress label has no 'N of M' counts: \(progress.label)")
-            throw ProgressLabelError()
-        }
-        return ProgressCounts(purchased: numbers[0], total: numbers[1])
     }
 }
 
@@ -137,8 +136,6 @@ private struct ProgressCounts: CustomStringConvertible {
         "\(purchased) of \(total)"
     }
 }
-
-private struct ProgressLabelError: Error {}
 
 private extension XCUIElement {
     func tapWhenHittable(timeout: TimeInterval, file: StaticString = #filePath, line: UInt = #line) {
