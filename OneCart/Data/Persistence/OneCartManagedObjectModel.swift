@@ -11,7 +11,7 @@ enum OneCartManagedObjectModel {
 
     private static func buildModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
-        model.versionIdentifiers = ["OneCartCoreDataV8"]
+        model.versionIdentifiers = ["OneCartCoreDataV9"]
 
         let familySpace = entity("FamilySpace", FamilySpace.self)
         let store = entity("Store", StoreEntity.self)
@@ -44,9 +44,11 @@ enum OneCartManagedObjectModel {
         model.entities = [familySpace, store, list, product, history, historyItem, memberProfile]
         return model
     }
+}
 
-    // MARK: - Relationships
+// MARK: - Relationships
 
+extension OneCartManagedObjectModel {
     private struct Relationships {
         let familyStores, storeFamily: NSRelationshipDescription
         let familyLists, listFamily: NSRelationshipDescription
@@ -143,9 +145,11 @@ enum OneCartManagedObjectModel {
             memberProfileFamily: memberProfileFamily
         )
     }
+}
 
-    // MARK: - Entity properties
+// MARK: - Entity properties
 
+extension OneCartManagedObjectModel {
     private static func makeFamilySpaceProperties(_ rels: Relationships) -> [NSPropertyDescription] {
         [
             attribute("id", .UUIDAttributeType),
@@ -223,6 +227,11 @@ enum OneCartManagedObjectModel {
             attribute("purchasedByName", .stringAttributeType),
             attribute("createdByName", .stringAttributeType),
             attribute("deletedAt", .dateAttributeType),
+            // V9: the authors' CloudKit user record names (REQ-WIDGET-030) and the purchase
+            // version queued widget purchases compare (REQ-WIDGET-020).
+            attribute("createdByRecordName", .stringAttributeType),
+            attribute("purchasedByRecordName", .stringAttributeType),
+            attribute("purchaseUpdatedAt", .dateAttributeType),
             rels.productFamily,
             rels.productList,
             rels.productStore,
@@ -280,9 +289,11 @@ enum OneCartManagedObjectModel {
             rels.memberProfileFamily,
         ]
     }
+}
 
-    // MARK: - Building blocks
+// MARK: - Building blocks
 
+extension OneCartManagedObjectModel {
     private static func entity(_ name: String, _ type: NSManagedObject.Type) -> NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = name

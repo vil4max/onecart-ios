@@ -77,6 +77,41 @@ final class PersonalCartContentRestoreTests: XCTestCase {
         XCTAssertNotNil(try persistence.container.viewContext.fetch(request).first?.deletedAt)
     }
 
+    /// Edits move `updatedAt`, so a retried restore carries a rename made on the provisional cart
+    /// after the first copy and keeps an edit another device made on the destination since.
+    func test_REQ_SYNC_040_retriedRestoreCarriesProvisionalRenameAndKeepsDestinationEdit() async throws {
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
+        let accountID = UUID()
+        let sourceID = try await repository.createFamilySpace(name: "Local", cachedForUserID: accountID)
+        let destinationID = try await repository.createFamilySpace(name: "Existing", cachedForUserID: accountID)
+        let sourceListID = try XCTUnwrap(repository.fetchFamilySpace(id: sourceID)?.activeLists.first?.id)
+        let renamedID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Bread"))
+        let editedID = try await repository.addProduct(to: sourceListID, draft: productDraft(name: "Milk"))
+        let firstCopy = try await repository.restoreProvisionalPersonalContent(
+            from: sourceID, into: destinationID, accountID: accountID
+        )
+        XCTAssertTrue(firstCopy)
+
+        clock.moveNowWithoutFiring(by: .seconds(1))
+        try await repository.updateProduct(
+            id: renamedID, familySpaceID: sourceID, draft: productDraft(name: "Rye bread")
+        )
+        clock.moveNowWithoutFiring(by: .seconds(1))
+        try await repository.updateProduct(
+            id: editedID, familySpaceID: destinationID, draft: productDraft(name: "Oat milk")
+        )
+        let retry = try await repository.restoreProvisionalPersonalContent(
+            from: sourceID, into: destinationID, accountID: accountID
+        )
+        await persistence.container.viewContext.perform { persistence.container.viewContext.processPendingChanges() }
+
+        XCTAssertTrue(retry)
+        let restored = try XCTUnwrap(repository.fetchFamilySpace(id: destinationID)).sortedProducts
+        XCTAssertEqual(restored.first { $0.id == renamedID }?.displayName, "Rye bread")
+        XCTAssertEqual(restored.first { $0.id == editedID }?.displayName, "Oat milk")
+    }
+
     func testRestorePreservesDestinationTombstoneAndOtherAccountBoundary() async throws {
         let (persistence, repository) = try await makeInMemoryRepository()
         let accountID = UUID()

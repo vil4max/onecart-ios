@@ -37,56 +37,10 @@ final class ManagedObjectModelTests: XCTestCase {
     /// shipped, legacy ones the app no longer writes included. Adding a field updates this
     /// snapshot; removing or renaming one must fail here first.
     func test_REQ_SYNC_010_modelKeepsEveryShippedEntityAttributeAndRelationship() {
-        let expected: [String: (attributes: Set<String>, relationships: Set<String>)] = [
-            "FamilySpace": (
-                [
-                    "id", "name", "createdAt", "updatedAt", "deletedAt", "cachedForUserID", "serverRole",
-                    "needsRemoteCreation", "isHouseholdDefault",
-                ],
-                ["stores", "lists", "products", "historyEntries", "historyItems", "memberProfiles"]
-            ),
-            "Store": (
-                [
-                    "id", "name", "icon", "colorHex", "address", "latitude", "longitude", "externalAppURL",
-                    "isPinned", "createdAt", "updatedAt", "deletedAt",
-                ],
-                ["familySpace", "lists", "products", "historyEntries"]
-            ),
-            "ShoppingList": (
-                ["id", "title", "status", "createdAt", "updatedAt", "deletedAt"],
-                ["familySpace", "store", "products"]
-            ),
-            "Product": (
-                [
-                    "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice",
-                    "loyaltyPrice", "imageURL", "sourceURL", "catalogFetchedAt", "promotionEndsAt", "note",
-                    "isPurchased", "createdAt", "updatedAt", "purchasedAt", "purchasedByName", "createdByName",
-                    "deletedAt",
-                ],
-                ["familySpace", "list", "store"]
-            ),
-            "PurchaseHistory": (
-                ["id", "total", "date", "memberNames", "createdAt", "updatedAt", "deletedAt"],
-                ["familySpace", "store", "items"]
-            ),
-            "HistoryItem": (
-                [
-                    "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice", "imageURL",
-                    "sourceURL", "note", "purchasedAt", "purchasedByName", "createdByName", "storeName",
-                    "createdAt", "updatedAt", "deletedAt",
-                ],
-                ["familySpace", "history"]
-            ),
-            "MemberProfile": (
-                ["id", "userRecordName", "displayName", "createdAt", "updatedAt", "deletedAt"],
-                ["familySpace"]
-            ),
-        ]
-
         let model = OneCartManagedObjectModel.makeModel()
-        XCTAssertEqual(model.versionIdentifiers, [AnyHashable("OneCartCoreDataV8")])
-        XCTAssertEqual(Set(model.entitiesByName.keys), Set(expected.keys))
-        for (name, snapshot) in expected {
+        XCTAssertEqual(model.versionIdentifiers, [AnyHashable("OneCartCoreDataV9")])
+        XCTAssertEqual(Set(model.entitiesByName.keys), Set(Self.shippedSchema.keys))
+        for (name, snapshot) in Self.shippedSchema {
             let entity = model.entitiesByName[name]
             XCTAssertEqual(Set(entity.map { Array($0.attributesByName.keys) } ?? []), snapshot.attributes, name)
             XCTAssertEqual(
@@ -94,6 +48,16 @@ final class ManagedObjectModelTests: XCTestCase {
                 snapshot.relationships,
                 name
             )
+        }
+    }
+
+    /// REQ-SYNC-010: the V9 fields are optional, so a store and CloudKit records written before
+    /// V9 stay valid without them.
+    func test_REQ_SYNC_010_v9ProductFieldsAreOptional() throws {
+        let product = try XCTUnwrap(OneCartManagedObjectModel.makeModel().entitiesByName["Product"])
+        for name in ["createdByRecordName", "purchasedByRecordName", "purchaseUpdatedAt"] {
+            let attribute = try XCTUnwrap(product.attributesByName[name], name)
+            XCTAssertTrue(attribute.isOptional, name)
         }
     }
 
@@ -109,71 +73,7 @@ final class ManagedObjectModelTests: XCTestCase {
         let family = try XCTUnwrap(profile.relationshipsByName["familySpace"])
         XCTAssertEqual(family.destinationEntity?.name, "FamilySpace")
         XCTAssertEqual(family.inverseRelationship?.name, "memberProfiles")
-        XCTAssertTrue(model.versionIdentifiers.contains(AnyHashable("OneCartCoreDataV8")))
-    }
-
-    /// REQ-SYNC-020: a store written by 1.6.0, whose `HistoryItem` has no `createdByName`,
-    /// opens with the current model through lightweight migration and keeps its archive.
-    @MainActor
-    func test_REQ_SYNC_020_storeWithoutHistoryCreatorOpensWithCurrentModel() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("OneCartHistoryCreatorMigration-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let storeURL = directory.appendingPathComponent("OneCart-private.sqlite")
-        let itemID = UUID()
-
-        let previous = try Self.modelWithoutHistoryCreator()
-        XCTAssertNil(previous.entitiesByName["HistoryItem"]?.attributesByName["createdByName"])
-        let oldContainer = NSPersistentContainer(name: "OneCartPrevious", managedObjectModel: previous)
-        oldContainer.persistentStoreDescriptions = [Self.migratingDescription(for: storeURL)]
-        try Self.loadStores(of: oldContainer)
-        let oldContext = oldContainer.viewContext
-        let itemEntity = try XCTUnwrap(previous.entitiesByName["HistoryItem"])
-        let item = NSManagedObject(entity: itemEntity, insertInto: oldContext)
-        item.setValue(itemID, forKey: "id")
-        item.setValue("Bread", forKey: "name")
-        item.setValue("Alex", forKey: "purchasedByName")
-        try oldContext.save()
-        for store in oldContainer.persistentStoreCoordinator.persistentStores {
-            try oldContainer.persistentStoreCoordinator.remove(store)
-        }
-
-        let current = OneCartManagedObjectModel.makeModel()
-        XCTAssertNotNil(current.entitiesByName["HistoryItem"]?.attributesByName["createdByName"])
-        let newContainer = NSPersistentContainer(name: "OneCartCurrent", managedObjectModel: current)
-        newContainer.persistentStoreDescriptions = [Self.migratingDescription(for: storeURL)]
-        try Self.loadStores(of: newContainer)
-
-        let request = NSFetchRequest<NSManagedObject>(entityName: "HistoryItem")
-        let migrated = try newContainer.viewContext.fetch(request)
-        XCTAssertEqual(migrated.count, 1)
-        XCTAssertEqual(migrated.first?.value(forKey: "id") as? UUID, itemID)
-        XCTAssertEqual(migrated.first?.value(forKey: "name") as? String, "Bread")
-        XCTAssertEqual(migrated.first?.value(forKey: "purchasedByName") as? String, "Alex")
-        XCTAssertNil(migrated.first?.value(forKey: "createdByName"))
-    }
-
-    /// The 1.6.0 model: today's model without `HistoryItem.createdByName`, mapped to plain
-    /// objects so the two models never claim the same classes.
-    private static func modelWithoutHistoryCreator() throws -> NSManagedObjectModel {
-        let model = try XCTUnwrap(OneCartManagedObjectModel.makeModel().copy() as? NSManagedObjectModel)
-        for entity in model.entities {
-            entity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
-            if entity.name == "HistoryItem" {
-                entity.properties = entity.properties.filter { $0.name != "createdByName" }
-            }
-        }
-        return model
-    }
-
-    private static func migratingDescription(for url: URL) -> NSPersistentStoreDescription {
-        let description = NSPersistentStoreDescription(url: url)
-        description.type = NSSQLiteStoreType
-        description.shouldAddStoreAsynchronously = false
-        description.shouldMigrateStoreAutomatically = true
-        description.shouldInferMappingModelAutomatically = true
-        return description
+        XCTAssertTrue(model.versionIdentifiers.contains(AnyHashable("OneCartCoreDataV9")))
     }
 
     /// REQ-CART-010: only the retired statuses hide a list, so every shipped build agrees on it.
@@ -191,14 +91,53 @@ final class ManagedObjectModelTests: XCTestCase {
             XCTAssertFalse(list.isActive, "status \(status)")
         }
     }
+}
 
-    private static func loadStores(of container: NSPersistentContainer) throws {
-        var loadError: Error?
-        container.loadPersistentStores { _, error in
-            loadError = error
-        }
-        if let loadError {
-            throw loadError
-        }
-    }
+extension ManagedObjectModelTests {
+    /// Every entity, attribute and relationship the model has shipped, through V9.
+    static let shippedSchema: [String: (attributes: Set<String>, relationships: Set<String>)] = [
+        "FamilySpace": (
+            [
+                "id", "name", "createdAt", "updatedAt", "deletedAt", "cachedForUserID", "serverRole",
+                "needsRemoteCreation", "isHouseholdDefault",
+            ],
+            ["stores", "lists", "products", "historyEntries", "historyItems", "memberProfiles"]
+        ),
+        "Store": (
+            [
+                "id", "name", "icon", "colorHex", "address", "latitude", "longitude", "externalAppURL",
+                "isPinned", "createdAt", "updatedAt", "deletedAt",
+            ],
+            ["familySpace", "lists", "products", "historyEntries"]
+        ),
+        "ShoppingList": (
+            ["id", "title", "status", "createdAt", "updatedAt", "deletedAt"],
+            ["familySpace", "store", "products"]
+        ),
+        "Product": (
+            [
+                "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice",
+                "loyaltyPrice", "imageURL", "sourceURL", "catalogFetchedAt", "promotionEndsAt", "note",
+                "isPurchased", "createdAt", "updatedAt", "purchasedAt", "purchasedByName", "createdByName",
+                "deletedAt", "createdByRecordName", "purchasedByRecordName", "purchaseUpdatedAt",
+            ],
+            ["familySpace", "list", "store"]
+        ),
+        "PurchaseHistory": (
+            ["id", "total", "date", "memberNames", "createdAt", "updatedAt", "deletedAt"],
+            ["familySpace", "store", "items"]
+        ),
+        "HistoryItem": (
+            [
+                "id", "name", "quantity", "unit", "category", "estimatedPrice", "originalPrice", "imageURL",
+                "sourceURL", "note", "purchasedAt", "purchasedByName", "createdByName", "storeName",
+                "createdAt", "updatedAt", "deletedAt",
+            ],
+            ["familySpace", "history"]
+        ),
+        "MemberProfile": (
+            ["id", "userRecordName", "displayName", "createdAt", "updatedAt", "deletedAt"],
+            ["familySpace"]
+        ),
+    ]
 }

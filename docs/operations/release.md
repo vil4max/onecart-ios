@@ -73,6 +73,14 @@ or (after model field adds):
    `CD_purchasedByName` appear on the types that use them (especially `CD_Product`).
    Since 1.7.0 `CD_HistoryItem` also carries `CD_createdByName` (who added an archived item);
    deploy it before tagging a TestFlight build that includes it.
+   The V9 model (`OneCartCoreDataV9`) adds three optional fields to `CD_Product`:
+   `CD_createdByRecordName`, `CD_purchasedByRecordName` and `CD_purchaseUpdatedAt`. Deploy them
+   to Production before any build with V9 runs against Production, and so before its `tf-`
+   tag; Debug builds are pinned to Production too, so this includes Xcode Run.
+   In a family with pre-V9 and V9 builds, a pre-V9 build that checks or unchecks a line leaves
+   that line's `CD_purchasedByRecordName` and `CD_purchaseUpdatedAt` stale, so activity
+   notifications may credit the wrong member, and a widget tap queued on a V9 device before
+   that check may still replace it, until everyone updates.
 3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
 4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 

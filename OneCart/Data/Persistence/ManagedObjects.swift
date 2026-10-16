@@ -214,6 +214,9 @@ final class ProductEntity: NSManagedObject {
     @NSManaged var purchasedByName: String?
     @NSManaged var createdByName: String?
     @NSManaged var deletedAt: Date?
+    @NSManaged var createdByRecordName: String?
+    @NSManaged var purchasedByRecordName: String?
+    @NSManaged var purchaseUpdatedAt: Date?
     @NSManaged var familySpace: FamilySpace?
     @NSManaged var list: ShoppingListEntity?
     @NSManaged var store: StoreEntity?
@@ -244,6 +247,28 @@ final class ProductEntity: NSManagedObject {
 
     var isDeletedValue: Bool {
         deletedAt != nil
+    }
+
+    /// The time of the last purchase-state change, which a queued widget purchase must be
+    /// newer than. Rows written before V9 have no `purchaseUpdatedAt`; their `updatedAt` moved
+    /// only on purchase-state changes and deletes, so it stands in for one.
+    var purchaseVersion: Date {
+        purchaseUpdatedAt ?? updatedAt ?? .distantPast
+    }
+
+    func markPurchaseStateChanged(at date: Date) {
+        purchaseUpdatedAt = date
+        updatedAt = date
+    }
+
+    /// Moves `updatedAt` for an edit, so last-writer-wins merges see it. A row from before V9
+    /// first keeps its old `updatedAt` as its purchase version: the edit must not make a widget
+    /// purchase queued before it look older than the row.
+    func markEdited(at date: Date) {
+        if purchaseUpdatedAt == nil {
+            purchaseUpdatedAt = updatedAt
+        }
+        updatedAt = date
     }
 }
 

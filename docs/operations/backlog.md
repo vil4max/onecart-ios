@@ -20,10 +20,6 @@ with `just verify` (the gate before the move to the ios-dev plugin) green and on
 | 6. Accessibility | Add button ignores Dynamic Type, circular widget label (`features-22`); toggle animation ignores Reduce Motion (`architecture-15`) | done (`8a9cff5`) |
 | 7. Docs and hygiene | Stale architecture and ADR facts (`readiness-16`, `architecture-18`); `.gitignore` and private-data allowlist leftovers (`readiness-12`, `readiness-13`); duplicated helpers and keys (`application-14`, `data-25`); naming (`application-15`); `AppDelegate` lock and push result (`application-20`); comment policy (`application-16`, `data-27`, `features-21`, `tests-19`) | done (`7d6412e`, `5ebb494`) |
 
-Known gap until G14: renames and category refinements keep `Product.updatedAt` (a queued widget
-purchase compares it), so a retried personal-cart restore can miss a rename made on the
-provisional cart. Retries happen only when selecting the restored cart failed.
-
 ## Approved by the maintainer (2026-10-15), not started
 
 The maintainer approved every item below ("все owner-решения"). Each changes architecture, a

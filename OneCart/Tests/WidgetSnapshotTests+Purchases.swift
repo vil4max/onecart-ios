@@ -162,14 +162,14 @@ extension WidgetSnapshotTests {
                 FamilySpaceRepository.fetchProduct(
                     id: missingID, familySpaceID: familyID, in: context
                 ))
-            imported.updatedAt = first.createdAt.addingTimeInterval(-1)
+            imported.markPurchaseStateChanged(at: first.createdAt.addingTimeInterval(-1))
         }
 
         await fixture.session.drainWidgetPendingToggles()
 
         let imported = try XCTUnwrap(fetchProduct(id: missingID, repository: fixture.repository))
         XCTAssertFalse(imported.isPurchasedValue)
-        XCTAssertEqual(imported.updatedAt, second.createdAt)
+        XCTAssertEqual(imported.purchaseUpdatedAt, second.createdAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
     }
 
@@ -219,7 +219,7 @@ extension WidgetSnapshotTests {
                 FamilySpaceRepository.fetchProduct(
                     id: request.productID, familySpaceID: request.familyID, in: context
                 ))
-            product.updatedAt = purchasedAt.addingTimeInterval(-1)
+            product.markPurchaseStateChanged(at: purchasedAt.addingTimeInterval(-1))
         }
         try fixture.store.enqueuePurchase(request)
         XCTAssertNil(fixture.session.account)
@@ -247,7 +247,7 @@ extension WidgetSnapshotTests {
 
         let product = try XCTUnwrap(fetchProduct(id: fixture.productID, repository: fixture.repository))
         XCTAssertFalse(product.isPurchasedValue)
-        XCTAssertEqual(product.updatedAt, second.createdAt)
+        XCTAssertEqual(product.purchaseUpdatedAt, second.createdAt)
         XCTAssertTrue(try fixture.store.pendingPurchases().isEmpty)
         XCTAssertEqual(fixture.session.pendingCartMutationCount, 0)
     }

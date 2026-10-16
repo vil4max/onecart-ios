@@ -58,26 +58,8 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
             guard let space = list.familySpace else {
                 throw RepositoryError.familySpaceNotFound
             }
-
-            // Redelivery is idempotent only for the exact stable id, never by name; the name
-            // check below is the duplicate-row product rule, not redelivery idempotency.
-            if let existing = try RepositoryFetch.product(
-                id: id,
-                familySpaceID: space.id,
-                in: context
-            ) {
-                return existing.id ?? id
-            }
-
-            // Duplicate protection: same normalized name in the same list
-            // (case/whitespace/diacritic-insensitive) reuses the living row.
-            // Deleted tombstones are ignored so a re-add after delete works.
-            if let duplicate = try Self.fetchLiveProduct(
-                normalizedName: wantedKey,
-                listID: listID,
-                in: context
-            ), let duplicateID = duplicate.id {
-                return duplicateID
+            if let existingID = try Self.existingProductID(id: id, normalizedName: wantedKey, in: list) {
+                return existingID
             }
 
             let now = self.clock.now()
@@ -87,7 +69,9 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
             Self.apply(draft: draft, to: product)
             product.isPurchased = false
             product.createdAt = now
-            product.updatedAt = now
+            // A new line starts its purchase version too, so a later edit can move `updatedAt`
+            // without the row ever falling back to it.
+            product.markPurchaseStateChanged(at: now)
             product.purchasedAt = nil
             product.purchasedByName = nil
             product.createdByName = createdByName?.nilIfBlank
@@ -100,143 +84,22 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
         }
     }
 
-    func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws {
-        let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
-        let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
-
-        try await persistence.performBackgroundTask { context in
-            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
-            else {
-                throw RepositoryError.productNotFound
-            }
-            try self.requireUpdatePermission(for: product)
-            let now = self.clock.now()
-            // Rename into an existing living row merges instead of duplicating:
-            // the edited duplicate is tombstoned, the earlier row stays visible.
-            if let listID = product.list?.id,
-                let collision = try Self.fetchLiveProduct(
-                    normalizedName: wantedKey,
-                    listID: listID,
-                    excludingID: id,
-                    in: context
-                )
-            {
-                try self.requireDeletePermission(for: product)
-                product.deletedAt = now
-                product.updatedAt = now
-                product.list?.updatedAt = now
-                product.familySpace?.updatedAt = now
-                return
-            }
-            // Like a category refinement, an edit keeps `updatedAt`, the purchase version
-            // `setPurchased` compares queued widget commands against: renaming after a tap
-            // must not make that tap look older than the row.
-            Self.apply(draft: draft, to: product)
-            product.list?.updatedAt = now
-            product.familySpace?.updatedAt = now
-        }
-    }
-
-    /// Writes only the category, so a background classification never touches the name or
-    /// any other field a concurrent edit may have changed. The row's `updatedAt` is the purchase
-    /// version `setPurchased` compares queued widget commands against; a classification that
-    /// lands after a tap must not make that tap look older than the row, so it stays untouched.
-    func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws {
-        try await persistence.performBackgroundTask { context in
-            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
-            else {
-                throw RepositoryError.productNotFound
-            }
-            try self.requireUpdatePermission(for: product)
-            guard product.categoryValue != category else { return }
-            let now = self.clock.now()
-            product.category = category.rawValue
-            product.list?.updatedAt = now
-            product.familySpace?.updatedAt = now
-        }
-    }
-
-    /// Applies the state the user asked for instead of flipping the stored one: when another
-    /// shopper's change already reached the store, checking an item they checked keeps their
-    /// check (and their name) rather than undoing it.
-    func setPurchasedState(
+    /// The living row an add resolves to instead of inserting one, or nil for a new line.
+    private static func existingProductID(
         id: UUID,
-        familySpaceID: UUID,
-        isPurchased: Bool,
-        participantDisplayName: String?
-    ) async throws {
-        try await persistence.performBackgroundTask { context in
-            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
-            else {
-                throw RepositoryError.productNotFound
-            }
-            try self.requireUpdatePermission(for: product)
-            guard product.isPurchasedValue != isPurchased else { return }
-            let now = self.clock.now()
-            product.isPurchased = NSNumber(value: isPurchased)
-            product.purchasedAt = isPurchased ? now : nil
-            product.purchasedByName =
-                isPurchased
-                ? participantDisplayName?.nilIfBlank
-                : nil
-            product.updatedAt = now
-            product.list?.updatedAt = now
-            product.familySpace?.updatedAt = now
+        normalizedName: String,
+        in list: ShoppingListEntity
+    ) throws -> UUID? {
+        guard let context = list.managedObjectContext, let listID = list.id else { return nil }
+        // Redelivery is idempotent only for the exact stable id, never by name; the name
+        // check below is the duplicate-row product rule, not redelivery idempotency.
+        if let existing = try RepositoryFetch.product(id: id, familySpaceID: list.familySpace?.id, in: context) {
+            return existing.id ?? id
         }
-    }
-
-    func setPurchased(
-        id: UUID,
-        familySpaceID: UUID,
-        isPurchased: Bool,
-        participantDisplayName: String?,
-        purchasedAt: Date
-    ) async throws {
-        try await persistence.performBackgroundTask { context in
-            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
-            else {
-                let tombstones = ProductEntity.fetchRequest()
-                tombstones.predicate = NSPredicate(
-                    format: "id == %@ AND familySpace.id == %@ AND deletedAt != nil",
-                    id as NSUUID,
-                    familySpaceID as NSUUID
-                )
-                tombstones.fetchLimit = 1
-                if try context.fetch(tombstones).first != nil {
-                    return
-                }
-                throw RepositoryError.productNotFound
-            }
-            try self.requireUpdatePermission(for: product)
-            // A retried command cannot replace a newer app edit or widget command.
-            guard (product.updatedAt ?? .distantPast) < purchasedAt else { return }
-            let now = self.clock.now()
-            if product.isPurchasedValue != isPurchased {
-                product.isPurchased = NSNumber(value: isPurchased)
-                product.purchasedAt = isPurchased ? purchasedAt : nil
-                product.purchasedByName = isPurchased ? participantDisplayName?.nilIfBlank : nil
-            }
-            product.updatedAt = purchasedAt
-            product.list?.updatedAt = now
-            product.familySpace?.updatedAt = now
-        }
-    }
-
-    func deleteProduct(id: UUID, familySpaceID: UUID) async throws {
-        try await persistence.performBackgroundTask { context in
-            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
-            else {
-                throw RepositoryError.productNotFound
-            }
-            try self.requireDeletePermission(for: product)
-            guard !product.isPurchasedValue else { return }
-            let now = self.clock.now()
-            product.deletedAt = now
-            product.updatedAt = now
-            product.list?.updatedAt = now
-            product.familySpace?.updatedAt = now
-        }
+        // Duplicate protection: same normalized name in the same list
+        // (case/whitespace/diacritic-insensitive) reuses the living row.
+        // Deleted tombstones are ignored so a re-add after delete works.
+        return try fetchLiveProduct(normalizedName: normalizedName, listID: listID, in: context)?.id
     }
 
     private static func fetchLiveProduct(
@@ -269,5 +132,164 @@ final class CoreDataCartItemsRepository: CartItemsRepository, PermissionGuardedR
     private static func apply(draft: ProductDraft, to product: ProductEntity) {
         product.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         product.category = draft.category.rawValue
+    }
+}
+
+// MARK: - Edits and delete
+
+extension CoreDataCartItemsRepository {
+    func updateProduct(id: UUID, familySpaceID: UUID, draft: ProductDraft) async throws {
+        let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty else { throw RepositoryError.invalidName }
+        let wantedKey = FamilyCartMerge.normalizedProductName(normalizedName)
+
+        try await persistence.performBackgroundTask { context in
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            let now = self.clock.now()
+            // Rename into an existing living row merges instead of duplicating:
+            // the edited duplicate is tombstoned, the earlier row stays visible.
+            if let listID = product.list?.id,
+                let collision = try Self.fetchLiveProduct(
+                    normalizedName: wantedKey,
+                    listID: listID,
+                    excludingID: id,
+                    in: context
+                )
+            {
+                try self.requireDeletePermission(for: product)
+                product.deletedAt = now
+                product.updatedAt = now
+                product.list?.updatedAt = now
+                product.familySpace?.updatedAt = now
+                return
+            }
+            // The edit moves `updatedAt` for last-writer-wins merges; queued widget purchases
+            // compare the separate purchase version, so a rename after a tap does not drop it.
+            Self.apply(draft: draft, to: product)
+            product.markEdited(at: now)
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
+    /// Writes only the category, so a background classification never touches the name or
+    /// any other field a concurrent edit may have changed. Like a rename, it moves `updatedAt`
+    /// and leaves the purchase version alone.
+    func updateProductCategory(id: UUID, familySpaceID: UUID, category: ProductCategory) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            guard product.categoryValue != category else { return }
+            let now = self.clock.now()
+            product.category = category.rawValue
+            product.markEdited(at: now)
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
+    func deleteProduct(id: UUID, familySpaceID: UUID) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
+                throw RepositoryError.productNotFound
+            }
+            try self.requireDeletePermission(for: product)
+            guard !product.isPurchasedValue else { return }
+            let now = self.clock.now()
+            product.deletedAt = now
+            product.updatedAt = now
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+}
+
+// MARK: - Purchase state
+
+extension CoreDataCartItemsRepository {
+    /// Applies the state the user asked for instead of flipping the stored one: when another
+    /// shopper's change already reached the store, checking an item they checked keeps their
+    /// check (and their name) rather than undoing it.
+    func setPurchasedState(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?
+    ) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            guard product.isPurchasedValue != isPurchased else { return }
+            let now = self.clock.now()
+            product.isPurchased = NSNumber(value: isPurchased)
+            product.purchasedAt = isPurchased ? now : nil
+            product.purchasedByName =
+                isPurchased
+                ? participantDisplayName?.nilIfBlank
+                : nil
+            product.markPurchaseStateChanged(at: now)
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
+    func setPurchased(
+        id: UUID,
+        familySpaceID: UUID,
+        isPurchased: Bool,
+        participantDisplayName: String?,
+        purchasedAt: Date
+    ) async throws {
+        try await persistence.performBackgroundTask { context in
+            guard let product = try RepositoryFetch.product(id: id, familySpaceID: familySpaceID, in: context)
+            else {
+                if try Self.hasTombstone(id: id, familySpaceID: familySpaceID, in: context) {
+                    return
+                }
+                throw RepositoryError.productNotFound
+            }
+            try self.requireUpdatePermission(for: product)
+            // A retried command cannot replace a newer purchase-state change from the app or
+            // another widget command; edits move only `updatedAt` and never block it.
+            guard product.purchaseVersion < purchasedAt else { return }
+            let now = self.clock.now()
+            if product.isPurchasedValue != isPurchased {
+                product.isPurchased = NSNumber(value: isPurchased)
+                product.purchasedAt = isPurchased ? purchasedAt : nil
+                product.purchasedByName = isPurchased ? participantDisplayName?.nilIfBlank : nil
+            }
+            // The version is the command's own time, not now: commands queued for one line
+            // replay in order, and each must still be newer than the one applied before it.
+            product.purchaseUpdatedAt = purchasedAt
+            product.updatedAt = now
+            product.list?.updatedAt = now
+            product.familySpace?.updatedAt = now
+        }
+    }
+
+    private static func hasTombstone(
+        id: UUID,
+        familySpaceID: UUID,
+        in context: NSManagedObjectContext
+    ) throws -> Bool {
+        let tombstones = ProductEntity.fetchRequest()
+        tombstones.predicate = NSPredicate(
+            format: "id == %@ AND familySpace.id == %@ AND deletedAt != nil",
+            id as NSUUID,
+            familySpaceID as NSUUID
+        )
+        tombstones.fetchLimit = 1
+        return try context.fetch(tombstones).first != nil
     }
 }

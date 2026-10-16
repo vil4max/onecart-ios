@@ -156,8 +156,8 @@ final class CoreDataPersonalCartRestorer: PersonalCartRestorer, PermissionGuarde
         if source.value(forKey: "deletedAt") != nil {
             return true
         }
-        // Renames and refinements keep updatedAt, so a retry can miss one made on the provisional
-        // cart; a tie still keeps the destination, whose row another device may have edited.
+        // Every edit moves updatedAt, so a retry carries one made on the provisional cart since
+        // the last copy and keeps a newer destination edit; a tie keeps the destination too.
         let sourceUpdated = source.value(forKey: "updatedAt") as? Date ?? .distantPast
         let destinationUpdated = destination.value(forKey: "updatedAt") as? Date ?? .distantPast
         return sourceUpdated > destinationUpdated
