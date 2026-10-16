@@ -1,10 +1,10 @@
 #!/bin/sh
-# Installed by ios-agent-toolchain (docs/ci.md). Copy to ci_scripts/ci_post_clone.sh
-# next to the .xcodeproj; Xcode Cloud runs it after cloning.
+# Xcode Cloud runs this after cloning (docs/decisions/0003-ci-split.md). It sits next to the
+# .xcodeproj, where Xcode Cloud looks for ci_scripts/.
 set -e
 
 # Xcode Cloud's build number wins: every TestFlight round gets a unique
-# CURRENT_PROJECT_VERSION without a build-number commit (docs/testflight.md).
+# CURRENT_PROJECT_VERSION without a build-number commit (docs/decisions/0004-tag-gated-testflight.md).
 if [ -n "$CI_BUILD_NUMBER" ]; then
     echo "==> CURRENT_PROJECT_VERSION = $CI_BUILD_NUMBER"
     find "$CI_PRIMARY_REPOSITORY_PATH" -name project.pbxproj -not -path '*/Pods/*' \

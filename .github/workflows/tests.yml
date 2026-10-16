@@ -1,20 +1,26 @@
 name: Tests
 
-# Installed by ios-agent-toolchain (docs/ci.md). Copy to .github/workflows/tests.yml
-# unchanged: the file is identical in every app. Per-app settings are repository
-# variables, and per-app CI work is the app's own `just ci` recipe.
+# CI calls Apple's tools and the two linters directly, with the configuration the app has
+# committed (.swift-format, .swiftlint.yml, .swiftlint.baseline.json): nothing from the
+# ios-dev plugin runs here. It lints every tracked Swift file, so a change to a
+# configuration file or the baseline is checked too; `ios-verify lint --all` does the
+# same on a developer machine. `xcodebuild build test` then runs the OneCart scheme's
+# Test action: OneCartTests and the OneCartUITests smoke tests.
 #
+# Repository variables, all optional:
+#   IOS_PROJECT        default OneCart/OneCart.xcodeproj
+#   IOS_SCHEME         default OneCart
+#   IOS_DESTINATION    default platform=iOS Simulator,name=iPhone 17,OS=27.0
 #   IOS_RUNNER         runner label. Unset: GitHub-hosted xcode-27 for a public
 #                      repository and "self-hosted" for a private one, so a
 #                      private repository never falls onto billed macOS minutes
 #                      (a job waits for the runner instead)
 #   IOS_DEVELOPER_DIR  Xcode to use (default the image's versioned Xcode_27.0)
-#   SONAR_ENABLED      "true" adds the Sonar job; the app's `just ci` writes
-#                      build/ci/sonar/coverage.xml and the repo has SONAR_TOKEN
 #
-# Actions are pinned by commit SHA (the versions regional-check and OneCart
-# already trusted), so a moved tag cannot change what runs. Tools installed by
-# brew are not pinned: a hosted image gets the current formula on each run.
+# Actions are pinned by commit SHA, so a moved tag cannot change what runs. SwiftLint is
+# pinned too: .swiftlint-version holds its version and the SHA-256 of the release
+# artifact, so CI applies exactly the rules (and baseline matches) a developer's pinned
+# SwiftLint does. swift-format is the one in the pinned Xcode.
 on:
   push:
     branches: [main]
@@ -25,51 +31,114 @@ permissions:
   contents: read
 
 # Every push to main runs to completion in its own group: a tf- or v tag needs a
-# finished run for that exact commit (docs/testflight.md). Only superseded
-# pull-request runs are cancelled.
+# finished run for that exact commit (ADR 0004). Only superseded pull-request runs are
+# cancelled.
 concurrency:
   group: tests-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
-    name: just ci
+    name: lint, build and test
     runs-on: ${{ vars.IOS_RUNNER || (github.event.repository.private && 'self-hosted' || 'xcode-27') }}
     timeout-minutes: 45
     env:
       # The versioned path fails loudly if the image changes its default Xcode,
       # instead of silently testing against another SDK.
       DEVELOPER_DIR: ${{ vars.IOS_DEVELOPER_DIR || '/Applications/Xcode_27.0.app/Contents/Developer' }}
+      IOS_PROJECT: ${{ vars.IOS_PROJECT || 'OneCart/OneCart.xcodeproj' }}
+      IOS_SCHEME: ${{ vars.IOS_SCHEME || 'OneCart' }}
+      IOS_DESTINATION: ${{ vars.IOS_DESTINATION || 'platform=iOS Simulator,name=iPhone 17,OS=27.0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Show Xcode
         run: xcodebuild -version
 
-      # Hosted images lack some of these; a self-hosted Mac already has them.
-      # swift-format is not installed: the Xcode toolchain provides it, so it is
-      # only checked, and the step fails if the selected Xcode lacks it.
-      - name: Install Runtime tools
+      # swift-format comes with Xcode and is only checked. SwiftLint is the version named in
+      # .swiftlint-version: used as is when the runner has it, otherwise downloaded from the
+      # release and verified against the recorded checksum.
+      - name: Tools
         run: |
-          for tool in just yq swiftlint xcbeautify; do
-            command -v "$tool" >/dev/null || brew install "$tool"
-          done
           xcrun --find swift-format
+          read -r version sha256 <.swiftlint-version
+          if [ "$(swiftlint version 2>/dev/null)" != "$version" ]; then
+            tmp="$(mktemp -d)"
+            curl -fsSL -o "$tmp/swiftlint.zip" \
+              "https://github.com/realm/SwiftLint/releases/download/$version/portable_swiftlint.zip"
+            echo "$sha256  $tmp/swiftlint.zip" | shasum -a 256 -c -
+            unzip -q "$tmp/swiftlint.zip" -d "$tmp/swiftlint"
+            mkdir -p "$RUNNER_TEMP/bin"
+            install -m 755 "$(find "$tmp/swiftlint" -name swiftlint -type f | head -n 1)" "$RUNNER_TEMP/bin/swiftlint"
+            echo "$RUNNER_TEMP/bin" >>"$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
+          fi
+          swiftlint version
 
-      - name: just ci
-        run: just ci
+      - name: Swift files
+        run: |
+          mkdir -p build/ci
+          git ls-files -z -- '*.swift' >build/ci/swift-files
+          [ -s build/ci/swift-files ] || { echo "no tracked Swift files found"; exit 1; }
+          echo "$(tr -cd '\0' <build/ci/swift-files | wc -c | tr -d ' ') Swift file(s)"
 
+      - name: swift-format
+        run: xargs -0 xcrun swift-format lint --strict <build/ci/swift-files
+
+      # The baseline holds the violations of the size limits the code had when the
+      # plugin's limits were adopted; only new ones fail.
+      - name: SwiftLint
+        run: |
+          baseline=.swiftlint.baseline.json
+          if [ -f "$baseline" ]; then
+            xargs -0 swiftlint lint --strict --force-exclude --baseline "$baseline" <build/ci/swift-files
+          else
+            xargs -0 swiftlint lint --strict --force-exclude <build/ci/swift-files
+          fi
+
+      # Ad-hoc signing, not CODE_SIGNING_ALLOWED=NO: without a signature the test host
+      # loses Keychain access and the AppleSignInTests keychain cases fail (ADR 0003).
+      - name: Build and test
+        run: |
+          # xcodebuild refuses to overwrite a result bundle, and a self-hosted runner keeps its workspace.
+          rm -rf build/ci/results
+          mkdir -p build/ci/results
+          xcodebuild build test \
+            -project "$IOS_PROJECT" \
+            -scheme "$IOS_SCHEME" \
+            -destination "$IOS_DESTINATION" \
+            -configuration Debug \
+            -resultBundlePath build/ci/results/tests.xcresult \
+            -skipPackagePluginValidation -skipMacroValidation \
+            -enableCodeCoverage YES -parallel-testing-enabled NO \
+            CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
+
+      # xcodebuild exits 0 when no test ran. The counts come from the result bundle, never
+      # from the log, where XCTest and Swift Testing report separately; no executed test
+      # fails the run.
       - name: Test summary
         if: always()
         run: |
           bundle=build/ci/results/tests.xcresult
           [ -d "$bundle" ] || exit 0
+          # The step runs under bash -e: an unreadable bundle must still write the
+          # coverage block; an empty summary reads as total 0 and fails below.
+          summary=$(xcrun xcresulttool get test-results summary --path "$bundle") || summary=''
+          count() { printf '%s' "$summary" | plutil -extract "$1" raw -o - - 2>/dev/null || echo 0; }
+          total=$(count totalTestCount)
+          executed=$(($(count passedTests) + $(count failedTests) + $(count expectedFailures)))
           {
+            echo '## Tests'
+            echo "$total tests: $(count passedTests) passed, $(count skippedTests) skipped, $(count failedTests) failed"
             echo '## Coverage'
             echo '```'
             xcrun xccov view --report --only-targets "$bundle" || echo 'no coverage in this run'
             echo '```'
           } >>"$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ] || [ "$executed" -eq 0 ]; then
+            echo "::error::no test ran (total $total)"
+            exit 1
+          fi
 
       - name: Upload CI output
         if: always()
@@ -79,23 +148,3 @@ jobs:
           path: build/ci
           if-no-files-found: ignore
           retention-days: 7
-
-  sonar:
-    name: SonarQube Cloud scan
-    needs: ci
-    if: vars.SONAR_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # new-code detection and blame need history
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: ci-output
-          path: build/ci
-
-      - uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
