@@ -79,8 +79,14 @@ or (after model field adds):
    tag; Debug builds are pinned to Production too, so this includes Xcode Run.
    In a family with pre-V9 and V9 builds, a pre-V9 build that checks or unchecks a line leaves
    that line's `CD_purchasedByRecordName` and `CD_purchaseUpdatedAt` stale, so activity
-   notifications may credit the wrong member, and a widget tap queued on a V9 device before
-   that check may still replace it, until everyone updates.
+   notifications may credit the wrong member until everyone updates. A V9 device compares a
+   queued widget tap with the later of `purchaseUpdatedAt` and `purchasedAt`, which a pre-V9
+   check still stamps, so a tap queued before that check is ignored; a pre-V9 uncheck clears
+   `purchasedAt` and leaves no newer time, so a widget tap queued on a V9 device before that
+   uncheck can still replace it.
+   Pre-V9 builds still guard widget commands on `updatedAt`, which V9 renames and category
+   refinements now move, so on a pre-V9 device a widget tap queued before a V9 partner's rename
+   can be dropped until everyone updates.
 3. If fields are missing: initialize them in **Development** (run once against Development, or add fields), then **Deploy Schema Changes → Production**.
 4. Force-quit the app (Xcode or TestFlight), relaunch, retry invite/sync.
 

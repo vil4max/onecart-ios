@@ -284,3 +284,36 @@ final class PurchaseSessionTests: XCTestCase {
         XCTAssertTrue(space.sortedProducts.first?.isPurchasedValue == true)
     }
 }
+
+extension PurchaseSessionTests {
+    /// A check from a build that wrote no `purchasedAt` is dated by its purchase version: a rename
+    /// today moves `updatedAt` but must not postpone yesterday's check another night.
+    func test_REQ_HIST_020_renamedLegacyCheckWithoutPurchasedAtIsArchivedOvernight() async throws {
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
+        let (familyID, listID, productID) = try await seedCart(
+            repository: repository,
+            draft: productDraft(name: "Хлеб")
+        )
+        let calendar = Calendar(identifier: .gregorian)
+        let startOfToday = calendar.startOfDay(for: clock.now())
+        let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: startOfToday))
+        try await persistence.performBackgroundTask { context in
+            let product = try XCTUnwrap(RepositoryFetch.product(id: productID, in: context))
+            product.isPurchased = NSNumber(value: true)
+            product.purchasedAt = nil
+            product.purchaseUpdatedAt = nil
+            product.updatedAt = yesterday
+        }
+        persistence.container.viewContext.processPendingChanges()
+
+        try await repository.updateProduct(id: productID, familySpaceID: familyID, draft: productDraft(name: "Батон"))
+        let historyID = try await repository.archivePurchasedBefore(listID: listID, cutoff: startOfToday)
+        persistence.container.viewContext.processPendingChanges()
+
+        XCTAssertNotNil(historyID)
+        let space = try XCTUnwrap(repository.fetchFamilySpace(id: familyID))
+        XCTAssertEqual(space.sortedHistory.first?.sortedItems.map(\.displayName), ["Батон"])
+        XCTAssertTrue(space.sortedProducts.isEmpty)
+    }
+}

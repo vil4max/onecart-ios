@@ -251,9 +251,12 @@ final class ProductEntity: NSManagedObject {
 
     /// The time of the last purchase-state change, which a queued widget purchase must be
     /// newer than. Rows written before V9 have no `purchaseUpdatedAt`; their `updatedAt` moved
-    /// only on purchase-state changes and deletes, so it stands in for one.
+    /// only on purchase-state changes and deletes, so it stands in for one. Pre-V9 builds do not
+    /// stamp `purchaseUpdatedAt` but do stamp `purchasedAt` on a check, so the later of the two
+    /// keeps their check from being replaced by an older widget command; their uncheck clears
+    /// `purchasedAt` and stays uncovered (release.md section 2).
     var purchaseVersion: Date {
-        purchaseUpdatedAt ?? updatedAt ?? .distantPast
+        max(purchaseUpdatedAt ?? updatedAt ?? .distantPast, purchasedAt ?? .distantPast)
     }
 
     func markPurchaseStateChanged(at date: Date) {
@@ -266,7 +269,7 @@ final class ProductEntity: NSManagedObject {
     /// purchase queued before it look older than the row.
     func markEdited(at date: Date) {
         if purchaseUpdatedAt == nil {
-            purchaseUpdatedAt = updatedAt
+            purchaseUpdatedAt = updatedAt ?? createdAt ?? .distantPast
         }
         updatedAt = date
     }

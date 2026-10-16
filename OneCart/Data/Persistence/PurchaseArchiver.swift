@@ -45,7 +45,9 @@ final class CoreDataPurchaseArchiver: PurchaseArchiver, PermissionGuardedReposit
 
             let purchased = try Self.fetchPurchasedProducts(listID: listID, in: context).filter { product in
                 guard let cutoff else { return true }
-                let purchasedAt = product.purchasedAt ?? product.updatedAt ?? .distantPast
+                // Edits move `updatedAt`, so a legacy check without `purchasedAt` dates by its
+                // purchase version; otherwise every rename would postpone it another night.
+                let purchasedAt = product.purchasedAt ?? product.purchaseVersion
                 return purchasedAt < cutoff
             }
             guard !purchased.isEmpty else { return nil }

@@ -291,15 +291,16 @@ extension CoreDataCartItemsRepository {
             // A retried command cannot replace a newer purchase-state change from the app or
             // another widget command; edits move only `updatedAt` and never block it.
             guard product.purchaseVersion < purchasedAt else { return }
-            let now = self.clock.now()
-            if product.isPurchasedValue != isPurchased {
-                product.isPurchased = NSNumber(value: isPurchased)
-                product.purchasedAt = isPurchased ? purchasedAt : nil
-                Self.setBuyer(of: product, to: isPurchased ? author : nil)
-            }
             // The version is the command's own time, not now: commands queued for one line
             // replay in order, and each must still be newer than the one applied before it.
             product.purchaseUpdatedAt = purchasedAt
+            // A command the row already matches changes nothing a merge should see: moving
+            // `updatedAt` would make it look like the newest edit and win LWW over a later one.
+            guard product.isPurchasedValue != isPurchased else { return }
+            let now = self.clock.now()
+            product.isPurchased = NSNumber(value: isPurchased)
+            product.purchasedAt = isPurchased ? purchasedAt : nil
+            Self.setBuyer(of: product, to: isPurchased ? author : nil)
             product.updatedAt = now
             product.list?.updatedAt = now
             product.familySpace?.updatedAt = now

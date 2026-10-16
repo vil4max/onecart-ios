@@ -392,6 +392,7 @@
         { "path": "ShareStoreACLTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartItemsTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "CartItemsTests+Deduplication.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "CartItemsTests+PurchaseVersion.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "AccountViewModelTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "AccountViewModelTests+Share.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "PurchaseSessionTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },

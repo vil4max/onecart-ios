@@ -135,3 +135,52 @@ extension CartItemsTests {
         XCTAssertEqual(duplicateID, lateID)
     }
 }
+
+extension CartItemsTests {
+    /// The first writer that inherits a loser's check also inherits who checked it, by CloudKit
+    /// identity as well as by name (REQ-WIDGET-030 compares the record name).
+    func test_REQ_CART_090_nameDedupeCarriesTheBuyerRecordNameWithTheInheritedCheck() async throws {
+        let clock = TestClock()
+        let (persistence, repository) = try await makeInMemoryRepository(clock: clock.appClock)
+        let (familyID, listID, _) = try await seedCart(repository: repository, draft: productDraft(name: "Хлеб"))
+        let firstID = UUID()
+        let checkedAt = clock.now()
+        try await persistence.performBackgroundTask { context in
+            let family = try FamilySpaceRepository.requireFamilySpace(id: familyID, in: context)
+            guard let list = try FamilySpaceRepository.fetchList(id: listID, in: context) else {
+                throw RepositoryError.listNotFound
+            }
+            for (stableID, name, offset) in [(firstID, "Молоко", 0.0), (UUID(), " молоко ", 60.0)] {
+                let product = ProductEntity(context: context)
+                try persistence.assign(product, toSameStoreAs: family, in: context)
+                product.id = stableID
+                product.name = name
+                product.quantity = NSNumber(value: 1)
+                product.unit = "piece"
+                product.category = ProductCategory.other.rawValue
+                product.estimatedPrice = NSNumber(value: 0)
+                product.note = ""
+                product.createdAt = checkedAt.addingTimeInterval(offset - 120)
+                product.updatedAt = product.createdAt
+                product.isPurchased = NSNumber(value: offset > 0)
+                if offset > 0 {
+                    product.purchasedAt = checkedAt
+                    product.purchasedByName = "Sam"
+                    product.purchasedByRecordName = "_sam"
+                }
+                product.familySpace = family
+                product.list = list
+            }
+        }
+
+        let merged = try await repository.deduplicateProductsByName()
+        persistence.container.viewContext.processPendingChanges()
+
+        XCTAssertEqual(merged, 1)
+        let winner = try XCTUnwrap(fetchProduct(id: firstID, repository: repository))
+        XCTAssertTrue(winner.isPurchasedValue)
+        XCTAssertEqual(winner.purchasedAt, checkedAt)
+        XCTAssertEqual(winner.purchasedByName, "Sam")
+        XCTAssertEqual(winner.purchasedByRecordName, "_sam")
+    }
+}
