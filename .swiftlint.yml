@@ -1,0 +1,66 @@
+# SwiftLint configuration of this app, adopted from the ios-dev plugin's
+# config/swiftlint.yml (see the plugin README, section "ios-verify"). `ios-verify` and CI
+# run `swiftlint lint --strict`, so every warning below fails the gate; the error levels
+# exist for editors and for runs without --strict.
+
+# Formatting belongs to swift-format: trailing_comma would demand commas that
+# swift-format does not add to a one-element multi-line collection, which `--fix`
+# could then never repair.
+disabled_rules:
+  - trailing_whitespace
+  - trailing_comma
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+
+# `excluded` resolves against this file's directory (the repository root); the gate also
+# passes --force-exclude, so explicit file lists honour it.
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+  - build
+  - .claude
+  - .codex
+
+line_length:
+  warning: 120
+  error: 120
+  ignores_urls: true
+
+# Semicolons are enforced by swift-format (DoNotUseSemicolons); this rule
+# covers the trailing ones.
+trailing_semicolon: error
+
+force_unwrapping: error
+force_try: error
+force_cast: error
+
+type_body_length:
+  warning: 150
+  error: 200
+function_body_length:
+  warning: 40
+  error: 60
+file_length:
+  warning: 400
+  error: 600
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+  ignores_case_statements: true
+function_parameter_count:
+  warning: 5
+  error: 7
+large_tuple:
+  warning: 3
+  error: 5
+
+identifier_name:
+  min_length: 2
+
+# Agree with swift-format, which puts the brace of a multiline header on its own line.
+opening_brace:
+  ignore_multiline_type_headers: true
+  ignore_multiline_statement_conditions: true
+  ignore_multiline_function_signatures: true
