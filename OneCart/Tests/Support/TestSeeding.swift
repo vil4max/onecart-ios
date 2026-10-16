@@ -147,7 +147,7 @@ final class StoreCleanupRegistry: Sendable {
             let tasks =
                 Array(session.categoryRefinementTasks.values)
                 + [session.startupTask, session.memberProfileTask, session.leaveRecoveryTask].compactMap { $0 }
-            let widgetDrain = session.widgetDrainTask
+            let widgetDrain = session.widgetSync.widgetDrainTask
             guard !tasks.isEmpty || widgetDrain != nil else { continue }
             tasks.forEach { $0.cancel() }
             widgetDrain?.cancel()

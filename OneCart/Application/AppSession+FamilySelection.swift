@@ -6,7 +6,7 @@ extension AppSession {
     /// the account is restored keeps the trip for the next start to adopt (REQ-WIDGET-060).
     func clearAccountData(endingShoppingTrip: Bool = true) {
         clearPreparedInviteLink()
-        cancelAllCategoryRefinements()
+        cartMutations.cancelAllCategoryRefinements()
         leaveRecoveryTask?.cancel()
         leaveRecoveryTask = nil
         familySpaces = []
@@ -33,25 +33,7 @@ extension AppSession {
         let context = persistence.container.viewContext
         context.processPendingChanges()
         let previousID = activeFamilySpace?.id
-        let fetchedSpaces = try repository.fetchFamilySpaces(for: account.id)
-        let sharedSpaces = fetchedSpaces.filter { persistence.scope(for: $0) == .shared }
-        familySpaces = sharedSpaces.isEmpty ? fetchedSpaces : sharedSpaces
-
-        let storedID =
-            preferredFamilySpaceID
-            ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
-            .flatMap(UUID.init(uuidString:))
-        let selected: FamilySpace? =
-            if sharedSpaces.isEmpty {
-                storedID.flatMap { id in
-                    fetchedSpaces.first { $0.id == id }
-                } ?? fetchedSpaces.first
-            } else {
-                storedID.flatMap { id in
-                    sharedSpaces.first { $0.id == id }
-                } ?? sharedSpaces.first
-            }
-
+        let selected = try fetchAndSelectFamilySpace(for: account, preferredID: preferredFamilySpaceID)
         activeFamilySpace = selected
         // Only the shared-gone handler, a deliberate leave and sign-out clear the flag: a reload
         // that falls back to the private cart because the shared one vanished must keep it, or
@@ -80,6 +62,21 @@ extension AppSession {
             clearPreparedInviteLink()
         }
         updateWidgetSnapshot()
+    }
+
+    /// Fetches the account's spaces into `familySpaces`, where shared spaces hide the personal
+    /// cart, and picks the preferred or stored one among them, else the first.
+    private func fetchAndSelectFamilySpace(for account: OneCartAccount, preferredID: UUID?) throws -> FamilySpace? {
+        let fetchedSpaces = try repository.fetchFamilySpaces(for: account.id)
+        let sharedSpaces = fetchedSpaces.filter { persistence.scope(for: $0) == .shared }
+        familySpaces = sharedSpaces.isEmpty ? fetchedSpaces : sharedSpaces
+        let storedID =
+            preferredID
+            ?? defaults.string(forKey: activeFamilyKey(accountID: account.id))
+            .flatMap(UUID.init(uuidString:))
+        return storedID.flatMap { id in
+            familySpaces.first { $0.id == id }
+        } ?? familySpaces.first
     }
 
     func refreshProducts() throws {

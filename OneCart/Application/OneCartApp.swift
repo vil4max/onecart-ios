@@ -13,7 +13,7 @@ struct OneCartApp: App {
     init() {
         guard !TestHost.isRunningUnitTests else { return }
         AppDependencyManager.shared.add(dependency: { @Sendable () async -> any CartIntentHandling in
-            await MainActor.run { OneCartAppComposition.session }
+            await MainActor.run { OneCartAppComposition.session.intentHandler }
         })
     }
 

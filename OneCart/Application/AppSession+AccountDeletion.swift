@@ -28,21 +28,9 @@ extension AppSession {
         CartSyncLog.action.info("deleteAccount start")
         cloudSync.cancel()
 
-        var didLeaveShared = false
-        var didDetachLocalStores = false
+        var progress = AccountDeletionProgress()
         do {
-            if !cloudAlreadyDeleted {
-                didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
-                // Keep account and SIWA until both cloud deletion and local cleanup succeed.
-                clearAccountData()
-                try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
-                didDetachLocalStores = true
-                try await accountCloudDataDeleter.deletePrivateAccountCloudData()
-            }
-            try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
-            try widgetStore.clear()
-            widgetDrainTask?.cancel()
-            finalizeSignOutAfterSuccessfulAccountDeletion()
+            try await runAccountDeletion(cloudAlreadyDeleted: cloudAlreadyDeleted, progress: &progress)
             CartHaptics.success()
             CartSyncLog.action.info("deleteAccount done")
         } catch {
@@ -50,11 +38,32 @@ extension AppSession {
                 "deleteAccount fail error=\(error.localizedDescription, privacy: .public)"
             )
             await recoverAfterFailedAccountDeletion(
-                didLeaveShared: didLeaveShared,
-                didDetachLocalStores: didDetachLocalStores
+                didLeaveShared: progress.didLeaveShared,
+                didDetachLocalStores: progress.didDetachLocalStores
             )
             presentAlert(accountDeletionFailureMessage(for: error), kind: .error)
         }
+    }
+
+    /// The steps a failed deletion has to undo.
+    private struct AccountDeletionProgress {
+        var didLeaveShared = false
+        var didDetachLocalStores = false
+    }
+
+    private func runAccountDeletion(cloudAlreadyDeleted: Bool, progress: inout AccountDeletionProgress) async throws {
+        if !cloudAlreadyDeleted {
+            progress.didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
+            // Keep account and SIWA until both cloud deletion and local cleanup succeed.
+            clearAccountData()
+            try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
+            progress.didDetachLocalStores = true
+            try await accountCloudDataDeleter.deletePrivateAccountCloudData()
+        }
+        try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
+        try widgetStore.clear()
+        widgetSync.cancelDrain()
+        finalizeSignOutAfterSuccessfulAccountDeletion()
     }
 
     @discardableResult

@@ -26,28 +26,12 @@ extension AppSession: SessionStateReading {
 
 extension AppSession: CartEditing {}
 
-/// The conformance itself is declared in `AppSession.swift`: the protocol refines `Sendable`.
-extension AppSession {
-    func handleAddItems(_ raw: String) async throws -> CartIntentAddResult {
-        try await addItemsFromIntent(raw)
-    }
+// The cart services' contexts: what each reads from the session and asks it to do.
+extension AppSession: CartMutationContext {}
 
-    func handleRemainingItems() async throws -> CartIntentRemaining {
-        try await remainingItemsForIntent()
-    }
+extension AppSession: WidgetPurchaseContext {}
 
-    func handleStartShoppingTrip() async throws {
-        try await startShoppingTripFromIntent()
-    }
-
-    func handleWidgetPurchase(_ request: WidgetPurchaseRequest) async throws {
-        try await performWidgetPurchase(request)
-    }
-
-    func handleEndShoppingTrip() async {
-        await endShoppingTrip()
-    }
-}
+extension AppSession: CartIntentSessionContext {}
 
 extension AppSession: HistoryBrowsing {
     var historyLines: [HistoryLine] {

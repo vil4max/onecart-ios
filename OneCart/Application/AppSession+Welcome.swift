@@ -105,7 +105,7 @@ extension AppSession {
             show(error)
             return
         }
-        widgetDrainTask?.cancel()
+        widgetSync.cancelDrain()
         if let account {
             defaults.removeObject(forKey: activeFamilyKey(accountID: account.id))
         }
@@ -171,6 +171,10 @@ extension AppSession {
 
     func dismissAlert() {
         userAlert = nil
+    }
+
+    func dismissSharedCartRemovedMessage() {
+        sharedCartRemovedMessage = nil
     }
 
     func finishFamilyCartSetup(for account: OneCartAccount) async throws {

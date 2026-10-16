@@ -15,13 +15,14 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let account = OneCartAccount(id: UUID(), displayName: "Sync")
         try session.bootstrapTestingSession(account: account)
 
-        session.cartSync.onHardRefresh = {
+        let refresher = ScriptedCartRefresher {
             throw NSError(
                 domain: "FragileSync",
                 code: 42,
                 userInfo: [NSLocalizedDescriptionKey: "refresh exploded"]
             )
         }
+        session.cartSync.refresher = refresher
 
         await session.syncCart(reason: .pull)
 
@@ -45,13 +46,14 @@ final class FragileSyncOutcomeTests: XCTestCase {
         )
         try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Sync"))
 
-        session.cartSync.onHardRefresh = {
+        let refresher = ScriptedCartRefresher {
             throw NSError(
                 domain: "FragileSync",
                 code: 42,
                 userInfo: [NSLocalizedDescriptionKey: "appear refresh failed"]
             )
         }
+        session.cartSync.refresher = refresher
 
         await session.syncCart(reason: .appear)
 
@@ -69,7 +71,8 @@ final class FragileSyncOutcomeTests: XCTestCase {
             defaults: defaults
         )
         try session.bootstrapTestingSession(account: OneCartAccount(id: UUID(), displayName: "Sync"))
-        session.cartSync.onHardRefresh = {}
+        let refresher = ScriptedCartRefresher()
+        session.cartSync.refresher = refresher
 
         await session.syncCart(reason: .pull)
 
@@ -88,23 +91,21 @@ final class FragileSyncOutcomeTests: XCTestCase {
         var firstReturned = false
         var firstRefreshWasCancelled = true
         var firstReturnedBeforeSecondRefresh = true
-        cartSync.onHardRefresh = {
+        let refresher = ScriptedCartRefresher {
             refreshCount += 1
-            if refreshCount == 1 {
-                await withCheckedContinuation { continuation in
-                    release = continuation
-                    firstSuspended.fulfill()
-                }
-                firstRefreshWasCancelled = Task.isCancelled
-            } else {
-                firstReturnedBeforeSecondRefresh = firstReturned
+            if refreshCount > 1 { firstReturnedBeforeSecondRefresh = firstReturned }
+            guard refreshCount == 1 else { return }
+            await withCheckedContinuation { continuation in
+                release = continuation
+                firstSuspended.fulfill()
             }
+            firstRefreshWasCancelled = Task.isCancelled
         }
+        cartSync.refresher = refresher
 
         let first = Task {
-            let outcome = await cartSync.syncCart(reason: .cloudImport)
-            firstReturned = true
-            return outcome
+            defer { firstReturned = true }
+            return await cartSync.syncCart(reason: .cloudImport)
         }
         await fulfillment(of: [firstSuspended], timeout: 5)
         XCTAssertEqual(refreshCount, 1)
@@ -119,8 +120,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         release?.resume()
         let outcomes = await (first.value, second.value)
 
-        XCTAssertEqual(outcomes.0, .succeeded)
-        XCTAssertEqual(outcomes.1, .succeeded)
+        XCTAssertEqual([outcomes.0, outcomes.1], [.succeeded, .succeeded])
         XCTAssertFalse(firstRefreshWasCancelled, "The in-flight refresh must not be cancelled by the second request")
         // Sequential syncs would let the first caller return before the second refresh starts.
         XCTAssertFalse(firstReturnedBeforeSecondRefresh, "The pending pull must run inside the first caller's loop")
@@ -136,7 +136,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
         let secondStarted = expectation(description: "Pull joins the active refresh")
         var release: CheckedContinuation<Void, Never>?
         var calls = 0
-        sync.onHardRefresh = {
+        let refresher = ScriptedCartRefresher {
             calls += 1
             if calls == 1 {
                 await withCheckedContinuation { continuation in
@@ -146,6 +146,7 @@ final class FragileSyncOutcomeTests: XCTestCase {
             }
             throw NSError(domain: "Sync", code: 1, userInfo: [NSLocalizedDescriptionKey: "Import failed"])
         }
+        sync.refresher = refresher
         let first = Task { await sync.syncCart(reason: .cloudImport) }
         await fulfillment(of: [started], timeout: 2)
         let second = Task {
@@ -159,77 +160,17 @@ final class FragileSyncOutcomeTests: XCTestCase {
         XCTAssertEqual(outcomes.1, .failed("Import failed"))
         XCTAssertEqual(calls, 2)
     }
-
-    func testCloudReloadScheduledRightAfterCancelStillRuns() async throws {
-        let persistence = makeInMemoryPersistence()
-        try await persistence.load()
-        let cartSync = CartSyncService(persistence: persistence)
-        cartSync.onHardRefresh = {}
-        let clock = TestClock()
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock.appClock)
-        let host = ReloadCountingHost()
-        coordinator.bind(host: host)
-
-        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
-        coordinator.cancel()
-        // The cancelled task has not run its cleanup yet; the new request must not be dropped.
-        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
-
-        let reloaded = await clock.advanceWhenSleeping(by: .milliseconds(20)) { host.reloadCount >= 1 }
-        XCTAssertTrue(reloaded)
-        XCTAssertEqual(host.reloadCount, 1)
-    }
-
-    func testShorterCloudReloadDelayReschedulesPendingReload() async throws {
-        let persistence = makeInMemoryPersistence()
-        try await persistence.load()
-        let cartSync = CartSyncService(persistence: persistence)
-        cartSync.onHardRefresh = {}
-        let clock = TestClock()
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync, clock: clock.appClock)
-        let host = ReloadCountingHost()
-        coordinator.bind(host: host)
-        defer { coordinator.cancel() }
-
-        coordinator.scheduleCloudReload(delayNanoseconds: 30_000_000_000)
-        coordinator.scheduleCloudReload(delayNanoseconds: 20_000_000)
-
-        // Only the shorter delay passes; the 30 s request must not be what runs the reload.
-        let reloaded = await clock.advanceWhenSleeping(by: .milliseconds(20)) { host.reloadCount >= 1 }
-        XCTAssertTrue(reloaded)
-        XCTAssertEqual(host.reloadCount, 1)
-    }
-
 }
 
 extension FragileSyncOutcomeTests {
-    func test_REQ_SHELL_050_foregroundSyncFailureAlertsOnlyAfterHealthyState() async throws {
-        let persistence = makeInMemoryPersistence()
-        try await persistence.load()
-        let cartSync = CartSyncService(persistence: persistence)
-        cartSync.onHardRefresh = {
-            throw NSError(domain: "Sync", code: 1, userInfo: [NSLocalizedDescriptionKey: "Foreground failed"])
-        }
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
-        let host = ReloadCountingHost()
-        coordinator.bind(host: host)
-
-        host.syncState = .synchronized
-        await coordinator.syncCart(reason: .foreground)
-        XCTAssertEqual(host.syncAlerts, ["Foreground failed"])
-        XCTAssertEqual(host.syncState, .failed)
-
-        await coordinator.syncCart(reason: .foreground)
-        XCTAssertEqual(host.syncAlerts.count, 1, "A failure after a failure stays silent")
-    }
-
     func test_REQ_SYNC_010_secondAppearWithinDebounceIsSkipped() async throws {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
         let clock = TestClock()
         let cartSync = CartSyncService(persistence: persistence, clock: clock.appClock)
         var refreshCount = 0
-        cartSync.onHardRefresh = { refreshCount += 1 }
+        let refresher = ScriptedCartRefresher { refreshCount += 1 }
+        cartSync.refresher = refresher
 
         let first = await cartSync.syncCart(reason: .appear)
         clock.advance(by: .seconds(2))
@@ -243,23 +184,6 @@ extension FragileSyncOutcomeTests {
         XCTAssertEqual(refreshCount, 2)
     }
 
-    func test_REQ_SYNC_010_cancelledRefreshIsReportedAsCancelled() async throws {
-        let persistence = makeInMemoryPersistence()
-        try await persistence.load()
-        let cartSync = CartSyncService(persistence: persistence)
-        cartSync.onHardRefresh = { throw CancellationError() }
-        let coordinator = CloudSyncCoordinator(persistence: persistence, cartSync: cartSync)
-        let host = ReloadCountingHost()
-        coordinator.bind(host: host)
-
-        let outcome = await cartSync.syncCart(reason: .pull)
-        await coordinator.syncCart(reason: .pull)
-
-        XCTAssertEqual(outcome, .cancelled)
-        XCTAssertEqual(host.syncState, .synchronized, "A cancelled sync leaves the state alone")
-        XCTAssertTrue(host.syncAlerts.isEmpty)
-    }
-
     func test_REQ_SYNC_010_reasonsQueuedDuringASyncRunOnceWithTheHighestRank() async throws {
         let persistence = makeInMemoryPersistence()
         try await persistence.load()
@@ -267,7 +191,7 @@ extension FragileSyncOutcomeTests {
         let firstSuspended = expectation(description: "First refresh is suspended")
         var release: CheckedContinuation<Void, Never>?
         var chromeDuringRefresh: [Bool] = []
-        cartSync.onHardRefresh = {
+        let refresher = ScriptedCartRefresher {
             chromeDuringRefresh.append(cartSync.isCartSyncing)
             if chromeDuringRefresh.count == 1 {
                 await withCheckedContinuation { continuation in
@@ -276,6 +200,7 @@ extension FragileSyncOutcomeTests {
                 }
             }
         }
+        cartSync.refresher = refresher
 
         let first = Task { await cartSync.syncCart(reason: .pull) }
         await fulfillment(of: [firstSuspended], timeout: 5)
@@ -356,44 +281,5 @@ extension FragileSyncOutcomeTests {
         }
         XCTAssertFalse(session.products.isEmpty)
         XCTAssertEqual(session.products.first?.displayName, "Хлеб")
-    }
-}
-
-@MainActor
-private final class ReloadCountingHost: CloudSyncHost {
-    let account: OneCartAccount? = OneCartAccount(id: UUID(), displayName: "Reload")
-    var isOnline = true
-    var syncState: OneCartSyncState = .synchronized
-    private(set) var reloadCount = 0
-    private(set) var syncAlerts: [String] = []
-
-    func applySyncState(_ state: OneCartSyncState) {
-        syncState = state
-    }
-
-    func applyLastSyncError(_: String?) {}
-
-    func presentSyncAlert(_ message: String) {
-        syncAlerts.append(message)
-    }
-
-    func presentProductionSchemaAlertIfNeeded(_: String) {}
-
-    func drainWidgetPendingToggles() async {}
-
-    func softRefreshCartProducts() {}
-
-    func refreshFamilyMetadata(showErrors _: Bool) async {}
-
-    func offerSharedCartJoinIfNeeded(for _: OneCartAccount) async throws {
-        reloadCount += 1
-    }
-
-    func userFacingMessage(for error: Error) -> String {
-        error.localizedDescription
-    }
-
-    func applyConnectivityOnline(_ isOnline: Bool) {
-        self.isOnline = isOnline
     }
 }

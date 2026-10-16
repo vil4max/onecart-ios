@@ -14,7 +14,7 @@ extension AppSession: ShoppingTripControlling {
     func startShoppingTrip() async {
         guard isReady, canEdit else { return }
         do {
-            try await beginShoppingTrip()
+            try await intentHandler.beginShoppingTrip()
             CartHaptics.success()
         } catch {
             presentAlert(error.localizedDescription, kind: .error)

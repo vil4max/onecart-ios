@@ -225,10 +225,10 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
             list.status = ShoppingListStatus.active.rawValue
             list.familySpace = family
         }
-        fixture.session.pendingCartMutationCount = 1
+        fixture.session.cartMutations.beginCartMutation()
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)
-        fixture.session.pendingCartMutationCount = 0
+        fixture.session.cartMutations.finishCartMutation()
         fixture.session.beginBusyOperation()
         try await fixture.session.offerSharedCartJoinIfNeededForTesting()
         XCTAssertEqual(fixture.session.activeFamilySpace?.id, sourceID)

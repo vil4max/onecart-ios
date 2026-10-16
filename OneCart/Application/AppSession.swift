@@ -31,120 +31,35 @@ final class AppSession {
     var sharedCartRemovedMessage: String?
     var isDeletingAccount = false
     var isReconcilingPersonalCart = false
-    var pendingCartMutationCount = 0
     /// Backs `isBusy` for operations that may overlap, so the first one to finish
     /// does not clear the flag while another is still running.
     private(set) var busyOperationCount = 0
 
-    var alertMessage: String? {
-        userAlert?.message
-    }
-
-    let preferences: DevicePreferences
-    let persistence: PersistenceController
+    /// The collaborators the composition root built; `AppSession+Dependencies.swift` forwards
+    /// the ones the session uses as they are.
+    let dependencies: AppSessionDependencies
     let cartSync: CartSyncService
     let cartContent: CartContentStore
     let bootstrapper: SessionBootstrapper
     let cloudSync: CloudSyncCoordinator
     let invitePreparer: InviteLinkPreparer
     let household: HouseholdCartCoordinator
-    let accountCloudDataDeleter: AccountCloudDataDeleting
-    let accountLocalStorePreparer: AccountLocalStorePreparing
-    let widgetStore: any WidgetSnapshotStoring
     let shoppingTrip: ShoppingTripActivityController
-    let shareStore: any CloudKitShareStoring
-    let shareInbox: any PendingShareInbox
-    let shareAccepter: any ShareInvitationAccepting
-    let activityNotifier: any CartActivityNotifying
-    let memberJoinNotifier: any MemberJoinNotifying
-    var startupTask: Task<Void, Never>?
-    var widgetDrainTask: Task<Void, Error>?
-
-    var lists: [ShoppingListEntity] {
-        cartContent.lists
-    }
-
-    var activeLists: [ShoppingListEntity] {
-        cartContent.activeLists
-    }
-
-    var products: [ProductEntity] {
-        cartContent.products
-    }
-
-    var history: [PurchaseHistoryEntity] {
-        cartContent.history
-    }
-
-    var historyHasMore: Bool {
-        cartContent.historyHasMore
-    }
-
-    var preparedInviteLink: FamilyInviteLink? {
-        invitePreparer.preparedInviteLink
-    }
-
-    var canEdit: Bool {
-        !isReconcilingPersonalCart && !isDeletingAccount && activeFamilySpace != nil && (access?.canEdit ?? false)
-    }
-
-    var isOnline: Bool {
-        online
-    }
-
-    var isCartSyncing: Bool {
-        cartSync.isCartSyncing
-    }
-
-    var contentRevision: Int {
-        cartSync.contentRevision
-    }
-
-    var cartTitle: String {
-        activeFamilySpace?.displayName
-            ?? account.map { Self.householdCartName(for: $0) }
-            ?? Self.defaultFamilyName
-    }
-
-    static func householdCartName(for account: OneCartAccount) -> String {
-        let trimmed = account.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-            !ParticipantDisplayName.isPlaceholder(trimmed)
-        else {
-            return defaultFamilyName
-        }
-        return String(localized: "cart.personal_title \(trimmed)")
-    }
-
+    let shareOrchestrator: FamilyShareOrchestrator
     /// Family spaces: reads, rename, claim, and the local discard of a left shared cart.
     let repository: any FamilyRepository
     let cartItems: any CartItemsRepository
     let purchaseArchiver: any PurchaseArchiver
     let cartDeduplicator: any CartDeduplicator
     let memberProfiles: any MemberProfileStore
-    let cloudSharing: any FamilyCloudSharing
-    let shareOrchestrator: FamilyShareOrchestrator
-    let appleSignIn: AppleSignInAuthenticating
-    let categoryClassifier: any CategoryClassifying
-    let defaults: UserDefaults
-    let cloudUserIdentity: any CloudUserIdentifying
-    let clock: AppClock
+    var startupTask: Task<Void, Never>?
     /// This user's CloudKit record name once iCloud reported it; keys the shared member profile.
     /// Read under an identity generation, so an iCloud account change hides it without an observer.
     var knownUserRecordName: (name: String, generation: UInt64)?
-    var currentUserRecordName: String? {
-        guard let knownUserRecordName,
-            knownUserRecordName.generation == cloudUserIdentity.identityGeneration
-        else { return nil }
-        return knownUserRecordName.name
-    }
     /// Mirrors `MemberNamePromptStorage` so the root view observes the "Not now" choice.
     var memberNamePromptDeclined = false
     /// The latest queued member-profile publish; tests await it.
     var memberProfileTask: Task<Void, Never>?
-    /// In-flight category refinements by product ID; a rename cancels the refinement of the
-    /// old name so it can never write over the new one.
-    var categoryRefinementTasks: [UUID: Task<Void, Never>] = [:]
     /// Retries the fallback to the personal cart after a leave timed out; sign-out cancels it.
     var leaveRecoveryTask: Task<Void, Never>?
     /// Fallback passes run after a leave timed out; tests wait on it instead of yielding.
@@ -155,53 +70,62 @@ final class AppSession {
     var lastActiveFamilyWasShared = false
     var isLeavingSharedCart = false
 
+    // The cart services take the session as their context, so they are built on first use,
+    // once the session exists.
+    @ObservationIgnored private(set) lazy var cartMutations = CartMutationService(
+        context: self,
+        dependencies: CartMutationDependencies(
+            persistence: persistence,
+            cartItems: cartItems,
+            purchaseArchiver: purchaseArchiver,
+            deduplicator: cartDeduplicator,
+            categoryClassifier: categoryClassifier,
+            cartContent: cartContent,
+            cartSync: cartSync,
+            household: household,
+            clock: clock
+        )
+    )
+    @ObservationIgnored private(set) lazy var widgetSync = WidgetPurchaseSync(
+        context: self,
+        dependencies: WidgetPurchaseDependencies(
+            widgetStore: widgetStore,
+            shoppingTrip: shoppingTrip,
+            cartContent: cartContent,
+            cartItems: cartItems,
+            cartSync: cartSync,
+            mutations: cartMutations
+        )
+    )
+    @ObservationIgnored private(set) lazy var intentHandler = CartIntentHandler(
+        context: self,
+        mutations: cartMutations,
+        widgetSync: widgetSync,
+        cartContent: cartContent,
+        shoppingTrip: shoppingTrip
+    )
+
     /// Builds the coordinators and repositories over the injected collaborators; it creates no
     /// live service of its own (see `OneCartAppComposition.live()`).
     init(_ dependencies: AppSessionDependencies) {
         let persistence = dependencies.persistence
         let clock = dependencies.clock
-        let cloudSharing = dependencies.cloudSharing
-        let shareStore = dependencies.shareStore
-        let defaults = dependencies.defaults
-        self.persistence = persistence
-        self.clock = clock
-        preferences = dependencies.preferences
-        self.defaults = defaults
-        appleSignIn = dependencies.appleSignIn
-        categoryClassifier = dependencies.categoryClassifier
-        widgetStore = dependencies.widgetStore
-        self.shareStore = shareStore
-        shareInbox = dependencies.shareInbox
-        shareAccepter = dependencies.shareAccepter
-        activityNotifier = dependencies.activityNotifier
-        memberJoinNotifier = dependencies.memberJoinNotifier
+        let repositories = Self.makeRepositories(dependencies)
+        self.dependencies = dependencies
         shoppingTrip = ShoppingTripActivityController(backend: dependencies.shoppingTripBackend)
-
-        let repositories = FamilySpaceRepository(
-            persistence: persistence,
-            permissionAuthorizer: CloudKitPermissionAuthorizer(
-                persistence: persistence,
-                permissions: dependencies.recordPermissions
-            ),
-            clock: clock
-        )
         repository = repositories.families
         cartItems = repositories.cartItems
         purchaseArchiver = repositories.purchaseArchiver
         cartDeduplicator = repositories.deduplicator
         memberProfiles = repositories.memberProfiles
-        self.cloudSharing = cloudSharing
-        cloudUserIdentity = dependencies.cloudUserIdentity
-        memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: defaults)
-        accountCloudDataDeleter = dependencies.accountCloudDataDeleter
-        accountLocalStorePreparer = dependencies.accountLocalStorePreparer
+        memberNamePromptDeclined = MemberNamePromptStorage.isDeclined(in: dependencies.defaults)
         cartSync = CartSyncService(persistence: persistence, clock: clock)
         cartContent = CartContentStore(persistence: persistence)
         bootstrapper = SessionBootstrapper(
             persistence: persistence,
             families: repositories.families,
             deduplicator: repositories.deduplicator,
-            cloudSharing: cloudSharing,
+            cloudSharing: dependencies.cloudSharing,
             appleSignIn: dependencies.appleSignIn
         )
         cloudSync = CloudSyncCoordinator(
@@ -212,68 +136,42 @@ final class AppSession {
         )
         shareOrchestrator = FamilyShareOrchestrator(
             persistence: persistence,
-            shareStore: shareStore,
-            cloudSharing: cloudSharing
+            shareStore: dependencies.shareStore,
+            cloudSharing: dependencies.cloudSharing
         )
         invitePreparer = InviteLinkPreparer(clock: clock)
         household = HouseholdCartCoordinator(
             persistence: persistence,
             families: repositories.families,
             personalCartRestorer: repositories.personalCartRestorer,
-            defaults: defaults
+            defaults: dependencies.defaults
         )
+        bindCollaborators()
+    }
+}
+
+extension AppSession {
+    private static func makeRepositories(_ dependencies: AppSessionDependencies) -> FamilySpaceRepository {
+        FamilySpaceRepository(
+            persistence: dependencies.persistence,
+            permissionAuthorizer: CloudKitPermissionAuthorizer(
+                persistence: dependencies.persistence,
+                permissions: dependencies.recordPermissions
+            ),
+            clock: dependencies.clock
+        )
+    }
+
+    private func bindCollaborators() {
         bootstrapper.bind(host: self)
         cloudSync.bind(host: self)
         household.bind(host: self)
-        bindCartSync()
-    }
-
-    private func bindCartSync() {
+        cartSync.refresher = self
         preferences.onChanged = { [weak self] in
             self?.updateWidgetSnapshot()
         }
         preferences.onAccentChanged = { [weak self] newAccent in
             self?.updateWidgetSnapshot(accentOverride: newAccent)
-        }
-        cartSync.onHardRefresh = { [weak self] in
-            guard let self else { return }
-            try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {
-                try self.reload()
-            }
-        }
-        cartSync.onOwnerACLHeal = { [weak self] in
-            guard let self, let family = activeFamilySpace else { return }
-            await shareOrchestrator.ensureOwnerReadWriteACL(
-                for: family,
-                isOwner: access?.isOwner == true
-            )
-        }
-        cartSync.onInviteeSharedGone = { [weak self] in
-            await self?.household.handleInviteeSharedCartGoneIfNeeded()
-        }
-        cartSync.purchasedCountProvider = { [weak self] in
-            guard let self else { return (0, 0) }
-            let total = products.count
-            let purchased = products.filter(\.isPurchasedValue).count
-            return (purchased, total)
-        }
-    }
-
-    func syncCart(reason: CartSyncReason) async {
-        await cloudSync.syncCart(reason: reason)
-        switch reason {
-        case .appear, .foreground, .cloudImport:
-            // CloudKit may have delivered a same-name row from another device
-            // with a different stable ID — merge before archiving/presenting.
-            await deduplicateCartIfNeeded()
-        case .pull:
-            break
-        }
-        switch reason {
-        case .appear, .foreground:
-            await archiveStalePurchasedIfNeeded()
-        case .pull, .cloudImport:
-            break
         }
     }
 
@@ -288,12 +186,4 @@ final class AppSession {
             isBusy = false
         }
     }
-
-    func dismissSharedCartRemovedMessage() {
-        sharedCartRemovedMessage = nil
-    }
 }
-
-/// Declared here because `CartIntentHandling` refines `Sendable`, which must be stated in the
-/// class's own file; the members live in `AppSession+Services.swift`.
-extension AppSession: CartIntentHandling {}

@@ -1,5 +1,26 @@
 import Foundation
 
+extension AppSession: CartRefreshing {
+    func healOwnerShareACL() async {
+        guard let family = activeFamilySpace else { return }
+        await shareOrchestrator.ensureOwnerReadWriteACL(for: family, isOwner: access?.isOwner == true)
+    }
+
+    func hardRefreshCart() async throws {
+        try CartSyncService.resetViewContextAndRefetch(persistence: persistence) {
+            try reload()
+        }
+    }
+
+    var cartPurchaseCounts: (purchased: Int, total: Int) {
+        (products.filter(\.isPurchasedValue).count, products.count)
+    }
+
+    func handleInviteeSharedCartGone() async {
+        await household.handleInviteeSharedCartGoneIfNeeded()
+    }
+}
+
 extension AppSession: HouseholdCartHost {
     func applyEnsuringHouseholdCart(_ value: Bool) {
         isEnsuringHouseholdCart = value

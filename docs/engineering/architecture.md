@@ -30,7 +30,10 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 |------|------|
 | `SessionBootstrapper` | SIWA restore / welcome retry; preserves pending account-deletion recovery |
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset; maps them once per reload into the screens' value snapshots |
-| `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing` |
+| `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing`; each sync asks its weak `CartRefreshing` refresher (the session) to heal the owner ACL, refetch, count and check a guest's shared cart |
+| `CartMutationService` | add / rename / check / delete / archive / dedupe lines and the category refinement; owns the pending-mutation count and the refinement tasks |
+| `WidgetPurchaseSync` | the widget snapshot (also the trip's) and the widget purchase queue drain |
+| `CartIntentHandler` | `CartIntentHandling` for Siri, the widgets and the Live Activity: add, remaining, start/stop trip, widget purchase |
 | `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
 | `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator, injected as `ConnectivityMonitoring` |
 | `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
@@ -40,8 +43,14 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 | `FamilyCloudSharing` (`CloudKitBackendService` + `FamilyInviteLinkBuilder`) | iCloud account, members, share lifecycle, user identity, private-zone account deletion |
 
 `AppSession.init` takes one `AppSessionDependencies` value
-(`OneCart/Application/AppSessionDependencies.swift`) and builds only the coordinators and
+(`OneCart/Application/AppSessionDependencies.swift`), keeps it (`AppSession+Dependencies.swift`
+forwards the collaborators it uses as they are) and builds only the coordinators and
 repositories over it; no collaborator has a default and the session creates no live service.
+The three cart services take the session in `init` as a narrow context protocol
+(`CartMutationContext`, `WidgetPurchaseContext`, `CartIntentSessionContext` in
+`OneCart/Application/Services/CartServiceContexts.swift`: reads and session-level effects, no
+setters) and hold it weakly; the session builds them on first use as lazy properties, since
+they need it to exist.
 `OneCartAppComposition` (`OneCartApp.swift`) is the composition root: `live()` builds the
 production graph once (the real store, `.standard` defaults with the App Group suite for the
 accent, `AppleSignInService.shared`, the CloudKit backend and `LiveCloudKitShareStore` over one
@@ -75,10 +84,11 @@ the bytes of a `ShareThumbnailRendering`, which `LiveCloudKitShareStore` takes f
 composition root (`ShareThumbnailRenderer`, UIKit, drawn in the stored accent when a share is stamped), so the CloudKit
 share code imports no UIKit.
 
-The App Intents get the session through `@Dependency` on `CartIntentHandling`
-(`OneCart/Application/Services/CartIntentHandling.swift`): `OneCartApp.init` registers a lazy
-provider with `AppDependencyManager.shared` at launch (never in the unit-test host), so the
-session is still built on first use by the scene or an intent, not on every process launch. A
+The App Intents get the session's `CartIntentHandler` through `@Dependency` on
+`CartIntentHandling` (`OneCart/Application/Services/CartIntentHandling.swift`): `OneCartApp.init`
+registers a lazy provider with `AppDependencyManager.shared` at launch (never in the unit-test
+host), so the session is still built on first use by the scene or an intent, not on every
+process launch. A
 `LiveActivityIntent` (the purchase toggle, the trip stop button, the voice trip start) is
 performed in the app process, which the system launches in the background, so the registration
 is in place; the toggle and stop intents keep their membership in the widget extension, where
@@ -198,7 +208,8 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Application/AppSession.swift` | Composition root: observable session state + wiring |
 | `OneCart/Application/Services/*.swift`, `AppSession+Services.swift` | Role protocols the screens depend on, and the session's conformances |
 | `OneCart/Features/*/…ViewModel.swift` | Per-screen `@Observable` ViewModels over the role protocols |
-| `OneCart/Application/AppSession+*.swift` | Welcome/auth, hosts, cart mutations, membership, family selection |
+| `OneCart/Application/AppSession+*.swift` | Welcome/auth, hosts, role-protocol forwards, membership, family selection |
+| `OneCart/Application/CartMutationService.swift`, `WidgetPurchaseSync.swift`, `CartIntentHandler.swift` | Cart mutations, widget snapshot and purchase queue, intents; built over `Services/CartServiceContexts.swift` |
 | `OneCart/Application/SessionTypes.swift` | Shared session enums / device preferences types |
 | `OneCart/Application/SessionBootstrapper.swift` | Welcome / prepare / explicit wipe gate |
 | `OneCart/Application/CartContentStore.swift` | Cart content + history page size 30 / loadMore |

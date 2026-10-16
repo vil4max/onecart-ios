@@ -171,7 +171,57 @@ struct CartIntentDeadline {
     }
 }
 
-extension AppSession {
+/// Answers the intents: adds and reads cart lines for Siri, starts and stops the shopping trip,
+/// and replays a widget purchase. `OneCartApp` registers it as the intents' dependency.
+@MainActor
+final class CartIntentHandler: CartIntentHandling {
+    private weak var context: (any CartIntentSessionContext)?
+    private let mutations: CartMutationService
+    private let widgetSync: WidgetPurchaseSync
+    private let cartContent: CartContentStore
+    private let shoppingTrip: ShoppingTripActivityController
+
+    init(
+        context: any CartIntentSessionContext,
+        mutations: CartMutationService,
+        widgetSync: WidgetPurchaseSync,
+        cartContent: CartContentStore,
+        shoppingTrip: ShoppingTripActivityController
+    ) {
+        self.context = context
+        self.mutations = mutations
+        self.widgetSync = widgetSync
+        self.cartContent = cartContent
+        self.shoppingTrip = shoppingTrip
+    }
+
+    private var canEdit: Bool {
+        context?.canEdit ?? false
+    }
+
+    func handleAddItems(_ raw: String) async throws -> CartIntentAddResult {
+        try await addItemsFromIntent(raw)
+    }
+
+    func handleRemainingItems() async throws -> CartIntentRemaining {
+        try await remainingItemsForIntent()
+    }
+
+    func handleStartShoppingTrip() async throws {
+        try await startShoppingTripFromIntent()
+    }
+
+    func handleWidgetPurchase(_ request: WidgetPurchaseRequest) async throws {
+        await context?.start(retryingFailure: false)
+        try await widgetSync.performWidgetPurchase(request)
+    }
+
+    func handleEndShoppingTrip() async {
+        await shoppingTrip.end().value
+    }
+}
+
+extension CartIntentHandler {
     /// Adds name-only lines to the cart the cart screen shows (REQ-SIRI-010).
     func addItemsFromIntent(
         _ raw: String,
@@ -188,8 +238,8 @@ extension AppSession {
                 // Checked here, in the same turn as the mutation's own check, so a cart that turned
                 // read-only mid-request is reported as a failed name rather than as an app alert.
                 guard canEdit else { return .failed }
-                let existingIDs = Set(products(inListID: listID).compactMap(\.id))
-                guard let productID = await addProduct(to: list, draft: .nameOnly(name)) else {
+                let existingIDs = Set(cartContent.products(inListID: listID).compactMap(\.id))
+                guard let productID = await mutations.addProduct(toListID: listID, draft: .nameOnly(name)) else {
                     return .failed
                 }
                 return existingIDs.contains(productID) ? .alreadyOnCart : .added
@@ -200,7 +250,7 @@ extension AppSession {
     /// What is still to buy, read without changing the cart (REQ-SIRI-020).
     func remainingItemsForIntent(deadline: CartIntentDeadline = .live()) async throws -> CartIntentRemaining {
         let list = try await cartListForIntent(deadline: deadline)
-        let lines = list.id.map { products(inListID: $0) } ?? []
+        let lines = list.id.map { cartContent.products(inListID: $0) } ?? []
         // The grouping the cart screen draws its to-buy sections with (CartViewModel.toBuySections).
         let toBuy = ProductCategory.groupedSections(from: lines.filter { !$0.isPurchasedValue }) { $0.categoryValue }
         return CartIntentRemaining(
@@ -211,8 +261,8 @@ extension AppSession {
 
     /// Starts the shopping trip Live Activity (REQ-SIRI-030, REQ-WIDGET-040).
     func beginShoppingTrip() async throws {
-        guard canEdit else { throw CartIntentError.readOnly }
-        let snapshot = makeWidgetSnapshot(accent: preferences.accentColor)
+        guard let context, context.canEdit else { throw CartIntentError.readOnly }
+        let snapshot = widgetSync.makeWidgetSnapshot(accent: context.preferences.accentColor)
         try await shoppingTrip.start(with: snapshot)
     }
 
@@ -225,21 +275,23 @@ extension AppSession {
     /// A start that failed is run again here, so one bad launch does not refuse every request.
     /// Siri gets an answer within the deadline; a startup still running then goes on alone.
     private func cartListForIntent(deadline: CartIntentDeadline) async throws -> ShoppingListEntity {
-        guard await deadline.wait(for: { await self.start(retryingFailure: true) }) else {
+        guard await deadline.wait(for: { await self.context?.start(retryingFailure: true) }) else {
             throw CartIntentError.unavailable
         }
-        guard !startFailed else { throw CartIntentError.unavailable }
-        guard account != nil, !needsWelcome else { throw CartIntentError.signedOut }
+        guard let context, !context.startFailed else { throw CartIntentError.unavailable }
+        guard context.account != nil, !context.needsWelcome else { throw CartIntentError.signedOut }
         // Joins a setup the cart screen already started instead of finding no cart.
-        if activeFamilySpace == nil {
-            guard await deadline.wait(for: { await self.ensureHouseholdCartIfNeeded() }) else {
+        if context.activeFamilySpace == nil {
+            guard await deadline.wait(for: { await self.context?.ensureHouseholdCartIfNeeded() }) else {
                 throw CartIntentError.unavailable
             }
         }
         // The timer and the work can finish in the same turn; nothing may change the cart or
         // start a trip after the time Siri was promised an answer by.
         guard !deadline.hasPassed else { throw CartIntentError.unavailable }
-        guard let list = ShoppingListEntity.primaryList(in: activeLists) else { throw CartIntentError.failed }
+        guard let list = ShoppingListEntity.primaryList(in: cartContent.activeLists) else {
+            throw CartIntentError.failed
+        }
         return list
     }
 }

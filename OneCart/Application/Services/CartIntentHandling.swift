@@ -1,7 +1,7 @@
 import Foundation
 
 /// What the Siri, widget and Live Activity intents ask of the app. `OneCartApp` registers the
-/// session under this type with `AppDependencyManager` at launch; each intent reads it through
+/// session's `CartIntentHandler` under this type with `AppDependencyManager` at launch; each intent reads it through
 /// `@Dependency` and forwards to `perform(using:)`, which tests call with a fake.
 @MainActor
 protocol CartIntentHandling: AnyObject, Sendable {

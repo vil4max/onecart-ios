@@ -17,6 +17,18 @@ enum CartSyncOutcome: Equatable {
     case failed(String)
 }
 
+/// What one hard cart sync asks of the cart's owner, in this order: heal the owner's share ACL,
+/// reset and refetch the cart, report its counts for the log, then check whether a guest's shared
+/// cart is gone. The session conforms.
+@MainActor
+protocol CartRefreshing: AnyObject {
+    func healOwnerShareACL() async
+    /// A throw fails the sync; a `CancellationError` reports it cancelled.
+    func hardRefreshCart() async throws
+    var cartPurchaseCounts: (purchased: Int, total: Int) { get }
+    func handleInviteeSharedCartGone() async
+}
+
 @MainActor
 @Observable
 final class CartSyncService {
@@ -30,10 +42,9 @@ final class CartSyncService {
     private var lastAppearSyncAt: Date?
     private let clock: AppClock
 
-    var onHardRefresh: (() async throws -> Void)?
-    var onOwnerACLHeal: (() async -> Void)?
-    var onInviteeSharedGone: (() async -> Void)?
-    var purchasedCountProvider: (() -> (purchased: Int, total: Int))?
+    /// Weak: the session owns this service and is its refresher. Without one a sync only bumps
+    /// the revision.
+    @ObservationIgnored weak var refresher: (any CartRefreshing)?
 
     init(persistence: PersistenceController, clock: AppClock = .live) {
         self.persistence = persistence
@@ -113,19 +124,19 @@ final class CartSyncService {
     private func performSync(reason: CartSyncReason) async -> CartSyncOutcome {
         CartSyncLog.cart.info("syncCart start reason=\(reason.rawValue, privacy: .public)")
 
-        await onOwnerACLHeal?()
+        await refresher?.healOwnerShareACL()
         await waitForCloudImportBestEffort(reason: reason)
 
         do {
-            try await onHardRefresh?()
-            if let counts = purchasedCountProvider?() {
+            try await refresher?.hardRefreshCart()
+            if let counts = refresher?.cartPurchaseCounts {
                 let label = reason.rawValue
                 CartSyncLog.cart.info(
                     "syncCart refresh purchased=\(counts.purchased)/\(counts.total) reason=\(label, privacy: .public)"
                 )
             }
             contentRevision &+= 1
-            await onInviteeSharedGone?()
+            await refresher?.handleInviteeSharedCartGone()
             let revision = contentRevision
             CartSyncLog.cart
                 .info("syncCart done reason=\(reason.rawValue, privacy: .public) revision=\(revision)")
