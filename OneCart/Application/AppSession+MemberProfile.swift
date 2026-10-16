@@ -69,11 +69,6 @@ extension AppSession: MemberNamePrompting {
     func saveMemberName(_ name: String) async {
         await updateParticipantDisplayName(name)
     }
-
-    func declineMemberNamePrompt() {
-        MemberNamePromptStorage.markDeclined(in: defaults)
-        memberNamePromptDeclined = true
-    }
 }
 
 /// Device-wide on purpose: "Not now" means the user does not want to be asked again here.

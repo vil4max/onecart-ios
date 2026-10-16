@@ -49,8 +49,8 @@
         { "path": "AppSession+Membership.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+Welcome.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+AccountDeletion.swift", "target-membership": [ "OneCart/compile-sources" ] },
-        { "path": "AppSession+Hosts.swift", "target-membership": [ "OneCart/compile-sources" ] },
-        { "path": "AppSession+FamilySelection.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "AppSession+Coordinators.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "AppSession+Bootstrap.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+Services.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+MemberProfile.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "AppSession+ShoppingTrip.swift", "target-membership": [ "OneCart/compile-sources" ] },
@@ -60,6 +60,8 @@
         { "path": "AppSession+State.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "CartMutationService.swift", "target-membership": [ "OneCart/compile-sources" ] },
         { "path": "WidgetPurchaseSync.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "MembershipService.swift", "target-membership": [ "OneCart/compile-sources" ] },
+        { "path": "AccountDeletionService.swift", "target-membership": [ "OneCart/compile-sources" ] },
         {
           "kind": "group",
           "path": "Intents",
@@ -74,7 +76,7 @@
           "path": "Services",
           "children": [
             { "path": "SessionStateReading.swift", "target-membership": [ "OneCart/compile-sources" ] },
-            { "path": "CartServiceContexts.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "SessionServiceContexts.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "CartEditing.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "HistoryBrowsing.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "MembershipManaging.swift", "target-membership": [ "OneCart/compile-sources" ] },

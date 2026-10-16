@@ -26,12 +26,16 @@ extension AppSession: SessionStateReading {
 
 extension AppSession: CartEditing {}
 
-// The cart services' contexts: what each reads from the session and asks it to do.
+// The services' contexts: what each reads from the session and asks it to do.
 extension AppSession: CartMutationContext {}
 
 extension AppSession: WidgetPurchaseContext {}
 
 extension AppSession: CartIntentSessionContext {}
+
+extension AppSession: MembershipContext {}
+
+extension AppSession: AccountDeletionContext {}
 
 extension AppSession: HistoryBrowsing {
     var historyLines: [HistoryLine] {
@@ -49,8 +53,5 @@ extension AppSession: HouseholdCartBootstrapping {}
 
 extension AppSession: AlertPresenting {}
 
-extension AppSession: MainTabRouting {
-    func clearPreferredMainTab() {
-        preferredMainTab = nil
-    }
-}
+/// `clearPreferredMainTab()` is in `AppSession.swift`, which alone writes the tab.
+extension AppSession: MainTabRouting {}

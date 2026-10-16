@@ -43,12 +43,13 @@ final class CartSyncService {
     private let clock: AppClock
 
     /// Weak: the session owns this service and is its refresher. Without one a sync only bumps
-    /// the revision.
+    /// the revision. Tests swap in a scripted refresher.
     @ObservationIgnored weak var refresher: (any CartRefreshing)?
 
-    init(persistence: PersistenceController, clock: AppClock = .live) {
+    init(persistence: PersistenceController, clock: AppClock = .live, refresher: (any CartRefreshing)? = nil) {
         self.persistence = persistence
         self.clock = clock
+        self.refresher = refresher
     }
 
     @discardableResult

@@ -1,9 +1,10 @@
 import Foundation
 import OSLog
 
+/// `AccountDeletionService` deletes the account's data; the session guards the attempt and
+/// applies its outcome to the session's own state.
 extension AppSession {
     /// Permanently deletes the OneCart account: CloudKit private data, local stores, and SIWA session.
-    /// Shared carts owned by this user are removed with the private zone. Member carts stay for others.
     func deleteAccount() async {
         guard account != nil else { return }
         guard !isDeletingAccount else {
@@ -11,9 +12,8 @@ extension AppSession {
             return
         }
 
-        let cloudAlreadyDeleted = (try? persistence.readAccountDeletionPhase()) == .cloudDeleted
-        let requiresCloud = persistence.cloudKitEnabled && !cloudAlreadyDeleted
-        if requiresCloud, !online {
+        let plan = accountDeletion.plan()
+        if plan.requiresNetwork, !online {
             presentAlert(String(localized: "account.delete_need_network"), kind: .error)
             return
         }
@@ -28,64 +28,16 @@ extension AppSession {
         CartSyncLog.action.info("deleteAccount start")
         cloudSync.cancel()
 
-        var progress = AccountDeletionProgress()
-        do {
-            try await runAccountDeletion(cloudAlreadyDeleted: cloudAlreadyDeleted, progress: &progress)
+        switch await accountDeletion.deleteAccountData(plan) {
+        case .deleted:
+            widgetSync.cancelDrain()
+            finalizeSignOutAfterSuccessfulAccountDeletion()
             CartHaptics.success()
             CartSyncLog.action.info("deleteAccount done")
-        } catch {
-            CartSyncLog.action.error(
-                "deleteAccount fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            await recoverAfterFailedAccountDeletion(
-                didLeaveShared: progress.didLeaveShared,
-                didDetachLocalStores: progress.didDetachLocalStores
-            )
+        case let .failed(error, didLeaveShared):
+            await recoverAfterFailedAccountDeletion(didLeaveShared: didLeaveShared)
             presentAlert(accountDeletionFailureMessage(for: error), kind: .error)
         }
-    }
-
-    /// The steps a failed deletion has to undo.
-    private struct AccountDeletionProgress {
-        var didLeaveShared = false
-        var didDetachLocalStores = false
-    }
-
-    private func runAccountDeletion(cloudAlreadyDeleted: Bool, progress: inout AccountDeletionProgress) async throws {
-        if !cloudAlreadyDeleted {
-            progress.didLeaveShared = try await leaveSharedCartIfParticipantForDeletion()
-            // Keep account and SIWA until both cloud deletion and local cleanup succeed.
-            clearAccountData()
-            try await accountLocalStorePreparer.detachLocalStoresForCloudAccountDeletion()
-            progress.didDetachLocalStores = true
-            try await accountCloudDataDeleter.deletePrivateAccountCloudData()
-        }
-        try await accountLocalStorePreparer.attachEmptyLocalStoresAfterCloudAccountDeletion()
-        try widgetStore.clear()
-        widgetSync.cancelDrain()
-        finalizeSignOutAfterSuccessfulAccountDeletion()
-    }
-
-    @discardableResult
-    private func leaveSharedCartIfParticipantForDeletion() async throws -> Bool {
-        guard access?.isParticipant == true,
-            let family = activeFamilySpace,
-            let familyID = family.id
-        else { return false }
-
-        CartSyncLog.action.info(
-            "deleteAccount leaveShared family=\(familyID.uuidString, privacy: .public)"
-        )
-        let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID)
-        if discardLeftovers {
-            do {
-                try await repository.discardLocalSharedFamilySpace(id: familyID)
-            } catch let error as RepositoryError where error == .familySpaceNotFound {
-                CartSyncLog.action.info("deleteAccount leaveShared local already gone")
-            }
-        }
-        lastActiveFamilyWasShared = false
-        return true
     }
 
     private func finalizeSignOutAfterSuccessfulAccountDeletion() {
@@ -102,22 +54,18 @@ extension AppSession {
         appleSignIn.clearCredential()
         clearAccountData()
         account = nil
-        userAlert = nil
-        sharedCartRemovedMessage = nil
+        dismissAlert()
+        dismissSharedCartRemovedMessage()
         lastSyncError = nil
         syncState = .synchronized
-        preferredMainTab = nil
+        clearPreferredMainTab()
         showWelcome(.signIn)
         started = true
     }
 
-    private func recoverAfterFailedAccountDeletion(
-        didLeaveShared: Bool,
-        didDetachLocalStores: Bool
-    ) async {
-        if didDetachLocalStores {
-            try? await accountLocalStorePreparer.restoreLocalStoresAfterFailedCloudAccountDeletion()
-        }
+    /// The service already put the local stores back; the session watches iCloud again and
+    /// returns to the cart it had.
+    private func recoverAfterFailedAccountDeletion(didLeaveShared: Bool) async {
         if !persistence.accountDeletionRecoveryRequired {
             cloudSync.installConnectivityMonitor()
             cloudSync.installCloudObservers()

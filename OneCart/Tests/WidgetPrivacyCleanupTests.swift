@@ -165,7 +165,7 @@ final class WidgetPrivacyCleanupTests: XCTestCase {
         let leftover = ShoppingTripActivityRecord(id: "leftover", accountID: UUID(), familyID: UUID())
         let backend = FakeShoppingTripBackend(running: [leftover])
         let fixture = try await makeWidgetSession(started: false, shoppingTripBackend: backend)
-        fixture.session.clearStoredAppleCredential()
+        fixture.session.appleSignIn.clearCredential()
 
         await fixture.session.start()
         await fixture.session.shoppingTrip.settle()

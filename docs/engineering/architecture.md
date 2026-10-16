@@ -22,21 +22,25 @@ Store/catalog **UI modules are removed from the target**. Core Data still models
 
 ## Composition root
 
-`AppSession` is a `@MainActor @Observable` root that owns the session state and thin wrappers;
-SwiftUI tracks its properties and those of its `@Observable` collaborators directly (no
-`ObservableObject`, Combine bridges or `objectWillChange`). Heavy work is delegated:
+`AppSession` is a `@MainActor @Observable` root that owns the session state, builds the
+collaborators below and forwards the screens' role protocols to them; SwiftUI tracks its
+properties and those of its `@Observable` collaborators directly (no `ObservableObject`, Combine
+bridges or `objectWillChange`). Each collaborator owns its state; the session exposes what the
+screens read as computed properties. Heavy work is delegated:
 
 | Type | Role |
 |------|------|
-| `SessionBootstrapper` | SIWA restore / welcome retry; preserves pending account-deletion recovery |
+| `SessionBootstrapper` | startup steps that each return an outcome: the sign-in to restore, the store wipe a load failure arms (consumed by one Retry), the store load and dedupe (`StoreLoadOutcome`), the account iCloud restores (a local stand-in during deletion recovery); the session runs them in order (`AppSession+Bootstrap.swift`) |
 | `CartContentStore` | lists / products / history pages; reload after viewContext reset; maps them once per reload into the screens' value snapshots |
 | `CartSyncService` | `syncCart(reason:) → CartSyncOutcome`, viewContext reset/refetch, `contentRevision`, `isCartSyncing`; each sync asks its weak `CartRefreshing` refresher (the session) to heal the owner ACL, refetch, count and check a guest's shared cart |
 | `CartMutationService` | add / rename / check / delete / archive / dedupe lines and the category refinement; owns the pending-mutation count and the refinement tasks |
 | `WidgetPurchaseSync` | the widget snapshot (also the trip's) and the widget purchase queue drain |
 | `CartIntentHandler` | `CartIntentHandling` for Siri, the widgets and the Live Activity: add, remaining, start/stop trip, widget purchase |
-| `CloudSyncCoordinator` | CloudKit observers, scheduled reload, maps sync outcome → `syncState` / alerts |
+| `CloudSyncCoordinator` | CloudKit observers and the scheduled reload; `syncCart(reason:)` returns a `CloudSyncResult` (alert policy included) and the observers report `CloudSyncEvent`s, which the session maps to `syncState` / alerts |
 | `ConnectivityMonitor` | `NWPathMonitor` online/offline callbacks for the coordinator, injected as `ConnectivityMonitoring` |
-| `HouseholdCartCoordinator` | Ensure/adopt household cart + invitee shared-gone fallback |
+| `HouseholdCartCoordinator` | ensure / adopt the household cart, personal-cart restore, invitee shared-gone fallback; owns the setup and reconcile flags, whether the last active cart was shared and the shared-removed message; returns a `HouseholdCartOutcome` whose failure the session shows |
+| `MembershipService` | invite link, revoke, rename, remove member, leave and the recovery after a leave that timed out; owns the leave in flight and that recovery |
+| `AccountDeletionService` | the guest leave, private-zone deletion and local store swap of an account deletion; puts the stores back on failure and returns an `AccountDeletionOutcome` the session applies |
 | `InviteLinkPreparer` | Invite link cache / warm-up (silent soft-fail) |
 | `FamilyShareOrchestrator` | invite link creation; owner ACL heal (does not reopen a revoked invite door); revoke invite (close door) |
 | Repositories (`FamilyRepository`, `CartItemsRepository`, `PurchaseArchiver`, `CartDeduplicator`, `PersonalCartRestorer`, `MemberProfileStore`) | local Core Data reads and writes, one responsibility each, injected as protocols |
@@ -44,13 +48,22 @@ SwiftUI tracks its properties and those of its `@Observable` collaborators direc
 
 `AppSession.init` takes one `AppSessionDependencies` value
 (`OneCart/Application/AppSessionDependencies.swift`), keeps it (`AppSession+Dependencies.swift`
-forwards the collaborators it uses as they are) and builds only the coordinators and
-repositories over it; no collaborator has a default and the session creates no live service.
-The three cart services take the session in `init` as a narrow context protocol
-(`CartMutationContext`, `WidgetPurchaseContext`, `CartIntentSessionContext` in
-`OneCart/Application/Services/CartServiceContexts.swift`: reads and session-level effects, no
-setters) and hold it weakly; the session builds them on first use as lazy properties, since
-they need it to exist.
+forwards the collaborators it uses as they are) and builds the repositories over it; no
+collaborator has a default and the session creates no live service. Every collaborator is wired
+one way, by init injection. One that needs the session takes it as a narrow context protocol
+(`OneCart/Application/Services/SessionServiceContexts.swift`: `CartMutationContext`,
+`WidgetPurchaseContext`, `CartIntentSessionContext`, `MembershipContext`,
+`AccountDeletionContext`, `HouseholdCartContext`; `CloudSyncContext` beside its coordinator;
+`CartRefreshing` for the cart sync) and holds it weakly; the session builds those on first use as
+lazy properties, since they need it to exist. A context offers reads and session steps (reload,
+accept shares, refresh members, alerts), never a setter of session state: what a flow decides
+comes back as its return value, or as a `CloudSyncEvent` from an observer. There are no host
+protocols or `bind(host:)` calls; the only closures left are `DevicePreferences.onChanged` /
+`onAccentChanged`, through which the session refreshes the widget snapshot. Session state only
+`AppSession.swift` writes is `private(set)` (`isBusy`, `familySpaces`, `activeFamilySpace`,
+`preferredMainTab`, `userAlert`, the name-prompt and schema-alert flags); the rest stays settable
+because the DEBUG demo or tests set it, or because the session's extension files write it (Swift
+scopes `private(set)` to the file).
 `OneCartAppComposition` (`OneCartApp.swift`) is the composition root: `live()` builds the
 production graph once (the real store, `.standard` defaults with the App Group suite for the
 accent, `AppleSignInService.shared`, the CloudKit backend and `LiveCloudKitShareStore` over one
@@ -133,11 +146,12 @@ History), `CartDeduplicator` (stable-ID and same-name dedupe), `PersonalCartRest
 (`restoreProvisionalPersonalContent`) and `MemberProfileStore`. The implementations share
 `RepositoryFetch` (live-row lookups by ID; a product lookup sorts in cart order, so a mutation by
 ID changes the row the cart shows when a replica left two with that ID) and the
-`PermissionGuardedRepository` write check over `PermissionAuthorizing`. `AppSession` holds five of them as
-`any …` (`repository` is the `FamilyRepository`, which the membership paths use; only the
-household coordinator takes `PersonalCartRestorer`);
-`SessionBootstrapper` takes `FamilyRepository` and `CartDeduplicator`, `HouseholdCartCoordinator`
-takes `FamilyRepository` and `PersonalCartRestorer`. `FamilySpaceRepository` remains as a
+`PermissionGuardedRepository` write check over `PermissionAuthorizing`. `AppSession` holds all six
+as `any …` and hands them to its collaborators (`repository` is the `FamilyRepository`, which the
+session's selection reload and the startup claim use): `CartMutationService` takes the cart,
+archive and dedupe repositories, `SessionBootstrapper` takes `CartDeduplicator`,
+`HouseholdCartCoordinator` takes `FamilyRepository` and `PersonalCartRestorer`, and
+`MembershipService` and `AccountDeletionService` take `FamilyRepository`. `FamilySpaceRepository` remains as a
 transitional facade: the live composition builds the six implementations through it, and tests and
 seeding helpers keep its forwarding API; production code does not call the forwards. Coordinators
 still read `persistence.container` for view-context work no repository owns: the sync reset
@@ -199,7 +213,7 @@ on the clock yet: view-only animation timing, display dates, the other CloudKit 
 (`CloudKitDeadline` with a nanosecond timeout), the classifier timeout, and the Siri deadline and
 Live Activity controller, which have their own seams.
 
-Size guideline: the composition root stays around 200 lines and is split at 400 or more. `AppSession` stays a thin root; behavior lives in `AppSession+*.swift` extensions and the coordinators above.
+Size guideline: the composition root stays around 200 lines and is split at 400 or more. `AppSession` stays a root of state and wiring within the lint limits (`.swiftlint.yml`); behavior lives in the collaborators above, and the `AppSession+*.swift` extensions hold the forwards, the startup order and the flows that write the session's own state.
 
 ## Key files
 
@@ -208,13 +222,15 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Application/AppSession.swift` | Composition root: observable session state + wiring |
 | `OneCart/Application/Services/*.swift`, `AppSession+Services.swift` | Role protocols the screens depend on, and the session's conformances |
 | `OneCart/Features/*/…ViewModel.swift` | Per-screen `@Observable` ViewModels over the role protocols |
-| `OneCart/Application/AppSession+*.swift` | Welcome/auth, hosts, role-protocol forwards, membership, family selection |
-| `OneCart/Application/CartMutationService.swift`, `WidgetPurchaseSync.swift`, `CartIntentHandler.swift` | Cart mutations, widget snapshot and purchase queue, intents; built over `Services/CartServiceContexts.swift` |
+| `OneCart/Application/AppSession+*.swift` | Welcome/auth, the startup order (`+Bootstrap`), the coordinators' context and the outcomes it applies (`+Coordinators`), role-protocol forwards, share accept and members refresh |
+| `OneCart/Application/CartMutationService.swift`, `WidgetPurchaseSync.swift`, `CartIntentHandler.swift` | Cart mutations, widget snapshot and purchase queue, intents |
+| `OneCart/Application/MembershipService.swift`, `AccountDeletionService.swift` | Settings membership flows and leave recovery; account data deletion |
+| `OneCart/Application/Services/SessionServiceContexts.swift` | The context protocols the collaborators take the session as |
 | `OneCart/Application/SessionTypes.swift` | Shared session enums / device preferences types |
-| `OneCart/Application/SessionBootstrapper.swift` | Welcome / prepare / explicit wipe gate |
+| `OneCart/Application/SessionBootstrapper.swift` | Startup steps: restorable sign-in, explicit wipe gate, store load, account restore |
 | `OneCart/Application/CartContentStore.swift` | Cart content + history page size 30 / loadMore |
 | `OneCart/Application/CartSyncService.swift` | Hard cart refresh / sync chrome state |
-| `OneCart/Application/CloudSyncCoordinator.swift` | Observers, scheduled reload, sync outcome application |
+| `OneCart/Application/CloudSyncCoordinator.swift` | Observers, scheduled reload, sync results and events |
 | `OneCart/Application/ConnectivityMonitor.swift` | Path monitor used by cloud sync |
 | `OneCart/Application/HouseholdCartCoordinator.swift` | Household ensure / adopt / shared-gone |
 | `OneCart/Application/InviteLinkPreparer.swift` | Invite link prepare / cache |
@@ -324,7 +340,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 - `HistoryItems.unique` selects one logical item per `(family ID, item ID)` for history and suggestions. Archive retries reuse existing logical purchases. This does not physically delete duplicate CloudKit history records.
 - Account deletion unloads stores without deleting SQLite, checks every requested zone result, then marks confirmed cloud deletion before local cleanup. `account-deletion-state.json` survives interrupted cleanup. Pending cloud deletion loads original stores without mirroring; confirmed deletion finishes cleanup before reopening. Credentials clear only after cleanup succeeds.
 - `CloudKitDeadline` resolves the caller once on result, timeout, or cancellation without waiting for a cancellation-insensitive SDK callback. A late cloud write remains possible; timeout is not proof of server-side cancellation. An operation that finishes after the caller was released is reported once through `onLateCompletion`.
-- Leave (REQ-SHARE-050): the zone purge runs under `CloudKitDeadline` with `leaveTimedOut` after `CloudKitBackendService.leavePurgeTimeout`. On a timeout the session shows the alert and starts its leave recovery, which retries the fallback to the personal cart on the `AppClock` and also runs one pass when the late purge reports in through `leaveFamily(objectID:onLatePurgeCompletion:)`; a late purge that leaves the shared cart behind does not end the timed passes.
+- Leave (REQ-SHARE-050): the zone purge runs under `CloudKitDeadline` with `leaveTimedOut` after `CloudKitBackendService.leavePurgeTimeout`. On a timeout `MembershipService` shows the alert and starts its leave recovery, which retries the fallback to the personal cart on the `AppClock` and also runs one pass when the late purge reports in through `leaveFamily(objectID:onLatePurgeCompletion:)`; a late purge that leaves the shared cart behind does not end the timed passes.
 - Widgets share the app session for persistent purchase actions. Commands contain account/family/product IDs and desired state, survive failed writes, and are acknowledged after Core Data saves. Cold-start, foreground and import-event drains reconcile pending commands. Commands older than a newer purchase change of the product are ignored (a rename or category refinement does not count); confirmed tombstones are acknowledged without recreating products. Legacy UUID-only toggle queues cannot identify an account or desired state and are not replayed. Snapshot counts describe the full cart, not just visible rows; sign-out and successful account deletion clear widget data.
 - Both the app and widget extension bundle their own `PrivacyInfo.xcprivacy`. App Group defaults access is declared in each relevant target.
 - Files compiled into both the app and the widget extension (`OneCart/Shared/Widgets/`, `AppAccentColor`, `CartSymbolName`, `ProductCategory`, `OneCartLog`) hold plain models and logic: they import Foundation or OSLog (plus ActivityKit or AppIntents where the type requires it), and model values never read the App Group or call WidgetCenter. SwiftUI presentation lives in per-target extension files (`ProductCategory+SwiftUI.swift` in the app, `WidgetCartSnapshot+SwiftUI.swift` in the widget). `WidgetSnapshotStore` takes its timeline reload as a closure; each target defines its live `shared` store with `WidgetCenter` reloads, and the store, not the snapshot, reads the stored accent (`withStoredAccent`). What the cart screen, the widgets and the Live Activity would otherwise each spell out lives in one place: the check and progress symbol names (`CartSymbolName`), the purchase intent of a widget line or a trip line (`ToggleProductPurchasedIntent(togglingItem:in:)`, `(purchasingTripItem:of:)`), the stored-accent fallback, and the no-cart widget title (`common.app_name`). The category tiles stay per surface: the widget tile washes out in accented rendering and the Live Activity tile does not. Known exceptions: `OneCartPalette` is shared SwiftUI presentation (it reads no storage), and the two `LiveActivityIntent`s keep their dual membership and `#if ONECART_WIDGET_EXTENSION` branches.

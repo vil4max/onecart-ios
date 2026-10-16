@@ -247,12 +247,12 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
             permissionAuthorizer: DenyAllPermissionAuthorizer()
         )
         let coordinator = HouseholdCartCoordinator(
+            context: fixture.session,
             persistence: fixture.persistence,
             families: denied.families,
             personalCartRestorer: denied.personalCartRestorer,
             defaults: fixture.defaults
         )
-        coordinator.bind(host: fixture.session)
 
         do {
             try await coordinator.reconcileProvisionalPersonalCartIfNeeded(for: fixture.account)
@@ -267,7 +267,7 @@ final class PersonalCartRestoreBootstrapTests: XCTestCase {
                 forKey: HouseholdCartCoordinator.provisionalFamilyKey(
                     accountID: fixture.account.id
                 )), sourceID?.uuidString)
-        XCTAssertFalse(fixture.session.isReconcilingPersonalCart)
+        XCTAssertFalse(coordinator.isReconcilingPersonalCart)
     }
 
     private struct Fixture {

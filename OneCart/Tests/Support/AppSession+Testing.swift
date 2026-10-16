@@ -42,6 +42,27 @@ extension AppSession {
         cartMutations.categoryRefinementTasks
     }
 
+    /// The leave recovery lives in `MembershipService`. A test that runs the recovery itself
+    /// hands its task over, so the suite cleanup awaits it.
+    var leaveRecoveryTask: Task<Void, Never>? {
+        get { membership.leaveRecoveryTask }
+        set {
+            guard let newValue else { return membership.cancelLeaveRecovery() }
+            membership.trackLeaveRecovery(newValue)
+        }
+    }
+
+    var leaveRecoveryPassCount: Int {
+        membership.leaveRecoveryPassCount
+    }
+
+    nonisolated static let leaveRecoveryPasses = MembershipService.leaveRecoveryPasses
+    nonisolated static let leaveRecoveryInterval = MembershipService.leaveRecoveryInterval
+
+    func recoverAfterLeaveTimeout(latePurgeCompletions: AsyncStream<Void>) async {
+        await membership.recoverAfterLeaveTimeout(latePurgeCompletions: latePurgeCompletions)
+    }
+
     func setActiveFamilySpace(_ space: FamilySpace) {
         guard let id = space.id, let account else { return }
         defaults.set(id.uuidString, forKey: activeFamilyKey(accountID: account.id))

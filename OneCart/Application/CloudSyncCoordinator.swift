@@ -1,22 +1,36 @@
 import CoreData
 import Foundation
 
+/// What the CloudKit observers and the scheduled reload read from the session and what they ask
+/// it to do. The session conforms; the coordinator holds it weakly, since the session owns it.
 @MainActor
-protocol CloudSyncHost: AnyObject {
+protocol CloudSyncContext: AnyObject {
     var account: OneCartAccount? { get }
     var isOnline: Bool { get }
     var syncState: OneCartSyncState { get }
-
-    func applySyncState(_ state: OneCartSyncState)
-    func applyLastSyncError(_ message: String?)
-    func presentSyncAlert(_ message: String)
-    func presentProductionSchemaAlertIfNeeded(_ message: String)
-    func drainWidgetPendingToggles() async
+    /// Reflects a CloudKit event or a connectivity change in the session's sync status.
+    func applyCloudSyncEvent(_ event: CloudSyncEvent)
     func softRefreshCartProducts()
-    func refreshFamilyMetadata(showErrors: Bool) async
-    func offerSharedCartJoinIfNeeded(for account: OneCartAccount) async throws
-    func userFacingMessage(for error: Error) -> String
-    func applyConnectivityOnline(_ isOnline: Bool)
+    /// One reload pass after CloudKit changes: refresh, adopt a joined cart, replay widget
+    /// purchases, then a `.cloudImport` sync.
+    func runCloudImportPass(for account: OneCartAccount) async
+}
+
+/// What the coordinator observed; the session decides what it means for its sync status.
+enum CloudSyncEvent {
+    case importStarted
+    case importFailed(Error)
+    case importFinished
+    case connectivityChanged(isOnline: Bool)
+    case wentOffline
+    case reconnected
+}
+
+/// How a cart sync ended, for the session to apply; nil from `syncCart` means nothing changed.
+enum CloudSyncResult: Equatable {
+    /// The session refreshes the members, then shows synchronized or offline.
+    case synced
+    case failed(message: String, presentsAlert: Bool)
 }
 
 @MainActor
@@ -24,7 +38,7 @@ final class CloudSyncCoordinator {
     private let persistence: PersistenceController
     private let cartSync: CartSyncService
     private let connectivity: any ConnectivityMonitoring
-    private weak var host: CloudSyncHost?
+    private weak var context: (any CloudSyncContext)?
 
     private var remoteChangeObserver: NSObjectProtocol?
     private var cloudEventObserver: NSObjectProtocol?
@@ -44,16 +58,18 @@ final class CloudSyncCoordinator {
         persistence: PersistenceController,
         cartSync: CartSyncService,
         connectivity: any ConnectivityMonitoring,
-        clock: AppClock = .live
+        clock: AppClock = .live,
+        context: any CloudSyncContext
     ) {
         self.persistence = persistence
         self.cartSync = cartSync
         self.connectivity = connectivity
         self.clock = clock
+        self.context = context
     }
 
-    func bind(host: CloudSyncHost) {
-        self.host = host
+    private var recoveryRequired: Bool {
+        persistence.accountDeletionRecoveryRequired
     }
 
     func cancel() {
@@ -65,47 +81,45 @@ final class CloudSyncCoordinator {
         pendingReloadDelay = nil
         sleepingReloadDelay = nil
         softRefreshTask?.cancel()
-        if let remoteChangeObserver {
-            NotificationCenter.default.removeObserver(remoteChangeObserver)
-            self.remoteChangeObserver = nil
+        for observer in [remoteChangeObserver, cloudEventObserver, objectsDidChangeObserver].compactMap({ $0 }) {
+            NotificationCenter.default.removeObserver(observer)
         }
-        if let cloudEventObserver {
-            NotificationCenter.default.removeObserver(cloudEventObserver)
-            self.cloudEventObserver = nil
-        }
-        if let objectsDidChangeObserver {
-            NotificationCenter.default.removeObserver(objectsDidChangeObserver)
-            self.objectsDidChangeObserver = nil
-        }
+        remoteChangeObserver = nil
+        cloudEventObserver = nil
+        objectsDidChangeObserver = nil
         connectivity.stop()
     }
 
-    func syncCart(reason: CartSyncReason) async {
-        guard let host, !persistence.accountDeletionRecoveryRequired else { return }
-        let previousState = host.syncState
+    /// Runs a cart sync and reports how it ended. A pull always alerts on failure; a foreground
+    /// sync alerts only when the cart looked healthy before.
+    func syncCart(reason: CartSyncReason) async -> CloudSyncResult? {
+        guard let context, !recoveryRequired else { return nil }
+        let previousState = context.syncState
         let outcome = await cartSync.syncCart(reason: reason)
-        guard !persistence.accountDeletionRecoveryRequired else { return }
+        guard !recoveryRequired else { return nil }
         switch outcome {
         case .succeeded:
-            await host.refreshFamilyMetadata(showErrors: false)
-            host.applySyncState(host.isOnline ? .synchronized : .offline)
-            host.applyLastSyncError(nil)
+            return .synced
         case .skippedDebounce, .cancelled:
-            break
+            return nil
         case let .failed(message):
-            host.applyLastSyncError(message)
-            host.applySyncState(.failed)
-            switch reason {
-            case .pull:
-                host.presentSyncAlert(message)
-            case .foreground where previousState == .synchronized || previousState == .syncing:
-                host.presentSyncAlert(message)
-            case .foreground, .appear, .cloudImport:
-                break
-            }
+            let presentsAlert: Bool =
+                switch reason {
+                case .pull:
+                    true
+                case .foreground:
+                    previousState == .synchronized || previousState == .syncing
+                case .appear, .cloudImport:
+                    false
+                }
+            return .failed(message: message, presentsAlert: presentsAlert)
         }
     }
+}
 
+// MARK: - Observers
+
+extension CloudSyncCoordinator {
     func installCloudObservers() {
         guard remoteChangeObserver == nil, cloudEventObserver == nil else { return }
         remoteChangeObserver = NotificationCenter.default.addObserver(
@@ -132,6 +146,10 @@ final class CloudSyncCoordinator {
             }
         }
 
+        installCloudEventObserver()
+    }
+
+    private func installCloudEventObserver() {
         cloudEventObserver = NotificationCenter.default.addObserver(
             forName: NSPersistentCloudKitContainer.eventChangedNotification,
             object: persistence.container,
@@ -148,53 +166,101 @@ final class CloudSyncCoordinator {
             let eventError = event.error
             let eventType = event.type
             MainActor.assumeIsolated {
-                guard let self,
-                    let host = self.host,
-                    !self.persistence.accountDeletionRecoveryRequired
-                else { return }
-                if !isFinished {
-                    host.applySyncState(.syncing)
-                } else if let error = eventError {
-                    host.applySyncState(
-                        CloudKitUserFacingError.isNetworkError(error) ? .offline : .failed
-                    )
-                    let message = host.userFacingMessage(for: error)
-                    host.applyLastSyncError(message)
-                    if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-                        host.presentProductionSchemaAlertIfNeeded(message)
-                    }
-                } else {
-                    host.applySyncState(host.isOnline ? .synchronized : .offline)
-                    host.applyLastSyncError(nil)
-                    if CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(
-                        type: eventType,
-                        ended: true,
-                        error: nil
-                    ) {
-                        CartSyncLog.cart.info("cloudKit import finished; scheduling cart sync")
-                        self.scheduleSoftProductRefresh()
-                        self.scheduleCloudReload(delayNanoseconds: 150_000_000)
-                    }
-                }
+                self?.handleCloudEvent(type: eventType, isFinished: isFinished, error: eventError)
             }
         }
     }
 
+    private func handleCloudEvent(
+        type: NSPersistentCloudKitContainer.EventType,
+        isFinished: Bool,
+        error: Error?
+    ) {
+        guard let context, !recoveryRequired else { return }
+        guard isFinished else {
+            context.applyCloudSyncEvent(.importStarted)
+            return
+        }
+        if let error {
+            context.applyCloudSyncEvent(.importFailed(error))
+            return
+        }
+        context.applyCloudSyncEvent(.importFinished)
+        if CloudKitProductReloadPolicy.shouldReloadProductsAfterEvent(type: type, ended: true, error: nil) {
+            CartSyncLog.cart.info("cloudKit import finished; scheduling cart sync")
+            scheduleSoftProductRefresh()
+            scheduleCloudReload(delayNanoseconds: 150_000_000)
+        }
+    }
+
+    private nonisolated static func productPurchasedStateChanged(in notification: Notification) -> Bool {
+        let keys: [String] = [
+            NSUpdatedObjectsKey,
+            NSRefreshedObjectsKey,
+            NSInsertedObjectsKey,
+        ]
+        for key in keys {
+            guard let objects = notification.userInfo?[key] as? Set<NSManagedObject> else {
+                continue
+            }
+            for object in objects where object is ProductEntity {
+                if key == NSInsertedObjectsKey || key == NSRefreshedObjectsKey {
+                    return true
+                }
+                let changed = object.changedValuesForCurrentEvent()
+                if changed["isPurchased"] != nil
+                    || changed["purchasedAt"] != nil
+                    || changed["purchasedByName"] != nil
+                    || changed["createdByName"] != nil
+                {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    func installConnectivityMonitor() {
+        connectivity.onChange = { [weak self] isOnline in
+            Task { @MainActor in
+                self?.handleConnectivityChange(isOnline: isOnline)
+            }
+        }
+        connectivity.start()
+    }
+
+    private func handleConnectivityChange(isOnline: Bool) {
+        guard let context else { return }
+        let wasOnline = context.isOnline
+        context.applyCloudSyncEvent(.connectivityChanged(isOnline: isOnline))
+        guard !recoveryRequired else { return }
+        if !isOnline {
+            context.applyCloudSyncEvent(.wentOffline)
+        } else if !wasOnline, context.account != nil {
+            context.applyCloudSyncEvent(.reconnected)
+            scheduleCloudReload(delayNanoseconds: 150_000_000)
+        }
+    }
+}
+
+// MARK: - Scheduled refresh and reload
+
+extension CloudSyncCoordinator {
     func scheduleSoftProductRefresh(delayNanoseconds: UInt64 = 80_000_000) {
-        guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
+        guard context?.account != nil, !recoveryRequired else { return }
         softRefreshTask?.cancel()
         let clock = clock
         softRefreshTask = Task { [weak self] in
             try? await clock.sleep(nanoseconds: delayNanoseconds)
-            guard !Task.isCancelled, let self, let host, host.account != nil else {
+            guard !Task.isCancelled, let context = self?.context, context.account != nil else {
                 return
             }
-            host.softRefreshCartProducts()
+            context.softRefreshCartProducts()
         }
     }
 
     func scheduleCloudReload(delayNanoseconds: UInt64 = 650_000_000) {
-        guard host?.account != nil, !persistence.accountDeletionRecoveryRequired else { return }
+        guard context?.account != nil, !recoveryRequired else { return }
         pendingReloadDelay = min(pendingReloadDelay ?? .max, delayNanoseconds)
         if scheduledReloadTask != nil {
             // Only a sleeping loop is replaced, and only by a shorter request. A loop that is
@@ -220,72 +286,13 @@ final class CloudSyncCoordinator {
                 // A cancelled task no longer owns the shared state; leave it to its successor.
                 guard !Task.isCancelled else { return }
                 sleepingReloadDelay = nil
-                guard !persistence.accountDeletionRecoveryRequired else { return }
+                guard !recoveryRequired else { return }
                 if pendingReloadDelay != nil {
                     continue
                 }
-                guard let host, let account = host.account else { return }
-                await runCloudImportPass(host: host, account: account)
+                guard let context, let account = context.account else { return }
+                await context.runCloudImportPass(for: account)
             }
         }
-    }
-
-    private func runCloudImportPass(host: any CloudSyncHost, account: OneCartAccount) async {
-        host.softRefreshCartProducts()
-        do {
-            try await host.offerSharedCartJoinIfNeeded(for: account)
-        } catch {
-            // Keep importing CloudKit changes even if adopt/merge races.
-            host.applySyncState(.failed)
-            host.applyLastSyncError(host.userFacingMessage(for: error))
-        }
-        await host.drainWidgetPendingToggles()
-        await syncCart(reason: .cloudImport)
-    }
-
-    private nonisolated static func productPurchasedStateChanged(in notification: Notification) -> Bool {
-        let keys: [String] = [
-            NSUpdatedObjectsKey,
-            NSRefreshedObjectsKey,
-            NSInsertedObjectsKey,
-        ]
-        for key in keys {
-            guard let objects = notification.userInfo?[key] as? Set<NSManagedObject> else {
-                continue
-            }
-            for object in objects {
-                guard object is ProductEntity else { continue }
-                if key == NSInsertedObjectsKey || key == NSRefreshedObjectsKey {
-                    return true
-                }
-                let changed = object.changedValuesForCurrentEvent()
-                if changed["isPurchased"] != nil
-                    || changed["purchasedAt"] != nil
-                    || changed["purchasedByName"] != nil
-                    || changed["createdByName"] != nil
-                {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    func installConnectivityMonitor() {
-        connectivity.onChange = { [weak self] isOnline in
-            Task { @MainActor in
-                guard let self, let host = self.host else { return }
-                let wasOnline = host.isOnline
-                host.applyConnectivityOnline(isOnline)
-                guard !self.persistence.accountDeletionRecoveryRequired else { return }
-                if !isOnline {
-                    host.applySyncState(.offline)
-                } else if !wasOnline, host.account != nil {
-                    host.applySyncState(.syncing)
-                    self.scheduleCloudReload(delayNanoseconds: 150_000_000)
-                }
-            }
-        }
-        connectivity.start()
     }
 }

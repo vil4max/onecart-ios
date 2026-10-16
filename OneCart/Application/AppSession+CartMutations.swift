@@ -60,7 +60,7 @@ extension AppSession {
     }
 
     func syncCart(reason: CartSyncReason) async {
-        await cloudSync.syncCart(reason: reason)
+        await applyCloudSyncResult(await cloudSync.syncCart(reason: reason))
         switch reason {
         case .appear, .foreground, .cloudImport:
             // CloudKit may have delivered a same-name row from another device

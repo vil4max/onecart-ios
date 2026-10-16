@@ -28,21 +28,15 @@ extension AppSession {
     }
 
     func ensureHouseholdCartIfNeeded() async {
-        await household.ensureHouseholdCartIfNeeded()
+        if case let .failed(error) = await household.ensureHouseholdCartIfNeeded() {
+            show(error)
+        }
     }
 
     func retryHouseholdCartBootstrap() async {
-        await household.retryHouseholdCartBootstrap()
-    }
-
-    func retryWelcome() async {
-        let previousPhase = welcomePhase
-        if bootstrapper.willHardResetStores(for: previousPhase) {
-            // The reset replaces the container; drop observers bound to the old coordinator
-            // so `installCloudObservers()` registers against the new one.
-            cloudSync.cancel()
+        if case let .failed(error) = await household.retryHouseholdCartBootstrap() {
+            show(error)
         }
-        await bootstrapper.retry(previousPhase: previousPhase)
     }
 
     func reportWelcomeFailure(_ message: String) {
@@ -61,6 +55,13 @@ extension AppSession {
         isReady = true
     }
 
+    /// The session is signed in and ready; Welcome goes away.
+    func finishWelcome() {
+        needsWelcome = false
+        welcomePhase = .signIn
+        isReady = true
+    }
+
     func completeAppleSignIn(credential: AppleSignInCredential) async {
         showWelcome(.connecting)
         do {
@@ -74,7 +75,7 @@ extension AppSession {
             } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
                 preferences.participantDisplayName = ""
             }
-            await bootstrapper.prepare(appleCredential: credential)
+            await prepareSession(appleCredential: credential)
         }
         if let account {
             try? await household.reconcileProvisionalPersonalCartIfNeeded(for: account)
@@ -114,27 +115,9 @@ extension AppSession {
         appleSignIn.clearCredential()
         clearAccountData()
         account = nil
-        userAlert = nil
+        dismissAlert()
         showWelcome(.signIn)
         started = true
-    }
-
-    private func bootstrapSession() async {
-        await bootstrapper.start()
-    }
-
-    func createFamilyInviteLink() async throws -> FamilyInviteLink {
-        guard let family = activeFamilySpace else {
-            CartSyncLog.action.error("shareInvite denied noFamily")
-            throw InviteLinkError.noCart
-        }
-        return try await invitePreparer.createInviteLink(
-            family: family,
-            isOnline: online,
-            fetch: { [shareOrchestrator] in
-                try await shareOrchestrator.createInviteLink(for: family)
-            }
-        )
     }
 
     func scheduleInviteLinkPreparation(delayNanoseconds: UInt64) {
@@ -152,29 +135,17 @@ extension AppSession {
         )
     }
 
+    /// After a cart change the invite link of the active cart is prepared again, shortly after.
+    func scheduleInviteLinkPreparation() {
+        scheduleInviteLinkPreparation(delayNanoseconds: 1_500_000_000)
+    }
+
     func clearPreparedInviteLink() {
         invitePreparer.clear()
     }
 
-    func presentAlert(_ message: String, kind: UserAlertKind = .error, playHaptic: Bool = true) {
-        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        userAlert = UserAlert(kind: kind, message: trimmed)
-        guard playHaptic else { return }
-        switch kind {
-        case .success:
-            CartHaptics.success()
-        case .error:
-            CartHaptics.error()
-        }
-    }
-
-    func dismissAlert() {
-        userAlert = nil
-    }
-
     func dismissSharedCartRemovedMessage() {
-        sharedCartRemovedMessage = nil
+        household.dismissSharedCartRemovedMessage()
     }
 
     func finishFamilyCartSetup(for account: OneCartAccount) async throws {
@@ -199,24 +170,6 @@ extension AppSession {
 
     nonisolated static func activeFamilyKey(accountID: UUID) -> String {
         "onecart.active-family-space-id.\(accountID.uuidString)"
-    }
-
-    func show(_ error: Error) {
-        let message = userFacingMessage(for: error)
-        if CloudKitUserFacingError.isProductionSchemaFailure(error) {
-            presentProductionSchemaAlertIfNeeded(message)
-            return
-        }
-        presentAlert(message, kind: .error)
-    }
-
-    func presentProductionSchemaAlertIfNeeded(_ message: String) {
-        guard !didPresentProductionSchemaAlert else {
-            CartHaptics.error()
-            return
-        }
-        didPresentProductionSchemaAlert = true
-        presentAlert(message, kind: .error)
     }
 
     func userFacingMessage(for error: Error) -> String {

@@ -1,56 +1,35 @@
 import Foundation
 
-@MainActor
-protocol SessionBootstrapHost: AnyObject {
-    var isOnline: Bool { get }
-    var preferences: DevicePreferences { get }
-
-    func notifyBootstrapObjectWillChange()
-    func installConnectivityMonitor()
-    func installCloudObservers()
-    func acceptPendingCloudKitShares() async
-    func finishFamilyCartSetup(for account: OneCartAccount) async throws
-    func refreshFamilyMetadata(showErrors: Bool) async
-    func scheduleInviteLinkPreparation(delayNanoseconds: UInt64)
-    func reloadAfterBootstrap() throws
-    func userFacingMessage(for error: Error) -> String
-    func applyBootstrapAccount(_ account: OneCartAccount)
-    func clearBootstrapAccount()
-    func applyBootstrapSyncState(_ state: OneCartSyncState)
-    func applyWelcomeSignIn()
-    func applyWelcomeConnecting()
-    func applyWelcomeFailed(_ message: String)
-    func applyWelcomeReady(needsWelcome: Bool)
-    func clearStoredAppleCredential()
-    /// Launch ends without a signed-in account: a trip left running belongs to nobody.
-    func endShoppingTripWithoutAccount()
+struct SessionBootstrapDependencies {
+    let persistence: PersistenceController
+    let deduplicator: any CartDeduplicator
+    let cloudSharing: any FamilyCloudSharing
+    let appleSignIn: any AppleSignInAuthenticating
+    let preferences: DevicePreferences
+    let cartSync: CartSyncService
 }
 
+/// How loading the stores for a sign-in ended.
+enum StoreLoadOutcome {
+    /// The name the device or the Apple ID gives this user, if any.
+    case loaded(preferredName: String?)
+    case failed(Error)
+}
+
+/// The startup steps that touch the stores and the stored sign-in: which credential to restore,
+/// the explicit store wipe a load failure arms, loading and deduplicating the stores, and the
+/// account iCloud restores. Each step returns its outcome; the session runs them in order
+/// (`AppSession+Bootstrap.swift`) and applies the result to its state.
 @MainActor
 final class SessionBootstrapper {
-    private let persistence: PersistenceController
-    private let families: any FamilyRepository
-    private let deduplicator: any CartDeduplicator
-    private let cloudSharing: any FamilyCloudSharing
-    private let appleSignIn: AppleSignInAuthenticating
-    private weak var host: SessionBootstrapHost?
+    private let dependencies: SessionBootstrapDependencies
 
-    init(
-        persistence: PersistenceController,
-        families: any FamilyRepository,
-        deduplicator: any CartDeduplicator,
-        cloudSharing: any FamilyCloudSharing,
-        appleSignIn: AppleSignInAuthenticating
-    ) {
-        self.persistence = persistence
-        self.families = families
-        self.deduplicator = deduplicator
-        self.cloudSharing = cloudSharing
-        self.appleSignIn = appleSignIn
+    init(dependencies: SessionBootstrapDependencies) {
+        self.dependencies = dependencies
     }
 
-    func bind(host: SessionBootstrapHost) {
-        self.host = host
+    private var persistence: PersistenceController {
+        dependencies.persistence
     }
 
     /// Cause of the most recent welcome failure reported by this bootstrapper.
@@ -72,65 +51,44 @@ final class SessionBootstrapper {
         Self.shouldHardResetStores(for: previousPhase, cause: lastFailureCause)
     }
 
-    /// Failures reported outside `prepare` (for example Sign in with Apple) never arm the wipe.
+    /// Failures reported outside `loadStores` (for example Sign in with Apple) never arm the wipe.
     func disarmStoreWipe() {
         lastFailureCause = .other
     }
 
-    func start() async {
-        guard let host else { return }
-        if let credential = appleSignIn.storedCredential() {
-            let state = await appleSignIn.credentialState(for: credential.userID)
-            switch state {
-            case .authorized, .unknown:
-                host.applyWelcomeConnecting()
-                await prepare(appleCredential: credential)
-                return
-            case .revoked, .notFound:
-                // Simulator builds keep the stored sign-in across launches (demo and UI checks)
-                // even when the credential check reports it gone; a device signs out.
-                #if targetEnvironment(simulator)
-                    host.applyWelcomeConnecting()
-                    await prepare(appleCredential: credential)
-                    return
-                #else
-                    host.clearStoredAppleCredential()
-                #endif
-            }
+    /// The stored sign-in to restore at launch; nil when nobody is signed in.
+    func restorableCredential() async -> AppleSignInCredential? {
+        let appleSignIn = dependencies.appleSignIn
+        guard let credential = appleSignIn.storedCredential() else { return nil }
+        switch await appleSignIn.credentialState(for: credential.userID) {
+        case .authorized, .unknown:
+            return credential
+        case .revoked, .notFound:
+            // Simulator builds keep the stored sign-in across launches (demo and UI checks)
+            // even when the credential check reports it gone; a device signs out.
+            #if targetEnvironment(simulator)
+                return credential
+            #else
+                appleSignIn.clearCredential()
+                return nil
+            #endif
         }
-
-        // No credential, or a revoked or unknown one: nobody is signed in (REQ-WIDGET-060).
-        host.endShoppingTripWithoutAccount()
-        host.applyWelcomeSignIn()
     }
 
-    func retry(previousPhase: WelcomePhase) async {
-        guard let host else { return }
-        guard let credential = appleSignIn.storedCredential() else {
-            host.applyWelcomeSignIn()
-            return
-        }
-        host.applyWelcomeConnecting()
-
-        // The armed cause is consumed here so one load failure authorizes at most one wipe.
+    /// Wipes the stores, after a diagnostics copy, when the failure Welcome shows came from a
+    /// store load. The armed cause is consumed here so one load failure authorizes at most one
+    /// wipe. Throws when the wipe failed.
+    func resetStoresIfArmed(previousPhase: WelcomePhase) throws {
         let shouldHardReset = willHardResetStores(for: previousPhase)
         lastFailureCause = .other
-        if shouldHardReset {
-            do {
-                _ = try? persistence.copyStoreFilesForDiagnostics()
-                try persistence.hardResetPersistentStores()
-                host.notifyBootstrapObjectWillChange()
-            } catch {
-                host.applyWelcomeFailed(host.userFacingMessage(for: error))
-                return
-            }
-        }
-
-        await prepare(appleCredential: credential)
+        guard shouldHardReset else { return }
+        _ = try? persistence.copyStoreFilesForDiagnostics()
+        try persistence.hardResetPersistentStores()
+        dependencies.cartSync.bumpRevisionAfterLocalChange()
     }
 
-    func prepare(appleCredential: AppleSignInCredential) async {
-        guard let host else { return }
+    /// Loads the stores, merges duplicates and settles the user's name from the Apple sign-in.
+    func loadStores(appleCredential: AppleSignInCredential) async -> StoreLoadOutcome {
         lastFailureCause = .other
         do {
             try await persistence.load()
@@ -138,69 +96,39 @@ final class SessionBootstrapper {
             // Only a failure of `load()` itself may arm the wipe; later steps can fail with
             // Cocoa save or merge errors while the stores still hold unexported edits.
             lastFailureCause = Self.failureCause(forLoadError: error)
-            host.clearBootstrapAccount()
-            host.applyWelcomeFailed(host.userFacingMessage(for: error))
-            return
+            return .failed(error)
         }
         do {
-            host.notifyBootstrapObjectWillChange()
-            try await deduplicator.deduplicateStableIDs()
-            _ = try await deduplicator.deduplicateProductsByName()
-            host.preferences.reloadFromDefaults()
-
-            if let appleName = appleCredential.providedDisplayName {
-                host.preferences.participantDisplayName = appleName
-            } else if ParticipantDisplayName.isPlaceholder(host.preferences.participantDisplayName) {
-                host.preferences.participantDisplayName = ""
-            }
-
-            let preferredName = ParticipantDisplayName.resolved(
-                preferences: host.preferences,
-                account: nil
-            )
-            if !persistence.accountDeletionRecoveryRequired {
-                host.installConnectivityMonitor()
-                host.installCloudObservers()
-            }
-
-            let restoredAccount: OneCartAccount =
-                if persistence.accountDeletionRecoveryRequired {
-                    OneCartAccount(
-                        id: appleCredential.accountID,
-                        displayName: preferredName ?? String(localized: "common.default_user")
-                    )
-                } else {
-                    try await cloudSharing.restoredAccount(
-                        appleUserID: appleCredential.userID,
-                        displayName: preferredName
-                    )
-                }
-            let account = OneCartAccount(
-                id: restoredAccount.id,
-                displayName: ParticipantDisplayName.displayOrPlaceholder(
-                    preferences: host.preferences,
-                    account: restoredAccount
-                ),
-                avatarURL: restoredAccount.avatarURL,
-                bannerURL: restoredAccount.bannerURL
-            )
-            host.applyBootstrapAccount(account)
-            try await families.claimUnassignedFamilySpaces(for: restoredAccount.id)
-            try host.reloadAfterBootstrap()
-            if persistence.accountDeletionRecoveryRequired {
-                host.applyBootstrapSyncState(.failed)
-                host.applyWelcomeReady(needsWelcome: false)
-                return
-            }
-            await host.acceptPendingCloudKitShares()
-            try await host.finishFamilyCartSetup(for: restoredAccount)
-            host.applyBootstrapSyncState(host.isOnline ? .synchronized : .offline)
-            await host.refreshFamilyMetadata(showErrors: false)
-            host.applyWelcomeReady(needsWelcome: false)
-            host.scheduleInviteLinkPreparation(delayNanoseconds: 2_000_000_000)
+            // The load reset the stores under the live fetch results; the revision is the
+            // observable signal dependents (`ShoppingListView`) react to.
+            dependencies.cartSync.bumpRevisionAfterLocalChange()
+            try await dependencies.deduplicator.deduplicateStableIDs()
+            _ = try await dependencies.deduplicator.deduplicateProductsByName()
         } catch {
-            host.clearBootstrapAccount()
-            host.applyWelcomeFailed(host.userFacingMessage(for: error))
+            return .failed(error)
         }
+        let preferences = dependencies.preferences
+        preferences.reloadFromDefaults()
+        if let appleName = appleCredential.providedDisplayName {
+            preferences.participantDisplayName = appleName
+        } else if ParticipantDisplayName.isPlaceholder(preferences.participantDisplayName) {
+            preferences.participantDisplayName = ""
+        }
+        return .loaded(preferredName: ParticipantDisplayName.resolved(preferences: preferences, account: nil))
+    }
+
+    /// The account iCloud restores, or a local stand-in while an interrupted account deletion
+    /// is recovered with CloudKit off.
+    func restoreAccount(appleCredential: AppleSignInCredential, preferredName: String?) async throws -> OneCartAccount {
+        if persistence.accountDeletionRecoveryRequired {
+            return OneCartAccount(
+                id: appleCredential.accountID,
+                displayName: preferredName ?? String(localized: "common.default_user")
+            )
+        }
+        return try await dependencies.cloudSharing.restoredAccount(
+            appleUserID: appleCredential.userID,
+            displayName: preferredName
+        )
     }
 }

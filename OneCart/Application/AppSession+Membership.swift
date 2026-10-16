@@ -3,56 +3,31 @@ import CoreData
 import Foundation
 import OSLog
 
+/// The Settings flows live in `MembershipService`; the session forwards `MembershipManaging`
+/// and keeps the share accept and the members refresh, which write its own state.
 extension AppSession {
+    func createFamilyInviteLink() async throws -> FamilyInviteLink {
+        try await membership.createFamilyInviteLink()
+    }
+
     func revokeInviteLink() async {
-        guard account != nil,
-            let family = activeFamilySpace,
-            access?.isOwner == true
-        else {
-            CartSyncLog.action.error("revokeInvite denied missingOwnerOrFamily")
-            return
-        }
-        guard online else {
-            CartSyncLog.action.error("revokeInvite denied offline")
-            presentAlert(String(localized: "alert.revoke_invite_need_network"), kind: .error)
-            return
-        }
-        CartSyncLog.action.info("revokeInvite session begin")
-        beginBusyOperation()
-        defer { endBusyOperation() }
-        do {
-            try await shareOrchestrator.revokeInviteLink(for: family)
-            clearPreparedInviteLink()
-            await refreshFamilyMetadata(showErrors: false)
-            CartSyncLog.action.info("revokeInvite session done")
-            presentAlert(String(localized: "account.revoke_invite_done"), kind: .success)
-        } catch {
-            CartSyncLog.action.error(
-                "revokeInvite session fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
+        await membership.revokeInviteLink()
     }
 
     func renameActiveCart(_ rawName: String) async {
-        guard let family = activeFamilySpace,
-            let familyID = family.id,
-            access?.isOwner == true
-        else { return }
-        let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        await membership.renameActiveCart(rawName)
+    }
 
-        beginBusyOperation()
-        defer { endBusyOperation() }
-        do {
-            try await repository.renameFamilySpace(id: familyID, name: trimmed)
-            try reload(preferredFamilySpaceID: familyID)
-            clearPreparedInviteLink()
-            scheduleInviteLinkPreparation()
-            CartHaptics.success()
-        } catch {
-            show(error)
-        }
+    func removeMember(_ member: FamilyMember) async {
+        await membership.removeMember(member)
+    }
+
+    func leaveCurrentFamily() async {
+        await membership.leaveCurrentFamily()
+    }
+
+    var isLeavingSharedCart: Bool {
+        membership.isLeavingSharedCart
     }
 
     func acceptPendingCloudKitShares() async {
@@ -63,30 +38,7 @@ extension AppSession {
         syncState = .syncing
         defer { endBusyOperation() }
 
-        let alreadyAccepted = invitations.allSatisfy { $0.participantStatus == .accepted }
-        let toAccept = invitations.filter { $0.participantStatus != .accepted }
-
-        if !alreadyAccepted, !toAccept.isEmpty {
-            do {
-                try await shareAccepter.acceptShareInvitations(toAccept)
-            } catch {
-                if alreadyJoinedMatchingShare(in: invitations),
-                    CloudKitUserFacingError.isBenignShareAcceptFailure(error)
-                {
-                    CartSyncLog.action.info(
-                        "acceptShare soft-success matchingShare error=\(error.localizedDescription, privacy: .public)"
-                    )
-                } else {
-                    shareInbox.requeue(invitations)
-                    syncState = .failed
-                    lastSyncError = userFacingMessage(for: error)
-                    show(error)
-                    return
-                }
-            }
-        } else if alreadyAccepted {
-            CartSyncLog.action.info("acceptShare skip alreadyAccepted")
-        }
+        guard await acceptShareInvitations(invitations) else { return }
 
         syncState = .synchronized
         do {
@@ -105,85 +57,35 @@ extension AppSession {
         cloudSync.scheduleCloudReload(delayNanoseconds: 350_000_000)
     }
 
-    func removeMember(_ member: FamilyMember) async {
-        guard let family = activeFamilySpace,
-            access?.isOwner == true,
-            !member.isCurrentUser
-        else { return }
-        guard online else {
-            presentAlert(String(localized: "alert.members_need_network"), kind: .error)
-            return
+    /// Accepts the invitations not accepted yet. False when that failed: the invitations go back
+    /// to the inbox for the next attempt and the failure shows.
+    private func acceptShareInvitations(_ invitations: [PendingShareInvitation]) async -> Bool {
+        let alreadyAccepted = invitations.allSatisfy { $0.participantStatus == .accepted }
+        let toAccept = invitations.filter { $0.participantStatus != .accepted }
+        guard !alreadyAccepted, !toAccept.isEmpty else {
+            if alreadyAccepted {
+                CartSyncLog.action.info("acceptShare skip alreadyAccepted")
+            }
+            return true
         }
-
-        CartSyncLog.action.info("removeMember start id=\(member.id.uuidString, privacy: .public)")
-        beginBusyOperation()
-        defer { endBusyOperation() }
         do {
-            try await cloudSharing.removeMember(member, fromFamily: family.objectID)
-            await refreshFamilyMetadata(showErrors: false)
-            CartHaptics.success()
-            CartSyncLog.action.info("removeMember done")
+            try await shareAccepter.acceptShareInvitations(toAccept)
         } catch {
-            CartSyncLog.action.error(
-                "removeMember fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-        }
-    }
-
-    func leaveCurrentFamily() async {
-        guard let account,
-            let family = activeFamilySpace,
-            access?.isParticipant == true
-        else { return }
-        let familyID = family.id
-
-        CartSyncLog.action.info(
-            "leaveFamily start family=\(familyID?.uuidString ?? "-", privacy: .public)"
-        )
-        beginBusyOperation()
-        // The purge triggers cloud reloads while the leave is in flight; they must not read the
-        // vanishing shared cart as one the owner removed.
-        isLeavingSharedCart = true
-        defer {
-            isLeavingSharedCart = false
-            endBusyOperation()
-        }
-        // Buffered, so a late purge that reports in before the recovery starts listening is kept.
-        let (latePurgeCompletions, latePurgeSink) = AsyncStream<Void>.makeStream(
-            bufferingPolicy: .bufferingNewest(1)
-        )
-        do {
-            let discardLeftovers = try await cloudSharing.leaveFamily(objectID: family.objectID) {
-                latePurgeSink.yield()
-                latePurgeSink.finish()
-            }
-            if discardLeftovers, let familyID {
-                do {
-                    try await repository.discardLocalSharedFamilySpace(id: familyID)
-                } catch let error as RepositoryError where error == .familySpaceNotFound {
-                    CartSyncLog.action.info("leaveFamily local shared already gone")
-                }
-            }
-            try await household.reactivatePersonalCartIfNeeded(for: account)
-            lastActiveFamilyWasShared = false
-            await refreshFamilyMetadata(showErrors: false)
-            CartHaptics.success()
-            CartSyncLog.action.info("leaveFamily done")
-        } catch {
-            CartSyncLog.action.error(
-                "leaveFamily fail error=\(error.localizedDescription, privacy: .public)"
-            )
-            show(error)
-            lastActiveFamilyWasShared = persistence.scope(for: family) == .shared
-            if case OneCartCloudKitError.leaveTimedOut = error {
-                lastActiveFamilyWasShared = true
-                leaveRecoveryTask?.cancel()
-                leaveRecoveryTask = Task {
-                    await recoverAfterLeaveTimeout(latePurgeCompletions: latePurgeCompletions)
-                }
+            if alreadyJoinedMatchingShare(in: invitations),
+                CloudKitUserFacingError.isBenignShareAcceptFailure(error)
+            {
+                CartSyncLog.action.info(
+                    "acceptShare soft-success matchingShare error=\(error.localizedDescription, privacy: .public)"
+                )
+            } else {
+                shareInbox.requeue(invitations)
+                syncState = .failed
+                lastSyncError = userFacingMessage(for: error)
+                show(error)
+                return false
             }
         }
+        return true
     }
 
     private func alreadyJoinedMatchingShare(in invitations: [PendingShareInvitation]) -> Bool {
@@ -204,70 +106,8 @@ extension AppSession {
         return false
     }
 
-    nonisolated static let leaveRecoveryPasses = 8
-    nonisolated static let leaveRecoveryInterval: Duration = .milliseconds(1500)
-
-    private enum LeaveRecoveryEnd: Sendable {
-        case recovered, passesSpent, latePurgeSpent
-    }
-
-    /// Retries the fallback to the personal cart until the shared cart is gone or the passes run
-    /// out; each element of `latePurgeCompletions` (a purge that finished after the leave timed
-    /// out) triggers one extra pass at once. A late purge that does not clear the cart leaves
-    /// the timed passes running.
-    func recoverAfterLeaveTimeout(latePurgeCompletions: AsyncStream<Void>) async {
-        let clock = clock
-        await withTaskGroup(of: LeaveRecoveryEnd.self) { group in
-            group.addTask {
-                for _ in 0..<Self.leaveRecoveryPasses {
-                    do {
-                        try await clock.sleep(Self.leaveRecoveryInterval)
-                    } catch {
-                        return .passesSpent
-                    }
-                    if await self.attemptLeaveRecoveryPass() {
-                        return .recovered
-                    }
-                }
-                return .passesSpent
-            }
-            group.addTask {
-                for await _ in latePurgeCompletions where await self.attemptLeaveRecoveryPass() {
-                    return .recovered
-                }
-                return .latePurgeSpent
-            }
-            for await end in group where end != .latePurgeSpent {
-                break
-            }
-            group.cancelAll()
-        }
-    }
-
-    private func attemptLeaveRecoveryPass() async -> Bool {
-        do {
-            try reload()
-            await household.handleInviteeSharedCartGoneIfNeeded()
-        } catch {
-            CartSyncLog.action.error(
-                "leaveFamily recovery reload fail error=\(error.localizedDescription, privacy: .public)"
-            )
-        }
-        let hasShared = familySpaces.contains { persistence.scope(for: $0) == .shared }
-        if !hasShared {
-            CartSyncLog.action.info("leaveFamily recovery shared gone")
-        }
-        leaveRecoveryPassCount += 1
-        return !hasShared
-    }
-
     func refreshFromServer() async {
         await syncCart(reason: .pull)
-    }
-
-    func showFamilyManagement() {
-        preferredMainTab = .account
-        Task { await refreshFamilyMetadata(showErrors: true) }
     }
 
     func refreshAccountSharing() async {
