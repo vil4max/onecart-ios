@@ -48,20 +48,25 @@ tests cite the same IDs in their names. Design choices are recorded in
 Bundle ID: `com.vil555tim.onecart`  
 CloudKit container: `iCloud.com.vil555tim.onecart`
 
-Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`), or use the `just` commands, which
-come from the shared build tooling under `Tooling/` (configuration in
-[`Tooling/runtime.yml`](Tooling/runtime.yml)):
+Open **`OneCart/OneCart.xcodeproj`** (scheme `OneCart`) in Xcode 27 or later. The scheme's
+Test action runs the unit tests and the UI smoke tests.
+
+The command-line gate is `ios-verify` from the ios-dev Claude Code plugin, configured by
+[`ios-verify.conf`](ios-verify.conf). It needs Xcode and SwiftLint at the version in
+[`.swiftlint-version`](.swiftlint-version) (`ios-verify` warns on a mismatch); swift-format ships
+with Xcode.
 
 ```bash
-brew bundle --file=Tooling/Brewfile
-just doctor
-just build
-just test
-just verify   # lint, build, unit and UI tests
+ios-verify              # project checks, lint, build, unit and UI smoke tests
+ios-verify lint --all   # swift-format and SwiftLint over every Swift file
+ios-verify run-sim      # the seeded demo cart on the simulator
 ```
 
-`just verify` and the GitHub Actions `Tests` workflow run the same checks. The repository has no
-git hooks.
+Without the plugin, the GitHub Actions `Tests` workflow
+([`.github/workflows/tests.yml`](.github/workflows/tests.yml)) shows the same checks as plain
+`xcrun swift-format`, `swiftlint` and `xcodebuild` commands, using the committed
+`.swift-format`, `.swiftlint.yml` and `.swiftlint.baseline.json`. The repository has no git
+hooks.
 
 For device builds and TestFlight, including App ID capabilities and the CloudKit Production
 schema, see [docs/operations/release.md](docs/operations/release.md).
@@ -79,11 +84,11 @@ schema, see [docs/operations/release.md](docs/operations/release.md).
 │   ├── OneCartWidgets/      # Widgets and Live Activity
 │   ├── Resources/
 │   ├── Tests/               # Unit tests
-│   └── OneCartUITests/      # UI smoke tests
+│   ├── OneCartUITests/      # UI smoke tests
+│   └── ci_scripts/          # Xcode Cloud and TestFlight tag scripts
 ├── docs/                    # See docs/README.md
 ├── assets/                  # Brand / store masters (not in the app bundle)
-├── Tooling/                 # Shared build and CI tooling
-├── justfile                 # Imports Tooling/justfile, adds demo recipes
+├── ios-verify.conf          # Gate configuration
 ├── README.md
 └── AGENTS.md
 ```

@@ -15,4 +15,6 @@ highest affected layer.
 | Regression notes | Failures that changed a check or an upper layer | [lessons.md](lessons.md) |
 | Public surface | Privacy policy (the App Store URL points here, so do not move it) | [privacy.md](privacy.md), `privacy.html` |
 
-Shared build and CI tooling (`just` recipes, Brewfile): [`Tooling/README.md`](../Tooling/README.md).
+Build, lint and test: the `ios-verify` gate of the ios-dev Claude Code plugin, configured by
+[`ios-verify.conf`](../ios-verify.conf); commands in [`AGENTS.md`](../AGENTS.md#commands). CI and
+TestFlight tags: [ADR 0003](decisions/0003-ci-split.md), [ADR 0004](decisions/0004-tag-gated-testflight.md).

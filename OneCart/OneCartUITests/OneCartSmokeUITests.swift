@@ -6,7 +6,7 @@ import XCTest
 ///
 /// The app under a UI test does not see `XCTestConfigurationFilePath`: XCTest sets it in the
 /// runner process only, so the app's unit-test short-circuits (skipped bootstrap, in-memory
-/// store) stay off and demo seeding runs as in `just demo`. The History test finds no day if
+/// store) stay off and demo seeding runs as in `ios-verify run-sim`. The History test finds no day if
 /// that ever changes.
 @MainActor
 final class OneCartSmokeUITests: XCTestCase {

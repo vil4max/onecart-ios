@@ -31,20 +31,14 @@ build status, and submission status must be checked in an authenticated session 
   - ![Item added notification](../screenshots/push_item_added.png)
   - ![All purchased notification](../screenshots/push_all_purchased.png)
 
-On a Mac with Xcode:
+On a Mac with Xcode, SwiftLint (`brew install swiftlint`) and the ios-dev Claude Code plugin:
 
 ```bash
-brew bundle --file=Tooling/Brewfile
-just doctor
-just verify
+ios-verify   # project checks, lint, build, unit and UI smoke tests
 ```
 
-Or explicitly:
-
-```bash
-just build
-just test
-```
+Without the plugin, run the scheme's tests in Xcode (Product > Test, scheme `OneCart`) or the
+commands of the `Tests` workflow (`.github/workflows/tests.yml`).
 
 Simulator is enough for UI + unit tests. Real family sync needs two physical devices (below).
 
@@ -167,16 +161,24 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 | Action | Archive (iOS), scheme `OneCart` → App Store Connect; no Test action |
 | Post | Internal TestFlight → group **Friends and Family** |
 
-**Request a TestFlight round** (full procedure and failure handling: [`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md)):
+**Request a TestFlight round** (rules: [ADR 0004](../decisions/0004-tag-gated-testflight.md)):
 
 1. Push the commit to build as the head of its push to `main`, and wait for its `Tests` run.
-2. `just tf-check` (or `just tf-check <commit>`). It is read-only, blocks on anything the
-   workflow would reject, and prints the tag commands with the next free `BUILD`.
+2. `OneCart/ci_scripts/tf-check.sh` (or `OneCart/ci_scripts/tf-check.sh <commit>`). It is
+   read-only, needs `gh` signed in to read the `Tests` run, blocks on anything the workflow
+   would reject, and prints the tag commands with the next free `BUILD`.
 3. Write the round's What to Test — observable pass/fail checks plus what was not verified —
    and run the two printed commands. Paste the same text into App Store Connect when the build
    appears.
 4. The `TestFlight` workflow run ends with `testflight -> tf-X.Y.Z-N`; "did not move" means no
    build was requested.
+
+Failure handling: a rejected tag must be deleted locally and remotely before retrying
+(`git push origin :refs/tags/tf-X.Y.Z-N`); a `Tests` run that took longer than the workflow's
+45-minute wait needs a manual rerun of `TestFlight` with the same tag, not a new tag; a tag on a
+commit `testflight` already contains moves nothing, so rebuild it with Start Build on
+`testflight` in App Store Connect. Tag the next round only after the previous Xcode Cloud build
+has uploaded.
 
 **Submit for App Review:** pick the tested TestFlight build of the version in App Store Connect,
 then the maintainer marks its commit with an annotated `vX.Y.Z` tag. The tag moves nothing;

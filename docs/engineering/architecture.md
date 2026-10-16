@@ -227,7 +227,8 @@ Size guideline: the composition root stays around 200 lines and is split at 400 
 | `OneCart/Application/DemoLaunchOptions.swift` | DEBUG demo and test launch switches, parsed at the app root and passed through the environment |
 | `OneCart/Features/Account/AccountRows.swift` | Member and action rows |
 | `OneCart/Features/Account/CartShareActivityBridge.swift` | Share sheet activity items / metadata |
-| `Tooling/` | Shared build and CI tooling (`backend/`, style configs) |
+| `ios-verify.conf`, `.swiftlint.yml`, `.swift-format` | Gate configuration (ios-dev plugin) and the lint limits |
+| `OneCart/ci_scripts/` | Xcode Cloud post-clone script and the TestFlight tag scripts |
 
 ## Trade-offs (recovery / sync)
 
@@ -280,8 +281,8 @@ Screens read launch arguments only through the environment (the DEBUG initial ta
 `-oneCartDemoUI` hides the debug test-account button on Welcome, `-oneCartDemoComposer` opens the
 add composer and `-oneCartDemoHistoryDetail` the newest History day for screenshots. On the
 simulator, a failed Sign in with Apple turns into the debug test-account sign-in only with
-`-oneCartSimulatorTestAccountFallback` (for example `just run-sim -- -oneCartSimulatorTestAccountFallback`);
-otherwise the failure and Retry show as on a device. A `just demo role=welcome` walkthrough past
+`-oneCartSimulatorTestAccountFallback` (for example `ios-verify run-sim -- -oneCartSimulatorTestAccountFallback`);
+otherwise the failure and Retry show as on a device. A `-oneCartDemoUI -oneCartDemoRole welcome` walkthrough past
 sign-in on a simulator without an Apple ID needs that flag too. Session setup (`DemoUIMode`: role, tab,
 reset, seeding) stays in `DemoUISupport.swift`.
 
@@ -311,8 +312,7 @@ Container: `iCloud.com.vil555tim.onecart`. Record types (`OneCartCoreDataV8`): `
 ├── OneCart/          # Xcode product (Application, Features, Data, Shared, Resources, Tests)
 ├── docs/             # this set
 ├── assets/           # brand / store masters (not in app bundle)
-├── Tooling/          # Shared build and CI tooling — see Tooling/justfile
-└── justfile          # import Tooling/justfile
+└── ios-verify.conf   # gate configuration (ios-dev plugin)
 ```
 
 Full tree and commands: [README.md](../../README.md).

@@ -7,8 +7,6 @@
 .env.*
 !.env.example
 .netrc
-runtime.local.yml
-Tooling/runtime.local.yml
 
 # Xcode
 xcuserdata/

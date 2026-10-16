@@ -19,8 +19,8 @@ model.
 
 ## Decision
 
-OneCart uses the tag model as installed under `Tooling/` — see
-[`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md) for the procedure. In short:
+OneCart uses the tag model; the round procedure is in the TestFlight section of
+[`docs/operations/release.md`](../operations/release.md). In short:
 
 | Event | Effect |
 |-------|--------|
@@ -31,18 +31,21 @@ OneCart uses the tag model as installed under `Tooling/` — see
 A `tf-` or `v` tag is accepted only when it is annotated, every `MARKETING_VERSION` in the
 project equals the tag's version, the commit is on `main`, and the commit has its own
 successful `Tests` run for a push to `main` (the workflow waits up to 45 minutes for one).
-`just tf-check [<commit>]` runs the same checks locally, read-only, and prints the tag
-commands with the next free `BUILD`.
+`OneCart/ci_scripts/tf-check.sh [<commit>]` runs the same checks locally, read-only, and prints
+the tag commands with the next free `BUILD`.
 
-Pieces in this repository:
+Pieces in this repository (mechanism update, 2026-10-16: they were the shared `Tooling/` copies
+run through `just`; the shared tooling is gone, and these are the app's own copies of the ios-dev
+plugin's reference CI templates, which the plugin does not update):
 
-- [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml) — copied unchanged
-  from `Tooling/templates/github/testflight.yml`, which pins its actions by commit.
-- `Tooling/scripts/tf-promote.sh`, `tf-check.sh`, `testflight-lib.sh` — owned by the shared
-  tooling, updated by `just harness-update`, not edited here.
-- [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) — the shared tests workflow
-  (`just ci`); its concurrency keeps one run per pushed commit on `main`, which the tag checks
-  depend on.
+- [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml) — pins its actions
+  by commit and runs `OneCart/ci_scripts/tf-promote.sh`.
+- `OneCart/ci_scripts/tf-promote.sh`, `tf-check.sh`, `testflight-lib.sh`, `project_versions.py`
+  — the tag checks and the fast-forward of `testflight`; `project_versions.py` reads the JSON
+  `project.xcproj`.
+- [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) — calls Apple's tools and
+  the linters directly; its concurrency keeps one run per pushed commit on `main`, which the tag
+  checks depend on.
 
 `BUILD` counts the TestFlight rounds of one marketing version from `1`. It names the round, not
 the uploaded build number, which `OneCart/ci_scripts/ci_post_clone.sh` takes from
@@ -59,7 +62,7 @@ who may create `tf-` tags.
 - A TestFlight round is a deliberate act: someone must tag. A `testflight` branch that has not
   moved no longer means `Tests` is broken; it means nobody asked for a build.
 - Only the head commit of a push has a `Tests` run of its own, so only it can be tagged. Push
-  a release-prep commit last, or alone. `just tf-check` blocks a mid-push commit before a tag
+  a release-prep commit last, or alone. `OneCart/ci_scripts/tf-check.sh` blocks a mid-push commit before a tag
   is wasted on it.
 - The App Review candidate is a TestFlight build picked in App Store Connect, not a separate
   archive. `scripts/promote-release.sh` and `.github/workflows/release.yml` are removed; nothing
@@ -68,8 +71,8 @@ who may create `tf-` tags.
 - A rejected tag must be deleted locally and remotely before retrying
   (`git push origin :refs/tags/tf-X.Y.Z-N`). A tag on a commit `testflight` already contains
   moves nothing; rebuild such a commit with Start Build on `testflight` in App Store Connect.
-- The repository has no git hooks: push hooks build and test nothing. `just verify` and the
-  `Tests` workflow run the tests.
+- The repository has no git hooks: push hooks build and test nothing. The local `ios-verify`
+  gate and the `Tests` workflow run the tests.
 - Because the App Review candidate is a TestFlight round's build, the one remaining Xcode
   Cloud workflow must archive with distribution preparation **TestFlight and App Store**. Apple:
   choose "TestFlight (Internal Testing Only)" to distribute a development version to your team,
@@ -95,4 +98,7 @@ who may create `tf-` tags.
   Review.** Keeps two builds of one commit and a second Xcode Cloud workflow, and needs an
   app-local promotion script beside the shared one.
 - **Copy app-local promotion scripts into each app.** Would make every app a separate copy of
-  the same checks; the shared tooling owns them.
+  the same checks; the shared tooling owned them. Revisited 2026-10-16: the shared tooling is
+  retired and its default path pointed at a repository that no longer exists, so the scripts
+  are now app-local copies of the ios-dev plugin's reference templates in
+  `OneCart/ci_scripts/`. The tag rules themselves are unchanged.

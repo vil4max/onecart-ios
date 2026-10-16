@@ -7,8 +7,8 @@ maintainer takes them on.
 
 ## In progress: audit fixes (started 2026-10-15)
 
-The source is an engineering audit of 2026-10-10, re-verified against `f07a160`. Each group ends
-with `just verify` green and one commit. Finding IDs (`oc-<scope>-NN`) refer to that audit.
+The source is an engineering audit of 2026-10-10, re-verified against `f07a160`. Each group ended
+with `just verify` (the gate before the move to the ios-dev plugin) green and one commit. Finding IDs (`oc-<scope>-NN`) refer to that audit.
 
 | Group | Scope | Status |
 |---|---|---|
@@ -27,14 +27,15 @@ provisional cart. Retries happen only when selecting the restored cart failed.
 ## Approved by the maintainer (2026-10-15), not started
 
 The maintainer approved every item below ("все owner-решения"). Each changes architecture, a
-requirement or shipped data, so each lands as its own reviewed group with `just verify` green.
+requirement or shipped data, so each lands as its own reviewed group with `ios-verify` green
+(`just verify` until group P).
 
 Resume point (2026-10-15, paused for a reboot): `main` is at `b31485d` with L, G1, G2 and G3
 done. G4 was started and stopped before it committed; restart it from `main`. G9 was stopped
 mid-way; its unfinished edits are on the local branch `worktree-agent-ae162d1647cc773bf`
 (commit `4926efc`), either finish them from there or restart G9 from `main`. Every group gets
-an independent review, `just verify` green and a push before the next dependent group. The
-move to the iOS plugin waits for the orchestrator's "RENAME LANDED".
+an independent review, a green gate and a push before the next dependent group. The move to
+the iOS plugin is group P below.
 
 Planned order (status kept here):
 
@@ -55,6 +56,7 @@ Planned order (status kept here):
 | G12 | Split `AppSession` (cart side, then membership and lifecycle); one wiring pattern | pending |
 | G13 | Split the repository behind protocols | done |
 | G14 | Author identity in activity notifications (schema V9, additive), plus a `Product.purchaseUpdatedAt` version for queued widget purchases so renames can move `updatedAt` again and a retried personal-cart restore keeps edits from both sides. The maintainer deploys the new `CD_Product` fields to the CloudKit Production schema before the next `tf-` tag | pending |
+| P | Move to the ios-dev plugin: `ios-verify.conf`, the plugin's lint limits with a SwiftLint baseline of the 85 existing size violations (44 type bodies, 41 function bodies), CI on Apple's tools, TestFlight scripts in `OneCart/ci_scripts/`, `Tooling/` and the justfile removed, `.worktreeinclude` (maintainer decision relayed 2026-10-15) | done; the baseline shrinks as G8, G12 and later splits bring types and functions under the limits |
 
 - Architecture: split `AppSession` (`application-05`, `architecture-03`), one composition root
   without default singletons (`application-06`, `architecture-04`), view models without Core
@@ -68,8 +70,7 @@ Planned order (status kept here):
   in the schema (`features-20`).
 - Tests that need the seams above: leave-purge timeout and recovery (`tests-06`), untested
   CloudKit and classifier types (`tests-08`).
-- Shared tooling (fix upstream, not in this repository): swift-format drops the trailing comma
-  of a single-element multiline literal that SwiftLint `mandatory_comma` requires
-  (`readiness-02`); a `$HOME`-relative default path in Tooling scripts (`readiness-07`); workflow
-  comments point to `docs/ci.md` and `docs/testflight.md`, which live in `Tooling/docs/`
-  (`readiness-15`).
+- Shared tooling: resolved by group P, which removed `Tooling/`. The plugin's `.swiftlint.yml`
+  disables `trailing_comma`, so swift-format and SwiftLint no longer disagree (`readiness-02`);
+  the `$HOME`-relative default path left with the Tooling scripts (`readiness-07`); the workflow
+  comments now point to ADR 0003, ADR 0004 and `docs/operations/release.md` (`readiness-15`).

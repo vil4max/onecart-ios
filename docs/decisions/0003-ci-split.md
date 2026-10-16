@@ -4,8 +4,13 @@ Status: accepted. Supersedes the earlier arrangement in which Xcode Cloud was th
 
 [ADR 0004](0004-tag-gated-testflight.md) refines the promotion rules: `Tests` promotes nothing,
 `tf-` tags request TestFlight builds, `v` tags only mark the submitted commit, and nothing moves
-`release`. The tables and rules below reflect that model; the procedure is in
-[`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md).
+`release`. The tables and rules below reflect that model; the procedure is in ADR 0004 and the
+TestFlight section of [`docs/operations/release.md`](../operations/release.md).
+
+Mechanism update (2026-10-16): the shared `Tooling/` copy and its `just ci` entry point are
+gone. The decision is unchanged; `Tests` now calls Apple's tools and the two linters directly,
+the TestFlight scripts live in `OneCart/ci_scripts/`, and the local gate is the ios-dev
+plugin's `ios-verify`.
 
 ## Context
 
@@ -20,15 +25,15 @@ The app's minimum OS is iOS 27, so `Tests` runs on the public-preview `xcode-27`
 
 | System | Owns | Trigger | Config |
 |--------|------|---------|--------|
-| GitHub Actions `Tests` | Build for testing, `OneCartTests` and the `OneCartUITests` smoke tests (both in the `OneCart` scheme), coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
-| GitHub Actions `TestFlight` | Checks a `tf-` tag and fast-forwards `testflight`, or checks that a `v` tag marks a commit with its own `tf-` round | Push of a `tf-*` or `v*.*.*` tag, or manual run with `tag` | [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml), `Tooling/scripts/tf-promote.sh` |
+| GitHub Actions `Tests` | swift-format and SwiftLint over every tracked Swift file, build, `OneCartTests` and the `OneCartUITests` smoke tests (both in the `OneCart` scheme), test count and coverage summary; promotes nothing | Push to `main`, pull requests | [`.github/workflows/tests.yml`](../../.github/workflows/tests.yml) |
+| GitHub Actions `TestFlight` | Checks a `tf-` tag and fast-forwards `testflight`, or checks that a `v` tag marks a commit with its own `tf-` round | Push of a `tf-*` or `v*.*.*` tag, or manual run with `tag` | [`.github/workflows/testflight.yml`](../../.github/workflows/testflight.yml), `OneCart/ci_scripts/tf-promote.sh` |
 | Xcode Cloud "Internal TestFlight (verified main)" | Archive (iOS) → internal TestFlight | Push to `testflight` | App Store Connect workflow + `OneCart/ci_scripts/ci_post_clone.sh` |
 | Xcode Cloud "App Store candidate (release tag)" | Deactivated (ADR 0004): no build starts from it; turning it back on in App Store Connect would resume builds from `release` | Push to `release` | App Store Connect workflow |
 
 ### Branch rules
 
 1. `main` is the only branch people push to (through pull requests).
-2. `testflight` is moved only by `Tooling/scripts/tf-promote.sh`, only to an annotated
+2. `testflight` is moved only by `OneCart/ci_scripts/tf-promote.sh`, only to an annotated
    `tf-MAJOR.MINOR.PATCH-BUILD` tag whose exact commit is on `main`, is built as that version,
    and has a successful `Tests` run for a push to `main`, and only by fast-forward.
 3. `release` is no longer moved. It stays at the commit tagged `v1.2.1`.
@@ -52,19 +57,23 @@ Clean is off. Names and descriptions say which commits each workflow builds (ver
 release tag). Neither workflow has a Test action or a `main` start condition. Changing these
 settings requires an update of this table in the same change.
 
-- `Tests` is the shared workflow from the build tooling (`Tooling/templates/github/tests.yml`,
-  copied unchanged; the template pins every action by commit) and runs `just ci`; see
-  [`Tooling/docs/ci.md`](../../Tooling/docs/ci.md). Per-app settings are repository variables,
-  never workflow text.
-- Runner toolchain is pinned by the template's defaults — runner `xcode-27`, `DEVELOPER_DIR`
-  `/Applications/Xcode_27.0.app/Contents/Developer` — and by `simulator.os: "27.0"` in
-  `Tooling/runtime.yml`, so a runner image update cannot silently change the SDK under test. The
-  versioned `Xcode_27.0.app` path fails the job if the image later defaults to another Xcode.
-  `IOS_RUNNER` and `IOS_DEVELOPER_DIR` override them.
-- With `CI=true`, `just ci` signs ad hoc (`CODE_SIGN_IDENTITY=-`). With
-  `CODE_SIGNING_ALLOWED=NO` the test host loses Keychain access and the `AppleSignInTests`
-  keychain cases fail, which is why ad-hoc signing is the default.
-- Coverage is printed with `xccov` into the job summary; it is not a gate.
+- `Tests` is this repository's copy of the ios-dev plugin's reference workflow (since
+  2026-10-16; before, the shared `Tooling/` template ran `just ci`). It calls `xcrun
+  swift-format`, `swiftlint` and `xcodebuild` directly with the committed `.swift-format`,
+  `.swiftlint.yml` and `.swiftlint.baseline.json`, and pins every action by commit. SwiftLint
+  is pinned by `.swiftlint-version` (version and release checksum), because the baseline
+  matches violations by their text. Project, scheme and destination default to this app's
+  values; repository variables override them.
+- Runner toolchain is pinned by the workflow's defaults — runner `xcode-27`, `DEVELOPER_DIR`
+  `/Applications/Xcode_27.0.app/Contents/Developer`, destination `iPhone 17` — so a runner image
+  update cannot silently change the SDK under test. The versioned `Xcode_27.0.app` path fails
+  the job if the image later defaults to another Xcode. `IOS_RUNNER` and `IOS_DEVELOPER_DIR`
+  override them.
+- `Tests` signs ad hoc (`CODE_SIGN_IDENTITY=-`). With `CODE_SIGNING_ALLOWED=NO` the test host
+  loses Keychain access and the `AppleSignInTests` keychain cases fail, which is why ad-hoc
+  signing is the default.
+- The executed-test count is read from the result bundle; a run where no test executed fails.
+  Coverage is printed with `xccov` into the job summary; it is not a gate.
 - Pull request runs cancel superseded runs; push runs on `main` never do (one concurrency group
   per commit), so every commit pushed to `main` gets a finished `Tests` run a tag can rely on.
 
@@ -95,12 +104,12 @@ This makes the whole promotion chain depend on a preview image:
    The exposure is the verification gate, not the build that ships.
 
 As soon as a GA label ships Xcode 27, set the `IOS_RUNNER` and `IOS_DEVELOPER_DIR` repository
-variables to it; the workflow text stays identical to the template.
+variables to it.
 
 ### Releasing a version and failure handling
 
-The round procedure, the release steps and the failure table are in
-[`Tooling/docs/testflight.md`](../../Tooling/docs/testflight.md) and the TestFlight section of
+The round procedure, the release steps and the failure handling are in
+[ADR 0004](0004-tag-gated-testflight.md) and the TestFlight section of
 [`docs/operations/release.md`](../operations/release.md). A `Tests` run that fails to start on
 every commit means the `xcode-27` image or its `Xcode_27.0` path is gone — see
 [Runner image risk](#runner-image-risk-xcode-27-is-a-public-preview).
@@ -119,9 +128,9 @@ every commit means the `xcode-27` image or its `Xcode_27.0` path is gone — see
 ## Consequences
 
 - A red `Tests` run on `main` publishes nothing, and a `tf-` tag on that commit is rejected.
-- `Tests` runs `just ci` from the shared template, identical in every app
-  ([`Tooling/docs/ci.md`](../../Tooling/docs/ci.md)); per-app differences are repository
-  variables, never workflow text.
+- `Tests` and the local `ios-verify` gate lint with the same committed configuration and run the
+  same scheme; `ios-verify` additionally checks the device family and App Group entitlements
+  for every build configuration.
 - The tag checks read the `Tests` run of the tagged commit itself (GitHub API, `actions: read`),
   not only ancestry of `testflight`: a later green commit would otherwise let a red tagged
   commit through.
