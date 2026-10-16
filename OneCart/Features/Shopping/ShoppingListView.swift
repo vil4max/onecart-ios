@@ -27,7 +27,11 @@ struct ShoppingListView: View {
             }
         }
     }
+}
 
+// MARK: - List
+
+extension ShoppingListView {
     private var cartList: some View {
         ScrollViewReader { proxy in
             List {
@@ -173,7 +177,11 @@ struct ShoppingListView: View {
             }
         }
     }
+}
 
+// MARK: - Toolbar and rows
+
+extension ShoppingListView {
     @ToolbarContentBuilder
     private var cartToolbar: some ToolbarContent {
         if viewModel.isCartSyncing {

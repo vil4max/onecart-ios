@@ -117,7 +117,11 @@ final class CloudKitBackendService: Sendable {
             )
         }
     }
+}
 
+// MARK: - Members
+
+extension CloudKitBackendService {
     func familyMembers(
         for family: FamilySpace,
         account: OneCartAccount,
@@ -191,7 +195,11 @@ final class CloudKitBackendService: Sendable {
             )
         }
     }
+}
 
+// MARK: - Leave
+
+extension CloudKitBackendService {
     @discardableResult
     func leaveFamily(
         objectID: NSManagedObjectID,

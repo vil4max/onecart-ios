@@ -114,38 +114,8 @@ struct CartConfettiView: View {
         let colors = palette
 
         for index in 0..<count {
-            let color = colors[index % colors.count]
-            let isCircle = index.isMultiple(of: 4)
-            let width = CGFloat.random(in: 7...11)
-            let height = isCircle ? width : CGFloat.random(in: 12...20)
-
-            let startX = CGFloat.random(in: 16...max(32, boundsWidth - 16))
-            let startY = CGFloat.random(in: -70 ... -15)
-            let speed = CGFloat.random(in: 270...430)
-            let swayFrequency = Double.random(in: 2.2...4.5)
-            let swayAmplitude = CGFloat.random(in: 16...36)
-            let swayPhase = Double.random(in: 0...(.pi * 2))
-            let rotationSpeed = Double.random(in: -280...280)
-            let flipSpeed = Double.random(in: 360...900)
-            let delay = Double.random(in: 0.0...0.45)
-
             newParticles.append(
-                ConfettiParticle(
-                    id: index,
-                    color: color,
-                    width: width,
-                    height: height,
-                    isCircle: isCircle,
-                    startX: startX,
-                    startY: startY,
-                    speed: speed,
-                    swayFrequency: swayFrequency,
-                    swayAmplitude: swayAmplitude,
-                    swayPhase: swayPhase,
-                    rotationSpeed: rotationSpeed,
-                    flipSpeed: flipSpeed,
-                    delay: delay
-                )
+                Self.makeParticle(index: index, color: colors[index % colors.count], boundsWidth: boundsWidth)
             )
         }
 
@@ -160,5 +130,28 @@ struct CartConfettiView: View {
                 particles.removeAll()
             }
         }
+    }
+
+    private static func makeParticle(index: Int, color: Color, boundsWidth: CGFloat) -> ConfettiParticle {
+        let isCircle = index.isMultiple(of: 4)
+        let width = CGFloat.random(in: 7...11)
+        let height = isCircle ? width : CGFloat.random(in: 12...20)
+
+        return ConfettiParticle(
+            id: index,
+            color: color,
+            width: width,
+            height: height,
+            isCircle: isCircle,
+            startX: CGFloat.random(in: 16...max(32, boundsWidth - 16)),
+            startY: CGFloat.random(in: -70 ... -15),
+            speed: CGFloat.random(in: 270...430),
+            swayFrequency: Double.random(in: 2.2...4.5),
+            swayAmplitude: CGFloat.random(in: 16...36),
+            swayPhase: Double.random(in: 0...(.pi * 2)),
+            rotationSpeed: Double.random(in: -280...280),
+            flipSpeed: Double.random(in: 360...900),
+            delay: Double.random(in: 0.0...0.45)
+        )
     }
 }

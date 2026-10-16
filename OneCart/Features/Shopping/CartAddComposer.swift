@@ -78,7 +78,11 @@ struct CartAddComposer: View {
             }
         }
     }
+}
 
+// MARK: - Subviews
+
+extension CartAddComposer {
     private var addButton: some View {
         Button {
             Task { await beginComposing() }
@@ -194,9 +198,11 @@ struct CartAddComposer: View {
         .scrollClipDisabled()
         .disabled(isAdding)
     }
+}
 
-    // MARK: - Actions
+// MARK: - Actions
 
+extension CartAddComposer {
     private func beginComposing() async {
         guard viewModel.canEdit, !isComposing else { return }
         CartHaptics.light()

@@ -66,9 +66,11 @@ final class CartViewModel {
             trip: session
         )
     }
+}
 
-    // MARK: - Household bootstrap
+// MARK: - Household bootstrap
 
+extension CartViewModel {
     var hasActiveFamilySpace: Bool {
         state.activeFamilySpace != nil
     }
@@ -89,9 +91,11 @@ final class CartViewModel {
     func retryHouseholdCartBootstrap() async {
         await household.retryHouseholdCartBootstrap()
     }
+}
 
-    // MARK: - Chrome
+// MARK: - Chrome
 
+extension CartViewModel {
     var cartTitle: String {
         state.cartTitle
     }
@@ -131,9 +135,11 @@ final class CartViewModel {
     func sync(reason: CartSyncReason) async {
         await cart.syncCart(reason: reason)
     }
+}
 
-    // MARK: - Content
+// MARK: - Content
 
+extension CartViewModel {
     var primaryList: CartList? {
         CartList.primary(in: state.cartLists)
     }
@@ -203,9 +209,11 @@ final class CartViewModel {
     var showsProgress: Bool {
         hasActiveFamilySpace && !isEmpty
     }
+}
 
-    // MARK: - Shopping trip
+// MARK: - Shopping trip
 
+extension CartViewModel {
     var isShoppingTripActive: Bool {
         trip.isShoppingTripActive
     }
@@ -232,9 +240,11 @@ final class CartViewModel {
             defaults: CartSuggestionsEngine.defaultEssentials()
         )
     }
+}
 
-    // MARK: - Actions
+// MARK: - Actions
 
+extension CartViewModel {
     func addItem(named rawName: String) async -> AddOutcome {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !name.isEmpty, let listID = primaryListID else { return .rejected }

@@ -121,7 +121,12 @@ final class DevicePreferencesTests: XCTestCase {
         )
         XCTAssertEqual(subject, dummyLink.shareTitle)
     }
+}
 
+// MARK: - Accent and app icon
+
+@MainActor
+extension DevicePreferencesTests {
     /// REQ-SHELL-030: the accent follows the app icon; an accent stored by an older version
     /// (including berry and coral, which no icon carries) gives way to the icon's accent.
     func testAccentFollowsTheAppIconAtLaunch() throws {

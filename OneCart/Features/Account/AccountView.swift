@@ -117,9 +117,11 @@ struct AccountView: View {
             }
         }
     }
+}
 
-    // MARK: - Sections
+// MARK: - Cart section
 
+extension AccountView {
     private var cartSection: some View {
         Section {
             if viewModel.hasActiveFamilySpace {
@@ -226,7 +228,11 @@ struct AccountView: View {
         .disabled(viewModel.isBusy || !viewModel.isOnline)
         .accessibilityIdentifier("account.revoke_invite")
     }
+}
 
+// MARK: - Appearance, account and about sections
+
+extension AccountView {
     private var appearanceSection: some View {
         Section {
             AppIconPickerRow(selection: preferences.appIcon) { option in
