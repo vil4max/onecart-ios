@@ -6,8 +6,10 @@ struct HistoryView: View {
     /// The pushed value is the snapshot the row was tapped with; the detail resolves its live
     /// contents through the ViewModel.
     @State private var path: [HistoryDayGroup] = []
-    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
-    @State private var hasOpenedDemoDetail = false
+    #if DEBUG
+        @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+        @State private var hasOpenedDemoDetail = false
+    #endif
 
     var body: some View {
         // Grouping dedupes and sorts the whole history; evaluate it once per body pass.
@@ -60,12 +62,14 @@ struct HistoryView: View {
     }
 
     /// Demo launches (`-oneCartDemoHistoryDetail`) open the newest day for screenshots; Release
-    /// builds always carry `DemoLaunchOptions.none`.
+    /// builds compile no demo switch, so there it does nothing.
     private func openDemoDetailIfRequested(_ groups: [HistoryDayGroup]) {
-        guard !hasOpenedDemoDetail, demoLaunchOptions.opensNewestHistoryDay, let newest = groups.first
-        else { return }
-        hasOpenedDemoDetail = true
-        path = [newest]
+        #if DEBUG
+            guard !hasOpenedDemoDetail, demoLaunchOptions.opensNewestHistoryDay, let newest = groups.first
+            else { return }
+            hasOpenedDemoDetail = true
+            path = [newest]
+        #endif
     }
 }
 

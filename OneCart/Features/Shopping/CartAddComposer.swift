@@ -9,7 +9,9 @@ struct CartAddComposer: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accent) private var accent
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+    #if DEBUG
+        @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+    #endif
     /// The circular button grows with the glyph's text style instead of clipping it.
     @ScaledMetric(relativeTo: .title2) private var addButtonSize: CGFloat = 44
     @Namespace private var glassNamespace
@@ -59,10 +61,7 @@ struct CartAddComposer: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .onAppear {
-            // Demo launches (`-oneCartDemoComposer`) open the composer for screenshots.
-            if demoLaunchOptions.opensComposer {
-                Task { await beginComposing() }
-            }
+            openComposerIfDemoRequested()
         }
         .onChange(of: draftName) {
             updateSuggestions()
@@ -212,6 +211,16 @@ extension CartAddComposer {
         }
         updateSuggestions()
         isDraftFocused = true
+    }
+
+    /// Demo launches (`-oneCartDemoComposer`) open the composer for screenshots; Release builds
+    /// compile no demo switch, so there it does nothing.
+    private func openComposerIfDemoRequested() {
+        #if DEBUG
+            if demoLaunchOptions.opensComposer {
+                Task { await beginComposing() }
+            }
+        #endif
     }
 
     private func close() {

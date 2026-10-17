@@ -4,7 +4,9 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+    #if DEBUG
+        @Environment(\.demoLaunchOptions) private var demoLaunchOptions
+    #endif
     @ScaledMetric(relativeTo: .largeTitle) private var iconSize = 64.0
     let viewModel: WelcomeViewModel
     @State private var contentVisible = false

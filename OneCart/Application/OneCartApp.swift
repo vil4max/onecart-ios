@@ -137,21 +137,21 @@ enum OneCartAppComposition {
 private struct OneCartRootScene: View {
     @State private var model = OneCartAppComposition.session
 
-    private static let demoLaunchOptions: DemoLaunchOptions = {
-        #if DEBUG
-            DemoLaunchOptions(arguments: ProcessInfo.processInfo.arguments)
-        #else
-            .none
-        #endif
-    }()
+    #if DEBUG
+        private static let demoLaunchOptions = DemoLaunchOptions(arguments: ProcessInfo.processInfo.arguments)
+    #endif
 
     var body: some View {
-        OneCartScene(model: model)
+        let scene = OneCartScene(model: model)
             .environment(
                 \.managedObjectContext,
                 model.persistence.container.viewContext
             )
-            .environment(\.demoLaunchOptions, Self.demoLaunchOptions)
+        #if DEBUG
+            scene.environment(\.demoLaunchOptions, Self.demoLaunchOptions)
+        #else
+            scene
+        #endif
     }
 }
 
