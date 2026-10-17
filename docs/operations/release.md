@@ -209,6 +209,48 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 | Privacy Policy URL | `https://github.com/vil4max/onecart-ios/blob/main/docs/privacy.md` (English and Russian) |
 | Price | Free |
 
+The Support URL stays the issues page until the maintainer publishes the support page below and
+points the Support URL at it in App Store Connect; this row changes in the same step.
+
+### Support page (draft)
+
+Not published. A published copy would sit next to the privacy policy (for example
+`docs/support.md`). The address is the contact [privacy.md](../privacy.md) publishes and the
+app's Support row writes to (`SupportContact.published`); the response time is the
+maintainer's commitment, repeated in the [1.7.0 App Review notes](releases/1.7.0.md#app-review-notes-draft).
+
+> # OneCart Family support
+>
+> Questions, problems, and reports of offensive content or of a cart member: write to
+> **vil4max@gmail.com**. In the app, Settings → Support → Contact support or report a problem
+> starts the email with the app's version and build.
+>
+> We reply within two business days, and answer reports about content or a member first. For a
+> report, say what happened and the member's name as the app shows it. Never send passwords or
+> Apple Account details.
+>
+> In the app, the cart owner removes a member (Settings, swipe the member, then Remove) and
+> revokes the invite link (Settings → Revoke invite link) so that nobody new can join. A member
+> leaves a cart with Settings → Leave cart.
+>
+> Privacy policy: [privacy.md](privacy.md).
+>
+> # Поддержка OneCart Family
+>
+> Вопросы, проблемы, жалобы на оскорбительное содержимое или на участника корзины: пишите на
+> **vil4max@gmail.com**. В приложении «Настройки» → «Поддержка» → «Написать в поддержку или
+> сообщить о проблеме» письмо уже содержит версию и сборку приложения.
+>
+> Мы отвечаем в течение двух рабочих дней, а жалобы на содержимое или участника рассматриваем
+> в первую очередь. В жалобе опишите, что произошло, и укажите имя участника так, как его
+> показывает приложение. Никогда не присылайте пароли и данные Apple Account.
+>
+> В приложении владелец корзины удаляет участника («Настройки», смахните участника, затем
+> «Удалить») и отзывает ссылку-приглашение («Настройки» → «Отозвать ссылку-приглашение»), чтобы
+> никто новый не вошёл. Участник выходит из корзины через «Настройки» → «Покинуть корзину».
+>
+> Политика конфиденциальности: [privacy.md](privacy.md).
+
 ### Version 1.0: English (U.S.)
 
 **Promotional text**
@@ -230,6 +272,11 @@ Only if Xcode Cloud is unavailable: bump `CURRENT_PROJECT_VERSION` → Product �
 > • Invite family members from Settings using an iCloud share link
 >
 > OneCart Family uses Sign in with Apple and iCloud to keep the household cart private and synchronized. Store prices, catalogs, budgeting, and messaging are intentionally not part of the app.
+
+The live description in App Store Connect reads "Invite up to four people from Settings using
+an iCloud share link" in place of the invite line above. The app sets no member limit, and
+anyone with the link can join until it is revoked, so App Store Connect takes the line above
+unchanged (maintainer's step).
 
 **Keywords**
 
