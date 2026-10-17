@@ -149,6 +149,8 @@
             { "path": "AccountRows.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "AccountView.swift", "target-membership": [ "OneCart/compile-sources" ] },
             { "path": "InviteShareController.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "SupportContact.swift", "target-membership": [ "OneCart/compile-sources" ] },
+            { "path": "SupportContactRow.swift", "target-membership": [ "OneCart/compile-sources" ] },
           ],
         },
       ],
@@ -440,6 +442,7 @@
         { "path": "CartLinesTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "InviteShareControllerTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         { "path": "DemoLaunchOptionsTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
+        { "path": "SupportContactTests.swift", "target-membership": [ "OneCartTests/compile-sources" ] },
         {
           "kind": "group",
           "path": "HostedViews",

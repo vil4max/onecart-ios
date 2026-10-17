@@ -5,6 +5,11 @@ User-visible changes to OneCart Family. Release notes for shipped versions live 
 
 ## [unreleased]
 
+### Added
+
+- Settings → Support: write to support, or report a problem, offensive content or a cart member.
+  Without an email app, the support address is copied instead.
+
 ### Fixed
 
 - An owner can remove a family member who joined with a phone number.

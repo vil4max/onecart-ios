@@ -22,7 +22,7 @@ struct AccountView: View {
                 cartSection
                 appearanceSection
                 accountSection
-                aboutFooter
+                supportSection
             }
             .navigationTitle("settings.nav_title")
             .task {
@@ -230,7 +230,7 @@ extension AccountView {
     }
 }
 
-// MARK: - Appearance, account and about sections
+// MARK: - Appearance, account and support sections
 
 extension AccountView {
     private var appearanceSection: some View {
@@ -310,8 +310,12 @@ extension AccountView {
         }
     }
 
-    private var aboutFooter: some View {
+    /// Support closes the screen, above the app's name and version (REQ-SHELL-070, REQ-SHELL-060).
+    private var supportSection: some View {
         Section {
+            SupportContactRow(contact: .published, appVersion: viewModel.appVersion)
+        } header: {
+            Text("settings.support_section")
         } footer: {
             VStack(spacing: 2) {
                 Text("common.app_name")

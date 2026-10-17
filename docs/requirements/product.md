@@ -439,6 +439,12 @@ Status: approved
 
 App display name / Welcome / share branding: **OneCart Family** (module and bundle id remain `OneCart` / `com.vil555tim.onecart`).
 
+### REQ-SHELL-070 — Support and reports
+
+Status: approved
+
+Every member's **Настройки** ends with a **Поддержка** section above the app name and version: one row to contact support or report a problem, offensive content or a cart member. The row offers **Write an email** — to the contact published in [privacy.md](../privacy.md), with the subject and the app's version and build prefilled — or **Copy address**. When no email app opens, the address is copied and the app says so.
+
 ## Coverage
 
 Which tests prove each requirement above. A row lists the suite and, inside it,
@@ -501,6 +507,7 @@ behavior, so no row cites them.
 | REQ-SHELL-040 | `HostedAccountViewTests` → `@Test "Share is a secondary Settings action: it creates the invite link and waits for connectivity"`; `HostedCartViewTests` → `@Test "the cart and its composer show no price, and REQ-SHELL-040: no share control"` |
 | REQ-SHELL-050 | `AccountViewModelFakeTests` → `@Test "a production-schema failure shows the schema-missing alert"`; `FragileSyncOutcomeTests` → `foregroundSyncFailureAlertsOnlyAfterHealthyState`; `CloudKitErrorMappingTests` → `cloudKitUserFacingErrorDetectsNetworkFailure`, `cloudKitUserFacingErrorMapsAuthAndPermission`, `cloudKitUserFacingErrorReplacesOpaquePartialFailure`, `networkAndSignInClassificationDoesNotDependOnTheLocalizedDescription`; `SessionCartMutationTests` → `@Test "the production-schema alert shows once per session across the sync and mutation paths"` |
 | REQ-SHELL-060 | `HostedWelcomeViewTests` → `@Test "Welcome greets with OneCart Family, the pitch and Sign in with Apple"`; `RequirementConstraintTests` → `@Test "the app presents itself as OneCart Family while the module and bundle id stay OneCart"`; `SharedMappingTests` → `@Test "a widget with no cart is titled with the app name from the catalog"` |
+| REQ-SHELL-070 | `SupportContactTests` → `@Test "the email goes to the published address with the subject, version and build"`, `@Test "a translated subject keeps &, = and + inside its own value"`, `@Test "the address in the app is the contact the privacy policy publishes"`, `@Test "every member's Settings ends with the support row, after the account, above the version"`. The dialog and the hand-off to the email app are not covered (manual check) |
 | REQ-SYNC-010 | `CartContentMappingTests` → `@Test "a background edit reaches the cart lines on the next product refresh"`; `FragileSyncOutcomeTests` → `cartContentStorePublishesAfterReload`, `syncCartAppearFailureDoesNotPresentAlert`, `syncCartPullFailureSetsFailedState`, `syncCartSuccessSetsSynchronized`, `secondAppearWithinDebounceIsSkipped`, `cancelledRefreshIsReportedAsCancelled`, `reasonsQueuedDuringASyncRunOnceWithTheHighestRank`; `ManagedObjectModelTests` → `modelKeepsEveryShippedEntityAttributeAndRelationship` |
 | REQ-SYNC-020 | `CartItemsTests` → `togglePurchasedSetsAndClearsBuyer`; `PurchaseSessionTests` → `test_REQ_SYNC_020_archiveKeepsWhoAddedAndWhoBought`; `HostedHistoryViewTests` → `@Test "REQ-SYNC-020: an archived item names who added it next to who bought it; no name, no caption"`; `ManagedObjectModelTests` → `test_REQ_SYNC_020_storeWithoutHistoryCreatorOpensWithCurrentModel` |
 | REQ-SYNC-030 | `CartItemsTests` → `deletedProductIsKeptAsSyncTombstoneAndHiddenFromUI`; `SharedCartJoinTests` → `refreshFromServerPicksUpToggledPurchasedState` |
