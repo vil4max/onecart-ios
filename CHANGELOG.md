@@ -3,7 +3,7 @@
 User-visible changes to OneCart Family. Release notes for shipped versions live in
 [docs/operations/releases/](docs/operations/releases/).
 
-## [unreleased]
+## [1.7.0]
 
 ### Added
 
