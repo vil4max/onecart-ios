@@ -163,7 +163,8 @@ xcodebuild -project OneCart/OneCart.xcodeproj -describeAllArchivableProducts -js
 
 **Request a TestFlight round** (rules: [ADR 0004](../decisions/0004-tag-gated-testflight.md)):
 
-1. Push the commit to build as the head of its push to `main`, and wait for its `Tests` run.
+1. Merge the pull request with the change to build, and wait for the `Tests` run of the commit
+   the merge put on `main` (the pull request's own run does not count).
 2. `OneCart/ci_scripts/tf-check.sh` (or `OneCart/ci_scripts/tf-check.sh <commit>`). It is
    read-only, needs `gh` signed in to read the `Tests` run, blocks on anything the workflow
    would reject, and prints the tag commands with the next free `BUILD`.

@@ -32,7 +32,11 @@ The app's minimum OS is iOS 27, so `Tests` runs on the public-preview `xcode-27`
 
 ### Branch rules
 
-1. `main` is the only branch people push to (through pull requests).
+1. `main` changes only through pull requests. Its branch protection requires the `Tests` job
+   `lint, build and test` (not strict: the branch need not be up to date) and applies to
+   admins, so a direct push to `main` is rejected. Auto-merge merges a pull request once the
+   check passes, and GitHub deletes the merged branch (since 2026-10-28). The commit a merge
+   puts on `main` gets its own push run, which is the run rule 2 needs.
 2. `testflight` is moved only by `OneCart/ci_scripts/tf-promote.sh`, only to an annotated
    `tf-MAJOR.MINOR.PATCH-BUILD` tag whose exact commit is on `main`, is built as that version,
    and has a successful `Tests` run for a push to `main`, and only by fast-forward.
