@@ -100,13 +100,17 @@ templates; nothing from the plugin runs in CI.
 - `main` is development. `Tests` (`.github/workflows/tests.yml`) runs on every push and pull
   request and publishes nothing: swift-format and SwiftLint over every tracked Swift file, then
   `xcodebuild build test` of the `OneCart` scheme (unit and UI smoke tests).
+- `main` changes only through pull requests: branch protection requires `lint, build and test`
+  and rejects direct pushes, admins included. Enable auto-merge on a pull request; it merges
+  once the check passes, and GitHub deletes the branch (ADR 0003, branch rules).
 - `testflight` is moved only by the `TestFlight` workflow (`.github/workflows/testflight.yml`,
   which runs `OneCart/ci_scripts/tf-promote.sh`), on an annotated `tf-MAJOR.MINOR.PATCH-BUILD`
   tag, only by fast-forward. `release` is frozen at `v1.2.1`. Never push, force-push, reset, or
   delete either branch.
 - A `tf-` tag is created for a commit already on `origin/main` after
-  `OneCart/ci_scripts/tf-check.sh` prints `Ready`. The annotation is the round's What to Test. Push a release-prep commit as the head of
-  its push: only that commit gets its own `Tests` run and can be tagged.
+  `OneCart/ci_scripts/tf-check.sh` prints `Ready`. The annotation is the round's What to Test. Tag the commit that merging the
+  release-prep pull request put on `main`: only the head of a push to `main` gets its own
+  `Tests` run and can be tagged; the pull request's own run does not count.
 - `v` tags and the App Review submission belong to the maintainer.
 - Branches and worktrees exist only while work is in progress; delete merged branches locally and
   on GitHub. Permanent branches are `main`, `testflight` and `release`. Leave no build artifacts
